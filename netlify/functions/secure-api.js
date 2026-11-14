@@ -13,7 +13,9 @@ import {
   generateInvoiceSignature,
   verifyInvoiceSignature,
   checkBillQuota,
-  calculateSecureProfitMetrics
+  calculateSecureProfitMetrics,
+  calculateMultiAgencyComparison,
+  calculateReorderAndExpirySummary
 } from '../../src/core/index.js';
 
 const CORS_HEADERS = {
@@ -114,12 +116,34 @@ export const handler = async (event, context) => {
 
       // 5️⃣ Confidential Profit & Margin Calculation (Delegated to Core)
       case 'calculate-profit': {
-        const { items, billDiscount, taxAmount } = payload;
-        const metrics = calculateSecureProfitMetrics(items, billDiscount, taxAmount);
+        const { items, billDiscount, taxAmount, expensesTotal } = payload;
+        const metrics = calculateSecureProfitMetrics(items, billDiscount, taxAmount, expensesTotal);
         return {
           statusCode: 200,
           headers: CORS_HEADERS,
           body: JSON.stringify(metrics)
+        };
+      }
+
+      // 5B Multi-Agency 10-Branch P&L Comparison & Ranking (Delegated to Core)
+      case 'compare-agencies': {
+        const { branches } = payload;
+        const comparison = calculateMultiAgencyComparison(branches);
+        return {
+          statusCode: 200,
+          headers: CORS_HEADERS,
+          body: JSON.stringify(comparison)
+        };
+      }
+
+      // 5C Warehouse Stock Reorder & Expiry Risk Audit (Delegated to Core)
+      case 'audit-stock-health': {
+        const { stockItems, refDate } = payload;
+        const summary = calculateReorderAndExpirySummary(stockItems, refDate);
+        return {
+          statusCode: 200,
+          headers: CORS_HEADERS,
+          body: JSON.stringify(summary)
         };
       }
 

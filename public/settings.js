@@ -82,9 +82,13 @@ auth.onAuthStateChanged(async (user) => {
             }
         }
 
+        if (window.SaaSModules && typeof window.SaaSModules.syncPackagesFromCloud === 'function') {
+            await window.SaaSModules.syncPackagesFromCloud(db);
+        }
+
         const agDoc = await db.collection('agencies').doc(myAgencyId).get();
         if (agDoc.exists) {
-            myAgency = agDoc.data();
+            myAgency = { id: agDoc.id, ...agDoc.data() };
             const h = document.getElementById('agencyNameHeader');
             if (h && myAgency.name) {
                 h.innerText = isBooker 
@@ -99,7 +103,7 @@ auth.onAuthStateChanged(async (user) => {
         setupTabNav();
         initSyncDashboardUI();
 
-        // Direct navigation from topbar cloud icon (e.g. ?tab=sync or ?tab=secSyncSchedule)
+        // Direct navigation from URL ?tab=secSecurity or ?tab=sync
         const urlParams = new URLSearchParams(window.location.search);
         const targetTab = urlParams.get('tab');
         if (isBooker || targetTab === 'sync' || targetTab === 'secSyncSchedule') {
@@ -107,6 +111,9 @@ auth.onAuthStateChanged(async (user) => {
             if (syncTabBtn) syncTabBtn.click();
             const sec = document.getElementById('secSyncSchedule');
             if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+        } else if (targetTab && document.querySelector(`.settings-tab-btn[data-target="${targetTab}"]`)) {
+            const tabBtn = document.querySelector(`.settings-tab-btn[data-target="${targetTab}"]`);
+            if (tabBtn) tabBtn.click();
         }
 
         if (window.hideNHLoader) {
@@ -160,10 +167,27 @@ function setupTabNav() {
 function populateSettingsFields() {
     if (!myAgency) return;
 
+    // Populate Business Category dropdown from BusinessCategories registry if available
+    const bizSel = document.getElementById('setBizType');
+    if (bizSel && window.BusinessCategories && typeof window.BusinessCategories.getAll === 'function') {
+        const allCats = window.BusinessCategories.getAll();
+        if (allCats.length > 0) {
+            bizSel.innerHTML = allCats.map(c => {
+                const statusTag = (typeof window.BusinessCategories.getCategoryStatusMeta === 'function')
+                    ? ` [${window.BusinessCategories.getCategoryStatusMeta(c.id).optionTag}]`
+                    : '';
+                return `<option value="${c.id}">${c.icon} ${c.nameEn} (${c.nameUr})${statusTag}</option>`;
+            }).join('');
+        }
+    }
+    const resolvedBizCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+        ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
+        : (myAgency.businessCategory || myAgency.businessType || 'general');
+
     // Profile & Identity
     document.getElementById('setAgencyName').value = myAgency.name || '';
     document.getElementById('setAgencyTagline').value = myAgency.tagline || myAgency.slogan || '';
-    document.getElementById('setBizType').value = myAgency.businessType || 'general';
+    if (bizSel) bizSel.value = resolvedBizCat;
     document.getElementById('setCity').value = myAgency.city || '';
     document.getElementById('setMobile').value = myAgency.mobile || myAgency.ownerMobile || '';
     document.getElementById('setPhone').value = myAgency.phone || '';
@@ -173,7 +197,8 @@ function populateSettingsFields() {
 
     // Invoicing & POS
     document.getElementById('setDefaultTemplate').value = myAgency.defaultTemplate || localStorage.getItem('eb_default_template') || 'template4';
-    document.getElementById('setThermalWidth').value = myAgency.thermalPaperWidth || localStorage.getItem('eb_thermal_width') || '80';
+    const rawThermW = String(myAgency.thermalPaperWidth || localStorage.getItem('eb_thermal_width') || localStorage.getItem('nh_thermal_width') || '80');
+    document.getElementById('setThermalWidth').value = rawThermW.startsWith('58') ? '58' : '80';
     const billLangEl = document.getElementById('setDefaultBillLanguage');
     if (billLangEl) billLangEl.value = myAgency.billLanguage || localStorage.getItem('eb_bill_language') || 'en';
     document.getElementById('setDefaultPriceMode').value = myAgency.defaultPriceMode || 'wholesale';
@@ -259,6 +284,94 @@ function populateSettingsFields() {
 
     // ⚡ Cloud Sync Settings
     populateSyncSettingsFields();
+
+    // ⏱️ Security Timeout & Backup Module Controls
+    populateSecurityTimeoutAndBackupUI();
+}
+
+function populateSecurityTimeoutAndBackupUI() {
+    if (!myAgency) return;
+    const minsEl = document.getElementById('setSessionTimeoutMins');
+    const toggleEl = document.getElementById('setSessionAutoLockEnabled');
+    const lockBadge = document.getElementById('sessionSecLockBadge');
+    const saveBtn = document.getElementById('btnSaveSessionSecurity');
+    const wrap = document.getElementById('sessionSecControlsWrap');
+
+    const minsVal = myAgency.sessionTimeoutMinutes !== undefined ? Number(myAgency.sessionTimeoutMinutes) : 30;
+    const enabledVal = myAgency.sessionAutoLockEnabled !== false;
+    if (minsEl) minsEl.value = (Number.isFinite(minsVal) && minsVal >= 1) ? minsVal : 30;
+    if (toggleEl) toggleEl.checked = enabledVal;
+
+    const secAccess = (window.SaaSModules && myUser)
+        ? window.SaaSModules.checkModuleAccess('session_security', myAgency, myUser.role, myAgency.permissions)
+        : { allowed: true, locked: false };
+
+    if (secAccess.locked) {
+        if (lockBadge) {
+            lockBadge.style.background = '#fee2e2';
+            lockBadge.style.color = '#b91c1c';
+            lockBadge.style.borderColor = '#fecaca';
+            lockBadge.innerHTML = '🔒 Locked (Default 30m)';
+        }
+        if (minsEl) minsEl.disabled = true;
+        if (toggleEl) toggleEl.disabled = true;
+        document.querySelectorAll('.sec-timeout-preset').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-lock"></i> Unlock Package to Edit';
+            saveBtn.style.background = '#f59e0b';
+            saveBtn.dataset.locked = 'true';
+        }
+        if (wrap) wrap.style.opacity = '0.78';
+    } else {
+        if (lockBadge) {
+            lockBadge.style.background = '#dcfce7';
+            lockBadge.style.color = '#15803d';
+            lockBadge.style.borderColor = '#86efac';
+            lockBadge.innerHTML = enabledVal ? `🔓 Active (${minsEl ? minsEl.value : 30}m)` : '🔓 Auto-Lock OFF';
+        }
+        if (minsEl) minsEl.disabled = false;
+        if (toggleEl) toggleEl.disabled = false;
+        document.querySelectorAll('.sec-timeout-preset').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Timeout Settings';
+            saveBtn.style.background = '#0284c7';
+            saveBtn.dataset.locked = 'false';
+        }
+        if (wrap) wrap.style.opacity = '1';
+    }
+
+    // Backup module status check
+    const backupBadge = document.getElementById('backupSecStatusBadge');
+    const backupBtn = document.getElementById('btnOpenBackupFromSettings');
+    const backupAccess = (window.SaaSModules && myUser)
+        ? window.SaaSModules.checkModuleAccess('backup', myAgency, myUser.role, myAgency.permissions)
+        : { allowed: true, locked: false };
+
+    if (backupAccess.locked) {
+        if (backupBadge) {
+            backupBadge.style.background = '#fee2e2';
+            backupBadge.style.color = '#b91c1c';
+            backupBadge.style.borderColor = '#fecaca';
+            backupBadge.innerHTML = '🔒 Locked';
+        }
+        if (backupBtn) {
+            backupBtn.style.background = '#f59e0b';
+            backupBtn.innerHTML = '<i class="fas fa-lock"></i> View Package to Unlock';
+            backupBtn.dataset.locked = 'true';
+        }
+    } else {
+        if (backupBadge) {
+            backupBadge.style.background = '#dcfce7';
+            backupBadge.style.color = '#15803d';
+            backupBadge.style.borderColor = '#86efac';
+            backupBadge.innerHTML = '🔓 Unlocked';
+        }
+        if (backupBtn) {
+            backupBtn.style.background = '#10b981';
+            backupBtn.innerHTML = '<i class="fas fa-external-link-alt"></i> Open Backup &amp; Restore';
+            backupBtn.dataset.locked = 'false';
+        }
+    }
 }
 
 // ============================================
@@ -383,6 +496,7 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
             name: name,
             tagline: tagline,
             businessType: bizType,
+            businessCategory: bizType,
             city: city,
             mobile: mobile,
             phone: phone,
@@ -395,6 +509,8 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
 
         // Update local storage cache
         localStorage.setItem(`eb_agency_name_${myAgencyId}`, name);
+        localStorage.setItem('eb_active_business_category', bizType);
+        localStorage.setItem('eb_active_category', bizType);
         localStorage.setItem('eb_app_language', langMode);
         document.documentElement.setAttribute('data-lang', langMode);
 
@@ -492,6 +608,7 @@ document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
         localStorage.setItem('eb_nonfiler_tax_rate', String(nonFilerTaxRate));
         localStorage.setItem('eb_print_settings', JSON.stringify(printSettings));
         localStorage.setItem('eb_thermal_width', thermalPaperWidth);
+        localStorage.setItem('nh_thermal_width', thermalPaperWidth.startsWith('58') ? '58mm' : '80mm');
         localStorage.setItem('eb_bill_language', billLanguage);
         localStorage.setItem('eb_default_template', defaultTemplate);
 
@@ -601,6 +718,76 @@ document.getElementById('btnClearCache').addEventListener('click', async () => {
             }
         });
     }
+
+// ⏱️ Session Timeout Presets, Save & Backup Launch Listeners
+document.querySelectorAll('.sec-timeout-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const minsInp = document.getElementById('setSessionTimeoutMins');
+        const toggleInp = document.getElementById('setSessionAutoLockEnabled');
+        if (minsInp && !minsInp.disabled) {
+            minsInp.value = btn.dataset.mins || '30';
+        }
+        if (toggleInp && !toggleInp.disabled) {
+            toggleInp.checked = true;
+        }
+    });
+});
+
+const btnSaveSessionSecurity = document.getElementById('btnSaveSessionSecurity');
+if (btnSaveSessionSecurity) {
+    btnSaveSessionSecurity.addEventListener('click', async () => {
+        if (btnSaveSessionSecurity.dataset.locked === 'true' && window.SaaSModules) {
+            window.SaaSModules.showUpgradeModal('session_security', myAgency, myUser);
+            return;
+        }
+        const minsRaw = parseInt(document.getElementById('setSessionTimeoutMins')?.value || '30', 10);
+        const mins = Number.isFinite(minsRaw) ? Math.max(1, Math.min(480, minsRaw)) : 30;
+        const enabled = document.getElementById('setSessionAutoLockEnabled')?.checked !== false;
+
+        try {
+            await db.collection('agencies').doc(myAgencyId).update({
+                sessionTimeoutMinutes: mins,
+                sessionAutoLockEnabled: enabled,
+                updatedAt: new Date().toISOString()
+            });
+            myAgency.sessionTimeoutMinutes = mins;
+            myAgency.sessionAutoLockEnabled = enabled;
+            localStorage.setItem('eb_session_timeout_mins', String(mins));
+            localStorage.setItem('eb_session_autolock', enabled ? 'true' : 'false');
+
+            if (window.ebSidebar && typeof window.ebSidebar.syncSessionConfig === 'function') {
+                window.ebSidebar.syncSessionConfig(myAgency, myUser);
+            }
+            if (window.ebSidebar && typeof window.ebSidebar.notifyToast === 'function') {
+                window.ebSidebar.notifyToast(
+                    'SUCCESS',
+                    enabled ? `Inactivity timeout ${mins} minutes par set ho gaya.` : 'Inactivity auto-lock disabled kar diya gaya hai.',
+                    'Session Timeout Saved'
+                );
+            }
+            populateSecurityTimeoutAndBackupUI();
+
+            Swal.fire({
+                toast: true, position: 'top-end', showConfirmButton: false,
+                timer: 2000, icon: 'success',
+                title: enabled ? `✅ Timeout set to ${mins} minutes!` : '✅ Auto-Timeout Disabled!'
+            });
+        } catch (err) {
+            Swal.fire('Error', 'Timeout settings save failed: ' + err.message, 'error');
+        }
+    });
+}
+
+const btnOpenBackupFromSettings = document.getElementById('btnOpenBackupFromSettings');
+if (btnOpenBackupFromSettings) {
+    btnOpenBackupFromSettings.addEventListener('click', () => {
+        if (btnOpenBackupFromSettings.dataset.locked === 'true' && window.SaaSModules) {
+            window.SaaSModules.showUpgradeModal('backup', myAgency, myUser);
+            return;
+        }
+        window.location.href = 'backup.html';
+    });
+}
 
 // ============================================
 // ⚡ CLOUD SYNC & SHIFT CONTROLLER

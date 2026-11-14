@@ -1596,8 +1596,10 @@
             }
         });
 
-        // Inventory value & low stock
-        let totalStockVal = 0, lowStockCount = 0, reorderCost = 0;
+        // Inventory value, low stock & expiry watch (<= 30 days)
+        let totalStockVal = 0, lowStockCount = 0, reorderCost = 0, nearExpiryCount = 0;
+        const baseToday = new Date();
+        const todayMidnight = new Date(baseToday.getFullYear(), baseToday.getMonth(), baseToday.getDate());
         allStock.forEach(s => {
             const q = Number(s.qty || 0);
             const c = Number(s.purchaseRate || s.cost || 0);
@@ -1607,6 +1609,14 @@
                 lowStockCount++;
                 const need = Math.max(10, (lim * 3) - Math.max(0, q));
                 reorderCost += (need * c);
+            }
+            const expStr = String(s.expiryDate || (s.industryFields && s.industryFields.expiryDate) || '').trim().slice(0, 10);
+            if (expStr && q > 0) {
+                const expDate = new Date(`${expStr}T00:00:00`);
+                if (!Number.isNaN(expDate.getTime())) {
+                    const daysLeft = Math.ceil((expDate.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+                    if (daysLeft <= 30) nearExpiryCount++;
+                }
             }
         });
 
@@ -1632,12 +1642,16 @@
         document.getElementById('kpiMonthOrders').innerText = `${monthOrders} Bills`;
 
         document.getElementById('kpiStockValue').innerText = 'Rs ' + Math.round(totalStockVal).toLocaleString();
-        document.getElementById('kpiLowStockCount').innerText = `${lowStockCount} Items`;
+        document.getElementById('kpiLowStockCount').innerText = nearExpiryCount > 0
+            ? `${lowStockCount} Low • ${nearExpiryCount} Exp≤30d`
+            : `${lowStockCount} Items`;
 
         document.getElementById('kpiTotalKhata').innerText = 'Rs ' + Math.round(totalKhata).toLocaleString();
         document.getElementById('kpiOverdueKhata').innerText = 'Rs ' + Math.round(overdueKhata).toLocaleString();
 
-        document.getElementById('kpiReorderCount').innerText = `${lowStockCount} Items`;
+        document.getElementById('kpiReorderCount').innerText = nearExpiryCount > 0
+            ? `${lowStockCount} Low + ${nearExpiryCount} Exp`
+            : `${lowStockCount} Items`;
         document.getElementById('kpiReorderCost').innerText = 'Rs ' + Math.round(reorderCost).toLocaleString();
 
         document.getElementById('kpiMonthSales').innerText = 'Rs ' + Math.round(monthSales).toLocaleString();
@@ -1777,11 +1791,27 @@
                 ordersData.push(o);
             }
         } else if (period === 'weekly') {
-            // Last 4 weeks
+            // Last 4 real 7-day rolling weeks computed from actual bills
+            const todayEnd = new Date();
             for (let w = 3; w >= 0; w--) {
-                labels.push(`Week ${4 - w}`);
-                salesData.push(Math.round(Math.random() * 250000 + 100000)); // smooth representative
-                ordersData.push(Math.round(Math.random() * 40 + 15));
+                const wEnd = new Date(todayEnd);
+                wEnd.setDate(wEnd.getDate() - (w * 7));
+                const wStart = new Date(wEnd);
+                wStart.setDate(wStart.getDate() - 6);
+                const startStr = wStart.toISOString().slice(0, 10);
+                const endStr = wEnd.toISOString().slice(0, 10);
+
+                labels.push(w === 0 ? 'This Week' : `${wStart.getDate()}/${wStart.getMonth() + 1} - ${wEnd.getDate()}/${wEnd.getMonth() + 1}`);
+                let s = 0, o = 0;
+                allBills.forEach(b => {
+                    const bDate = (b.date || (b.createdAt || '')).slice(0, 10);
+                    if (bDate >= startStr && bDate <= endStr) {
+                        s += Number(b.billAmount || b.grandTotal || 0);
+                        o++;
+                    }
+                });
+                salesData.push(s);
+                ordersData.push(o);
             }
         } else {
             // Months

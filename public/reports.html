@@ -59,6 +59,15 @@
         <button class="report-tab-btn" data-tab="khata">
             <i class="fas fa-hand-holding-dollar"></i> Customer Khata Aging
         </button>
+        <button class="report-tab-btn" data-tab="mobile_analytics" id="tabBtnMobileAnalytics" style="background:#f0f9ff; border-color:#7dd3fc; color:#0369a1;">
+            <i class="fas fa-mobile-screen-button" style="color:#0284c7;"></i> <b>Mobile, IMEI &amp; Repairing (موبائل، IMEI و ریپئرنگ رپورٹ)</b>
+        </button>
+        <button class="report-tab-btn" data-tab="books_analytics" id="tabBtnBooksAnalytics" style="background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8;">
+            <i class="fas fa-book-open" style="color:#2563eb;"></i> <b>Publisher &amp; Class Analytics (کتب و نصاب رپورٹ)</b>
+        </button>
+        <button class="report-tab-btn" data-tab="wholesaler_analytics" id="tabBtnWholesalerAnalytics" style="background:#fff7ed; border-color:#fdba74; color:#c2410c;">
+            <i class="fas fa-boxes-stacked" style="color:#ea580c;"></i> <b>Wholesale, PJP, Expiry &amp; Schemes (ہول سیل و ڈسٹری بیوشن)</b>
+        </button>
     </div>
 
     <!-- ===== 📅 DATE FILTER & ACTION BAR ===== -->
@@ -81,11 +90,14 @@
                 </button>
             </div>
             
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 <button class="btn btn-sm btn-export-csv" id="btnExportCSV" style="background:#10b981; color:#fff;" title="Download Excel CSV">
                     <i class="fas fa-file-excel"></i> Export CSV
                 </button>
-                <button class="btn btn-sm btn-print-report" id="btnPrintReport" style="background:#475569; color:#fff;" title="Print Report">
+                <button class="btn btn-sm" id="btnThermalReport" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; font-weight:800;" title="Print 80mm/58mm Thermal Closing Summary Slip">
+                    🧾 Thermal Slip
+                </button>
+                <button class="btn btn-sm btn-print-report" id="btnPrintReport" style="background:#475569; color:#fff;" title="Print Full Report">
                     <i class="fas fa-print"></i> Print
                 </button>
             </div>
@@ -103,9 +115,28 @@
                 <h2 id="reportTitle"><i class="fas fa-file-lines"></i> Sales Report</h2>
                 <small class="header-note" id="reportSubTitle">Loading report metrics...</small>
             </div>
-            <div style="position:relative; width:100%; max-width:260px;">
-                <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>
-                <input type="text" id="reportSearchInput" placeholder="Quick filter in results..." style="width:100%; padding:6px 10px 6px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <select id="mobileAnalyticsModeSelect" style="display:none; padding:6px 10px; border:1px solid #7dd3fc; border-radius:8px; font-size:12px; font-weight:700; color:#0369a1; background:#f0f9ff; outline:none; cursor:pointer;">
+                    <option value="brand">📱 Brand &amp; Model Analytics (برانڈ اور ماڈل کے لحاظ سے سیلز و اسٹاک)</option>
+                    <option value="imei_audit">🔢 Sold &amp; In-Stock IMEI Register (فروخت شدہ اور موجودہ IMEI رجسٹر)</option>
+                    <option value="repair_lab">🛠️ Repairing Lab &amp; Technician Jobs (ریپئرنگ لیب، ٹوکنز اور کاریگر رپورٹ)</option>
+                    <option value="exchange_used">🔄 Used Phone &amp; Exchange Trade-In Register (ایکسچینج اور استعمال شدہ موبائل رپورٹ)</option>
+                </select>
+                <select id="booksAnalyticsModeSelect" style="display:none; padding:6px 10px; border:1px solid #93c5fd; border-radius:8px; font-size:12px; font-weight:700; color:#1e40af; background:#eff6ff; outline:none; cursor:pointer;">
+                    <option value="publisher">🏛️ Group by Publisher / Brand (پبلشر و برانڈ کے لحاظ سے)</option>
+                    <option value="class">🎓 Group by Class / Grade (کلاس و جماعت کے لحاظ سے)</option>
+                    <option value="subject">📖 Group by Subject / Item Type (مضمون و قسم کے لحاظ سے)</option>
+                </select>
+                <select id="wholesalerAnalyticsModeSelect" style="display:none; padding:6px 10px; border:1px solid #fdba74; border-radius:8px; font-size:12px; font-weight:700; color:#c2410c; background:#fff7ed; outline:none; cursor:pointer;">
+                    <option value="principal_company">🏭 Principal Company / Brand Sales &amp; Stock (کمپنی و برانڈ رپورٹ)</option>
+                    <option value="pjp_route">🗺️ PJP Beat / Route Sales &amp; Khata (روٹ / بیٹ سیلز و ریکوری)</option>
+                    <option value="expiry_batch">⏳ Batch Expiry Radar &amp; Damage Claims (ایکسپائری و کلیمز رپورٹ)</option>
+                    <option value="scheme_bonus">🎁 Free Bonus (TP) &amp; Trade Schemes Audit (مفت بونس و اسکیم آڈٹ)</option>
+                </select>
+                <div style="position:relative; width:100%; max-width:260px;">
+                    <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>
+                    <input type="text" id="reportSearchInput" placeholder="Quick filter in results..." style="width:100%; padding:6px 10px 6px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none;">
+                </div>
             </div>
         </div>
 
@@ -122,6 +153,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+<!-- 🏢 BUSINESS CATEGORIES REGISTRY -->
+<script src="business-categories.js"></script>
 <!-- 🧭 SIDEBAR SYSTEM -->
 <script src="sidebar.js"></script>
 <!-- 📊 REPORTS ENGINE SCRIPT -->

@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'auth/weak-password': return 'msgShort';
             case 'auth/too-many-requests': return 'msgTooMany';
             case 'auth/network-request-failed': return 'msgNetwork';
+            case 'permission-denied': return 'msgWrongPass';
             default: return 'msgGeneric';
         }
     }
@@ -188,11 +189,227 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Direction (RTL/LTR)
         document.getElementById('authWrapper').setAttribute('dir', lang === 'ur' ? 'rtl' : 'ltr');
+        const bizModal = document.getElementById('bizTypeModal');
+        if (bizModal) bizModal.setAttribute('dir', lang === 'ur' ? 'rtl' : 'ltr');
+
+        // Business category search placeholder & selected trigger text
+        const bizSearchEl = document.getElementById('bizTypeSearchInput');
+        if (bizSearchEl) {
+            bizSearchEl.placeholder = lang === 'ur' ? '🔍 کاروبار کی قسم تلاش کریں...' : '🔍 Search business category...';
+        }
+        const legendBar = document.getElementById('bizTypeLegendBar');
+        if (legendBar) {
+            legendBar.innerHTML = lang === 'ur'
+                ? '<span class="biztype-legend-pill is-complete">✅ مکمل (Complete)</span><span class="biztype-legend-pill is-working">🛠️ کام جاری (Under Development)</span><span class="biztype-legend-pill is-soon">🚧 جلد دستیاب (Coming Soon)</span>'
+                : '<span class="biztype-legend-pill is-complete">✅ Complete</span><span class="biztype-legend-pill is-working">🛠️ Working / Under Development</span><span class="biztype-legend-pill is-soon">🚧 Coming Soon</span>';
+        }
+        if (typeof syncBizTypeTriggerDisplay === 'function') syncBizTypeTriggerDisplay();
+        if (bizModal && bizModal.classList.contains('open') && typeof renderBizTypeModalList === 'function') {
+            renderBizTypeModalList(bizSearchEl ? bizSearchEl.value : '');
+        }
 
         // Language buttons active state
         document.getElementById('langEn').classList.toggle('active', lang === 'en');
         document.getElementById('langUr').classList.toggle('active', lang === 'ur');
     }
+
+    // -------------------------------------------
+    // 🏷️ CUSTOM BUSINESS TYPE PICKER (With Complete / Under Development + Coming Soon)
+    // -------------------------------------------
+    function escapeHtmlAuth(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function getBizCategoriesSafe() {
+        if (window.BusinessCategories && typeof window.BusinessCategories.getAll === 'function') {
+            return window.BusinessCategories.getAll();
+        }
+        const sel = document.getElementById('bizType');
+        if (!sel) return [];
+        return Array.from(sel.options)
+            .filter(o => o.value)
+            .map(o => ({
+                id: o.value,
+                nameEn: o.textContent.split('—')[0].trim(),
+                nameUr: '',
+                icon: ''
+            }));
+    }
+
+    function getBizStatusMetaSafe(catId) {
+        if (window.BusinessCategories && typeof window.BusinessCategories.getCategoryStatusMeta === 'function') {
+            return window.BusinessCategories.getCategoryStatusMeta(catId, authLang);
+        }
+        const isDone = (catId === 'books' || catId === 'mobile' || catId === 'wholesaler');
+        const isWorking = false;
+        if (isDone) {
+            return { code: 'complete', badgeText: '✅ Complete • Active & Ready', optionTag: '✅ Complete', color: '#15803d', bg: '#dcfce7', border: '#86efac' };
+        }
+        if (isWorking) {
+            return { code: 'working', badgeText: '🛠️ Working / Under Development • Coming Soon', optionTag: '🛠️ Working / Under Development • Coming Soon', color: '#b45309', bg: '#fef3c7', border: '#fcd34d' };
+        }
+        return { code: 'coming_soon', badgeText: '🚧 Under Development • Coming Soon', optionTag: '🚧 Under Development • Coming Soon', color: '#64748b', bg: '#f1f5f9', border: '#cbd5e1' };
+    }
+
+    function syncHiddenBizSelectOptions() {
+        const sel = document.getElementById('bizType');
+        if (!sel) return;
+        const cats = getBizCategoriesSafe();
+        if (!cats.length) return;
+        const prevVal = sel.value;
+        sel.innerHTML = '';
+        const placeholderOpt = document.createElement('option');
+        placeholderOpt.value = '';
+        placeholderOpt.setAttribute('data-i18n', 'selectType');
+        placeholderOpt.textContent = T().selectType;
+        sel.appendChild(placeholderOpt);
+
+        cats.forEach(cat => {
+            const opt = document.createElement('option');
+            const meta = getBizStatusMetaSafe(cat.id);
+            opt.value = cat.id;
+            opt.textContent = `${cat.icon || ''} ${cat.nameEn} — ${meta.optionTag}`.trim();
+            if (prevVal && prevVal === cat.id) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        if (prevVal) sel.value = prevVal;
+    }
+
+    function syncBizTypeTriggerDisplay() {
+        const sel = document.getElementById('bizType');
+        const btn = document.getElementById('bizTypePickerBtn');
+        const lbl = document.getElementById('bizTypeTriggerLabel');
+        const sub = document.getElementById('bizTypeTriggerSub');
+        if (!sel || !btn || !lbl || !sub) return;
+
+        const val = sel.value;
+        if (!val) {
+            btn.classList.remove('has-value');
+            lbl.textContent = T().selectType;
+            sub.style.display = 'none';
+            sub.textContent = '';
+            return;
+        }
+
+        const cats = getBizCategoriesSafe();
+        const cat = cats.find(c => c.id === val);
+        const meta = getBizStatusMetaSafe(val);
+        btn.classList.add('has-value');
+        btn.style.borderColor = '';
+        lbl.textContent = cat
+            ? `${cat.icon ? cat.icon + ' ' : ''}${authLang === 'ur' && cat.nameUr ? cat.nameUr : cat.nameEn}`
+            : val;
+        sub.style.display = 'inline-flex';
+        sub.style.color = meta.color;
+        sub.style.background = meta.bg;
+        sub.style.border = `1px solid ${meta.border}`;
+        sub.textContent = meta.badgeText;
+    }
+
+    function renderBizTypeModalList(queryText = '') {
+        const listEl = document.getElementById('bizTypeModalList');
+        const sel = document.getElementById('bizType');
+        if (!listEl) return;
+
+        const q = String(queryText || '').trim().toLowerCase();
+        const currentVal = sel ? sel.value : '';
+        const cats = getBizCategoriesSafe().filter(c => {
+            if (!q) return true;
+            const hay = `${c.id} ${c.nameEn || ''} ${c.nameUr || ''} ${c.description || ''}`.toLowerCase();
+            return hay.includes(q);
+        });
+
+        if (!cats.length) {
+            listEl.innerHTML = `<div class="biztype-empty-search">${authLang === 'ur' ? 'کوئی کیٹیگری نہیں ملی' : 'No matching category found'}</div>`;
+            return;
+        }
+
+        listEl.innerHTML = cats.map(cat => {
+            const meta = getBizStatusMetaSafe(cat.id);
+            const isSelected = currentVal === cat.id;
+            const primaryTitle = authLang === 'ur' && cat.nameUr ? cat.nameUr : cat.nameEn;
+            const secondaryTitle = authLang === 'ur' ? cat.nameEn : (cat.nameUr || '');
+            return `
+                <button type="button" class="biztype-option-item status-${meta.code}${isSelected ? ' selected' : ''}" data-cat-id="${escapeHtmlAuth(cat.id)}">
+                    <div class="biztype-option-main">
+                        <div class="biztype-option-title">
+                            ${escapeHtmlAuth(cat.icon || '🏷️')} ${escapeHtmlAuth(primaryTitle)}
+                            ${secondaryTitle ? `<span class="biztype-option-ur">${escapeHtmlAuth(secondaryTitle)}</span>` : ''}
+                        </div>
+                        <span class="biztype-status-pill ${meta.code}">${escapeHtmlAuth(meta.badgeText)}</span>
+                    </div>
+                    <span class="biztype-radio-dot" aria-hidden="true"></span>
+                </button>
+            `;
+        }).join('');
+
+        listEl.querySelectorAll('.biztype-option-item').forEach(itemBtn => {
+            itemBtn.addEventListener('click', () => {
+                const chosenId = itemBtn.getAttribute('data-cat-id');
+                if (sel) {
+                    sel.value = chosenId;
+                    sel.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                syncBizTypeTriggerDisplay();
+                closeBizTypeModal();
+            });
+        });
+    }
+
+    function openBizTypeModal() {
+        const modal = document.getElementById('bizTypeModal');
+        const btn = document.getElementById('bizTypePickerBtn');
+        const searchEl = document.getElementById('bizTypeSearchInput');
+        if (!modal) return;
+        modal.setAttribute('dir', authLang === 'ur' ? 'rtl' : 'ltr');
+        if (searchEl) searchEl.value = '';
+        renderBizTypeModalList('');
+        modal.classList.add('open');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        setTimeout(() => { if (searchEl) searchEl.focus(); }, 60);
+    }
+
+    function closeBizTypeModal() {
+        const modal = document.getElementById('bizTypeModal');
+        const btn = document.getElementById('bizTypePickerBtn');
+        if (!modal) return;
+        modal.classList.remove('open');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+
+    (function initBizTypePicker() {
+        syncHiddenBizSelectOptions();
+        syncBizTypeTriggerDisplay();
+
+        const triggerBtn = document.getElementById('bizTypePickerBtn');
+        const closeBtn = document.getElementById('bizTypeModalClose');
+        const modal = document.getElementById('bizTypeModal');
+        const searchEl = document.getElementById('bizTypeSearchInput');
+        const hiddenSel = document.getElementById('bizType');
+
+        if (triggerBtn) triggerBtn.addEventListener('click', openBizTypeModal);
+        if (closeBtn) closeBtn.addEventListener('click', closeBizTypeModal);
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeBizTypeModal();
+            });
+        }
+        if (searchEl) {
+            searchEl.addEventListener('input', () => renderBizTypeModalList(searchEl.value));
+        }
+        if (hiddenSel) {
+            hiddenSel.addEventListener('change', syncBizTypeTriggerDisplay);
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal && modal.classList.contains('open')) {
+                closeBizTypeModal();
+            }
+        });
+    })();
 
     // Apply language on startup
     setAuthLang(authLang);
@@ -279,7 +496,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // ✅ Validations (Business Name + Type LAZMI!)
         if (!bizName) return showAuthMsg('msgBizName');
-        if (!bizType) return showAuthMsg('msgBizType');
+        if (!bizType) {
+            const pickerBtn = document.getElementById('bizTypePickerBtn');
+            if (pickerBtn) {
+                pickerBtn.style.borderColor = '#e74c3c';
+                pickerBtn.focus();
+            }
+            return showAuthMsg('msgBizType');
+        }
         if (pass.length < 6) return showAuthMsg('msgShort');
         if (pass !== confirm) return showAuthMsg('msgNoMatch');
 
@@ -408,15 +632,20 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (authErr) {
                 // 🛠️ Self-healing fallback: If staff exists in Firestore with matching tempPassword, auto-create in Auth!
                 if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential') {
-                    const staffSnap = await db.collection('users').where('email', '==', emailToUse).limit(1).get();
-                    if (!staffSnap.empty) {
-                        const sData = staffSnap.docs[0].data();
-                        if (sData.tempPassword && sData.tempPassword === pass) {
-                            await auth.createUserWithEmailAndPassword(emailToUse, pass);
+                    try {
+                        const staffSnap = await db.collection('users').where('email', '==', emailToUse).limit(1).get();
+                        if (!staffSnap.empty) {
+                            const sData = staffSnap.docs[0].data();
+                            if (sData.tempPassword && sData.tempPassword === pass) {
+                                await auth.createUserWithEmailAndPassword(emailToUse, pass);
+                            } else {
+                                throw authErr;
+                            }
                         } else {
                             throw authErr;
                         }
-                    } else {
+                    } catch (fallbackErr) {
+                        // Firestore blocks unauthenticated reads on 'users' — preserve the original Auth error
                         throw authErr;
                     }
                 } else {

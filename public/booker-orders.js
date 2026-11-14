@@ -40,7 +40,104 @@ let allCustomers = [];
 let activeFilter = 'all';
 let activeDateFilter = 'all';
 let activeBookerFilter = 'all';
+let activeRouteFilter = 'all';
 let isLiveSyncActive = false;
+
+// ============================================
+// 📦 CATEGORY & WHOLESALE DISTRIBUTION HELPERS
+// ============================================
+function getActiveBookerCategory() {
+    if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+        return window.BusinessCategories.resolveActiveCategory(myAgency, 'books');
+    }
+    return (myAgency && (myAgency.businessCategory || myAgency.category || myAgency.businessType))
+        || localStorage.getItem('eb_active_business_category')
+        || localStorage.getItem('eb_active_category')
+        || 'books';
+}
+
+function setupCategoryBookerUI() {
+    const catId = getActiveBookerCategory();
+    const isMobile = catId === 'mobile';
+    const isWholesale = catId === 'wholesaler';
+
+    const repairBtn = document.getElementById('btnOpenRepairJobModal');
+    if (repairBtn) {
+        repairBtn.style.display = isMobile ? 'inline-flex' : 'none';
+    }
+    const vanLoadBtn = document.getElementById('btnOpenVanLoadSheet');
+    if (vanLoadBtn) {
+        vanLoadBtn.style.display = 'inline-flex';
+        if (isWholesale) {
+            vanLoadBtn.style.boxShadow = '0 0 0 2px #ddd6fe';
+        }
+    }
+    const searchInp = document.getElementById('orderSearchInput');
+    if (searchInp && isWholesale) {
+        searchInp.placeholder = 'Search by Order/Bill #, Load Form #, Shop, PJP Route, SKU, Product...';
+    }
+}
+
+function generateLoadFormNo() {
+    const d = new Date();
+    const ymd = d.toISOString().slice(2, 10).replace(/-/g, '');
+    const rnd = Math.floor(1000 + Math.random() * 9000);
+    return `LF-${ymd}-${rnd}`;
+}
+
+function resolveOrderItemPackSize(it) {
+    if (!it) return 1;
+    let p = parseFloat(it.packSize || (it.industryFields && it.industryFields.packSize) || 0);
+    if ((!p || p <= 1) && Array.isArray(allStock) && allStock.length > 0) {
+        const st = allStock.find(s => (it.stockId && s.id === it.stockId) || (it.name && s.name === it.name));
+        if (st) p = parseFloat(st.packSize || (st.industryFields && st.industryFields.packSize) || 0);
+    }
+    return p > 1 ? p : 1;
+}
+
+function formatWholesaleQtySummary(qty, freeQty, unit, packSize) {
+    const q = parseFloat(qty) || 0;
+    const fq = parseFloat(freeQty) || 0;
+    const total = q + fq;
+    const u = String(unit || 'Pcs').trim();
+    const uLow = u.toLowerCase();
+    const p = parseFloat(packSize) || 1;
+    if (p <= 1) return `${total} ${u}`;
+    if (['ctn', 'carton', 'box', 'pack', 'case', 'bundle'].includes(uLow)) {
+        return `${total} ${u} (${Math.round(total * p)} Pcs)`;
+    }
+    const ctns = Math.floor(total / p);
+    const loose = total % p;
+    if (ctns > 0) {
+        return `${ctns} Ctn${loose > 0 ? ' + ' + loose + ' ' + u : ''} (1x${p})`;
+    }
+    return `${total} ${u} (1x${p})`;
+}
+
+function populateRouteFilterDropdown() {
+    const sel = document.getElementById('filterRouteSelect');
+    if (!sel) return;
+    const isWholesale = getActiveBookerCategory() === 'wholesaler';
+    const routeSet = new Set();
+    allOrders.forEach(o => {
+        if (o.customerRoute && String(o.customerRoute).trim()) routeSet.add(String(o.customerRoute).trim());
+        if (isWholesale && o.affiliatedBoard && String(o.affiliatedBoard).trim()) routeSet.add(String(o.affiliatedBoard).trim());
+    });
+    allStaff.forEach(s => {
+        if (s.route && String(s.route).trim()) routeSet.add(String(s.route).trim());
+    });
+    const sorted = Array.from(routeSet).sort((a, b) => a.localeCompare(b));
+    const prev = activeRouteFilter || sel.value || 'all';
+    sel.innerHTML = '<option value="all">🛣️ All PJP Routes</option>' +
+        sorted.map(r => `<option value="${r.replace(/"/g, '&quot;')}">🛣️ ${r}</option>`).join('');
+    if (prev !== 'all' && sorted.includes(prev)) {
+        sel.value = prev;
+        activeRouteFilter = prev;
+    } else {
+        sel.value = 'all';
+        activeRouteFilter = 'all';
+    }
+}
 
 // ============================================
 // 🛡️ UNIFIED ORDER STATUS & VALIDATION HELPERS
@@ -215,8 +312,9 @@ auth.onAuthStateChanged(async (user) => {
             console.warn('Agency load:', e);
         }
 
-        // Setup Role-based View & Permissions
+        // Setup Role-based & Category-based UI
         setupRoleBasedUI();
+        setupCategoryBookerUI();
 
         // ⚡ INSTANT LOCAL CACHE LOAD (Eliminates 0 0 0 delay instantly)
         const hasCachedOrders = loadFromCache();
@@ -467,6 +565,7 @@ async function loadStaff() {
         }
 
         renderBookerRibbon();
+        populateRouteFilterDropdown();
     } catch (e) {
         console.error('Load staff error:', e);
     }
@@ -612,6 +711,7 @@ async function loadOrders() {
             }
         }
 
+        populateRouteFilterDropdown();
         renderKPIRibbon();
         renderBookerRibbon();
         renderOrdersTable();
@@ -688,6 +788,7 @@ function listenForLiveOrders() {
 
             if (changed) {
                 allOrders.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+                populateRouteFilterDropdown();
                 renderKPIRibbon();
                 renderBookerRibbon();
                 renderOrdersTable();
@@ -798,9 +899,11 @@ function renderKPIRibbon() {
 
     // Update Chips Counter
     const rejectedCount = allOrders.filter(o => o.orderStatus === 'rejected').length;
+    const repairJobsCount = allOrders.filter(o => o.orderType === 'repair_job' || o.isRepairJob === true).length;
     setTxt('chipAllCount', totalOrders);
     setTxt('chipPendingCount', pendingApproval);
     setTxt('chipApprovedCount', approved);
+    setTxt('chipRepairJobsCount', repairJobsCount);
     setTxt('chipDispatchedCount', dispatched);
     setTxt('chipDeliveredCount', delivered);
     setTxt('chipRejectedCount', rejectedCount);
@@ -1008,6 +1111,15 @@ function setupFilters() {
         });
     }
 
+    // PJP Route Select
+    const rSel = document.getElementById('filterRouteSelect');
+    if (rSel) {
+        rSel.addEventListener('change', function() {
+            activeRouteFilter = this.value || 'all';
+            renderOrdersTable();
+        });
+    }
+
     // Search Input
     const sInput = document.getElementById('orderSearchInput');
     if (sInput) {
@@ -1048,6 +1160,8 @@ function renderOrdersTable() {
             if (!isPending) return false;
         } else if (activeFilter === 'approved') {
             if (ord.orderStatus !== 'approved' || dStat !== 'pending') return false;
+        } else if (activeFilter === 'repair_job') {
+            if (ord.orderType !== 'repair_job' && !ord.isRepairJob) return false;
         } else if (activeFilter === 'rejected') {
             if (ord.orderStatus !== 'rejected') return false;
         } else if (activeFilter === 'dispatched') {
@@ -1064,6 +1178,14 @@ function renderOrdersTable() {
             const staffObj = allStaff.find(s => s.id === activeBookerFilter);
             const matchesName = staffObj && ord.bookerName && ord.bookerName.toLowerCase() === (staffObj.name || '').toLowerCase();
             if (!matchesId && !matchesName) return false;
+        }
+
+        // 2b. PJP Route Filter
+        if (activeRouteFilter !== 'all') {
+            const targetRoute = activeRouteFilter.toLowerCase().trim();
+            const oRoute = (ord.customerRoute || '').toLowerCase().trim();
+            const oBeat = (getActiveBookerCategory() === 'wholesaler' ? (ord.affiliatedBoard || '') : '').toLowerCase().trim();
+            if (oRoute !== targetRoute && oBeat !== targetRoute) return false;
         }
 
         // 3. Date Preset Filter
@@ -1091,13 +1213,28 @@ function renderOrdersTable() {
 
         // 4. Search Query Filter
         if (query) {
-            const billNo = (ord.billNo || ord.orderNo || '').toLowerCase();
+            const billNo = (ord.billNo || ord.orderNo || ord.repairTokenNo || '').toLowerCase();
+            const loadNo = (ord.loadFormNo || '').toLowerCase();
             const cust = (ord.customerName || '').toLowerCase();
             const shop = (ord.customerShop || '').toLowerCase();
-            const booker = (ord.bookerName || '').toLowerCase();
+            const booker = (ord.bookerName || ord.repairTechnician || '').toLowerCase();
             const route = (ord.customerRoute || '').toLowerCase();
             const mobile = (ord.customerMobile || '').toLowerCase();
-            if (!billNo.includes(query) && !cust.includes(query) && !shop.includes(query) && !booker.includes(query) && !route.includes(query) && !mobile.includes(query)) {
+            const subCat = (ord.customerSubCategory || '').toLowerCase();
+            const board = (ord.affiliatedBoard || '').toLowerCase();
+            const repDevice = (ord.repairDeviceModel || '').toLowerCase();
+            const repImei = (ord.repairImei || '').toLowerCase();
+            const itemMatch = Array.isArray(ord.items) && ord.items.some(it => {
+                const iName = (it.name || '').toLowerCase();
+                const iSub = getOrderItemSubtitle(it).toLowerCase();
+                const ind = it.industryFields || {};
+                const iIsbn = String(ind.isbn || '').toLowerCase();
+                const iSku = String(it.sku || it.itemCode || ind.sku || ind.itemCode || '').toLowerCase();
+                const imeis = [it.imei1, it.imei2, it.imei3, it.imei4, it.serialNumber, it.selectedImei, ind.imei1, ind.imei2].filter(Boolean).join(' ').toLowerCase();
+                const brandMod = [it.brandCompany, it.modelVariant, ind.brandCompany, ind.modelVariant].filter(Boolean).join(' ').toLowerCase();
+                return iName.includes(query) || iSub.includes(query) || iIsbn.includes(query) || iSku.includes(query) || imeis.includes(query) || brandMod.includes(query);
+            });
+            if (!billNo.includes(query) && !loadNo.includes(query) && !cust.includes(query) && !shop.includes(query) && !booker.includes(query) && !route.includes(query) && !mobile.includes(query) && !subCat.includes(query) && !board.includes(query) && !repDevice.includes(query) && !repImei.includes(query) && !itemMatch) {
                 return false;
             }
         }
@@ -1157,12 +1294,32 @@ function renderOrdersTable() {
             badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-weight:bold;';
         }
 
+        const isRepairJob = ord.orderType === 'repair_job' || ord.isRepairJob === true;
+        if (isRepairJob) {
+            const rStat = ord.repairStatus || 'in_lab';
+            if (rStat === 'ready') {
+                badgeText = '✅ Ready for Pickup (تیار ہے)';
+                badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:800;';
+            } else if (rStat === 'delivered') {
+                badgeText = '🎉 Repair Delivered (حوالے شدہ)';
+                badgeStyle = 'background:#dbeafe; color:#1d4ed8; border:1px solid #93c5fd; font-weight:800;';
+            } else if (rStat === 'returned_unrepaired') {
+                badgeText = '↩️ Returned Unrepaired (واپس)';
+                badgeStyle = 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:800;';
+            } else {
+                badgeText = '🛠️ In Repair Lab (لیب میں ہے)';
+                badgeStyle = 'background:#f0fdfa; color:#0f766e; border:1.5px solid #5eead4; font-weight:800;';
+            }
+        }
+
         const itemsCount = (ord.items && ord.items.length) || ord.itemCount || 0;
-        const totalPieces = (ord.items || []).reduce((sum, it) => sum + (it.qty || 0), 0) || ord.totalUnits || itemsCount;
-        const totalFree = (ord.items || []).reduce((sum, it) => sum + (it.freeQty || 0), 0) || ord.totalFreeUnits || 0;
+        const totalPieces = (ord.items || []).reduce((sum, it) => sum + (parseFloat(it.qty) || 0), 0) || ord.totalUnits || itemsCount;
+        const totalFree = (ord.items || []).reduce((sum, it) => sum + (parseFloat(it.freeQty || it.bonus) || 0), 0) || ord.totalFreeUnits || 0;
         const totalAmount = Math.round(ord.billAmount || ord.grandTotal || 0).toLocaleString();
 
-        const billDisplay = ord.billNo || ord.orderNo || ord.id.slice(0, 8);
+        const billDisplay = ord.billNo || ord.orderNo || ord.repairTokenNo || ord.id.slice(0, 8);
+        const activeCat = getActiveBookerCategory();
+        const isWholesaleCat = activeCat === 'wholesaler';
 
         return `
             <tr>
@@ -1170,39 +1327,48 @@ function renderOrdersTable() {
                     <input type="checkbox" class="order-check" data-id="${ord.id}" onchange="updateBulkOrdersBar()" ${dStat === 'delivered' ? 'disabled' : ''}>
                 </td>
                 <td>
-                    <b style="font-size:14px; color:#0284c7; cursor:pointer;" onclick="viewOrderDetails('${ord.id}')">${billDisplay}</b><br>
-                    <small style="color:#64748b;">${ord.orderType === 'field_order' ? '📱 Field Booker' : '🧾 Counter Sale'}</small>
+                    <b style="font-size:14px; color:${isRepairJob ? '#0f766e' : '#0284c7'}; cursor:pointer;" onclick="viewOrderDetails('${ord.id}')">${billDisplay}</b><br>
+                    <small style="color:#64748b;">${isRepairJob ? '🛠️ Repairing Token' : (ord.orderType === 'field_order' ? '📱 Field Booker' : '🧾 Counter Sale')}</small>
+                    ${ord.loadFormNo ? `<div style="margin-top:2px;"><span style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🚚 ${ord.loadFormNo}</span></div>` : ''}
                 </td>
                 <td>
                     <b>${ord.date || ord.createdAt?.slice(0,10) || 'Today'}</b><br>
                     <small style="color:#64748b;">${ord.time || ''}</small>
                 </td>
                 <td>
-                    <b>${ord.customerName || 'Counter Sale'}</b> ${ord.customerShop ? `<span style="color:#64748b;">(${ord.customerShop})</span>` : ''}<br>
-                    <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}</small>
+                    <b>${ord.customerName || 'Counter Sale'}</b> ${ord.customerShop ? `<span style="color:#64748b;">(${ord.customerShop})</span>` : ''}
+                    ${ord.customerSubCategory && window.BusinessCategories ? `<span style="font-size:10px; background:#ede9fe; color:#5b21b6; padding:1px 6px; border-radius:6px; font-weight:700;">${window.BusinessCategories.getCustomerSegmentLabel(activeCat, ord.customerSubCategory)}</span>` : ''}<br>
+                    <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}${ord.affiliatedBoard ? ` | ${isWholesaleCat ? '🛣️ PJP:' : '🏷️'} ${ord.affiliatedBoard}` : ''}</small>
+                    ${isRepairJob && ord.repairDeviceModel ? `<div style="font-size:11px; color:#0f766e; font-weight:700; margin-top:2px;">📱 ${ord.repairDeviceModel} ${ord.repairImei ? `(IMEI: ${ord.repairImei})` : ''}</div>` : ''}
                 </td>
                 <td>
-                    <span style="color:#0284c7; font-weight:800;"><i class="fas fa-user-edit"></i> ${ord.bookerName || 'Staff Booker'}</span><br>
-                    <small style="color:#94a3b8;">${ord.bookerMobile || ''}</small>
+                    <span style="color:${isRepairJob ? '#0f766e' : '#0284c7'}; font-weight:800;"><i class="fas ${isRepairJob ? 'fa-user-cog' : 'fa-user-edit'}"></i> ${ord.repairTechnician || ord.bookerName || 'Staff Booker'}</span><br>
+                    <small style="color:#94a3b8;">${isRepairJob ? (ord.repairEstDelivery ? `Est: ${ord.repairEstDelivery}` : 'Repair Lab') : (ord.bookerMobile || '')}</small>
                 </td>
                 <td>
-                    <b>${itemsCount} Items (${totalPieces} Pcs)</b> ${totalFree > 0 ? `<span style="background:#fdf4ff; color:#a21caf; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold;">+${totalFree} Free</span>` : ''}<br>
+                    <b>${itemsCount} Items (${totalPieces} Pcs)</b> ${totalFree > 0 ? `<span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 +${totalFree} Free</span>` : ''}<br>
                     <span style="color:#10b981; font-weight:900; font-size:14px;">Rs ${totalAmount}</span>
+                    ${isRepairJob && ord.received > 0 ? `<div style="font-size:10.5px; color:#0369a1; font-weight:700;">Adv: Rs ${Math.round(ord.received).toLocaleString()} | Bal: Rs ${Math.round(ord.balance || 0).toLocaleString()}</div>` : ''}
                 </td>
                 <td>
                     <span class="badge-status ${badgeClass}" style="${badgeStyle}">${badgeText}</span>
                 </td>
                 <td>
-                    ${ord.supplierName ? `
+                    ${isRepairJob ? `
+                        <button type="button" class="btn btn-sm" onclick="updateRepairJobStatus('${ord.id}')" style="background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; border-radius:6px; font-size:11px; padding:3px 8px; font-weight:800; cursor:pointer;" title="Update Repairing Lab Status">
+                            <i class="fas fa-sync-alt"></i> Lab Status
+                        </button>
+                    ` : (ord.supplierName ? `
                         <div style="cursor:pointer;" onclick="openAssignSupplierModal('${ord.id}')" title="Click to change assigned supplier / van">
                             <b style="color:#0284c7;"><i class="fas fa-truck"></i> ${ord.supplierName}</b><br>
                             <span style="font-size:10px; color:#10b981; font-weight:800;">● ${ord.deliveryStatus === 'delivered' ? 'Delivered' : 'Dispatched'}</span>
+                            ${ord.loadFormNo ? `<div style="font-size:10px; color:#6d28d9; font-weight:700;">${ord.loadFormNo}</div>` : ''}
                         </div>
                     ` : `
                         <button type="button" class="btn btn-sm" onclick="openAssignSupplierModal('${ord.id}')" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:6px; font-size:11px; padding:3px 7px; cursor:pointer;" title="Assign to Delivery Supplier / Van">
                             <i class="fas fa-truck"></i> + Assign Van
                         </button>
-                    `}
+                    `)}
                 </td>
                 <td style="text-align:right;">
                     <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
@@ -1227,15 +1393,23 @@ function renderOrdersTable() {
                             `}
                         ` : ''}
 
-                        <!-- Print Customer Bill -->
+                        <!-- Print Customer Bill & 1-Click Thermal Slip -->
+                        ${isRepairJob ? `
+                            <button type="button" class="btn btn-sm" onclick="printRepairJobThermalToken('${ord.id}')" style="background:#0f766e; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:800;" title="Print 80mm / 58mm Thermal Repairing Token Slip">
+                                <i class="fas fa-receipt"></i> 🧾 Token
+                            </button>
+                        ` : ''}
                         ${ord.orderStatus === 'approved' ? `
+                            <button type="button" class="btn btn-sm" onclick="printOrderThermalBill('${ord.id}')" style="background:#7c3aed; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="1-Click 80mm / 58mm Thermal POS Slip (تھرمل پرچی)">
+                                <i class="fas fa-receipt"></i> 🧾 Thermal
+                            </button>
                             <button type="button" class="btn btn-sm" onclick="printOrderBill('${ord.id}')" style="background:#0284c7; color:#fff; border-radius:6px; font-size:11px; padding:4px 9px; font-weight:bold;" title="Print Official Customer Bill">
                                 <i class="fas fa-print"></i> Print
                             </button>
                         ` : ''}
 
                         <!-- Dispatch on Van if Approved but not yet dispatched -->
-                        ${(ord.orderStatus === 'approved' && (!ord.supplierName || ord.deliveryStatus === 'pending')) ? `
+                        ${(!isRepairJob && ord.orderStatus === 'approved' && (!ord.supplierName || ord.deliveryStatus === 'pending')) ? `
                             <button type="button" class="btn btn-sm" onclick="openAssignSupplierModal('${ord.id}')" style="background:#7c3aed; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="Dispatch on Van / Assign Supplier">
                                 <i class="fas fa-truck-loading"></i> Dispatch
                             </button>
@@ -1399,20 +1573,25 @@ async function approveOrder(orderId) {
         };
 
         if (isDispatched) {
+            const lfNo = ord.loadFormNo || generateLoadFormNo();
             updateData.supplierId = chosenSupplierId;
             updateData.supplierName = chosenSupplierName;
+            updateData.loadFormNo = lfNo;
             updateData.dispatchedAt = new Date().toISOString();
         }
 
         batch.update(billRef, updateData);
 
-        // 3. Deduct inventory stock & record movements
+        // 3. Deduct inventory stock & record movements (Paid Qty + Free Scheme Bonus Qty)
         const movements = [];
         (ord.items || []).forEach(it => {
             if (!it.stockId) return;
             const s = allStock.find(x => x.id === it.stockId);
-            const currentQty = s ? (s.qty || 0) : 0;
-            const newQty = currentQty - (it.qty || 0);
+            const currentQty = s ? (parseFloat(s.qty) || 0) : 0;
+            const paidQty = parseFloat(it.qty) || 0;
+            const freeQty = parseFloat(it.freeQty || it.bonus) || 0;
+            const deductQty = paidQty + freeQty;
+            const newQty = currentQty - deductQty;
 
             batch.update(db.collection('stock').doc(it.stockId), {
                 qty: newQty,
@@ -1421,7 +1600,9 @@ async function approveOrder(orderId) {
 
             movements.push({
                 itemName: it.name,
-                qty: it.qty,
+                qty: deductQty,
+                paidQty: paidQty,
+                freeQty: freeQty,
                 beforeQty: currentQty,
                 afterQty: newQty
             });
@@ -1475,6 +1656,7 @@ async function approveOrder(orderId) {
         if (isDispatched) {
             ord.supplierId = chosenSupplierId;
             ord.supplierName = chosenSupplierName;
+            ord.loadFormNo = updateData.loadFormNo;
             ord.deliveryStatus = 'dispatched';
         } else {
             ord.deliveryStatus = 'pending';
@@ -1574,9 +1756,11 @@ window.openAssignSupplierModal = async function(orderId) {
             if (found) supName = found.name || found.email;
         }
 
+        const lfNo = ord.loadFormNo || generateLoadFormNo();
         const updateData = {
             supplierId: supId,
             supplierName: supName,
+            loadFormNo: lfNo,
             deliveryStatus: 'dispatched',
             dispatchedAt: new Date().toISOString()
         };
@@ -1588,6 +1772,7 @@ window.openAssignSupplierModal = async function(orderId) {
 
         ord.supplierId = supId;
         ord.supplierName = supName;
+        ord.loadFormNo = lfNo;
         ord.deliveryStatus = 'dispatched';
 
         renderKPIRibbon();
@@ -1665,6 +1850,45 @@ async function rejectOrder(orderId) {
     }
 }
 
+function getOrderItemSubtitle(it) {
+    if (!it) return '';
+    if (it.itemSubtitle && String(it.itemSubtitle).trim()) {
+        return String(it.itemSubtitle).trim();
+    }
+    if (window.BusinessCategories && typeof window.BusinessCategories.formatItemSubtitle === 'function') {
+        const formatted = window.BusinessCategories.formatItemSubtitle(it);
+        if (formatted && String(formatted).trim()) return String(formatted).trim();
+    }
+    let ind = it.industryFields || null;
+    let packSize = it.packSize || 0;
+    if (!ind && Array.isArray(allStock) && allStock.length > 0) {
+        const found = allStock.find(s => (it.stockId && s.id === it.stockId) || (it.name && s.name === it.name));
+        if (found) {
+            if (window.BusinessCategories && typeof window.BusinessCategories.formatItemSubtitle === 'function') {
+                const f2 = window.BusinessCategories.formatItemSubtitle({ ...found, ...it });
+                if (f2 && String(f2).trim()) return String(f2).trim();
+            }
+            ind = found.industryFields || null;
+            packSize = found.packSize || packSize;
+        }
+    }
+    if (!ind || typeof ind !== 'object') return '';
+    const parts = [];
+    if (ind.brandCompany) parts.push(ind.brandCompany);
+    if (ind.modelVariant) parts.push(ind.modelVariant);
+    if (ind.ramRom) parts.push(ind.ramRom);
+    if (ind.ptaStatus) parts.push(ind.ptaStatus);
+    if (ind.warrantyInfo) parts.push('Warranty: ' + ind.warrantyInfo);
+    if (ind.classGrade) parts.push(ind.classGrade);
+    if (ind.publisher) parts.push(ind.publisher);
+    if (ind.subject) parts.push(ind.subject);
+    if (ind.author) parts.push(ind.author);
+    if (ind.edition) parts.push('Ed: ' + ind.edition);
+    const pSize = parseFloat(ind.packSize || packSize) || 0;
+    if (pSize > 1) parts.push(`1x${pSize}`);
+    return parts.join(' | ');
+}
+
 // ============================================
 // 👁️ VIEW ORDER DETAILS MODAL
 // ============================================
@@ -1697,19 +1921,30 @@ function viewOrderDetails(orderId) {
             <tbody>
     `;
 
+    const activeCat = getActiveBookerCategory();
+    const isWholesaleCat = activeCat === 'wholesaler';
+    const subIcon = isWholesaleCat ? '📦' : (activeCat === 'mobile' ? '📱' : '📚');
+
     (ord.items || []).forEach((it, idx) => {
+        const freeQtyVal = parseFloat(it.freeQty || it.bonus) || 0;
+        const pSize = resolveOrderItemPackSize(it);
         let schemeTag = '';
-        if (it.freeQty > 0) {
-            schemeTag = `<br><span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 +${it.freeQty} Free Bonus</span>`;
+        if (freeQtyVal > 0) {
+            schemeTag = `<br><span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 +${freeQtyVal} Free Bonus</span>`;
         } else if (it.hasScheme) {
             schemeTag = `<br><span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 ${it.schemeLabel || 'Scheme'}</span>`;
         }
+        const subText = getOrderItemSubtitle(it);
+        const subHtml = subText ? `<div style="font-size:11px; color:#475569; font-weight:600; margin-top:2px;">${subIcon} ${subText}</div>` : '';
+        const qtySummary = isWholesaleCat && pSize > 1
+            ? `${it.qty} ${it.unit || ''}<br><small style="color:#64748b; font-weight:600;">${formatWholesaleQtySummary(it.qty, freeQtyVal, it.unit, pSize)}</small>`
+            : `${it.qty} ${it.unit || ''}`;
 
         itemsTable += `
             <tr>
                 <td style="padding:8px; border:1px solid #cbd5e1;">${idx + 1}</td>
-                <td style="padding:8px; border:1px solid #cbd5e1;"><b>${it.name}</b> ${schemeTag}</td>
-                <td style="padding:8px; border:1px solid #cbd5e1; text-align:center; font-weight:bold;">${it.qty} ${it.unit || ''}</td>
+                <td style="padding:8px; border:1px solid #cbd5e1;"><b>${it.name}</b>${subHtml} ${schemeTag}</td>
+                <td style="padding:8px; border:1px solid #cbd5e1; text-align:center; font-weight:bold;">${qtySummary}</td>
                 <td style="padding:8px; border:1px solid #cbd5e1; text-align:right;">Rs ${it.rate}</td>
                 <td style="padding:8px; border:1px solid #cbd5e1; text-align:right; font-weight:bold;">Rs ${(it.total || it.qty * it.rate || 0).toFixed(2)}</td>
             </tr>
@@ -1718,19 +1953,25 @@ function viewOrderDetails(orderId) {
 
     itemsTable += `</tbody></table>`;
 
+    const segBadge = (ord.customerSubCategory && window.BusinessCategories)
+        ? `<div style="margin-top:2px;">🏷️ <b>Segment:</b> <span style="color:#5b21b6; font-weight:700;">${window.BusinessCategories.getCustomerSegmentLabel(activeCat, ord.customerSubCategory)}</span>${ord.affiliatedBoard ? ` | ${isWholesaleCat ? '🛣️ <b>PJP Beat:</b>' : '🏛️ <b>Board:</b>'} ${ord.affiliatedBoard}` : ''}</div>`
+        : '';
+
     body.innerHTML = `
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13px; margin-bottom:12px;">
             <div style="background:#f8fafc; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0;">
                 <div>👤 <b>Customer:</b> ${ord.customerName || 'Counter Sale'} ${ord.customerShop ? `(${ord.customerShop})` : ''}</div>
                 <div>📱 <b>Mobile:</b> ${ord.customerMobile || '—'}</div>
                 <div>🛣️ <b>Route:</b> ${ord.customerRoute || '—'}</div>
+                ${segBadge}
                 <div>💰 <b>Customer Khata Balance:</b> Rs ${(ord.previousBalance || 0).toLocaleString()}</div>
             </div>
             <div style="background:#f8fafc; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0;">
                 <div>📕 <b>Order Booker:</b> <span style="color:#0284c7; font-weight:bold;">${ord.bookerName || 'Staff'}</span></div>
                 <div>📅 <b>Date:</b> ${ord.date || ord.createdAt?.slice(0,10)} (${ord.time || ''})</div>
-                <div>🏷️ <b>Order Type:</b> ${ord.orderType || 'Field Booking'}</div>
+                <div>🏷️ <b>Order Type:</b> ${ord.orderType || 'Field Booking'}${ord.agreedDiscountPercent ? ` (Disc: ${ord.agreedDiscountPercent}%)` : ''}</div>
                 <div>🚚 <b>Assigned Supplier:</b> ${ord.supplierName || 'Not Assigned'}</div>
+                ${ord.loadFormNo ? `<div>📋 <b>Load Form #:</b> <span style="color:#6d28d9; font-weight:800;">${ord.loadFormNo}</span></div>` : ''}
             </div>
         </div>
 
@@ -1754,6 +1995,7 @@ function viewOrderDetails(orderId) {
 
     // Dynamic Actions in Modal
     const canApprove = canUserApproveOrders();
+    const isRepairJob = ord.orderType === 'repair_job' || ord.isRepairJob === true;
     actionsEl.innerHTML = `
         ${isPending ? `
             ${canApprove ? `
@@ -1769,7 +2011,18 @@ function viewOrderDetails(orderId) {
                 </div>
             `}
         ` : ''}
+        ${isRepairJob ? `
+            <button type="button" onclick="printRepairJobThermalToken('${ord.id}')" class="btn" style="background:#0f766e; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                <i class="fas fa-receipt"></i> 🧾 Print Repair Token Slip
+            </button>
+            <button type="button" onclick="closeOrderDetailsModal(); updateRepairJobStatus('${ord.id}')" class="btn" style="background:#d97706; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                <i class="fas fa-sync-alt"></i> Update Lab Status
+            </button>
+        ` : ''}
         ${ord.orderStatus === 'approved' ? `
+            <button type="button" onclick="printOrderThermalBill('${ord.id}')" class="btn" style="background:#7c3aed; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                <i class="fas fa-receipt"></i> 🧾 Print Thermal Slip (80mm/58mm)
+            </button>
             <button type="button" onclick="printOrderBill('${ord.id}')" class="btn" style="background:#0284c7; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">
                 <i class="fas fa-print"></i> Print Customer Bill
             </button>
@@ -1785,41 +2038,79 @@ window.closeOrderDetailsModal = function() {
 };
 
 // ============================================
-// 🖨️ PRINT CUSTOMER BILL
+// 🖨️ PRINT CUSTOMER BILL & 1-CLICK THERMAL SLIP
 // ============================================
-function printOrderBill(orderId) {
+function printOrderBill(orderId, forceThermal = false) {
     const ord = allOrders.find(o => o.id === orderId);
     if (!ord) return;
 
-    const printSettings = (typeof getPrintSettings === 'function') 
-        ? getPrintSettings() 
-        : { paperSize: 'thermal80', template: 'template6', headerTitle: myAgency?.name || 'Vyapar Invoice', phone: myAgency?.mobile || '', address: myAgency?.address || '' };
+    const catId = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+        ? window.BusinessCategories.resolveActiveCategory(myAgency, 'books')
+        : ((myAgency && (myAgency.businessCategory || myAgency.category || myAgency.businessType)) || localStorage.getItem('eb_active_business_category') || localStorage.getItem('eb_active_category') || 'books');
+    const thermalWidth = (window.BusinessCategories && typeof window.BusinessCategories.getThermalWidthPreference === 'function')
+        ? window.BusinessCategories.getThermalWidthPreference(myAgency)
+        : (String(localStorage.getItem('eb_thermal_width') || localStorage.getItem('nh_thermal_width') || '80mm').startsWith('58') ? '58mm' : '80mm');
+    const baseSettings = (typeof getPrintSettings === 'function')
+        ? getPrintSettings()
+        : { paperSize: 'thermal80', template: 'template6', headerTitle: myAgency?.name || 'NH POS', phone: myAgency?.mobile || '', address: myAgency?.address || '' };
 
-    const selectedTemplate = printSettings.template || 'template6';
+    const selectedTemplate = forceThermal ? 'template6' : (baseSettings.template || 'template6');
+    const printSettings = {
+        ...baseSettings,
+        template: selectedTemplate,
+        thermalWidth: thermalWidth,
+        businessCategory: catId
+    };
+
+    const custObj = allCustomers.find(c => c.id === ord.customerId) || {
+        name: ord.customerName || 'Counter Sale',
+        mobile: ord.customerMobile || '',
+        shopName: ord.customerShop || '',
+        route: ord.customerRoute || '',
+        ntn: ord.customerNTN || ''
+    };
+
+    const agencyObj = {
+        businessName: myAgency?.businessName || myAgency?.name || 'NH POS',
+        name: myAgency?.name || 'NH POS',
+        address: myAgency?.address || '',
+        phone: myAgency?.phone || myAgency?.mobile || '',
+        mobile: myAgency?.mobile || '',
+        city: myAgency?.city || '',
+        businessCategory: catId
+    };
 
     const billObj = {
-        agencyName: myAgency?.name || 'Distribution Agency',
-        agencyAddress: myAgency?.address || '',
-        agencyMobile: myAgency?.mobile || '',
-        billNo: ord.billNo || ord.orderNo || 'INV-001',
+        ...ord,
+        businessCategory: ord.businessCategory || catId,
+        template: selectedTemplate,
+        thermalWidth: thermalWidth,
+        agencyName: agencyObj.businessName,
+        agencyAddress: agencyObj.address,
+        agencyMobile: agencyObj.phone,
+        billNo: ord.billNo || ord.orderNo || ord.repairTokenNo || 'INV-001',
         customerName: ord.customerName || 'Counter Sale',
-        customerMobile: ord.customerMobile || '',
-        customerShop: ord.customerShop || '',
+        customerMobile: ord.customerMobile || custObj.mobile || '',
+        customerShop: ord.customerShop || custObj.shopName || '',
+        customerNTN: ord.customerNTN || custObj.ntn || '',
         date: ord.date || ord.createdAt?.slice(0, 10),
         time: ord.time || '',
-        items: ord.items || [],
+        items: (ord.items || []).map(it => ({
+            ...it,
+            itemSubtitle: getOrderItemSubtitle(it)
+        })),
         subTotal: ord.subTotal || ord.billAmount || 0,
         discount: ord.discount || 0,
         billAmount: ord.billAmount || ord.grandTotal || 0,
         previousBalance: ord.previousBalance || 0,
         grandTotal: ord.grandTotal || ord.billAmount || 0,
         received: ord.received || 0,
-        balance: ord.balance || (ord.grandTotal || 0)
+        balance: ord.balance !== undefined ? ord.balance : (ord.grandTotal || 0)
     };
 
     let printHtml = '';
     if (typeof buildBillHTML === 'function') {
-        printHtml = buildBillHTML(billObj, selectedTemplate, printSettings);
+        printHtml = buildBillHTML(billObj, agencyObj, custObj, printSettings);
     } else {
         printHtml = `
             <div style="font-family:monospace; padding:15px; text-align:center;">
@@ -1875,6 +2166,10 @@ function printOrderBill(orderId) {
         }, 400);
     }
 }
+
+window.printOrderThermalBill = function(orderId) {
+    printOrderBill(orderId, true);
+};
 
 // ============================================
 // ⚡ BULK ACTIONS & EXPORT
@@ -1953,6 +2248,8 @@ async function handleBulkApproveAndAssign() {
     try {
         Swal.fire({ title: 'منظوری و ڈسپیچ جاری ہے...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
+        const batchLoadFormNo = supplierObj ? generateLoadFormNo() : '';
+
         for (const orderId of checked) {
             const ord = allOrders.find(o => o.id === orderId);
             if (!ord) continue;
@@ -1974,8 +2271,10 @@ async function handleBulkApproveAndAssign() {
             };
 
             if (supplierObj) {
+                const lfNo = ord.loadFormNo || batchLoadFormNo;
                 updateData.supplierId = supplierObj.id;
                 updateData.supplierName = supplierObj.name;
+                updateData.loadFormNo = lfNo;
                 updateData.deliveryStatus = 'dispatched';
                 updateData.dispatchedAt = new Date().toISOString();
             }
@@ -1987,15 +2286,20 @@ async function handleBulkApproveAndAssign() {
                 (ord.items || []).forEach(it => {
                     if (!it.stockId) return;
                     const s = allStock.find(x => x.id === it.stockId);
-                    const currentQty = s ? (s.qty || 0) : 0;
-                    const newQty = currentQty - (it.qty || 0);
+                    const currentQty = s ? (parseFloat(s.qty) || 0) : 0;
+                    const paidQty = parseFloat(it.qty) || 0;
+                    const freeQty = parseFloat(it.freeQty || it.bonus) || 0;
+                    const deductQty = paidQty + freeQty;
+                    const newQty = currentQty - deductQty;
                     batch.update(db.collection('stock').doc(it.stockId), {
                         qty: newQty,
                         updatedAt: new Date().toISOString()
                     });
                     movements.push({
                         itemName: it.name,
-                        qty: it.qty,
+                        qty: deductQty,
+                        paidQty: paidQty,
+                        freeQty: freeQty,
                         beforeQty: currentQty,
                         afterQty: newQty
                     });
@@ -2042,6 +2346,7 @@ async function handleBulkApproveAndAssign() {
             if (supplierObj) {
                 ord.supplierId = supplierObj.id;
                 ord.supplierName = supplierObj.name;
+                ord.loadFormNo = updateData.loadFormNo;
                 ord.deliveryStatus = 'dispatched';
             }
         }
@@ -2082,43 +2387,76 @@ async function handleBulkApproveAndAssign() {
     }
 }
 
-function handleBulkPrint() {
+function handleBulkPrint(forceThermal = false) {
     const checked = Array.from(document.querySelectorAll('.order-check:checked')).map(c => c.dataset.id);
-    if (checked.length === 0) {
+    let ordersToPrint = [];
+    if (checked.length > 0) {
+        ordersToPrint = allOrders.filter(o => checked.includes(o.id));
+    } else {
+        ordersToPrint = allOrders.filter(o => o.orderStatus === 'approved').slice(0, 20);
+    }
+    if (ordersToPrint.length === 0) {
         Swal.fire('توجہ', 'پرنٹ کے لیے کم از کم ایک آرڈر منتخب کریں!', 'warning');
         return;
     }
 
-    const ordersToPrint = allOrders.filter(o => checked.includes(o.id));
-    let combinedHtml = '';
-
-    const printSettings = (typeof getPrintSettings === 'function') 
-        ? getPrintSettings() 
+    const catId = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+        ? window.BusinessCategories.resolveActiveCategory(myAgency, 'books')
+        : ((myAgency && (myAgency.businessCategory || myAgency.category || myAgency.businessType)) || localStorage.getItem('eb_active_business_category') || localStorage.getItem('eb_active_category') || 'books');
+    const thermalWidth = (window.BusinessCategories && typeof window.BusinessCategories.getThermalWidthPreference === 'function')
+        ? window.BusinessCategories.getThermalWidthPreference(myAgency)
+        : (String(localStorage.getItem('eb_thermal_width') || localStorage.getItem('nh_thermal_width') || '80mm').startsWith('58') ? '58mm' : '80mm');
+    const baseSettings = (typeof getPrintSettings === 'function')
+        ? getPrintSettings()
         : { paperSize: 'thermal80', template: 'template6' };
+    const selectedTemplate = forceThermal ? 'template6' : (baseSettings.template || 'template6');
+    const printSettings = { ...baseSettings, template: selectedTemplate, thermalWidth, businessCategory: catId };
 
+    const agencyObj = {
+        businessName: myAgency?.businessName || myAgency?.name || 'NH POS',
+        name: myAgency?.name || 'NH POS',
+        address: myAgency?.address || '',
+        phone: myAgency?.phone || myAgency?.mobile || '',
+        city: myAgency?.city || '',
+        businessCategory: catId
+    };
+
+    let combinedHtml = '';
     ordersToPrint.forEach(ord => {
+        const custObj = allCustomers.find(c => c.id === ord.customerId) || {
+            name: ord.customerName || 'Counter Sale',
+            mobile: ord.customerMobile || '',
+            shopName: ord.customerShop || ''
+        };
         const billObj = {
-            agencyName: myAgency?.name || 'Distribution Agency',
-            agencyAddress: myAgency?.address || '',
-            agencyMobile: myAgency?.mobile || '',
-            billNo: ord.billNo || ord.orderNo || 'INV-001',
+            ...ord,
+            businessCategory: ord.businessCategory || catId,
+            template: selectedTemplate,
+            thermalWidth: thermalWidth,
+            agencyName: agencyObj.businessName,
+            agencyAddress: agencyObj.address,
+            agencyMobile: agencyObj.phone,
+            billNo: ord.billNo || ord.orderNo || ord.repairTokenNo || 'INV-001',
             customerName: ord.customerName || 'Counter Sale',
             customerMobile: ord.customerMobile || '',
             customerShop: ord.customerShop || '',
             date: ord.date || ord.createdAt?.slice(0, 10),
             time: ord.time || '',
-            items: ord.items || [],
+            items: (ord.items || []).map(it => ({
+                ...it,
+                itemSubtitle: getOrderItemSubtitle(it)
+            })),
             subTotal: ord.subTotal || ord.billAmount || 0,
             discount: ord.discount || 0,
             billAmount: ord.billAmount || ord.grandTotal || 0,
             previousBalance: ord.previousBalance || 0,
             grandTotal: ord.grandTotal || ord.billAmount || 0,
             received: ord.received || 0,
-            balance: ord.balance || (ord.grandTotal || 0)
+            balance: ord.balance !== undefined ? ord.balance : (ord.grandTotal || 0)
         };
 
         if (typeof buildBillHTML === 'function') {
-            combinedHtml += buildBillHTML(billObj, printSettings.template || 'template6', printSettings);
+            combinedHtml += buildBillHTML(billObj, agencyObj, custObj, printSettings);
             combinedHtml += `<div style="page-break-after: always; height: 10px;"></div>`;
         }
     });
@@ -2134,6 +2472,7 @@ function handleBulkPrint() {
         }, 400);
     }
 }
+window.handleBulkPrint = handleBulkPrint;
 
 function exportOrdersCSV() {
     if (allOrders.length === 0) {
@@ -2228,7 +2567,10 @@ window.printPendingOrdersList = function() {
     });
 
     const rows = pendingOrders.map((o, idx) => {
-        const itemsSummary = (o.items || []).map(it => `${it.name} (x${it.qty}${it.freeQty ? ` +${it.freeQty} Free` : ''})`).join(', ');
+        const itemsSummary = (o.items || []).map(it => {
+            const sub = getOrderItemSubtitle(it);
+            return `${it.name}${sub ? ` [${sub}]` : ''} (x${it.qty}${it.freeQty ? ` +${it.freeQty} Free` : ''})`;
+        }).join(', ');
         return `
             <tr style="border-bottom: 1px solid #e2e8f0; font-size: 12px;">
                 <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1;">${idx + 1}</td>
@@ -2318,54 +2660,76 @@ window.printVanLoadingChallan = function() {
         return;
     }
 
-    // Aggregate items across all selected orders
+    // Aggregate items across all selected orders (keyed by item + unit so Cartons & Pcs stay distinct)
     const itemMap = {};
     let totalPieces = 0;
     let totalFreePieces = 0;
     let totalGrossAmount = 0;
+    const routesSet = new Set();
+    const suppliersSet = new Set();
+    const activeCat = getActiveBookerCategory();
+    const subIcon = activeCat === 'wholesaler' ? '📦' : (activeCat === 'mobile' ? '📱' : '📚');
 
     targetOrders.forEach(ord => {
         totalGrossAmount += (parseFloat(ord.billAmount || ord.grandTotal) || 0);
+        if (ord.customerRoute && String(ord.customerRoute).trim()) routesSet.add(String(ord.customerRoute).trim());
+        if (ord.supplierName && String(ord.supplierName).trim()) suppliersSet.add(String(ord.supplierName).trim());
+
         (ord.items || []).forEach(it => {
-            const key = it.name || it.stockId || 'Generic Item';
+            const unitStr = String(it.unit || 'Pcs').trim();
+            const key = `${it.stockId || it.name || 'Generic Item'}||${unitStr}`;
+            const packSize = resolveOrderItemPackSize(it);
             if (!itemMap[key]) {
                 itemMap[key] = {
-                    name: it.name,
-                    unit: it.unit || 'Pcs',
+                    name: it.name || 'Item',
+                    subtitle: getOrderItemSubtitle(it),
+                    unit: unitStr,
+                    packSize: packSize,
                     qty: 0,
                     freeQty: 0,
+                    lineValue: 0,
                     category: it.category || 'General',
-                    rate: it.rate || 0
+                    rate: parseFloat(it.rate) || 0
                 };
             }
             const q = parseFloat(it.qty) || 0;
-            const fq = parseFloat(it.freeQty) || 0;
+            const fq = parseFloat(it.freeQty || it.bonus) || 0;
+            const lVal = parseFloat(it.total) || (q * (parseFloat(it.rate) || 0));
             itemMap[key].qty += q;
             itemMap[key].freeQty += fq;
+            itemMap[key].lineValue += lVal;
             totalPieces += q;
             totalFreePieces += fq;
         });
     });
 
-    const itemRows = Object.values(itemMap).map((it, idx) => `
+    const loadFormDisplay = targetOrders.find(o => o.loadFormNo)?.loadFormNo || generateLoadFormNo();
+    const routesListText = Array.from(routesSet).join(', ') || 'All Routes';
+    const vanDriverText = Array.from(suppliersSet).join(', ') || 'Depot / Van Dispatch';
+
+    const itemRows = Object.values(itemMap).map((it, idx) => {
+        const totalLoadText = formatWholesaleQtySummary(it.qty, it.freeQty, it.unit, it.packSize);
+        return `
         <tr style="border-bottom: 1px solid #e2e8f0; font-size: 13px;">
             <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1;">${idx + 1}</td>
-            <td style="padding: 8px; border: 1px solid #cbd5e1;"><b>${it.name}</b></td>
-            <td style="padding: 8px; border: 1px solid #cbd5e1; color:#64748b;">${it.category}</td>
-            <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800; font-size: 14px; color: #0284c7;">${it.qty} ${it.unit}</td>
+            <td style="padding: 8px; border: 1px solid #cbd5e1;"><b>${it.name}</b>${it.subtitle ? `<div style="font-size:10.5px; color:#475569;">${subIcon} ${it.subtitle}</div>` : ''}</td>
+            <td style="padding: 8px; border: 1px solid #cbd5e1; color:#64748b;">${it.category}${it.packSize > 1 ? `<br><small style="color:#0369a1; font-weight:700;">1x${it.packSize}</small>` : ''}</td>
+            <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13.5px; color: #0284c7;">${it.qty} ${it.unit}</td>
             <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1; font-weight: bold; color: #a21caf;">${it.freeQty > 0 ? `+${it.freeQty}` : '—'}</td>
-            <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1; font-weight: bold;">${it.qty + it.freeQty} ${it.unit}</td>
-            <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1; width: 60px;">[ &nbsp; ]</td>
+            <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1; font-weight: 800;">${totalLoadText}</td>
+            <td style="padding: 8px; text-align: right; border: 1px solid #cbd5e1; font-weight: 700;">Rs ${Math.round(it.lineValue).toLocaleString()}</td>
+            <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1; width: 56px;">[ &nbsp; ]</td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 
-    const shopsList = targetOrders.map(o => `${o.customerShop || o.customerName} (${o.customerRoute || 'Area'})`).join(' • ');
+    const shopsList = targetOrders.map(o => `${o.billNo || o.orderNo || ''} • ${o.customerShop || o.customerName} (${o.customerRoute || 'Area'})`).join(' | ');
 
     const html = `
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Van Loading Gate Pass - NH POS</title>
+            <title>Van Loading Gate Pass (${loadFormDisplay}) - NH POS</title>
             <style>
                 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #0f172a; margin: 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 14px; }
@@ -2381,18 +2745,23 @@ window.printVanLoadingChallan = function() {
                 <h2 style="margin: 0; color: #7c3aed;">${myAgency?.name || 'Distribution Agency'}</h2>
                 <div style="font-size: 12px; color: #64748b;">${myAgency?.address || ''} | فون: ${myAgency?.mobile || ''}</div>
                 <h3 style="margin: 6px 0 0; color: #0f172a; text-transform: uppercase;">🚚 ڈلیوری وین لوڈنگ چالان و گیٹ پاس (Van Loading Gate Pass)</h3>
-                <div style="font-size: 11px; color: #64748b;">تاریخ: ${new Date().toLocaleDateString('en-PK')} (${new Date().toLocaleTimeString('en-PK')})</div>
+                <div style="font-size: 11.5px; color: #475569; margin-top:3px;">
+                    Load Form #: <b style="color:#6d28d9;">${loadFormDisplay}</b> &nbsp;|&nbsp;
+                    Van / Supplier: <b>${vanDriverText}</b> &nbsp;|&nbsp;
+                    تاریخ: ${new Date().toLocaleDateString('en-PK')} (${new Date().toLocaleTimeString('en-PK')})
+                </div>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 10px; margin-top: 12px; font-size: 12.5px;">
                 <div>کل بلز / دکانیں: <b>${targetOrders.length}</b></div>
-                <div>پروڈکٹس ورائٹی: <b>${Object.keys(itemMap).length} Items</b></div>
-                <div>کل لوڈنگ تعداد: <b style="color:#7c3aed; font-size:15px;">${Math.round(totalPieces + totalFreePieces)} Units</b></div>
+                <div>پروڈکٹس ورائٹی: <b>${Object.keys(itemMap).length} SKUs</b></div>
+                <div>کل لوڈنگ تعداد: <b style="color:#7c3aed; font-size:15px;">${Math.round(totalPieces)} + ${Math.round(totalFreePieces)} Free</b></div>
                 <div>کل مالیت (Rs): <b style="color:#15803d; font-size:15px;">Rs ${Math.round(totalGrossAmount).toLocaleString()}</b></div>
             </div>
 
             <div style="margin-top: 10px; font-size: 11.5px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 6px;">
-                <b>📍 ڈلیوری دکانیں و روٹ:</b> ${shopsList}
+                <div><b>🛣️ PJP Routes:</b> ${routesListText}</div>
+                <div style="margin-top:3px;"><b>🏪 Bills / Shops Included:</b> ${shopsList}</div>
             </div>
 
             <table>
@@ -2400,10 +2769,11 @@ window.printVanLoadingChallan = function() {
                     <tr>
                         <th style="width: 30px; text-align: center;">#</th>
                         <th>Product Description (پروڈکٹ کا نام)</th>
-                        <th>Category</th>
+                        <th>Category / Pack</th>
                         <th style="text-align: center;">Sale Qty</th>
                         <th style="text-align: center;">Scheme Free</th>
                         <th style="text-align: center;">Total to Load</th>
+                        <th style="text-align: right;">Value (Rs)</th>
                         <th style="text-align: center;">Checked</th>
                     </tr>
                 </thead>
@@ -2442,20 +2812,22 @@ window.printDeliveryRouteSheet = function() {
         return;
     }
 
+    const loadFormDisplay = targetOrders.find(o => o.loadFormNo)?.loadFormNo || generateLoadFormNo();
     let totalAmount = 0;
     const rows = targetOrders.map((o, idx) => {
         const amt = parseFloat(o.billAmount || o.grandTotal || 0);
         totalAmount += amt;
+        const freeSum = (o.items || []).reduce((s, i) => s + (parseFloat(i.freeQty || i.bonus) || 0), 0);
         return `
             <tr style="border-bottom: 1px solid #cbd5e1; font-size: 12.5px;">
                 <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1;">${idx + 1}</td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;"><b>${o.billNo || o.orderNo || o.id.slice(0,8)}</b></td>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;"><b>${o.billNo || o.orderNo || o.id.slice(0,8)}</b>${o.loadFormNo ? `<br><small style="color:#6d28d9;">${o.loadFormNo}</small>` : ''}</td>
                 <td style="padding: 8px; border: 1px solid #cbd5e1;">
                     <b>${o.customerShop || o.customerName}</b><br>
                     <small style="color:#64748b;">${o.customerName} | 📱 ${o.customerMobile || '—'}</small>
                 </td>
-                <td style="padding: 8px; border: 1px solid #cbd5e1;">${o.customerRoute || '—'}</td>
-                <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1;">${(o.items || []).length} Items</td>
+                <td style="padding: 8px; border: 1px solid #cbd5e1;">${o.customerRoute || '—'}${o.affiliatedBoard ? `<br><small style="color:#0369a1;">${o.affiliatedBoard}</small>` : ''}</td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #cbd5e1;">${(o.items || []).length} Items${freeSum > 0 ? `<br><small style="color:#a21caf;">+${freeSum} Free</small>` : ''}</td>
                 <td style="padding: 8px; text-align: right; border: 1px solid #cbd5e1; font-weight: 800; color: #0f172a;">Rs ${Math.round(amt).toLocaleString()}</td>
                 <td style="padding: 8px; border: 1px solid #cbd5e1; width: 110px;"></td>
                 <td style="padding: 8px; border: 1px solid #cbd5e1; width: 110px;"></td>
@@ -2468,7 +2840,7 @@ window.printDeliveryRouteSheet = function() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Delivery Route & Cash Collection Manifest</title>
+            <title>Delivery Route & Cash Collection Manifest (${loadFormDisplay})</title>
             <style>
                 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #0f172a; margin: 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 14px; }
@@ -2484,7 +2856,7 @@ window.printDeliveryRouteSheet = function() {
                 <h2 style="margin: 0; color: #0891b2;">${myAgency?.name || 'Distribution Agency'}</h2>
                 <div style="font-size: 12px; color: #64748b;">${myAgency?.address || ''} | فون: ${myAgency?.mobile || ''}</div>
                 <h3 style="margin: 6px 0 0; color: #0f172a; text-transform: uppercase;">🛣️ روٹ ڈلیوری و کیش وصولی شیٹ (Van Delivery Manifest)</h3>
-                <div style="font-size: 11px; color: #64748b;">تاریخ: ${new Date().toLocaleDateString('en-PK')}</div>
+                <div style="font-size: 11px; color: #64748b;">Load Form #: <b style="color:#6d28d9;">${loadFormDisplay}</b> | تاریخ: ${new Date().toLocaleDateString('en-PK')}</div>
             </div>
 
             <div style="display: flex; justify-content: space-between; background: #ecfeff; border: 1px solid #a5f3fc; border-radius: 8px; padding: 10px; margin-top: 12px; font-size: 13px;">
@@ -2499,7 +2871,7 @@ window.printDeliveryRouteSheet = function() {
                         <th style="width: 30px; text-align: center;">#</th>
                         <th>Bill #</th>
                         <th>Shop Name / Owner</th>
-                        <th>Route / Area</th>
+                        <th>Route / PJP Beat</th>
                         <th style="text-align: center;">Items</th>
                         <th style="text-align: right;">Bill Amount</th>
                         <th style="text-align: center;">Cash Received</th>
@@ -2870,3 +3242,501 @@ function setupModals() {
     const btnExport = document.getElementById('btnExportCSV');
     if (btnExport) btnExport.addEventListener('click', exportOrdersCSV);
 }
+
+// ============================================
+// 🛠️ MOBILE REPAIRING JOB CARD & THERMAL TOKEN BOOKING SYSTEM (SUB-PHASE E)
+// ============================================
+const DEFAULT_REPAIR_BRANDS = [
+    'Apple (iPhone)', 'Samsung', 'Xiaomi / Redmi / Poco', 'Vivo', 'Oppo',
+    'Infinix', 'Tecno', 'Realme', 'Itel', 'Honor / Huawei', 'Nokia',
+    'OnePlus', 'Google Pixel', 'Motorola', 'QMobile / Digit', 'Other Brand (دیگر برانڈ)'
+];
+const DEFAULT_REPAIR_FAULTS = [
+    'Broken LCD / Touch Panel (ایل سی ڈی / پینل)',
+    'Charging Port / Jack Issue (چارجنگ جیک)',
+    'Battery Replacement / Dead Set (بیٹری / ڈیڈ سیٹ)',
+    'Water Damage / Short Circuit (پانی لگا ہوا)',
+    'Speaker / Mic / EarPiece (اسپیکر / مائیک)',
+    'Software / Flashing / FRP Unlock (سافٹ ویئر / ان لاک)',
+    'Network Signal / IC Work (آئی سی / سگنل)',
+    'Back Glass / Housing Change (بیک گلاس / باڈی)'
+];
+function getSavedRepairTechnicians() {
+    try {
+        const raw = localStorage.getItem('nh_mobile_repair_technicians');
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) && list.length > 0
+            ? list
+            : ['Master Lab Technician (مین کاریگر)', 'Hardware IC Specialist', 'Software / Unlock Expert'];
+    } catch (e) {
+        return ['Master Lab Technician (مین کاریگر)'];
+    }
+}
+function getSavedCustomRepairBrands() {
+    try {
+        const raw = localStorage.getItem('nh_custom_mobile_brands');
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+window.openRepairJobBookingModal = async function() {
+    const brands = Array.from(new Set([...getSavedCustomRepairBrands(), ...DEFAULT_REPAIR_BRANDS]));
+    const technicians = getSavedRepairTechnicians();
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const faultChipsHtml = DEFAULT_REPAIR_FAULTS.map(f => `
+        <button type="button" class="rep-fault-chip" onclick="window._toggleRepairFaultChip(this, '${f.replace(/'/g, "\\'")}')" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; border-radius:6px; padding:4px 8px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s;">
+            + ${f}
+        </button>
+    `).join('');
+
+    window._toggleRepairFaultChip = function(btn, text) {
+        const inp = document.getElementById('repFaultInput');
+        if (!inp) return;
+        const current = inp.value.trim();
+        if (current.includes(text)) {
+            inp.value = current.split(',').map(s => s.trim()).filter(s => s && s !== text).join(', ');
+            btn.style.background = '#f1f5f9';
+            btn.style.color = '#334155';
+            btn.style.borderColor = '#cbd5e1';
+        } else {
+            inp.value = current ? `${current}, ${text}` : text;
+            btn.style.background = '#ccfbf1';
+            btn.style.color = '#0f766e';
+            btn.style.borderColor = '#14b8a6';
+        }
+    };
+
+    window._addQuickRepairBrand = async function() {
+        const { value: bName } = await Swal.fire({
+            title: '➕ Add Custom / Own / Other Brand',
+            input: 'text',
+            inputPlaceholder: 'e.g. Nothing Phone, Sony, Own Brand...',
+            showCancelButton: true,
+            confirmButtonColor: '#0f766e'
+        });
+        if (bName && bName.trim()) {
+            const clean = bName.trim();
+            const list = getSavedCustomRepairBrands();
+            if (!list.includes(clean)) {
+                list.unshift(clean);
+                try { localStorage.setItem('nh_custom_mobile_brands', JSON.stringify(list)); } catch (e) {}
+            }
+            openRepairJobBookingModal();
+            setTimeout(() => {
+                const sel = document.getElementById('repBrandSelect');
+                if (sel) sel.value = clean;
+            }, 100);
+        }
+    };
+
+    window._addQuickRepairTech = async function() {
+        const { value: tName } = await Swal.fire({
+            title: '➕ Add Repairing Technician / Karigar',
+            input: 'text',
+            inputPlaceholder: 'e.g. Ustad Kashif (IC Lab)',
+            showCancelButton: true,
+            confirmButtonColor: '#0f766e'
+        });
+        if (tName && tName.trim()) {
+            const clean = tName.trim();
+            const list = getSavedRepairTechnicians();
+            if (!list.includes(clean)) {
+                list.unshift(clean);
+                try { localStorage.setItem('nh_mobile_repair_technicians', JSON.stringify(list)); } catch (e) {}
+            }
+            openRepairJobBookingModal();
+            setTimeout(() => {
+                const sel = document.getElementById('repTechSelect');
+                if (sel) sel.value = clean;
+            }, 100);
+        }
+    };
+
+    window._calcRepairBalance = function() {
+        const total = parseFloat(document.getElementById('repTotalCharges')?.value) || 0;
+        const adv = parseFloat(document.getElementById('repAdvancePaid')?.value) || 0;
+        const balEl = document.getElementById('repBalancePreview');
+        if (balEl) balEl.textContent = 'Rs ' + Math.max(0, Math.round(total - adv)).toLocaleString();
+    };
+
+    const { value: formData } = await Swal.fire({
+        title: '🛠️ Book Mobile Repairing Job Card & Thermal Token',
+        width: 720,
+        html: `
+            <div style="text-align:left; font-size:12.5px; line-height:1.5;">
+                <div style="background:#f0fdfa; border:1px solid #99f6e4; padding:8px 12px; border-radius:8px; margin-bottom:10px; color:#0f766e; font-weight:700;">
+                    💡 گاہک کا موبائل ریپئرنگ کے لیے درج کریں اور 1 کلک پر 80mm / 58mm تھرمل ٹوکن پرچی پرنٹ کریں۔
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px;">👤 Customer Name *</label>
+                        <input id="repCustName" type="text" placeholder="e.g. Ali Raza" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700;">
+                    </div>
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px;">📱 Mobile Number *</label>
+                        <input id="repCustMobile" type="tel" placeholder="0300-1234567" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700;">
+                    </div>
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px;">🪪 CNIC (Optional)</label>
+                        <input id="repCustCnic" type="text" placeholder="35202-xxxxxxx-x" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:800; display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <span>🏷️ Mobile Brand *</span>
+                            <button type="button" onclick="window._addQuickRepairBrand()" style="background:#ccfbf1; color:#0f766e; border:1px solid #5eead4; border-radius:4px; padding:1px 6px; font-size:10px; font-weight:800; cursor:pointer;">➕ Brand / Other</button>
+                        </label>
+                        <select id="repBrandSelect" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700; background:#fff;">
+                            ${brands.map(b => `<option value="${b}">${b}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px;">📱 Model &amp; Color *</label>
+                        <input id="repModelInput" type="text" placeholder="e.g. iPhone 13 Pro (Sierra Blue)" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px;">🔢 IMEI 1 / Serial #</label>
+                        <input id="repImei1" type="text" maxlength="20" placeholder="15-digit IMEI 1" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px; font-family:monospace;">
+                    </div>
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px;">🔢 IMEI 2 (Optional)</label>
+                        <input id="repImei2" type="text" maxlength="20" placeholder="15-digit IMEI 2" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px; font-family:monospace;">
+                    </div>
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px;">🔐 Passcode / Pattern Lock</label>
+                        <input id="repPasscode" type="text" placeholder="e.g. 123456 or L-Shape" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:8px;">
+                    <label style="font-weight:800; display:block; margin-bottom:4px;">🔧 Fault / Problem Details (خرابی منتخب کریں یا لکھیں) *</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:5px;">
+                        ${faultChipsHtml}
+                    </div>
+                    <input id="repFaultInput" type="text" placeholder="e.g. Broken LCD Panel + Charging Jack Loose" style="width:100%; padding:7px 9px; border:1.5px solid #0f766e; border-radius:6px; font-weight:700;">
+                </div>
+
+                <div style="margin-bottom:8px; background:#f8fafc; border:1px solid #e2e8f0; padding:7px 10px; border-radius:8px;">
+                    <label style="font-weight:800; display:block; margin-bottom:4px; font-size:11.5px;">📦 Accessories Left with Phone (فون کے ساتھ کیا جمع کیا؟)</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:11.5px; font-weight:700;">
+                        <label><input type="checkbox" class="rep-acc-chk" value="Phone Only (SIM/SD Removed)" checked> Phone Only (No SIM/SD)</label>
+                        <label><input type="checkbox" class="rep-acc-chk" value="Battery Inside"> Battery Inside</label>
+                        <label><input type="checkbox" class="rep-acc-chk" value="Back Cover"> Back Cover</label>
+                        <label><input type="checkbox" class="rep-acc-chk" value="SIM Card"> SIM Card</label>
+                        <label><input type="checkbox" class="rep-acc-chk" value="Charger / Box"> Charger / Box</label>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:800; display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <span>👨‍🔧 Assigned Technician / Karigar</span>
+                            <button type="button" onclick="window._addQuickRepairTech()" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:4px; padding:1px 6px; font-size:10px; font-weight:800; cursor:pointer;">➕ Karigar</button>
+                        </label>
+                        <select id="repTechSelect" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700; background:#fff;">
+                            ${technicians.map(t => `<option value="${t}">${t}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px;">📅 Estimated Delivery Date</label>
+                        <input id="repEstDate" type="date" value="${tomorrow}" style="width:100%; padding:7px 9px; border:1px solid #cbd5e1; border-radius:6px; font-weight:700;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; background:#f0fdf4; border:1.5px solid #86efac; padding:8px 10px; border-radius:8px;">
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px; color:#166534;">💰 Total Repair Charges (Rs) *</label>
+                        <input id="repTotalCharges" type="number" min="0" step="10" placeholder="e.g. 3500" oninput="window._calcRepairBalance()" style="width:100%; padding:7px 9px; border:1.5px solid #16a34a; border-radius:6px; font-weight:900; font-size:14px;">
+                    </div>
+                    <div>
+                        <label style="font-weight:800; display:block; margin-bottom:2px; color:#0369a1;">💵 Advance Received (Rs)</label>
+                        <input id="repAdvancePaid" type="number" min="0" step="10" value="0" oninput="window._calcRepairBalance()" style="width:100%; padding:7px 9px; border:1px solid #7dd3fc; border-radius:6px; font-weight:800; font-size:14px;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; background:#fff; border-radius:6px; border:1px solid #bbf7d0; padding:4px;">
+                        <span style="font-size:10.5px; color:#64748b; font-weight:700;">Balance Due at Pickup</span>
+                        <b id="repBalancePreview" style="font-size:15px; color:#dc2626;">Rs 0</b>
+                    </div>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#0f766e',
+        confirmButtonText: '💾 Save & Print Thermal Token',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const custName = document.getElementById('repCustName')?.value.trim();
+            const custMobile = document.getElementById('repCustMobile')?.value.trim();
+            const brand = document.getElementById('repBrandSelect')?.value || '';
+            const model = document.getElementById('repModelInput')?.value.trim();
+            const fault = document.getElementById('repFaultInput')?.value.trim();
+            const totalCharges = parseFloat(document.getElementById('repTotalCharges')?.value) || 0;
+            if (!custName) { Swal.showValidationMessage('Customer ka naam lazmi hai!'); return false; }
+            if (!model) { Swal.showValidationMessage('Mobile model likhna lazmi hai!'); return false; }
+            if (!fault) { Swal.showValidationMessage('Fault / Masla select ya type karein!'); return false; }
+            const accs = Array.from(document.querySelectorAll('.rep-acc-chk:checked')).map(c => c.value);
+            return {
+                custName,
+                custMobile,
+                custCnic: document.getElementById('repCustCnic')?.value.trim() || '',
+                brand,
+                model,
+                imei1: document.getElementById('repImei1')?.value.trim() || '',
+                imei2: document.getElementById('repImei2')?.value.trim() || '',
+                passcode: document.getElementById('repPasscode')?.value.trim() || '',
+                fault,
+                accessories: accs.join(', ') || 'Phone Only',
+                technician: document.getElementById('repTechSelect')?.value || 'Lab Technician',
+                estDate: document.getElementById('repEstDate')?.value || tomorrow,
+                totalCharges,
+                advancePaid: parseFloat(document.getElementById('repAdvancePaid')?.value) || 0
+            };
+        }
+    });
+
+    if (!formData) return;
+
+    try {
+        const tokenNo = 'REP-' + Math.floor(1000 + Math.random() * 9000);
+        const docId = tokenNo + '-' + Date.now().toString().slice(-4);
+        const balDue = Math.max(0, formData.totalCharges - formData.advancePaid);
+        const imeiCombined = [formData.imei1, formData.imei2].filter(Boolean).join(' / ');
+        const subParts = [
+            `Token: ${tokenNo}`,
+            `${formData.brand} ${formData.model}`,
+            imeiCombined ? `IMEI: ${imeiCombined}` : '',
+            `Fault: ${formData.fault}`,
+            formData.passcode ? `Lock: ${formData.passcode}` : '',
+            `Acc: ${formData.accessories}`,
+            `Tech: ${formData.technician}`
+        ].filter(Boolean).join(' | ');
+
+        const jobOrder = {
+            id: docId,
+            agencyId: myAgencyId,
+            businessCategory: 'mobile',
+            billNo: tokenNo,
+            orderNo: tokenNo,
+            repairTokenNo: tokenNo,
+            orderType: 'repair_job',
+            isRepairJob: true,
+            repairStatus: 'in_lab',
+            orderStatus: 'approved',
+            deliveryStatus: 'pending',
+            customerName: formData.custName,
+            customerMobile: formData.custMobile,
+            customerNTN: formData.custCnic,
+            repairDeviceBrand: formData.brand,
+            repairDeviceModel: `${formData.brand} ${formData.model}`,
+            repairImei: imeiCombined,
+            repairImei1: formData.imei1,
+            repairImei2: formData.imei2,
+            repairPasscode: formData.passcode,
+            repairFault: formData.fault,
+            repairAccessories: formData.accessories,
+            repairTechnician: formData.technician,
+            repairEstDelivery: formData.estDate,
+            bookerName: formData.technician,
+            items: [{
+                name: `🛠️ Repairing: ${formData.brand} ${formData.model} (${formData.fault})`,
+                qty: 1,
+                unit: 'Job',
+                rate: formData.totalCharges,
+                total: formData.totalCharges,
+                imei1: formData.imei1,
+                imei2: formData.imei2,
+                brandCompany: formData.brand,
+                modelVariant: formData.model,
+                itemSubtitle: subParts
+            }],
+            subTotal: formData.totalCharges,
+            discount: 0,
+            billAmount: formData.totalCharges,
+            grandTotal: formData.totalCharges,
+            received: formData.advancePaid,
+            balance: balDue,
+            date: new Date().toLocaleDateString('en-PK'),
+            time: new Date().toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' }),
+            createdAt: new Date().toISOString(),
+            createdBy: myUid
+        };
+
+        await db.collection('bills').doc(docId).set(jobOrder);
+        try { await db.collection('orders').doc(docId).set(jobOrder); } catch (e) {}
+
+        if (!allOrders.some(o => o.id === docId)) {
+            allOrders.unshift(jobOrder);
+        }
+        saveToCache();
+        renderKPIRibbon();
+        renderOrdersTable();
+
+        printRepairJobThermalToken(docId);
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: `🛠️ Repair Token ${tokenNo} saved & sent to Thermal Printer!`,
+            showConfirmButton: false,
+            timer: 2500
+        });
+    } catch (err) {
+        console.error('Save repair job error:', err);
+        Swal.fire('Error', 'Repair job save fail: ' + err.message, 'error');
+    }
+};
+
+window.updateRepairJobStatus = async function(orderId) {
+    const ord = allOrders.find(o => o.id === orderId);
+    if (!ord) return;
+
+    const { value: statusData } = await Swal.fire({
+        title: `🛠️ Update Repair Status — ${ord.repairTokenNo || ord.billNo}`,
+        html: `
+            <div style="text-align:left; font-size:13px;">
+                <div style="background:#f0fdfa; border:1px solid #99f6e4; padding:8px 12px; border-radius:8px; margin-bottom:10px;">
+                    <div>📱 <b>Device:</b> ${ord.repairDeviceModel || (ord.items && ord.items[0]?.name) || '-'}</div>
+                    <div>🔧 <b>Fault:</b> ${ord.repairFault || '-'}</div>
+                    <div>👤 <b>Customer:</b> ${ord.customerName} (${ord.customerMobile || '-'})</div>
+                    <div>💰 <b>Total:</b> Rs ${Math.round(ord.grandTotal || 0).toLocaleString()} | <b>Adv:</b> Rs ${Math.round(ord.received || 0).toLocaleString()} | <b style="color:#dc2626;">Bal: Rs ${Math.round(ord.balance || 0).toLocaleString()}</b></div>
+                </div>
+                <label style="font-weight:800; display:block; margin-bottom:4px;">Select New Lab Status:</label>
+                <select id="swalRepairStatusSel" style="width:100%; padding:8px 10px; border-radius:8px; border:1.5px solid #0f766e; font-weight:800; margin-bottom:10px; background:#fff;">
+                    <option value="in_lab" ${ord.repairStatus === 'in_lab' ? 'selected' : ''}>🛠️ In Repair Lab (لیب میں زیرِ مرمت)</option>
+                    <option value="ready" ${ord.repairStatus === 'ready' ? 'selected' : ''}>✅ Ready for Customer Pickup (تیار ہے — گاہک کو اطلاع دیں)</option>
+                    <option value="delivered" ${ord.repairStatus === 'delivered' ? 'selected' : ''}>🎉 Delivered to Customer &amp; Balance Paid (حوالے کر دیا گیا)</option>
+                    <option value="returned_unrepaired" ${ord.repairStatus === 'returned_unrepaired' ? 'selected' : ''}>↩️ Returned Unrepaired (بغیر مرمت واپس)</option>
+                </select>
+                <label style="font-weight:700; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" id="swalRepairCollectBal" checked>
+                    <span>Deliver karte waqt baqaya raqam (Rs ${Math.round(ord.balance || 0).toLocaleString()}) wasool kar li gayi</span>
+                </label>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#0f766e',
+        confirmButtonText: '💾 Update Status',
+        preConfirm: () => ({
+            status: document.getElementById('swalRepairStatusSel')?.value || 'in_lab',
+            collectBal: document.getElementById('swalRepairCollectBal')?.checked
+        })
+    });
+
+    if (!statusData) return;
+
+    const updates = {
+        repairStatus: statusData.status,
+        updatedAt: new Date().toISOString()
+    };
+    if (statusData.status === 'delivered') {
+        updates.deliveryStatus = 'delivered';
+        if (statusData.collectBal) {
+            updates.received = ord.grandTotal || ord.billAmount || 0;
+            updates.balance = 0;
+        }
+    } else if (statusData.status === 'returned_unrepaired') {
+        updates.orderStatus = 'rejected';
+        updates.deliveryStatus = 'cancelled';
+    }
+
+    try {
+        await db.collection('bills').doc(orderId).update(updates);
+        try { await db.collection('orders').doc(orderId).update(updates); } catch (e) {}
+        Object.assign(ord, updates);
+        saveToCache();
+        renderKPIRibbon();
+        renderOrdersTable();
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: '✅ Repairing status updated!', showConfirmButton: false, timer: 1600 });
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    }
+};
+
+window.printRepairJobThermalToken = function(orderId) {
+    const ord = allOrders.find(o => o.id === orderId);
+    if (!ord) return;
+
+    const agencyName = (myAgency && (myAgency.businessName || myAgency.name)) || 'NH MOBILE LAB & POS';
+    const agencyPhone = (myAgency && (myAgency.phone || myAgency.mobile)) || '';
+    const agencyAddress = (myAgency && myAgency.address) || '';
+    const thermalWidth = (window.BusinessCategories && typeof window.BusinessCategories.getThermalWidthPreference === 'function')
+        ? window.BusinessCategories.getThermalWidthPreference(myAgency)
+        : (String(localStorage.getItem('eb_thermal_width') || localStorage.getItem('nh_thermal_width') || '80mm').startsWith('58') ? '58mm' : '80mm');
+    const bodyWidth = thermalWidth === '58mm' ? '54mm' : '74mm';
+
+    const tokenNo = ord.repairTokenNo || ord.billNo || 'REP-001';
+    const total = Math.round(ord.grandTotal || ord.billAmount || 0);
+    const adv = Math.round(ord.received || 0);
+    const bal = Math.round(ord.balance !== undefined ? ord.balance : Math.max(0, total - adv));
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Repairing Token - ${tokenNo}</title>
+<style>
+    @page { size: ${thermalWidth} auto; margin: 2mm; }
+    body { font-family: 'Courier New', monospace, Arial; width: ${bodyWidth}; margin: 0 auto; color: #000; font-size: 11px; line-height: 1.35; }
+    .center { text-align: center; }
+    .bold { font-weight: 900; }
+    .hr { border-top: 1.5px dashed #000; margin: 5px 0; }
+    .row { display: flex; justify-content: space-between; margin: 2px 0; }
+    .token-box { border: 2.5px solid #000; padding: 5px; text-align: center; margin: 5px 0; font-size: 15px; font-weight: 900; letter-spacing: 0.5px; }
+    .detail-box { border: 1.5px solid #000; padding: 5px; margin: 4px 0; font-size: 10.5px; font-weight: 700; }
+</style>
+</head>
+<body>
+    <div class="center">
+        <div style="font-size:15px; font-weight:900; text-transform:uppercase;">${agencyName}</div>
+        ${agencyAddress ? `<div style="font-size:10px; font-weight:700;">${agencyAddress}</div>` : ''}
+        ${agencyPhone ? `<div style="font-size:10px; font-weight:700;">Lab Helpline: ${agencyPhone}</div>` : ''}
+        <div style="background:#000; color:#fff; font-weight:900; padding:2px 8px; display:inline-block; margin-top:3px; font-size:11px;">MOBILE REPAIRING JOB TOKEN (ریپئرنگ ٹوکن)</div>
+    </div>
+
+    <div class="token-box">TOKEN #: ${tokenNo}</div>
+
+    <div class="row"><span>Date / Time:</span><span class="bold">${ord.date || '-'} ${ord.time || ''}</span></div>
+    <div class="row"><span>Est. Delivery:</span><span class="bold">${ord.repairEstDelivery || 'Call Before Pickup'}</span></div>
+    <div class="row"><span>Customer:</span><span class="bold">${ord.customerName || '-'}</span></div>
+    ${ord.customerMobile ? `<div class="row"><span>Mobile #:</span><span class="bold">${ord.customerMobile}</span></div>` : ''}
+    ${ord.customerNTN ? `<div class="row"><span>CNIC:</span><span class="bold">${ord.customerNTN}</span></div>` : ''}
+
+    <div class="hr"></div>
+    <div class="detail-box">
+        <div>📱 <b>DEVICE:</b> ${ord.repairDeviceModel || (ord.items && ord.items[0]?.name) || '-'}</div>
+        ${ord.repairImei ? `<div>🔢 <b>IMEI/SN:</b> ${ord.repairImei}</div>` : ''}
+        ${ord.repairPasscode ? `<div>🔐 <b>Lock/Passcode:</b> ${ord.repairPasscode}</div>` : ''}
+        <div>🔧 <b>FAULT:</b> ${ord.repairFault || '-'}</div>
+        <div>📦 <b>ACCESSORIES:</b> ${ord.repairAccessories || 'Phone Only (No SIM/SD)'}</div>
+        <div>👨‍🔧 <b>TECHNICIAN:</b> ${ord.repairTechnician || 'Lab Staff'}</div>
+    </div>
+
+    <div class="row" style="font-size:12px;"><span>Estimated Charges:</span><span class="bold">Rs ${total.toLocaleString()}</span></div>
+    <div class="row"><span>Advance Paid:</span><span class="bold">Rs ${adv.toLocaleString()}</span></div>
+    <div style="border:2px solid #000; padding:4px; text-align:center; margin:4px 0; font-size:13px; font-weight:900;">
+        BALANCE DUE: Rs ${bal.toLocaleString()} /-
+    </div>
+
+    <div class="hr"></div>
+    <div style="font-size:9.5px; font-weight:700; line-height:1.35;">
+        <b>شرائط (Repair Lab Terms):</b><br>
+        1. سم کارڈ اور میموری کارڈ نکال کر فون جمع کروائیں۔<br>
+        2. ڈیڈ سیٹ، واٹر ڈیمج اور LCD پینل ریپئرنگ گاہک کے اپنے رسک پر ہو گی۔<br>
+        3. ریپئرنگ کے بعد 15 دن کے اندر اپنا موبائل وصول کر لیں، ورنہ دکان ذمہ دار نہ ہو گی۔<br>
+        4. موبائل واپسی کے وقت یہ اصل ٹوکن پرچی لانا لازمی ہے۔
+    </div>
+</body>
+</html>`;
+
+    openPrintDocument(html);
+};
+

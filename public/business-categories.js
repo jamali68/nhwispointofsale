@@ -20,6 +20,7 @@ const BUSINESS_CATEGORIES = [
         subcategories: [
             'درسی و اسکول کتب (Syllabus & Textbooks)',
             'گائیڈز، ماڈل پیپرز و حل شدہ پرچے (Keybooks & Guides)',
+            'مکمل اسکول کورس سیٹ (Complete School Book Sets)',
             'رجسٹر و اسکول کاپیاں (Registers & Notebooks)',
             'بال پین، مارکرز، پینسلز و اسٹیشنری (Stationery, Pens & Pencils)',
             'اسکول بیگز و جیومیٹری باکسز (School Bags & Geometry Boxes)',
@@ -28,41 +29,557 @@ const BUSINESS_CATEGORIES = [
             'اسلامی کتب، ناولز و عمومی کتابیں (Islamic & General Books)',
             'یونیفارم بیجز، ٹائیاں و اسکول سامان (Uniform Badges & Accessories)'
         ],
-        units: ['unit', 'pcs', 'dozen', 'packet', 'box', 'set', 'bundle', 'carton'],
+        units: ['pcs', 'unit', 'set', 'dozen', 'packet', 'box', 'bundle', 'ream', 'carton'],
+        unitRulesByGroup: {
+            book: ['pcs', 'unit', 'set', 'bundle', 'packet', 'box', 'carton'],
+            notebook: ['pcs', 'dozen', 'bundle', 'packet', 'ream', 'box', 'carton', 'unit'],
+            stationery: ['pcs', 'box', 'packet', 'dozen', 'set', 'bundle', 'carton', 'unit'],
+            general: ['pcs', 'unit', 'set', 'dozen', 'packet', 'box', 'bundle', 'ream', 'carton']
+        },
         customFields: [
-            { id: 'classGrade', label: 'کلاس / جماعت (Class / Grade)', placeholder: 'مثلاً: 9th, 10th, 1st Year, KG, 5th', type: 'text' },
-            { id: 'publisherBoard', label: 'پبلشر / تعلیمی بورڈ (Publisher / Board)', placeholder: 'مثلاً: Punjab Board, Oxford, Caravan, Ilmi', type: 'text' },
-            { id: 'subjectAuthor', label: 'مضمون / مصنف (Subject / Author)', placeholder: 'مثلاً: English, Urdu, Math, Physics', type: 'text' },
-            { id: 'editionYear', label: 'ایڈیشن / سال (Edition / Year)', placeholder: 'مثلاً: 2026 Edition', type: 'text' }
+            {
+                id: 'itemSubType',
+                label: 'آئٹم کی قسم (Product Type)',
+                type: 'select',
+                options: [
+                    '',
+                    'Textbook (درسی کتاب)',
+                    'Keybook / Guide (خلاصہ / گائیڈ / ماڈل پیپر)',
+                    'Book Set / Syllabus Bundle (مکمل کورس سیٹ)',
+                    'Notebook / Register (کاپی / رجسٹر / شیٹ)',
+                    'Writing & Stationery (پین / پینسل / مارکر / اسٹیشنری)',
+                    'School Bag / Geometry (اسکول بیگ / جیومیٹری / لنچ باکس)',
+                    'Art, Craft & Office Supply (آرٹ، چارٹ و آفس سامان)',
+                    'Islamic / General Book (اسلامی و جنرل کتاب)'
+                ]
+            },
+            {
+                id: 'classGrade',
+                label: 'کلاس / جماعت (Class / Grade)',
+                placeholder: 'مثلاً: 9th, 10th, 1st Year, KG, Class 5, General',
+                type: 'text',
+                appliesToGroup: ['book', 'notebook', 'general'],
+                suggestions: [
+                    'Playgroup / PG', 'Nursery', 'Prep / KG',
+                    'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
+                    'Class 6', 'Class 7', 'Class 8',
+                    '9th (Matric Part-I)', '10th (Matric Part-II)',
+                    '1st Year (Inter Part-I)', '2nd Year (Inter Part-II)',
+                    'O-Level / IGCSE', 'A-Level', 'B.A / B.Sc / BS / Masters',
+                    'Dars-e-Nizami / Qaida & Nazra (درس نظامی و ناظرہ)',
+                    'MDCAT / ECAT / CSS / Entry Test',
+                    'All Classes / General (تمام کلاسز / جنرل)',
+                    'Other Class / Course (دیگر کلاس / کورس)'
+                ]
+            },
+            {
+                id: 'publisherBoard',
+                label: 'پبلشر / تعلیمی بورڈ / برانڈ (Publisher / Board / Stationery Brand)',
+                placeholder: 'مثلاً: PCTB, Oxford, Afaq, Dollar, Own Copy Brand, Other Publisher',
+                type: 'text',
+                hasBrandActionButtons: true,
+                brandButtonsConfig: {
+                    primaryBtnLabel: '📚 + New Publisher / Board',
+                    primaryModalTitle: '📚 نیا پبلشر یا تعلیمی بورڈ شامل کریں (Add New Publisher / Board)',
+                    primaryModalDesc: 'مارکیٹ کا کوئی بھی نیا پبلشر، تعلیمی بورڈ یا خلاصہ/گائیڈ پبلشر یہاں شامل کریں:',
+                    primaryPlaceholder: 'مثلاً: Al-Ghazali Publishers, Sunrise Series, KPK Board...',
+                    secondaryBtnLabel: '✏️ + Own Copy / Stationery Brand',
+                    secondaryModalTitle: '✏️ اپنا ذاتی کاپی / رجسٹر یا نیا اسٹیشنری برانڈ (Own / Stationery Brand)',
+                    secondaryModalDesc: 'اگر آپ اپنی دکان کے نام کی کاپیاں، رجسٹر، سلیبس پیک یا کوئی اسٹیشنری برانڈ فروخت کرتے ہیں تو یہاں نام لکھیں:',
+                    secondaryPlaceholder: 'مثلاً: Al-Qalam Copy House, Madina Registers, Goldfish, Oaso...',
+                    otherBtnLabel: '🏷️ Other Publisher / Brand (دیگر)',
+                    otherPrimaryDefault: 'Other Publisher / Board (دیگر پبلشر / بورڈ)',
+                    otherSecondaryDefault: 'Other Stationery Brand (دیگر اسٹیشنری برانڈ)'
+                },
+                appliesToGroup: ['book', 'notebook', 'stationery', 'general'],
+                suggestions: [
+                    'PCTB (Punjab Textbook Board)', 'Oxford University Press (OUP)',
+                    'Afaq (آفاق)', 'Caravan Book House', 'Ilmi Kitab Khana',
+                    'Gaba Educational Books', 'Paramount Books', 'National Book Foundation (FBISE)',
+                    'Sindh / KPK / Balochistan Textbook Board',
+                    'Azeem Academy / Ch. Ghulam Rasool', 'Majeed Book Depot / Star Notes',
+                    'Dogar Brothers / Bhatti Sons', 'Unique / Scholar / Tips / KIPS',
+                    'Taj Company / Darussalam / Maktaba-tul-Madina',
+                    'Dollar Stationery (ڈالر اسٹیشنری)', 'Piano / Sayyed (پیانو)',
+                    'Goldfish / Deer / Dux / Bahadur', 'Mercury / Oaso / Master',
+                    'Pelikan / Deli / M&G / Picasso', 'Casio / Citizen Calculators',
+                    '✏️ Own Shop Copy / Register Brand (اپنا ذاتی کاپی و رجسٹر برانڈ)',
+                    '📚 Other Publisher / Board (دیگر پبلشر / بورڈ)',
+                    '🏷️ Other Stationery Brand (دیگر اسٹیشنری برانڈ)'
+                ]
+            },
+            {
+                id: 'subjectAuthor',
+                label: 'مضمون / مصنف (Subject / Author)',
+                placeholder: 'مثلاً: English, Urdu, Math, Physics, All Subjects',
+                type: 'text',
+                appliesToGroup: ['book'],
+                suggestions: [
+                    'English', 'Urdu (اردو)', 'Mathematics (ریاضی)', 'General Science',
+                    'Physics (فزکس)', 'Chemistry (کیمسٹری)', 'Biology (بیالوجی)',
+                    'Computer Science', 'Islamiat (اسلامیات)', 'Pakistan Studies (مطالعہ پاکستان)',
+                    'Tarjuma-tul-Quran (ترجمۃ القرآن)', 'Social Studies / History / Geography',
+                    'Arabic / Drawing', 'All Subjects (مکمل سیٹ)'
+                ]
+            },
+            {
+                id: 'mediumLang',
+                label: 'میڈیم / زبان (Medium)',
+                type: 'select',
+                appliesToGroup: ['book'],
+                options: [
+                    '',
+                    'English Medium',
+                    'Urdu Medium (اردو میڈیم)',
+                    'Bilingual (اردو + انگلش)',
+                    'Arabic / Islamiat'
+                ]
+            },
+            {
+                id: 'editionYear',
+                label: 'ایڈیشن / تعلیمی سال (Edition / Session)',
+                placeholder: 'مثلاً: 2026-27 New Edition',
+                type: 'text',
+                appliesToGroup: ['book'],
+                suggestions: [
+                    '2026-27 New Edition',
+                    '2025-26 Edition',
+                    'Updated SNC / NCP Syllabus',
+                    'Revised Latest Edition'
+                ]
+            },
+            {
+                id: 'pagesRuling',
+                label: 'صفحات / لائننگ / سائز (Pages / Ruling / Size Spec)',
+                placeholder: 'مثلاً: 160 Pages, Single Line, Four Line, A4, Pack of 10',
+                type: 'text',
+                appliesToGroup: ['notebook', 'stationery', 'book', 'general'],
+                suggestions: [
+                    'Single Line (اردو / انگلش)', 'Four Line (انگلش کاپی)',
+                    'Square / Math Box (حساب کاپی)', 'Interleaf (سادہ + لائن پریکٹیکل)',
+                    'Broad Line', '80 Pages', '120 Pages', '160 Pages',
+                    '200 Pages Register', '240 Pages Register', '300 Pages Register',
+                    '400 Pages Jumbo Register', 'A4 Size / 70gsm', 'Legal Size / 80gsm'
+                ]
+            },
+            {
+                id: 'bindingVariant',
+                label: 'بائنڈنگ / کلر / ویرینٹ (Binding / Color / Variant)',
+                placeholder: 'مثلاً: Card Binding, Hard Bound, Spiral, Blue / Black Ink',
+                type: 'text',
+                appliesToGroup: ['book', 'notebook', 'stationery', 'general'],
+                suggestions: [
+                    'Card Binding (کارڈ بائنڈنگ)',
+                    'Hard Bound / Rexine (مجلد / ہارڈ باؤنڈ)',
+                    'Spiral / Ring Binding (اسپائرل بائنڈنگ)',
+                    'Pin / Staple Copy (پن کاپی)',
+                    'Plastic / Laminated Cover',
+                    'Blue Ink (نیلا)',
+                    'Black Ink (کالا)',
+                    'Red / Green Ink',
+                    'Assorted / Multi-Color Pack (مکس کلرز)'
+                ]
+            },
+            {
+                id: 'packSize',
+                label: 'پیکنگ تعداد / سیٹ بکس (Units per Pack / Books in Set)',
+                placeholder: 'مثلاً: 12 (Dozen), 10 (Box), 8 (Books in Set)',
+                type: 'number',
+                appliesToGroup: ['book', 'notebook', 'stationery', 'general']
+            },
+            {
+                id: 'isbnCode',
+                label: 'ISBN / بک کوڈ / آرٹیکل نمبر (ISBN / Article Code)',
+                placeholder: 'مثلاً: 978-0-19-906123-4 یا Art #205',
+                type: 'text',
+                appliesToGroup: ['book', 'notebook', 'stationery', 'general']
+            }
         ],
-        quickTags: ['درسی کتب', 'کاپیاں', 'اسٹیشنری', 'گائیڈز', 'رجسٹر']
+        purchaseConfig: {
+            enableMrpDiscountCalc: true,
+            allowEditionUpdateOnRestock: true,
+            supplierLabel: '🏛️ پبلشر / ڈسٹری بیوٹر / سپلائر (Publisher / Supplier)',
+            supplierPlaceholder: 'مثلاً: PCTB, Oxford, Afaq, Ilmi, Caravan, Dollar',
+            invoiceLabel: '🧾 بلٹی / انوائس نمبر (Supplier Invoice / Bilty #)',
+            invoicePlaceholder: 'مثلاً: Inv #412 یا Bilty #8890',
+            mrpLabel: '🏷️ درج شدہ قیمت / MRP (Printed Retail Price)',
+            discountLabel: '📉 پبلشر ٹریڈ ڈسکاؤنٹ % (Trade Discount %)',
+            wholesaleDiscountLabel: '🏪 ہول سیل ڈسکاؤنٹ % (Wholesale Margin %)',
+            editionLabel: '📅 نیا ایڈیشن / سیشن اپڈیٹ (Edition / Session - Optional)'
+        },
+        stockReasons: {
+            in: [
+                { value: 'purchase', label: '📥 Publisher / Supplier Purchase (پبلشر / سپلائر سے مال آیا)' },
+                { value: 'school_return', label: '🏫 School / Bulk Syllabus Return (اسکول بلک کورس واپسی)' },
+                { value: 'return', label: '↩️ Customer Return / Exchange (گاہک واپسی / تبدیلی)' },
+                { value: 'specimen_in', label: '🎁 Publisher Specimen / Bonus Copies (اعزازی / اسپیسیمن کاپیاں)' },
+                { value: 'adjustment_in', label: '✏️ Stock Count Adjustment (گنتی درستگی)' },
+                { value: 'other_in', label: '📝 Other Restock (دیگر)' }
+            ],
+            out: [
+                { value: 'sale', label: '🛒 Direct Counter Sale (فروخت)' },
+                { value: 'publisher_return', label: '🔄 Return to Publisher / Old Syllabus (پبلشر کو واپسی / پرانا نصاب)' },
+                { value: 'specimen_out', label: '🎁 Teacher Specimen / Sample Copy (ٹیچر اسپیسیمن / سیمپل)' },
+                { value: 'damage', label: '💥 Misprint / Damaged Binding (مس پرنٹ / خراب بائنڈنگ)' },
+                { value: 'lost', label: '❓ Lost / Missing (گم شدہ)' },
+                { value: 'adjustment_out', label: '✏️ Stock Count Reduction (گنتی کٹوتی)' },
+                { value: 'other_out', label: '📝 Other (دیگر)' }
+            ]
+        },
+        customerConfig: {
+            segments: [
+                { value: '', label: '— کسٹمر کیٹیگری منتخب کریں (Optional) —', defaultTier: '' },
+                { value: 'school_college', label: '🏫 اسکول / کالج / اکیڈمی (School / College / Academy)', shortLabel: '🏫 School / Academy', defaultTier: 'wholesale' },
+                { value: 'sub_dealer', label: '📚 بک شاپ / سب ڈیلر (Bookshop / Sub-Dealer)', shortLabel: '📚 Bookshop / Dealer', defaultTier: 'wholesale' },
+                { value: 'library_inst', label: '🏛️ لائبریری / سرکاری و دفتری ادارہ (Library / Office / Institution)', shortLabel: '🏛️ Library / Office', defaultTier: 'wholesale' },
+                { value: 'teacher_tutor', label: '👨‍🏫 ٹیچر / ہوم ٹیوٹر (Teacher / Tutor)', shortLabel: '👨‍🏫 Teacher / Tutor', defaultTier: 'wholesale' },
+                { value: 'student_parent', label: '🎒 طالب علم / والدین (Student / Retail Parent)', shortLabel: '🎒 Student / Parent', defaultTier: 'retail' },
+                { value: 'general_cust', label: '👤 عام گاہک (Walk-in / General Customer)', shortLabel: '👤 General Customer', defaultTier: 'retail' }
+            ],
+            boardSuggestions: [
+                'PCTB (Punjab Textbook Board)',
+                'Oxford University Press (OUP)',
+                'Afaq (آفاق نصاب)',
+                'Federal Board (FBISE / NBF)',
+                'Caravan / Gaba / Paramount',
+                'Cambridge (O/A Level)',
+                'Mixed Private School Syllabus'
+            ]
+        },
+        returnReasons: [
+            { value: '📚 پرانا ایڈیشن / سلیبس تبدیل ہو گیا (Old Edition / Syllabus Changed)', label: '📚 پرانا ایڈیشن / سلیبس تبدیل ہو گیا (Old Edition / Syllabus Changed)' },
+            { value: '🏫 اسکول / طالب علم سیشن واپسی (School / Session Unsold Return)', label: '🏫 اسکول / طالب علم سیشن واپسی (School / Session Unsold Return)' },
+            { value: '📖 مس پرنٹنگ یا بائنڈنگ خراب (Misprint / Binding Defect)', label: '📖 مس پرنٹنگ یا بائنڈنگ خراب (Misprint / Binding Defect)' }
+        ],
+        claimCategories: [
+            { id: 'cat_misprint', name: '📖 Misprint / Binding Defect (مس پرنٹنگ یا بائنڈنگ خراب)', type: 'defect', icon: 'fa-book-open', color: '#7c3aed', desc: 'Missing pages, misprinted text or torn book binding' },
+            { id: 'cat_old_edition', name: '📚 Old Edition / Syllabus Changed (پرانا ایڈیشن / سلیبس تبدیل)', type: 'expired', icon: 'fa-book-bookmark', color: '#d97706', desc: 'Outdated academic edition or syllabus revision claim' }
+        ],
+        thermalTermsEn: 'Books & stationery exchange within 3 days in original condition with receipt. No return on guides/test papers.',
+        thermalTermsUr: 'کتابیں اور اسٹیشنری اصل حالت میں بل کے ساتھ 3 دن کے اندر تبدیل ہو سکتی ہیں۔ گائیڈز اور ٹیسٹ پیپرز واپس نہیں ہوں گے۔',
+        quickTags: ['درسی کتب', 'کاپیاں', 'اسٹیشنری', 'گائیڈز', 'رجسٹر', 'کورس سیٹ']
     },
     {
         id: 'mobile',
-        aliasIds: ['mobile_shop', 'mobile_accessories'],
-        nameEn: 'Mobile Shop & Accessories',
-        nameUr: 'موبائل شاپ و ایسیسریز',
+        aliasIds: ['mobile_shop', 'mobile_accessories', 'mobile_repairing'],
+        nameEn: 'Mobile Shop, Repairing & Accessories',
+        nameUr: 'موبائل شاپ، ریپئرنگ و ایسیسریز',
         icon: '📱',
         status: 'active',
-        description: 'Smartphones, covers, chargers, handsfree, screen protectors, cables',
+        description: 'Pin pack smartphones, used/kit phones, 2/3/4-SIM keypad mobiles, chargers, earbuds, covers, glass protectors, LCD panels & repairing lab parts',
         subcategories: [
-            'اسمارٹ فونز (Smartphones / Box Packed)',
-            'استعمال شدہ فونز (Used / Second Hand Mobiles)',
-            'چارجرز، اڈاپٹرز و کیبلز (Chargers & Cables)',
-            'ہینڈز فری، ایئربڈز و ہیڈ فونز (Handsfree & Earbuds)',
-            'موبائل کورز و پاؤچز (Mobile Covers & Pouches)',
-            'اسکرین پروٹیکٹرز و گلاس (Screen Protectors)',
-            'پاور بینکس (Power Banks)',
-            'موبائل اسپیئر پارٹس (Spare Parts & Displays)',
-            'موبائل ریپئرنگ و ٹولز (Repairing Tools)'
+            'اسمارٹ فونز — ڈبہ پیک (Smartphones - Pin Pack / Brand New)',
+            'استعمال شدہ و کٹ فونز (Used / Open Box / Imported Kits)',
+            'کی پیڈ / بٹن موبائلز (Keypad / Feature Phones - 2/3/4 SIM)',
+            'ٹیبلٹس، آئی پیڈز و اسمارٹ واچز (Tablets, iPads & Smart Watches)',
+            'چارجرز، فاسٹ اڈاپٹرز و ڈیٹا کیبلز (Chargers, Adapters & Cables)',
+            'ہینڈز فری، ایئربڈز و نیک بینڈز (Handsfree, AirPods & Neckbands)',
+            'موبائل کورز، پاؤچز و گلاس پروٹیکٹرز (Covers, Pouches & Tempered Glass)',
+            'پاور بینکس، بیٹریز و میموری کارڈز (Power Banks, Batteries & SD Cards)',
+            'موبائل پینلز، ایل سی ڈی و ٹچ (LCD Panels, OLED & Touch Screens)',
+            'موبائل اسپیئر پارٹس و آئی سی (Charging Jacks, Speakers, Flex & ICs)',
+            'موبائل ریپئرنگ ٹولز و سروسز (Repairing Tools, Soldering & Lab Services)'
         ],
-        units: ['unit', 'pcs', 'box', 'carton'],
+        units: ['unit', 'pcs', 'box', 'packet', 'set', 'dozen', 'bundle', 'carton', 'bottle', 'roll'],
+        unitRulesByGroup: {
+            handset: ['unit', 'pcs', 'box', 'carton'],
+            accessory: ['pcs', 'unit', 'box', 'packet', 'dozen', 'set', 'bundle', 'carton'],
+            spare_part: ['pcs', 'unit', 'packet', 'box', 'set', 'dozen', 'carton'],
+            repair_tool: ['pcs', 'unit', 'set', 'box', 'bottle', 'roll', 'packet']
+        },
         customFields: [
-            { id: 'imeiSerial', label: 'IMEI / Serial Number', placeholder: 'IMEI 1 / Serial', type: 'text' },
-            { id: 'modelVariant', label: 'ماڈل / ویرینٹ (Model / RAM / Storage)', placeholder: 'e.g. 8GB/128GB - Blue', type: 'text' },
-            { id: 'ptaStatus', label: 'PTA Status', placeholder: 'PTA Approved / Non-PTA', type: 'select', options: ['PTA Approved', 'Non-PTA', 'JV / Non-Active'] }
+            {
+                id: 'itemSubType',
+                label: 'آئٹم کی قسم (Product Type)',
+                type: 'select',
+                appliesToGroup: ['handset', 'accessory', 'spare_part', 'repair_tool'],
+                options: [
+                    '',
+                    'Smartphone / Box Pack (ڈبہ پیک اسمارٹ فون)',
+                    'Used / Kit Mobile (استعمال شدہ / کٹ فون)',
+                    'Keypad / Feature Phone (کی پیڈ / بٹن فون - 2/3/4 سم)',
+                    'Tablet / iPad / Smart Watch (ٹیبلٹ / آئی پیڈ / واچ)',
+                    'Charger / Data Cable / Adapter (چارجر / ڈیٹا کیبل)',
+                    'Handsfree / Earbuds / Neckband (ہینڈز فری / ایئربڈز)',
+                    'Cover / Pouch / Glass Protector (کور / پاؤچ / گلاس)',
+                    'Power Bank / Battery / Memory Card (پاور بینک / بیٹری / کارڈ)',
+                    'LCD Panel / Touch / Spare Part (پینل / فولڈر / اسپیئر پارٹ)',
+                    'Repairing Tool / Lab Item (ریپئرنگ ٹولز و سامان)'
+                ]
+            },
+            {
+                id: 'brandCompany',
+                label: 'برانڈ / کمپنی (Mobile / Accessory Brand)',
+                placeholder: 'مثلاً: Samsung, Apple, Infinix, Sparx, Ronin, Own Brand, Other Brand',
+                type: 'text',
+                hasBrandActionButtons: true,
+                appliesToGroup: ['handset', 'accessory', 'spare_part', 'repair_tool'],
+                suggestions: [
+                    'Samsung (سام سنگ)', 'Apple iPhone / iPad (ایپل آئی فون)',
+                    'Infinix (انفینکس)', 'Tecno (ٹیکنو)', 'Vivo (ویوو)',
+                    'Oppo (اوپو)', 'Xiaomi / Redmi / Poco (شاؤمی / ریڈمی)',
+                    'Realme (ریئل می)', 'Itel (آئی ٹیل)', 'Honor / Huawei',
+                    'OnePlus / Google Pixel', 'Motorola / Nothing Phone / Sony Xperia',
+                    'Sparx (اسپارکس)', 'Dcode (ڈی کوڈ)', 'VGOTel (وی گو ٹیل)',
+                    'ZTE / Nubia / Meizu', 'Sharp Aquos / Fujitsu (جاپانی کٹ فونز)',
+                    'Nokia / QMobile / Calme / Digit / Club (کی پیڈ موبائلز)',
+                    'Ronin (رونن ایسیسریز)', 'Audionic (آڈیونک)', 'Faster (فاسٹر)',
+                    'Zero Lifestyle (زیرو لائف اسٹائل)', 'Space (اسپیس)', 'Joyroom (جوائے روم)',
+                    'Anker (اینکر)', 'Baseus (بیسیس)', 'Ugreen (یو گرین)',
+                    'Remax / Hoco / LDNIO / Oraimo', 'Airox / Dany / Jellico / Aspor / Borofone',
+                    'SanDisk / Kingston / Lexar (میموری کارڈز و یو ایس بی)',
+                    'Crown / Diamond / Ori Service Pack (پینلز و فولڈرز)',
+                    'Sunshine / Relife / Mechanic / Luowei (ریپئرنگ ٹولز)',
+                    '🔌 Own / Custom Accessory Brand (اپنا ذاتی ایسیسریز برانڈ)',
+                    '📱 Other Mobile Brand (دیگر موبائل برانڈ)',
+                    '🏷️ Other Accessory Brand (دیگر ایسیسریز برانڈ)'
+                ]
+            },
+            {
+                id: 'modelVariant',
+                label: 'ماڈل نمبر / مطابقت (Model Name / Compatible Device)',
+                placeholder: 'مثلاً: iPhone 15 Pro Max, Galaxy A55, Infinix Note 40',
+                type: 'text',
+                appliesToGroup: ['handset', 'accessory', 'spare_part', 'repair_tool'],
+                suggestions: [
+                    'iPhone 16 Pro Max / 15 Pro Max', 'iPhone 14 / 13 / 12 / 11',
+                    'Samsung Galaxy A15 / A35 / A55 / S24 Ultra',
+                    'Infinix Hot 40 / Note 40 / Smart 8',
+                    'Tecno Spark 20 / Camon 30',
+                    'Vivo Y17s / Y27 / Y100 / V30',
+                    'Redmi Note 13 / Redmi 13C / A3',
+                    'Universal Type-C / Lightning / Micro-USB'
+                ]
+            },
+            {
+                id: 'ramStorage',
+                label: 'ریم / اسٹوریج / واٹیج و اسپیک (RAM / ROM / Wattage Spec)',
+                placeholder: 'مثلاً: 8GB/256GB, 12GB/512GB, 67W Fast, 20000mAh',
+                type: 'text',
+                appliesToGroup: ['handset', 'accessory', 'spare_part', 'repair_tool'],
+                suggestions: [
+                    '4GB / 64GB', '4GB / 128GB', '6GB / 128GB',
+                    '8GB / 128GB', '8GB / 256GB', '12GB / 256GB',
+                    '12GB / 512GB', '16GB / 512GB / 1TB',
+                    'Dual SIM Keypad (4MB/4MB)', 'Triple / Quad SIM Keypad',
+                    '20W PD Type-C Fast Charger', '33W / 45W / 67W / 120W SuperVOOC',
+                    '10000mAh / 20000mAh Power Bank', '64GB / 128GB MicroSD Class 10'
+                ]
+            },
+            {
+                id: 'imei1',
+                label: '📱 IMEI 1 / سیریل نمبر (Primary IMEI 1 - لازمی برائے موبائل)',
+                placeholder: '15-Digit IMEI 1 اسکین یا ٹائپ کریں',
+                type: 'text',
+                appliesToGroup: ['handset'],
+                isImeiField: true,
+                imeiIndex: 1
+            },
+            {
+                id: 'imei2',
+                label: '📱 IMEI 2 — ڈوئل سم (Second IMEI 2 - لازمی برائے موبائل)',
+                placeholder: '15-Digit IMEI 2 اسکین یا ٹائپ کریں',
+                type: 'text',
+                appliesToGroup: ['handset'],
+                isImeiField: true,
+                imeiIndex: 2
+            },
+            {
+                id: 'imei3',
+                label: '📱 IMEI 3 — ٹرپل سم (Third IMEI 3 - اختیاری)',
+                placeholder: '15-Digit IMEI 3 (اگر 3 سم والا موبائل ہو)',
+                type: 'text',
+                appliesToGroup: ['handset'],
+                isImeiField: true,
+                isExtraImei: true,
+                imeiIndex: 3
+            },
+            {
+                id: 'imei4',
+                label: '📱 IMEI 4 — کواڈ سم (Fourth IMEI 4 - اختیاری)',
+                placeholder: '15-Digit IMEI 4 (اگر 4 سم والا موبائل ہو)',
+                type: 'text',
+                appliesToGroup: ['handset'],
+                isImeiField: true,
+                isExtraImei: true,
+                imeiIndex: 4
+            },
+            {
+                id: 'ptaStatus',
+                label: '📡 پی ٹی اے اسٹیٹس (PTA Approval Status)',
+                type: 'select',
+                appliesToGroup: ['handset'],
+                options: [
+                    '',
+                    'Official PTA Approved (آفیشل پی ٹی اے اپرووڈ)',
+                    'Non-PTA / SIM Non-Active (نان پی ٹی اے)',
+                    'Non-PTA (2 Months SIM Time Remaining)',
+                    'JV / Carrier Locked (جے وی لاکڈ فون)',
+                    'CPID / Official Patch Approved (سی پی آئی ڈی / پیچ)',
+                    'Wi-Fi Only / No SIM Slot (صرف وائی فائی ٹیبلٹ)'
+                ]
+            },
+            {
+                id: 'conditionGrade',
+                label: '✨ کنڈیشن / بیٹری ہیلتھ / کوالٹی (Condition / Battery Health % / Quality)',
+                placeholder: 'مثلاً: Pin Pack, Used 10/10 (BH 92%), Ori Service Pack Panel',
+                type: 'text',
+                appliesToGroup: ['handset', 'accessory', 'spare_part', 'repair_tool'],
+                suggestions: [
+                    'Pin Pack / Box Sealed (ڈبہ پیک نیا)',
+                    'Open Box 10/10 Condition (اوپن باکس)',
+                    'Used Kit 10/10 Lush (واٹر پیک کٹ)',
+                    'Used 9/10 Good Condition',
+                    'Battery Health 100% (Non-Boosted)',
+                    'Battery Health 90%+ Original',
+                    'Battery Health 85%+ Original',
+                    '100% Original Service Pack / Pullout Panel',
+                    'OLED / Super AMOLED Quality Panel',
+                    'Incell / Crown / Diamond A+ Panel',
+                    'Original Branded Accessory (100% Genuine)',
+                    'Master Copy / A+ High Quality'
+                ]
+            },
+            {
+                id: 'colorFinish',
+                label: '🎨 رنگ / فنشنگ (Color / Finish)',
+                placeholder: 'مثلاً: Titanium Black, Natural Silver, Deep Purple, Gold',
+                type: 'text',
+                appliesToGroup: ['handset', 'accessory', 'spare_part'],
+                suggestions: [
+                    'Black / Midnight Black (کالا)',
+                    'Natural Titanium / Silver (سلور / ٹائٹینیم)',
+                    'White / Starlight (سفید)',
+                    'Gold / Desert Titanium (گولڈ)',
+                    'Blue / Sierra Blue / Ice Blue (نیلا)',
+                    'Green / Emerald Green (سبز)',
+                    'Purple / Deep Purple',
+                    'Transparent / Clear Silicone (ٹرانسپیرنٹ)'
+                ]
+            },
+            {
+                id: 'warrantyInfo',
+                label: '🛡️ وارنٹی اور کلیم پالیسی (Warranty Status & Duration)',
+                placeholder: 'مثلاً: 1 Year Official Airlink, 7 Days Check Warranty, Counter Check',
+                type: 'text',
+                appliesToGroup: ['handset', 'accessory', 'spare_part', 'repair_tool'],
+                suggestions: [
+                    '1 Year Official Brand Warranty (Airlink / Mercantile / United / M&P)',
+                    '10-11 Months Official Warranty Remaining',
+                    '7 Days Shop Checking Warranty (استعمال شدہ فون چیکنگ وارنٹی)',
+                    '3 Days Checking Warranty (Used Phone)',
+                    '1 Year Brand Replacement Warranty (Ronin / Audionic / Faster)',
+                    '6 Months Accessory Warranty',
+                    'Counter Check Only - No Warranty After Fitting (پینل فٹنگ سے پہلے چیک وارنٹی)',
+                    'No Warranty (بغیر وارنٹی)'
+                ]
+            },
+            {
+                id: 'packSize',
+                label: '📦 پیکنگ تعداد (Units per Box / Packet - برائے ہول سیل ایسیسریز)',
+                placeholder: 'مثلاً: 10 (Protector Box), 12 (Dozen), 20 (Cable Box)',
+                type: 'number',
+                appliesToGroup: ['accessory', 'spare_part', 'repair_tool']
+            }
         ],
-        quickTags: ['Smartphones', 'Accessories', 'Chargers', 'Earbuds', 'Covers']
+        purchaseConfig: {
+            enableMrpDiscountCalc: true,
+            allowEditionUpdateOnRestock: false,
+            allowImeiUpdateOnRestock: true,
+            enableUsedPhoneSellerRecord: true,
+            helperTitle: 'ڈسٹری بیوٹر / ہول سیل ڈیلر، انوائس ڈسکاؤنٹ اور استعمال شدہ فون فروخت کنندہ ریکارڈ (Purchase & Seller Verification)',
+            supplierLabel: '🏢 ڈسٹری بیوٹر / ہول سیل ڈیلر / فروخت کنندہ (Distributor / Dealer / Seller)',
+            supplierPlaceholder: 'مثلاً: Airlink, Mercantile, United Mobile, Ronin Official, Hall Road Dealer',
+            invoiceLabel: '🧾 بلٹی / انوائس / اسٹاک انٹری نمبر (Dealer Invoice / Bilty #)',
+            invoicePlaceholder: 'مثلاً: Inv #782 یا GatePass #45',
+            mrpLabel: '🏷️ آفیشل انوائس ریٹ / باکس پرائس (Official Box / Retail MRP)',
+            discountLabel: '📉 ڈیلر ریبیٹ / ٹریڈ ڈسکاؤنٹ % (Dealer Margin / Disc %)',
+            wholesaleDiscountLabel: '🏪 سب ڈیلر / ہول سیل ڈسکاؤنٹ % (Wholesale Disc %)',
+            distributorSuggestions: [
+                'Airlink Communication (Official Distributor)',
+                'Muller & Phipps - M&P (Official Distributor)',
+                'United Mobile (Official Distributor)',
+                'Mercantile Pacific (Apple Official)',
+                'Advance Telecom (Official Distributor)',
+                'Inovi Telecom / GreenTech / Xiaomi Official',
+                'Transsion Official (Infinix / Tecno / Itel)',
+                'Ronin Official Distributor',
+                'Audionic / Dany Official',
+                'Faster / Space / Joyroom Wholesale Dealer',
+                'Hall Road Lahore Mobile & Parts Wholesaler',
+                'Saddar / Regal / Star City Karachi Wholesaler',
+                'Katchery Bazar / Singapore Plaza Wholesaler',
+                'Walk-in Customer Seller (استعمال شدہ فون فروخت کنندہ)'
+            ]
+        },
+        stockReasons: {
+            in: [
+                { value: 'purchase', label: '📥 Official Distributor / Dealer Purchase (کمپنی ڈسٹری بیوٹر / ہول سیلر سے مال آیا)' },
+                { value: 'used_phone_buy', label: '🪪 Used / Second-Hand Phone Purchase — CNIC Verified (استعمال شدہ فون کی خریداری)' },
+                { value: 'exchange_tradein', label: '🔄 Customer Exchange / Trade-In Mobile (کسٹمر ایکسچینج میں لیا گیا موبائل)' },
+                { value: 'warranty_replaced_in', label: '🛡️ Warranty Claim Replacement Received (وارنٹی کلیم سے نیا پیس واپس آیا)' },
+                { value: 'return', label: '↩️ Customer Return / Exchange In (گاہک واپسی / تبدیلی)' },
+                { value: 'adjustment_in', label: '✏️ Stock Count Adjustment (گنتی درستگی)' },
+                { value: 'other_in', label: '📝 Other Restock (دیگر)' }
+            ],
+            out: [
+                { value: 'sale', label: '🛒 Counter Sale / Handset Sold (کاؤنٹر فروخت)' },
+                { value: 'repair_used', label: '🛠️ Used in Customer Mobile Repairing Job (موبائل ریپئرنگ جاب میں لگایا گیا پارٹ)' },
+                { value: 'warranty_claim_out', label: '🛡️ Sent to Service Center / Dealer for Claim (وارنٹی کلیم کے لیے کمپنی بھیجا)' },
+                { value: 'dealer_return', label: '🔄 Returned to Distributor / Wholesaler (ڈسٹری بیوٹر / ہول سیلر کو واپسی)' },
+                { value: 'damage', label: '💥 Damaged Panel / Dead Part / Faulty Item (خراب پینل / فالٹی آئٹم)' },
+                { value: 'lost', label: '❓ Lost / Missing (گم شدہ)' },
+                { value: 'adjustment_out', label: '✏️ Stock Count Reduction (گنتی کٹوتی)' },
+                { value: 'other_out', label: '📝 Other (دیگر)' }
+            ]
+        },
+        customerConfig: {
+            panelTitle: '📱 Mobile Dealer, Repairing Lab & Installment (Qist) Profile (Optional)',
+            panelSub: 'سب ڈیلر ڈسکاؤنٹ، ریپئرنگ لیب اور قسطوں والے گاہک کے ضامن و شناختی کارڈ ریکارڈ کے لیے',
+            segmentLabel: '📱 Customer Segment / Party Type (گاہک / پارٹی کی قسم)',
+            boardLabel: '🏷️ Dealership / Specialty / Preferred Brands (ڈیلرشپ / اسپیشلٹی / برانڈز)',
+            boardPlaceholder: 'e.g. LCD Panels Buyer, Accessories Dealer, Used iPhones, Qist Plan',
+            discountLabel: '📉 Agreed Dealer / Lab Discount % (طے شدہ سب ڈیلر / کاریگر ڈسکاؤنٹ %)',
+            focalLabel: '🤝 Guarantor / Reference Name & Phone (ضامن کا نام و فون نمبر / ریفرنس)',
+            focalPlaceholder: 'e.g. Guarantor: M. Tariq (0300-1234567) / CNIC Verified',
+            filterTabLabel: '📱 Dealers, Labs & Qist',
+            segments: [
+                { value: '', label: '— کسٹمر کیٹیگری منتخب کریں (Optional) —', defaultTier: '' },
+                { value: 'sub_dealer', label: '📱 موبائل دکاندار / سب ڈیلر (Mobile Shopkeeper / Sub-Dealer)', shortLabel: '📱 Mobile Sub-Dealer', defaultTier: 'wholesale' },
+                { value: 'repair_tech', label: '🛠️ موبائل ریپئرنگ لیب / کاریگر (Repairing Lab / Technician)', shortLabel: '🛠️ Repair Lab / Tech', defaultTier: 'wholesale' },
+                { value: 'installment_cust', label: '📅 قسطوں / اقساط والا گاہک (Installment / Qist Customer)', shortLabel: '📅 Installment (Qist)', defaultTier: 'retail' },
+                { value: 'used_buyer_seller', label: '🪪 استعمال شدہ فون خریدار / فروخت کنندہ (Used Phone Buyer / Seller)', shortLabel: '🪪 Used Phone Party', defaultTier: 'retail' },
+                { value: 'corporate_inst', label: '🏢 کارپوریٹ / آفس کلائنٹ (Corporate / Office Client)', shortLabel: '🏢 Corporate Client', defaultTier: 'wholesale' },
+                { value: 'general_cust', label: '👤 عام گاہک (Walk-in / Counter Customer)', shortLabel: '👤 Walk-in Customer', defaultTier: 'retail' }
+            ],
+            boardSuggestions: [
+                'All Smartphones & Pin Pack Dealer (ڈبہ پیک موبائل ڈیلر)',
+                'Mobile Accessories & Tempered Glass Wholesaler (ایسیسریز و گلاس ڈیلر)',
+                'LCD Panels, Folders & Spare Parts Lab (پینلز و اسپیئر پارٹس لیب)',
+                'Used / Kit Phones & iPhones Dealer (استعمال شدہ و کٹ فون ڈیلر)',
+                'Keypad / Feature Phones Dealer (کی پیڈ موبائلز ڈیلر)',
+                'Installment (Qist) Verified Customer (تصدیق شدہ اقساط گاہک)',
+                'Ronin / Audionic / Faster Sub-Dealer (برانڈڈ ایسیسریز سب ڈیلر)'
+            ]
+        },
+        returnReasons: [
+            { value: '📱 PTA / SIM Working Issue (پی ٹی اے یا سم سگنل کا مسئلہ)', label: '📱 PTA / SIM Working Issue (پی ٹی اے یا سم سگنل کا مسئلہ)' },
+            { value: '🔋 Battery Drain / Charging Fault within Checking Warranty (چیکنگ وارنٹی میں بیٹری یا چارجنگ فالٹ)', label: '🔋 Battery Drain / Charging Fault within Checking Warranty (چیکنگ وارنٹی میں بیٹری یا چارجنگ فالٹ)' },
+            { value: '🔌 Defective Charger / Handsfree / Cable Replacement (خراب چارجر، کیبل یا ہینڈز فری واپسی)', label: '🔌 Defective Charger / Handsfree / Cable Replacement (خراب چارجر، کیبل یا ہینڈز فری واپسی)' },
+            { value: '🖥️ LCD Panel / Touch Folder Checking Return (ایل سی ڈی پینل یا ٹچ فولڈر چیکنگ واپسی)', label: '🖥️ LCD Panel / Touch Folder Checking Return (ایل سی ڈی پینل یا ٹچ فولڈر چیکنگ واپسی)' },
+            { value: '📦 Wrong Model Cover / Glass / Accessory Sent (غلط ماڈل کا کور، گلاس یا ایسیسری)', label: '📦 Wrong Model Cover / Glass / Accessory Sent (غلط ماڈل کا کور، گلاس یا ایسیسری)' },
+            { value: '🔄 Sub-Dealer / Shop Unsold Return (سب ڈیلر یا دکاندار سے فالتو مال واپسی)', label: '🔄 Sub-Dealer / Shop Unsold Return (سب ڈیلر یا دکاندار سے فالتو مال واپسی)' }
+        ],
+        claimCategories: [
+            { id: 'cat_mob_official_warranty', name: '🛡️ Official Brand Service Center Warranty Claim (آفیشل کمپنی وارنٹی کلیم)', type: 'defect', icon: 'fa-shield-halved', color: '#0284c7', desc: 'Pin pack phone or official brand accessory sent to service center' },
+            { id: 'cat_mob_checking_warranty', name: '📱 Used Phone Checking Warranty Claim (استعمال شدہ فون چیکنگ وارنٹی کلیم)', type: 'defect', icon: 'fa-mobile-screen-button', color: '#7c3aed', desc: 'Used/Kit phone returned under shop checking warranty' },
+            { id: 'cat_mob_lcd_folder', name: '🖥️ Defective LCD Panel / Combo Folder Claim (خراب پینل / فولڈر سپلائر کلیم)', type: 'broken', icon: 'fa-mobile-retro', color: '#dc2626', desc: 'Touch/Display fault before fitting — supplier replacement claim' },
+            { id: 'cat_mob_accessory_claim', name: '🔌 Branded Charger / Cable / Earbuds Warranty Claim (چارجر، کیبل و ایئربڈز وارنٹی کلیم)', type: 'defect', icon: 'fa-plug-circle-bolt', color: '#d97706', desc: 'Ronin/Audionic/Faster/Zero accessory replacement claim' },
+            { id: 'cat_mob_battery_swollen', name: '🔋 Swollen / Dead Battery Claim (پھولی ہوئی یا خراب بیٹری کلیم)', type: 'expired', icon: 'fa-battery-empty', color: '#ea580c', desc: 'Battery backup fault or swollen cell warranty replacement' }
+        ],
+        thermalTermsEn: 'IMEI & PTA status verified at counter. Pin pack warranty claim via official company service center only. Used phone checking warranty as mentioned on bill. No warranty for LCD/Touch/Water/Dead/Physical damage.',
+        thermalTermsUr: 'کاؤنٹر پر IMEI اور PTA اسٹیٹس چیک کر کے موبائل وصول کریں۔ ڈبہ پیک موبائل کی وارنٹی صرف متعلقہ کمپنی کے سروس سینٹر سے کلیم ہو گی۔ استعمال شدہ فون کی چیکنگ وارنٹی بل پر درج مدت کے مطابق ہے۔ پینل، ٹچ، پانی یا ٹوٹ پھوٹ کی کوئی وارنٹی نہیں۔',
+        quickTags: ['اسمارٹ فونز', 'استعمال شدہ فونز', 'چارجرز و کیبلز', 'ایئربڈز و ہینڈز فری', 'کورز و گلاس', 'پینلز و اسپیئر پارٹس']
     },
     {
         id: 'medical',
@@ -165,24 +682,223 @@ const BUSINESS_CATEGORIES = [
     },
     {
         id: 'wholesaler',
-        aliasIds: ['distributor', 'distribution'],
+        aliasIds: ['wholesale', 'wholesale_distributor', 'bulk_distribution', 'distribution'],
         nameEn: 'Wholesaler & Bulk Distribution',
         nameUr: 'ہول سیلر و ڈسٹری بیوٹر (تھوک ڈیلر)',
         icon: '📦',
         status: 'active',
-        description: 'Bulk supply, cartons, master cases, agency orders, b2b trade',
+        description: 'Multi-agency bulk distribution, master cartons, TP/schemes, factory consignments, sub-dealers & van supply',
         subcategories: [
-            'ماسٹر کارٹنز و بلک پیکنگ (Master Cartons)',
+            'ماسٹر کارٹنز و بلک پیکنگ (Master Cartons & Bulk Cases)',
             'ڈسٹری بیوشن پروڈکٹس (Agency Products)',
             'ڈائریکٹ فیکٹری سپلائی (Factory Consignments)',
-            'بوری و بڑے بنڈلز (Bags & Jumbo Bundles)'
+            'بوری و بڑے بنڈلز (Bags, Maund & Jumbo Bundles)',
+            'مشروبات، بسکٹ و کنفیکشنری کارٹنز (Beverage & Confectionery Cartons)',
+            'صابن، سرف و ہوم کیئر تھوک (Soaps, Detergents & Personal Care)',
+            'آئل، گھی، چائے، چینی و دالیں (Oil, Ghee, Sugar, Tea & Pulses)',
+            'بونس و اسکیم پروموشن اسٹاک (Bonus, Free Schemes & Trade Offers)'
         ],
-        units: ['carton', 'bag', 'bundle', 'box', 'dozen', 'maund', 'pcs'],
+        units: ['carton', 'master_ctn', 'bag', 'bundle', 'box', 'dozen', 'maund', 'pcs', 'unit'],
+        unitRulesByGroup: {
+            master_case: ['carton', 'master_ctn', 'box', 'dozen', 'pcs', 'unit'],
+            bulk_commodity: ['bag', 'maund', 'bundle', 'carton', 'kg', 'pcs'],
+            beverage_dairy: ['carton', 'crate', 'box', 'bottle', 'pcs', 'unit'],
+            agency_goods: ['carton', 'master_ctn', 'box', 'packet', 'dozen', 'pcs', 'unit'],
+            general: ['carton', 'master_ctn', 'bag', 'bundle', 'box', 'dozen', 'maund', 'pcs', 'unit']
+        },
         customFields: [
-            { id: 'cartonPacking', label: 'کارٹن پیکنگ (Items per Carton)', placeholder: 'مثلاً: 24 Pcs/Ctn, 48 Pkts/Ctn', type: 'text' },
-            { id: 'tradePriceTP', label: 'ٹریڈ پرائس TP (Trade Price)', placeholder: 'Company TP Rate', type: 'number' }
+            {
+                id: 'itemSubType',
+                label: 'آئٹم کی قسم (Wholesale Product Group)',
+                type: 'select',
+                appliesToGroup: ['master_case', 'bulk_commodity', 'beverage_dairy', 'agency_goods', 'general'],
+                options: [
+                    '',
+                    'Master Carton / FMCG Case (ماسٹر کارٹن / ایف ایم سی جی)',
+                    'Agency / Branded Trade Item (پرنسپل کمپنی ایجنسی آئٹم)',
+                    'Bulk Commodity / Bag / Maund (بوری / من / گٹھا مال)',
+                    'Beverage / Dairy Crate or Carton (مشروبات / پیٹی / کارٹن)',
+                    'Bonus / Scheme Offer Pack (بونس / اسکیم آفر پیک)'
+                ]
+            },
+            {
+                id: 'brandCompany',
+                label: '🏭 پرنسپل کمپنی / برانڈ / ایجنسی (Principal Company / Agency Brand)',
+                placeholder: 'مثلاً: Unilever, Nestlé, Dalda, National, Shan, Own House Brand',
+                type: 'text',
+                hasBrandActionButtons: true,
+                brandButtonsConfig: {
+                    primaryBtnLabel: '🏭 + New Principal Company',
+                    primaryModalTitle: '🏭 نئی پرنسپل کمپنی / ڈسٹری بیوشن برانڈ شامل کریں',
+                    primaryModalDesc: 'کسی بھی نئی کمپنی، فیکٹری یا ایجنسی کا نام شامل کریں (10+ ایجنسیاں ایک ساتھ منیج کرنے کے لیے):',
+                    primaryPlaceholder: 'مثلاً: Unilever Pakistan, Nestlé, National Foods, Dalda...',
+                    secondaryBtnLabel: '🏷️ + Own Wholesale / House Brand',
+                    secondaryModalTitle: '🏷️ اپنا ذاتی ہول سیل / ہاؤس برانڈ شامل کریں (Own Brand)',
+                    secondaryModalDesc: 'اگر آپ اپنے ذاتی برانڈ، پیکنگ یا منڈی لوکل لیبل کا مال بیچتے ہیں تو یہاں نام درج کریں:',
+                    secondaryPlaceholder: 'مثلاً: Al-Rehman Traders Pack, Taj Special Grade, Own Mandi Label...',
+                    otherBtnLabel: '🔖 Other Company / Brand (دیگر)',
+                    otherPrimaryDefault: 'Other Principal Company (دیگر کمپنی)',
+                    otherSecondaryDefault: 'Own Wholesale Brand (ذاتی برانڈ)'
+                },
+                appliesToGroup: ['master_case', 'bulk_commodity', 'beverage_dairy', 'agency_goods', 'general'],
+                suggestions: [
+                    'Unilever Pakistan', 'Nestlé Pakistan', 'Procter & Gamble (P&G)',
+                    'Reckitt Benckiser', 'Colgate-Palmolive', 'National Foods',
+                    'Shan Foods', 'Dalda Foods / Habib Oil', 'Engro Foods (Olpers / Tarang)',
+                    'Tapal Tea / Lipton', 'PepsiCo / Coca-Cola', 'English Biscuit (EBM / Peek Freans)',
+                    'LU / Continental Biscuits', 'Mitchells / Shezan', 'Sufi / Mezan Group',
+                    'Own House Brand (اپنا ہول سیل برانڈ)'
+                ]
+            },
+            {
+                id: 'cartonPacking',
+                label: '📦 کارٹن / بوری پیکنگ تفصیل (Items per Carton / Bag Label)',
+                placeholder: 'مثلاً: 24 Pcs/Ctn, 48 Pkts/Ctn, 50 kg Bag',
+                type: 'text',
+                appliesToGroup: ['master_case', 'bulk_commodity', 'beverage_dairy', 'agency_goods', 'general'],
+                suggestions: [
+                    '12 Pcs / Ctn', '24 Pcs / Ctn', '36 Pcs / Ctn', '48 Pkts / Ctn',
+                    '60 Pkts / Ctn', '72 Pcs / Ctn', '144 Pcs (1 Gross)',
+                    '12 x 1L Bottles / Ctn', '50 kg Master Bag', '40 kg (1 Maund)'
+                ]
+            },
+            {
+                id: 'packSize',
+                label: '🔢 کارٹن میں پیسز کی تعداد (Numeric Pieces per Carton)',
+                placeholder: 'مثلاً: 24 (کارٹن سے فی پیس ریٹ نکالنے کے لیے)',
+                type: 'number',
+                appliesToGroup: ['master_case', 'bulk_commodity', 'beverage_dairy', 'agency_goods', 'general']
+            },
+            {
+                id: 'tradePriceTP',
+                label: '💰 ٹریڈ پرائس TP (Company Trade Price)',
+                placeholder: 'Company TP Rate (e.g. Rs 4,800 per Carton)',
+                type: 'number',
+                appliesToGroup: ['master_case', 'bulk_commodity', 'beverage_dairy', 'agency_goods', 'general']
+            },
+            {
+                id: 'bonusSchemeRule',
+                label: '🎁 ڈیفالٹ بونس / ٹریڈ اسکیم (Default Bonus / Scheme Rule)',
+                placeholder: 'مثلاً: 10+1 Free Bonus, 12+1, 2% Trade Offer (T-O)',
+                type: 'text',
+                appliesToGroup: ['master_case', 'beverage_dairy', 'agency_goods', 'general'],
+                suggestions: [
+                    'No Scheme (Net Trade Rate)',
+                    '10 + 1 Free Bonus',
+                    '12 + 1 Free Bonus',
+                    '20 + 1 Free Bonus',
+                    '25 + 2 Free Bonus',
+                    '2% Trade Offer (T-O)',
+                    '3% Volume Slab Discount',
+                    '5% Cash / Advance Discount'
+                ]
+            },
+            {
+                id: 'skuBatchCode',
+                label: '🔖 کمپنی SKU / بیچ کوڈ (Company SKU / Batch No)',
+                placeholder: 'مثلاً: SKU-UNL-402 یا LOT-2026',
+                type: 'text',
+                appliesToGroup: ['master_case', 'agency_goods', 'beverage_dairy', 'general']
+            },
+            {
+                id: 'expiryDate',
+                label: '📅 ایکسپائری تاریخ (Expiry Date - Optional)',
+                placeholder: 'YYYY-MM-DD',
+                type: 'date',
+                appliesToGroup: ['master_case', 'beverage_dairy', 'agency_goods', 'general']
+            }
         ],
-        quickTags: ['Master Carton', 'Wholesale Rate', 'Agency Stock']
+        purchaseConfig: {
+            enableMrpDiscountCalc: true,
+            enableCartonPieceCalc: true,
+            allowEditionUpdateOnRestock: false,
+            helperTitle: 'فیکٹری / پرنسپل کمپنی انوائس، کارٹن پیکنگ اور ٹریڈ ڈسکاؤنٹ % کیلکولیٹر (Master Carton & TP Costing)',
+            supplierLabel: '🏭 پرنسپل کمپنی / سپر اسٹاکسٹ / فیکٹری (Principal Company / Factory)',
+            supplierPlaceholder: 'مثلاً: Unilever, Nestlé, National Foods, Grain Market Broker',
+            invoiceLabel: '🧾 بلٹی / کمپنی انوائس / لوڈ شیٹ # (Company Invoice / Bilty #)',
+            invoicePlaceholder: 'مثلاً: Inv #9041 یا Bilty #312',
+            mrpLabel: '🏷️ ٹریڈ پرائس TP / کارٹن ریٹ (Gross TP / Carton Rate)',
+            discountLabel: '📉 کمپنی ٹریڈ ڈسکاؤنٹ / ریبیٹ % (Company Margin / Disc %)',
+            wholesaleDiscountLabel: '🏪 سب ڈیلر / تھوک ڈسکاؤنٹ % (Sub-Dealer Trade Discount %)',
+            distributorSuggestions: [
+                'Unilever Pakistan — Official Principal Dispatch',
+                'Nestlé Pakistan — Direct Factory Consignment',
+                'Dalda / Habib Oil Mills — Bulk Depot',
+                'National Foods / Shan Foods — Regional Depot',
+                'Engro Foods (Olpers / Tarang) — Distribution',
+                'Tapal Tea / Coca-Cola / PepsiCo Plant',
+                'Akbari Mandi Lahore — Wholesale Grain & Spices',
+                'Jodia Bazar Karachi — Bulk Importer & Wholesaler',
+                'Galla Mandi / Ghalla Market Regional Dealer'
+            ]
+        },
+        stockReasons: {
+            in: [
+                { value: 'purchase', label: '📥 Factory / Principal Company Consignment (فیکٹری / کمپنی سے مال آیا)' },
+                { value: 'van_return_in', label: '🚚 Van Unsold / Route Return Inward (ڈلیوری وین سے فالتو مال واپس آیا)' },
+                { value: 'bonus_scheme_in', label: '🎁 Company Scheme / Free Bonus Cartons (کمپنی کی طرف سے فری بونس کارٹن)' },
+                { value: 'branch_transfer_in', label: '🏢 Inter-Agency / Branch Stock Transfer IN (دوسری ایجنسی/برانچ سے اسٹاک آیا)' },
+                { value: 'return', label: '↩️ Sub-Dealer / Shopkeeper Unsold Return (سب ڈیلر / دکاندار واپسی)' },
+                { value: 'adjustment_in', label: '✏️ Godown Physical Count Adjustment (گودام گنتی درستگی)' },
+                { value: 'other_in', label: '📝 Other Restock (دیگر)' }
+            ],
+            out: [
+                { value: 'sale', label: '🛒 Wholesale Counter / Direct Dispatch Sale (تھوک فروخت)' },
+                { value: 'van_load_out', label: '🚚 Field Booker & Delivery Van Load Out (روٹ / وین لوڈ ڈسپیچ)' },
+                { value: 'scheme_bonus_out', label: '🎁 Customer Free Bonus / Scheme Dispatch (گاہک کو فری بونس / اسکیم دیا)' },
+                { value: 'company_claim_out', label: '🛡️ Expired / Transit Damage Claim Sent to Company (کمپنی کلیم کے لیے بھیجا)' },
+                { value: 'branch_transfer_out', label: '🏢 Inter-Agency / Branch Stock Transfer OUT (دوسری ایجنسی/برانچ کو اسٹاک بھیجا)' },
+                { value: 'damage', label: '💥 Burst Carton / Leakage / Godown Damage (گودام ڈیمج / لیکیج)' },
+                { value: 'lost', label: '❓ Shortage / Missing Stock (شارٹیج / گمشدہ)' },
+                { value: 'adjustment_out', label: '✏️ Godown Count Reduction (گنتی کٹوتی)' },
+                { value: 'other_out', label: '📝 Other (دیگر)' }
+            ]
+        },
+        customerConfig: {
+            panelTitle: '📦 Wholesale Sub-Dealer, Kiryana & Distribution Route Profile (Optional)',
+            panelSub: 'سب ڈیلر ٹریڈ ڈسکاؤنٹ، روٹ/منڈی بیٹ اور کریڈٹ ریکوری کی تفصیلات کے لیے',
+            segmentLabel: '🏪 Party / Customer Segment (پارٹی / گاہک کی قسم)',
+            boardLabel: '🛣️ Route / Market / Mandi Beat Area (روٹ / مارکیٹ / منڈی)',
+            boardPlaceholder: 'e.g. Main Galla Mandi, Saddar Bazaar Route, Highway PJP Monday',
+            discountLabel: '📉 Agreed Trade Offer / Slab Discount % (طے شدہ ٹریڈ آفر / سلیب ڈسکاؤنٹ %)',
+            focalLabel: '🤝 Shop Owner / Munshi / CNIC Ref (مالک / منشی کا نام اور فون)',
+            focalPlaceholder: 'e.g. Seth Tariq / Munshi Ahmad (0300-1234567)',
+            filterTabLabel: '📦 Sub-Dealers & Kiryana',
+            segments: [
+                { value: '', label: '— کسٹمر کیٹیگری منتخب کریں (Optional) —', defaultTier: '' },
+                { value: 'sub_dealer', label: '🏢 سب ڈیلر / تھوک پارٹی (Sub-Dealer / Wholesale Party)', shortLabel: '🏢 Sub-Dealer', defaultTier: 'wholesale' },
+                { value: 'kiryana_retailer', label: '🛒 کریانہ و جنرل اسٹور (Kiryana / Retail Shopkeeper)', shortLabel: '🛒 Kiryana Shop', defaultTier: 'wholesale' },
+                { value: 'superstore_mart', label: '🏪 سپر اسٹور / میگا مارٹ (Superstore / Cash & Carry)', shortLabel: '🏪 Superstore / Mart', defaultTier: 'wholesale' },
+                { value: 'mandi_party', label: '🌾 منڈی کمیشن ایجنٹ / آڑھتی (Mandi Arhti / Bulk Buyer)', shortLabel: '🌾 Mandi Party', defaultTier: 'wholesale' },
+                { value: 'corporate_canteen', label: '🏛️ فیکٹری کینٹین / ادارہ / ہوٹل (Canteen / Hotel / Bulk)', shortLabel: '🏛️ Corporate / Hotel', defaultTier: 'wholesale' },
+                { value: 'general_cust', label: '👤 نقد کاؤنٹر گاہک (Walk-in Cash Customer)', shortLabel: '👤 Cash Counter', defaultTier: 'retail' }
+            ],
+            boardSuggestions: [
+                'Main Galla Mandi / Wholesale Market',
+                'City Bazaar & Kiryana Route (PJP Mon/Thu)',
+                'Tehsil & Town Sub-Dealer Beat (PJP Tue/Fri)',
+                'Highway & Petrol Pump Shops Route',
+                'Superstores & Cash-and-Carry Key Accounts',
+                'Direct Factory / Bulk Cash Lifting Party'
+            ]
+        },
+        returnReasons: [
+            { value: '📦 Van Delivery Unsold / Refused Shop Carton (وین ڈلیوری سے دکاندار کی واپسی)', label: '📦 Van Delivery Unsold / Refused Shop Carton (وین ڈلیوری سے دکاندار کی واپسی)' },
+            { value: '⏳ Near Expiry / Expired Stock Claim Return (ایکسپائری یا قریب المیعاد اسٹاک واپسی)', label: '⏳ Near Expiry / Expired Stock Claim Return (ایکسپائری یا قریب المیعاد اسٹاک واپسی)' },
+            { value: '💥 Transit Damage / Leaked Carton Replacement (راستے میں ٹوٹ پھوٹ یا لیکیج واپسی)', label: '💥 Transit Damage / Leaked Carton Replacement (راستے میں ٹوٹ پھوٹ یا لیکیج واپسی)' },
+            { value: '🔢 Short Packing / Wrong SKU Delivered (کم پیسز یا غلط آئٹم ڈلیور ہونے پر واپسی)', label: '🔢 Short Packing / Wrong SKU Delivered (کم پیسز یا غلط آئٹم ڈلیور ہونے پر واپسی)' },
+            { value: '🔄 Sub-Dealer Overstock / Rate Adjustment Return (سب ڈیلر سے فالتو مال یا ریٹ تبدیلی واپسی)', label: '🔄 Sub-Dealer Overstock / Rate Adjustment Return (سب ڈیلر سے فالتو مال یا ریٹ تبدیلی واپسی)' }
+        ],
+        claimCategories: [
+            { id: 'cat_wh_expiry_claim', name: '⏳ Company Expiry / Near-Expiry Stock Claim (ایکسپائری مال کمپنی کلیم)', type: 'expired', icon: 'fa-calendar-xmark', color: '#d97706', desc: 'Expired or near-expiry FMCG cartons submitted to principal company' },
+            { id: 'cat_wh_transit_damage', name: '💥 Transit Damage / Burst & Leakage Carton Claim (ٹوٹ پھوٹ / لیکیج کلیم)', type: 'broken', icon: 'fa-box-open', color: '#dc2626', desc: 'Cartons damaged during factory transit or delivery van loading' },
+            { id: 'cat_wh_shortage', name: '📉 Short Supply / Factory Seal Shortage Claim (کارٹن میں کم مال / شارٹیج کلیم)', type: 'shortage', icon: 'fa-scale-unbalanced', color: '#7c3aed', desc: 'Missing pieces inside sealed factory master carton' },
+            { id: 'cat_wh_scheme_rebate', name: '🎁 Principal Company Scheme / T-O Credit Note Claim (کمپنی اسکیم و ریبیٹ کلیم)', type: 'defect', icon: 'fa-gift', color: '#0284c7', desc: 'Pending promotional bonus, trade offer or distributor rebate claim' },
+            { id: 'cat_wh_quality_recall', name: '🛑 Quality Defect / Batch Recall Claim (کوالٹی فالٹ / بیچ واپسی کلیم)', type: 'defect', icon: 'fa-triangle-exclamation', color: '#ea580c', desc: 'Spoiled batch or manufacturer quality recall settlement' }
+        ],
+        thermalTermsEn: 'Verify cartons, loose pieces, bonus qty & seals at delivery time. Shortage or transit claims must be reported within 24 hours on invoice/bilty. Expiry claims follow company policy.',
+        thermalTermsUr: 'ڈلیوری کے وقت کارٹن، پیسز، بونس اور سیل کی گنتی موقع پر چیک کر کے مال وصول کریں۔ کمی بیشی یا ٹوٹ پھوٹ کی شکایت 24 گھنٹے کے اندر بل/بلٹی پر نوٹ کروائیں۔ ایکسپائری کلیم کمپنی پالیسی کے مطابق ہوگا۔',
+        quickTags: ['ماسٹر کارٹن', 'ایجنسی اسٹاک', 'ٹریڈ پرائس TP', 'بونس / اسکیم', 'بوری / من', 'وین ڈسپیچ']
     },
     {
         id: 'confectionery',
@@ -616,13 +1332,14 @@ const BusinessCategories = {
         return BUSINESS_CATEGORIES.filter(c => c.status === 'active');
     },
 
-    // Find category by ID or alias
+    // Find category by ID (exact ID match takes precedence before alias lookup)
     getById(id) {
         if (!id) return null;
         const cleanId = String(id).toLowerCase().trim();
-        return BUSINESS_CATEGORIES.find(c => 
-            c.id === cleanId || 
-            (Array.isArray(c.aliasIds) && c.aliasIds.includes(cleanId))
+        const exact = BUSINESS_CATEGORIES.find(c => c.id === cleanId);
+        if (exact) return exact;
+        return BUSINESS_CATEGORIES.find(c =>
+            Array.isArray(c.aliasIds) && c.aliasIds.includes(cleanId)
         ) || null;
     },
 
@@ -633,10 +1350,66 @@ const BusinessCategories = {
         return `${cat.icon} ${cat.nameEn} (${cat.nameUr})`;
     },
 
+    // Completed vs In-Progress vs Coming Soon category status registry
+    COMPLETED_CATEGORY_IDS: ['books', 'mobile', 'wholesaler'],
+    IN_PROGRESS_CATEGORY_IDS: [],
+
+    getCategoryDevStatus(id) {
+        const cat = this.getById(id);
+        const canonicalId = cat ? cat.id : String(id || '').toLowerCase().trim();
+        if (this.COMPLETED_CATEGORY_IDS.includes(canonicalId)) return 'complete';
+        if (this.IN_PROGRESS_CATEGORY_IDS.includes(canonicalId)) return 'working';
+        if (cat && typeof this.validateCategoryIntegration === 'function') {
+            try {
+                if (this.validateCategoryIntegration(canonicalId).readyForProduction) return 'complete';
+            } catch (_) {}
+        }
+        return 'coming_soon';
+    },
+
+    getCategoryStatusMeta(id, lang = 'en') {
+        const code = this.getCategoryDevStatus(id);
+        const isUr = String(lang || 'en').toLowerCase() === 'ur';
+        if (code === 'complete') {
+            return {
+                code: 'complete',
+                icon: '✅',
+                shortText: isUr ? '✅ مکمل (Complete)' : '✅ Complete',
+                badgeText: isUr ? '✅ مکمل • Active & Ready' : '✅ Complete • Active & Ready',
+                optionTag: '✅ Complete',
+                color: '#15803d',
+                bg: '#dcfce7',
+                border: '#86efac'
+            };
+        }
+        if (code === 'working') {
+            return {
+                code: 'working',
+                icon: '🛠️',
+                shortText: isUr ? '🛠️ کام جاری (Under Development) • جلد دستیاب (Coming Soon)' : '🛠️ Working / Under Development • Coming Soon',
+                badgeText: isUr ? '🛠️ Working / Under Development • جلد دستیاب (Coming Soon)' : '🛠️ Working / Under Development • Coming Soon',
+                optionTag: '🛠️ Working / Under Development • Coming Soon',
+                color: '#b45309',
+                bg: '#fef3c7',
+                border: '#fcd34d'
+            };
+        }
+        return {
+            code: 'coming_soon',
+            icon: '🚧',
+            shortText: isUr ? '🚧 تیاری کے مراحل میں (Under Development) • جلد دستیاب (Coming Soon)' : '🚧 Under Development • Coming Soon',
+            badgeText: isUr ? '🚧 Under Development • جلد دستیاب (Coming Soon)' : '🚧 Under Development • Coming Soon',
+            optionTag: '🚧 Under Development • Coming Soon',
+            color: '#64748b',
+            bg: '#f1f5f9',
+            border: '#cbd5e1'
+        };
+    },
+
     // Populate a <select> element dynamically
     populateSelect(selectElement, selectedValue = '', options = {}) {
         if (!selectElement) return;
-        const { includeAll = false, allLabel = '📂 All Business Types', onlyActive = false } = options;
+        const { includeAll = false, allLabel = '📂 All Business Types', onlyActive = false, showDevStatus = false } = options;
 
         selectElement.innerHTML = '';
 
@@ -652,7 +1425,8 @@ const BusinessCategories = {
         list.forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat.id;
-            opt.textContent = `${cat.icon} ${cat.nameEn} — ${cat.nameUr}`;
+            const statusSuffix = showDevStatus ? ` [${this.getCategoryStatusMeta(cat.id).optionTag}]` : '';
+            opt.textContent = `${cat.icon} ${cat.nameEn} — ${cat.nameUr}${statusSuffix}`;
             if (selectedValue && (selectedValue === cat.id || (Array.isArray(cat.aliasIds) && cat.aliasIds.includes(selectedValue)))) {
                 opt.selected = true;
             }
@@ -692,6 +1466,337 @@ const BusinessCategories = {
             return true;
         }
         return false;
+    },
+
+    // Central Unit Catalog for category-aware unit filtering
+    UNIT_CATALOG: {
+        unit: { id: 'unit', label: 'Unit / Piece (عدد)', short: 'Unit', defaultPack: 1 },
+        pcs: { id: 'pcs', label: 'Piece (pcs - پیس)', short: 'pcs', defaultPack: 1 },
+        set: { id: 'set', label: 'Set (سیٹ - مکمل کتب سیٹ)', short: 'Set', defaultPack: 0 },
+        dozen: { id: 'dozen', label: 'Dozen (درجن - 12 Pcs)', short: 'Dzn', defaultPack: 12 },
+        packet: { id: 'packet', label: 'Packet (پیکٹ)', short: 'Pkt', defaultPack: 0 },
+        box: { id: 'box', label: 'Box (ڈبہ)', short: 'Box', defaultPack: 0 },
+        bundle: { id: 'bundle', label: 'Bundle (بنڈل / گٹھا)', short: 'Bndl', defaultPack: 0 },
+        ream: { id: 'ream', label: 'Ream (رم - 500 Sheets)', short: 'Ream', defaultPack: 500 },
+        carton: { id: 'carton', label: 'Carton (کارٹن)', short: 'Ctn', defaultPack: 0 },
+        bag: { id: 'bag', label: 'Bag / Bora (بوری / تھیلا)', short: 'Bag', defaultPack: 0 },
+        pair: { id: 'pair', label: 'Pair (جوڑا)', short: 'Pair', defaultPack: 2 },
+        suit: { id: 'suit', label: 'Suit (سوٹ)', short: 'Suit', defaultPack: 1 },
+        bottle: { id: 'bottle', label: 'Bottle (بوتل)', short: 'Btl', defaultPack: 1 },
+        can: { id: 'can', label: 'Can (کین)', short: 'Can', defaultPack: 1 },
+        kg: { id: 'kg', label: 'Kilogram (kg - کلو)', short: 'kg', defaultPack: 1 },
+        g: { id: 'g', label: 'Gram (g - گرام)', short: 'g', defaultPack: 1 },
+        pound: { id: 'pound', label: 'Pound (lb - پاؤنڈ)', short: 'lb', defaultPack: 1 },
+        maund: { id: 'maund', label: 'Maund (من - 40kg)', short: 'Maund', defaultPack: 40 },
+        liter: { id: 'liter', label: 'Liter (L - لیٹر)', short: 'L', defaultPack: 1 },
+        gallon: { id: 'gallon', label: 'Gallon (گیلن)', short: 'Gal', defaultPack: 1 },
+        meter: { id: 'meter', label: 'Meter (m - میٹر)', short: 'm', defaultPack: 1 },
+        feet: { id: 'feet', label: 'Feet (ft - فٹ)', short: 'ft', defaultPack: 1 },
+        roll: { id: 'roll', label: 'Roll (رول)', short: 'Roll', defaultPack: 1 },
+        crate: { id: 'crate', label: 'Crate (پیٹی)', short: 'Crate', defaultPack: 0 },
+        gram: { id: 'gram', label: 'Gram (گرام)', short: 'g', defaultPack: 1 },
+        tola: { id: 'tola', label: 'Tola (تولہ)', short: 'Tola', defaultPack: 1 },
+        masha: { id: 'masha', label: 'Masha (ماشہ)', short: 'Masha', defaultPack: 1 },
+        ratti: { id: 'ratti', label: 'Ratti (رتی)', short: 'Ratti', defaultPack: 1 },
+        job: { id: 'job', label: 'Job / Service (ورک)', short: 'Job', defaultPack: 1 },
+        hour: { id: 'hour', label: 'Hour (گھنٹہ)', short: 'Hr', defaultPack: 1 },
+        order: { id: 'order', label: 'Order (آرڈر)', short: 'Order', defaultPack: 1 },
+        plate: { id: 'plate', label: 'Plate (پلیٹ)', short: 'Plate', defaultPack: 1 },
+        cup: { id: 'cup', label: 'Cup (کپ)', short: 'Cup', defaultPack: 1 },
+        glass: { id: 'glass', label: 'Glass (گلاس)', short: 'Glass', defaultPack: 1 },
+        master_ctn: { id: 'master_ctn', label: 'Master Carton (ماسٹر کارٹن)', short: 'M.Ctn', defaultPack: 0 }
+    },
+
+    // Get allowed unit IDs for a business category and optional product group
+    getUnitsForCategory(categoryId, productGroup = '') {
+        const cat = this.getById(categoryId);
+        if (!cat) return ['unit', 'pcs', 'box', 'packet', 'carton', 'kg', 'meter'];
+        if (productGroup && cat.unitRulesByGroup && Array.isArray(cat.unitRulesByGroup[productGroup])) {
+            return cat.unitRulesByGroup[productGroup];
+        }
+        return Array.isArray(cat.units) && cat.units.length > 0
+            ? cat.units
+            : ['unit', 'pcs', 'box', 'packet', 'carton'];
+    },
+
+    // Dynamically populate a unit <select> so only relevant units for the active category/product appear
+    populateUnitSelect(selectElement, categoryId, productGroup = '', preserveUnitVal = '') {
+        if (!selectElement) return;
+        const currentVal = preserveUnitVal || selectElement.value || 'unit';
+        const allowedUnitIds = [...this.getUnitsForCategory(categoryId, productGroup)];
+
+        // Backward compatibility: if an existing item uses a unit not in the list, preserve it
+        if (currentVal && !allowedUnitIds.includes(currentVal)) {
+            allowedUnitIds.push(currentVal);
+        }
+
+        selectElement.innerHTML = '';
+        allowedUnitIds.forEach(uId => {
+            const def = this.UNIT_CATALOG[uId] || { id: uId, label: uId };
+            const opt = document.createElement('option');
+            opt.value = uId;
+            opt.textContent = def.label;
+            if (uId === currentVal) opt.selected = true;
+            selectElement.appendChild(opt);
+        });
+
+        if (!allowedUnitIds.includes(selectElement.value) && allowedUnitIds.length > 0) {
+            selectElement.value = allowedUnitIds[0];
+        }
+    },
+
+    // Get category-specific purchase & supplier configuration
+    getPurchaseConfig(categoryId) {
+        const cat = this.getById(categoryId);
+        if (cat && cat.purchaseConfig) return cat.purchaseConfig;
+        return {
+            enableMrpDiscountCalc: false,
+            allowEditionUpdateOnRestock: false,
+            supplierLabel: '🏢 Supplier / Party Name (سپلائر کا نام - اختیاری)',
+            supplierPlaceholder: 'e.g. Supplier / Distributor Name',
+            invoiceLabel: '🧾 Supplier Invoice / Bill # (بل / بلٹی نمبر - اختیاری)',
+            invoicePlaceholder: 'e.g. Inv #412'
+        };
+    },
+
+    // Get category-aware stock IN / OUT reasons with fallback to defaultReasons
+    getStockReasons(categoryId, mode, defaultReasons = []) {
+        const cat = this.getById(categoryId);
+        if (cat && cat.stockReasons && Array.isArray(cat.stockReasons[mode]) && cat.stockReasons[mode].length > 0) {
+            return cat.stockReasons[mode];
+        }
+        return defaultReasons;
+    },
+
+    // Get suggested suppliers / publishers / distributors for a category
+    getSupplierSuggestions(categoryId) {
+        const cat = this.getById(categoryId);
+        if (!cat) return [];
+        const combined = new Set();
+        if (cat.purchaseConfig && Array.isArray(cat.purchaseConfig.distributorSuggestions)) {
+            cat.purchaseConfig.distributorSuggestions.forEach(s => combined.add(s));
+        }
+        if (Array.isArray(cat.customFields)) {
+            const pubField = cat.customFields.find(f => f.id === 'publisherBoard' || f.id === 'brandCompany');
+            if (pubField && Array.isArray(pubField.suggestions)) {
+                pubField.suggestions.forEach(s => combined.add(s));
+            }
+        }
+        return Array.from(combined);
+    },
+
+    // Get customer configuration & segments for a category
+    getCustomerConfig(categoryId) {
+        const cat = this.getById(categoryId);
+        if (cat && cat.customerConfig) return cat.customerConfig;
+        return {
+            segments: [
+                { value: '', label: '— کسٹمر کیٹیگری منتخب کریں (Optional) —', defaultTier: '' },
+                { value: 'school_college', label: '🏫 اسکول / کالج / اکیڈمی (School / College / Academy)', shortLabel: '🏫 School / Academy', defaultTier: 'wholesale' },
+                { value: 'sub_dealer', label: '📚 دکان دار / سب ڈیلر (Shopkeeper / Sub-Dealer)', shortLabel: '🏪 Sub-Dealer / Shop', defaultTier: 'wholesale' },
+                { value: 'library_inst', label: '🏛️ ادارہ / آفس (Institution / Corporate Office)', shortLabel: '🏛️ Institution / Office', defaultTier: 'wholesale' },
+                { value: 'student_parent', label: '🎒 طالب علم / والدین (Student / Parent)', shortLabel: '🎒 Student / Parent', defaultTier: 'retail' },
+                { value: 'general_cust', label: '👤 عام گاہک (Walk-in / General Customer)', shortLabel: '👤 General Customer', defaultTier: 'retail' }
+            ],
+            boardSuggestions: []
+        };
+    },
+
+    getCustomerSegments(categoryId) {
+        const cfg = this.getCustomerConfig(categoryId);
+        return Array.isArray(cfg.segments) ? cfg.segments : [];
+    },
+
+    getCustomerSegmentLabel(categoryId, segmentVal) {
+        if (!segmentVal) return '';
+        const segments = this.getCustomerSegments(categoryId || 'books');
+        const found = segments.find(s => s.value === segmentVal);
+        if (found) return found.shortLabel || found.label;
+        const mobileSegments = this.getCustomerSegments('mobile');
+        const mobFallback = mobileSegments.find(s => s.value === segmentVal);
+        if (mobFallback) return mobFallback.shortLabel || mobFallback.label;
+        const booksSegments = this.getCustomerSegments('books');
+        const fallback = booksSegments.find(s => s.value === segmentVal);
+        return fallback ? (fallback.shortLabel || fallback.label) : segmentVal;
+    },
+
+    getThermalTerms(categoryId, lang = 'en') {
+        const cat = this.getById(categoryId);
+        const isUr = String(lang || 'en').toLowerCase() === 'ur';
+        if (cat) {
+            if (isUr && cat.thermalTermsUr) return cat.thermalTermsUr;
+            if (!isUr && cat.thermalTermsEn) return cat.thermalTermsEn;
+        }
+        return isUr
+            ? 'مال واپس یا تبدیل 3 دن کے اندر اصل بل کے ساتھ ممکن ہے۔'
+            : 'Return / Exchange within 3 days with original receipt.';
+    },
+
+    getReturnReasons(categoryId) {
+        const cat = this.getById(categoryId);
+        return (cat && Array.isArray(cat.returnReasons)) ? cat.returnReasons : [];
+    },
+
+    getClaimCategories(categoryId) {
+        const cat = this.getById(categoryId);
+        return (cat && Array.isArray(cat.claimCategories)) ? cat.claimCategories : [];
+    },
+
+    formatItemSubtitle(itemObj) {
+        if (!itemObj) return '';
+        if (itemObj.itemSubtitle) return String(itemObj.itemSubtitle).trim();
+        const ind = itemObj.industryFields || {};
+        const parts = [];
+
+        // Book Depot & Stationery fields
+        const cls = itemObj.classGrade || ind.classGrade || '';
+        const pub = itemObj.publisherBoard || ind.publisherBoard || '';
+        const sub = itemObj.subjectAuthor || ind.subjectAuthor || '';
+        const med = itemObj.mediumLang || ind.mediumLang || '';
+        const ed = itemObj.editionYear || ind.editionYear || '';
+        const pg = itemObj.pagesRuling || ind.pagesRuling || '';
+        const bnd = itemObj.bindingVariant || ind.bindingVariant || '';
+        const pSize = Number(itemObj.packSize || ind.packSize || 0);
+        const isbn = itemObj.isbnCode || ind.isbnCode || '';
+
+        if (cls) parts.push(`Class: ${cls}`);
+        if (pub) parts.push(pub);
+        if (sub) parts.push(sub);
+        if (med) parts.push(med);
+        if (ed) parts.push(`Ed: ${ed}`);
+        if (pg) parts.push(pg);
+        if (bnd) parts.push(bnd);
+
+        // Mobile Shop, Repairing & Accessories fields
+        const brand = itemObj.brandCompany || ind.brandCompany || '';
+        const model = itemObj.modelVariant || ind.modelVariant || '';
+        const ram = itemObj.ramStorage || ind.ramStorage || '';
+        const color = itemObj.colorFinish || ind.colorFinish || '';
+        const pta = itemObj.ptaStatus || ind.ptaStatus || '';
+        const cond = itemObj.conditionGrade || ind.conditionGrade || '';
+        const warr = itemObj.warrantyInfo || ind.warrantyInfo || '';
+
+        const imeiList = [
+            itemObj.imei1 || ind.imei1 || '',
+            itemObj.imei2 || ind.imei2 || '',
+            itemObj.imei3 || ind.imei3 || '',
+            itemObj.imei4 || ind.imei4 || ''
+        ].map(x => String(x || '').trim()).filter(Boolean);
+
+        if (imeiList.length === 0 && (itemObj.imeiSerial || ind.imeiSerial)) {
+            imeiList.push(String(itemObj.imeiSerial || ind.imeiSerial).trim());
+        }
+
+        if (brand) parts.push(brand);
+        if (model) parts.push(`Model: ${model}`);
+        if (ram) parts.push(ram);
+        if (color) parts.push(color);
+        if (pta) parts.push(pta);
+        if (cond) parts.push(cond);
+        if (imeiList.length > 0) parts.push(`IMEI: ${imeiList.join(' / ')}`);
+        if (warr) parts.push(`Warranty: ${warr}`);
+
+        // Wholesaler & Bulk Distribution fields
+        const cartonPack = itemObj.cartonPacking || ind.cartonPacking || '';
+        const tradeTP = Number(itemObj.tradePriceTP || ind.tradePriceTP || 0);
+        const bonusRule = itemObj.bonusSchemeRule || ind.bonusSchemeRule || '';
+        const skuCode = itemObj.skuBatchCode || ind.skuBatchCode || '';
+        const expDate = itemObj.expiryDate || ind.expiryDate || '';
+
+        if (cartonPack) parts.push(`Ctn: ${cartonPack}`);
+        if (tradeTP > 0) parts.push(`TP: Rs ${tradeTP}`);
+        if (bonusRule && !bonusRule.startsWith('No Scheme')) parts.push(`Scheme: ${bonusRule}`);
+        if (skuCode) parts.push(`SKU: ${skuCode}`);
+        if (expDate) parts.push(`Exp: ${expDate}`);
+
+        if (pSize > 1) parts.push(`Pack: ${pSize}`);
+        if (isbn) parts.push(`ISBN: ${isbn}`);
+        return parts.join(' | ');
+    },
+
+    // Unified category resolver across agency fields and localStorage keys
+    resolveActiveCategory(agencyObj = null, fallbackId = 'books') {
+        const stored1 = (typeof localStorage !== 'undefined') ? localStorage.getItem('eb_active_business_category') : '';
+        const stored2 = (typeof localStorage !== 'undefined') ? localStorage.getItem('eb_active_category') : '';
+        const raw = (agencyObj && (agencyObj.businessCategory || agencyObj.category || agencyObj.businessType))
+            || stored1
+            || stored2
+            || fallbackId;
+        const found = this.getById(raw);
+        if (found) return found.id;
+        const fb = this.getById(fallbackId);
+        return fb ? fb.id : String(raw || 'books').toLowerCase();
+    },
+
+    // Unified thermal paper width resolver ('58mm' or '80mm')
+    getThermalWidthPreference(agencyObj = null) {
+        const ls1 = (typeof localStorage !== 'undefined') ? localStorage.getItem('eb_thermal_width') : '';
+        const ls2 = (typeof localStorage !== 'undefined') ? localStorage.getItem('nh_thermal_width') : '';
+        const raw = String((agencyObj && (agencyObj.thermalPaperWidth || agencyObj.thermalWidth)) || ls1 || ls2 || '80mm').trim();
+        return raw.startsWith('58') ? '58mm' : '80mm';
+    },
+
+    // Sub-Phase G: End-to-End Category Integration Validator
+    validateCategoryIntegration(categoryId) {
+        const cat = this.getById(categoryId);
+        if (!cat) return { valid: false, readyForProduction: false, error: `Category '${categoryId}' not found` };
+
+        const fields = Array.isArray(cat.customFields) ? cat.customFields : [];
+        const hasThermalTerms = Boolean(cat.thermalTermsEn && cat.thermalTermsUr);
+        const hasUnitRulesByGroup = Boolean(cat.unitRulesByGroup && Object.keys(cat.unitRulesByGroup).length > 0);
+        const hasPurchaseConfig = Boolean(cat.purchaseConfig);
+        const hasStockReasons = Boolean(
+            cat.stockReasons &&
+            Array.isArray(cat.stockReasons.in) && cat.stockReasons.in.length > 0 &&
+            Array.isArray(cat.stockReasons.out) && cat.stockReasons.out.length > 0
+        );
+        const hasCustomerConfig = Boolean(
+            cat.customerConfig &&
+            Array.isArray(cat.customerConfig.segments) && cat.customerConfig.segments.length >= 2
+        );
+        const hasReturnReasons = Array.isArray(cat.returnReasons) && cat.returnReasons.length > 0;
+        const hasClaimCategories = Array.isArray(cat.claimCategories) && cat.claimCategories.length > 0;
+
+        const isMobile = cat.id === 'mobile';
+        const hasImeiFields = !isMobile || ['imei1', 'imei2', 'imei3', 'imei4'].every(fid => fields.some(f => f.id === fid && f.isImeiField));
+        const hasBrandActionButtons = fields.some(f => f.hasBrandActionButtons === true);
+
+        const readyForProduction = Boolean(
+            cat.status === 'active' &&
+            (cat.subcategories || []).length > 0 &&
+            (cat.units || []).length > 0 &&
+            fields.length > 0 &&
+            hasUnitRulesByGroup &&
+            hasPurchaseConfig &&
+            hasStockReasons &&
+            hasCustomerConfig &&
+            hasReturnReasons &&
+            hasClaimCategories &&
+            hasThermalTerms &&
+            hasImeiFields &&
+            hasBrandActionButtons
+        );
+
+        return {
+            valid: true,
+            readyForProduction,
+            id: cat.id,
+            nameEn: cat.nameEn,
+            nameUr: cat.nameUr,
+            status: cat.status,
+            subcategoriesCount: (cat.subcategories || []).length,
+            unitsCount: (cat.units || []).length,
+            customFieldsCount: fields.length,
+            hasUnitRulesByGroup,
+            hasPurchaseConfig,
+            hasStockReasons,
+            hasCustomerConfig,
+            hasReturnReasons,
+            hasClaimCategories,
+            hasThermalTerms,
+            hasImeiFields,
+            hasBrandActionButtons
+        };
     }
 };
 

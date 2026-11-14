@@ -657,6 +657,24 @@
     let allAgencies = [];
     let allLoadedPackages = {};
 
+    const ADMIN_PACKAGE_MODULE_DEFS = [
+        { id: 'booker_orders', label: '📋 Booker Orders' },
+        { id: 'delivery_returns', label: '🚚 Van Dispatch & Return' },
+        { id: 'claims', label: '⚠️ Damage & Claims' },
+        { id: 'expenses', label: '💸 Daily Expenses & Payroll' },
+        { id: 'alerts', label: '🔔 Low Stock Alerts' },
+        { id: 'reports', label: '📊 Sales & Wholesale Reports' },
+        { id: 'profit', label: '💰 Profit Analytics' },
+        { id: 'owner', label: '👥 Staff & Bookers' },
+        { id: 'backup', label: '💾 Backup & Restore' },
+        { id: 'session_security', label: '⏱️ Session Timeout Control' },
+        { id: 'multi_agency', label: '🏢 Multi-Branch Hub' }
+    ];
+
+    const CORE_ALWAYS_MODULES = {
+        dashboard: true, bills: true, customers: true, stock: true, settings: true
+    };
+
     // Master Default Packages (Fallbacks & Initial Seed)
     const DEFAULT_SAAS_PACKAGES = {
         free: {
@@ -665,7 +683,13 @@
             type: 'single',
             fee: 0,
             limits: { maxBranches: 1, maxItems: 50, monthlyBills: 150, maxBookers: 1 },
-            allowedTemplates: ['template4', 'template1']
+            allowedTemplates: ['template4', 'template1'],
+            allowedModules: {
+                ...CORE_ALWAYS_MODULES,
+                booker_orders: false, delivery_returns: false, claims: false,
+                expenses: false, alerts: false, reports: false, profit: false,
+                owner: false, backup: false, session_security: false, multi_agency: false
+            }
         },
         starter_single: {
             id: 'starter_single',
@@ -673,7 +697,13 @@
             type: 'single',
             fee: 2000,
             limits: { maxBranches: 1, maxItems: 500, monthlyBills: 99999, maxBookers: 3 },
-            allowedTemplates: ['template4', 'template1', 'template6']
+            allowedTemplates: ['template4', 'template1', 'template6'],
+            allowedModules: {
+                ...CORE_ALWAYS_MODULES,
+                booker_orders: true, delivery_returns: true, claims: true,
+                expenses: true, alerts: true, reports: true, profit: true,
+                owner: true, backup: true, session_security: true, multi_agency: false
+            }
         },
         wholesale_dist: {
             id: 'wholesale_dist',
@@ -681,7 +711,13 @@
             type: 'single',
             fee: 3500,
             limits: { maxBranches: 1, maxItems: 1500, monthlyBills: 99999, maxBookers: 6 },
-            allowedTemplates: ['template4', 'template1', 'template6', 'template2']
+            allowedTemplates: ['template4', 'template1', 'template6', 'template2'],
+            allowedModules: {
+                ...CORE_ALWAYS_MODULES,
+                booker_orders: true, delivery_returns: true, claims: true,
+                expenses: true, alerts: true, reports: true, profit: true,
+                owner: true, backup: true, session_security: true, multi_agency: false
+            }
         },
         multi_pro: {
             id: 'multi_pro',
@@ -689,7 +725,13 @@
             type: 'multi',
             fee: 5000,
             limits: { maxBranches: 3, maxItems: 3000, monthlyBills: 99999, maxBookers: 12 },
-            allowedTemplates: ['template4', 'template1', 'template2', 'template6', 'template7']
+            allowedTemplates: ['template4', 'template1', 'template2', 'template6', 'template7'],
+            allowedModules: {
+                ...CORE_ALWAYS_MODULES,
+                booker_orders: true, delivery_returns: true, claims: true,
+                expenses: true, alerts: true, reports: true, profit: true,
+                owner: true, backup: true, session_security: true, multi_agency: true
+            }
         },
         enterprise_multi: {
             id: 'enterprise_multi',
@@ -697,7 +739,13 @@
             type: 'multi',
             fee: 10000,
             limits: { maxBranches: 10, maxItems: 99999, monthlyBills: 99999, maxBookers: 50 },
-            allowedTemplates: ['template4', 'template1', 'template2', 'template3', 'template5', 'template6', 'template7', 'template8']
+            allowedTemplates: ['template4', 'template1', 'template2', 'template3', 'template5', 'template6', 'template7', 'template8'],
+            allowedModules: {
+                ...CORE_ALWAYS_MODULES,
+                booker_orders: true, delivery_returns: true, claims: true,
+                expenses: true, alerts: true, reports: true, profit: true,
+                owner: true, backup: true, session_security: true, multi_agency: true
+            }
         }
     };
 
@@ -881,12 +929,29 @@
                     <input type="number" class="lim-bookers" value="${lim.maxBookers !== undefined ? lim.maxBookers : 1}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
                 </div>
 
-                <div class="form-group" style="margin-bottom:12px;">
+                <div class="form-group" style="margin-bottom:10px;">
                     <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
                         <span>🏢 Max Branches Allowed</span>
                         <span style="color:#64748b; font-weight:normal;">برانچز لمٹ</span>
                     </label>
                     <input type="number" class="lim-branches" value="${lim.maxBranches || 1}" min="1" max="25" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
+                </div>
+
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:12px;">
+                    <div style="font-size:11px; font-weight:800; color:#0f172a; margin-bottom:6px; display:flex; justify-content:space-between;">
+                        <span>🧩 Package Modules (Lock / Unlock):</span>
+                        <span style="color:#64748b; font-weight:normal;">اس پیکیج میں اجازت شدہ ماڈیولز</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:11px;">
+                        ${ADMIN_PACKAGE_MODULE_DEFS.map(m => {
+                            const defaultMods = (DEFAULT_SAAS_PACKAGES[id] && DEFAULT_SAAS_PACKAGES[id].allowedModules) || {};
+                            const pkgMods = pkg.allowedModules || defaultMods;
+                            const isChecked = pkgMods[m.id] !== undefined ? pkgMods[m.id] === true : (id !== 'free' && (m.id !== 'multi_agency' || isMulti));
+                            return `<label style="display:flex; align-items:center; gap:5px; cursor:pointer; color:#334155;">
+                                <input type="checkbox" class="pkg-mod-chk" data-mod="${m.id}" ${isChecked ? 'checked' : ''}> ${m.label}
+                            </label>`;
+                        }).join('')}
+                    </div>
                 </div>
 
                 <div style="display:flex; gap:8px;">
@@ -916,6 +981,12 @@
         const items = parseInt(box.querySelector('.lim-items').value) || 50;
         const bookers = parseInt(box.querySelector('.lim-bookers').value) || 1;
 
+        const allowedModules = { ...CORE_ALWAYS_MODULES };
+        box.querySelectorAll('.pkg-mod-chk').forEach(chk => {
+            const modKey = chk.getAttribute('data-mod');
+            if (modKey) allowedModules[modKey] = chk.checked;
+        });
+
         try {
             Swal.showLoading();
             await db.collection('packages').doc(pkgId).set({
@@ -928,12 +999,17 @@
                     maxItems: items,
                     maxBookers: bookers
                 },
+                allowedModules: allowedModules,
                 updatedAt: new Date().toISOString()
             }, { merge: true });
 
+            if (window.SaaSModules && typeof window.SaaSModules.syncPackagesFromCloud === 'function') {
+                await window.SaaSModules.syncPackagesFromCloud(db);
+            }
+
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
-                timer: 1800, icon: 'success', title: `✅ ${name} saved successfully!`
+                timer: 1800, icon: 'success', title: `✅ ${name} saved with module rules!`
             });
             await loadPackages();
         } catch (e) {
@@ -1001,6 +1077,12 @@
             if (formValues) {
                 try {
                     Swal.showLoading();
+                    const defaultAllowed = { ...CORE_ALWAYS_MODULES, backup: true, session_security: true, expenses: true, customers_ledger: true, profit_analysis: true, suppliers: true, cashbook: true, csv_tools: true };
+                    ADMIN_PACKAGE_MODULE_DEFS.forEach(m => {
+                        if (typeof defaultAllowed[m.id] === 'undefined') {
+                            defaultAllowed[m.id] = formValues.branches > 1;
+                        }
+                    });
                     await db.collection('packages').doc(formValues.id).set({
                         id: formValues.id,
                         name: formValues.name,
@@ -1012,8 +1094,12 @@
                             maxItems: formValues.items,
                             maxBookers: 10
                         },
+                        allowedModules: defaultAllowed,
                         createdAt: new Date().toISOString()
                     });
+                    if (window.SaaSModules && typeof window.SaaSModules.syncPackagesFromCloud === 'function') {
+                        await window.SaaSModules.syncPackagesFromCloud(db);
+                    }
                     Swal.fire('Success', `Package ${formValues.name} ban gaya!`, 'success');
                     await loadPackages();
                 } catch (e) {
@@ -1605,7 +1691,7 @@
                     permissions: {
                         booker_orders: true, stock: true, customers: true, profit: true, expenses: true,
                         reports: true, claims: true, delivery_returns: true, owner: true,
-                        backup: true, alerts: true, multi_agency: true
+                        backup: true, session_security: true, alerts: true, multi_agency: true
                     },
                     updatedAt: new Date().toISOString()
                 });
@@ -1851,6 +1937,9 @@
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
                                 <input type="checkbox" id="permBackup" ${curPerms.backup !== false ? 'checked' : ''}> 💾 Backup &amp; Restore
                             </label>
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:6px; color:#0284c7; font-weight:bold;">
+                                <input type="checkbox" id="permSessionSecurity" ${curPerms.session_security !== false ? 'checked' : ''}> ⏱️ Session Timeout Control
+                            </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
                                 <input type="checkbox" id="permAlerts" ${curPerms.alerts !== false ? 'checked' : ''}> 🔔 Low Stock Alerts
                             </label>
@@ -1870,6 +1959,21 @@
             confirmButtonColor: '#0284c7',
             didOpen: () => {
                 const pkgSel = document.getElementById('swalEditPkg');
+                const permChkMap = {
+                    booker_orders: 'permBookerOrders',
+                    stock: 'permStock',
+                    customers: 'permKhata',
+                    profit: 'permProfit',
+                    expenses: 'permExpenses',
+                    reports: 'permReports',
+                    claims: 'permClaims',
+                    delivery_returns: 'permDelivery',
+                    owner: 'permOwner',
+                    backup: 'permBackup',
+                    session_security: 'permSessionSecurity',
+                    alerts: 'permAlerts',
+                    multi_agency: 'permMultiBranch'
+                };
                 if (pkgSel) {
                     pkgSel.addEventListener('change', function() {
                         const chosen = allLoadedPackages[this.value] || DEFAULT_SAAS_PACKAGES[this.value];
@@ -1881,6 +1985,16 @@
                             if (lim.maxBookers !== undefined) document.getElementById('swalLimitBookers').value = lim.maxBookers;
                             if (lim.maxItems !== undefined) document.getElementById('swalLimitItems').value = lim.maxItems;
                             if (lim.monthlyBills !== undefined) document.getElementById('swalLimitBills').value = lim.monthlyBills;
+
+                            const pkgMods = chosen.allowedModules || (DEFAULT_SAAS_PACKAGES[this.value] && DEFAULT_SAAS_PACKAGES[this.value].allowedModules);
+                            if (pkgMods && typeof pkgMods === 'object') {
+                                Object.entries(permChkMap).forEach(([mId, elId]) => {
+                                    const el = document.getElementById(elId);
+                                    if (el && pkgMods[mId] !== undefined) {
+                                        el.checked = Boolean(pkgMods[mId]);
+                                    }
+                                });
+                            }
                         }
                     });
                 }
@@ -1906,6 +2020,7 @@
                         delivery_returns: document.getElementById('permDelivery').checked,
                         owner: document.getElementById('permOwner').checked,
                         backup: document.getElementById('permBackup').checked,
+                        session_security: document.getElementById('permSessionSecurity') ? document.getElementById('permSessionSecurity').checked : true,
                         alerts: document.getElementById('permAlerts').checked,
                         multi_agency: document.getElementById('permMultiBranch').checked,
                         image_url_input: document.getElementById('permImageUrlInput') ? document.getElementById('permImageUrlInput').checked : false
@@ -1916,12 +2031,14 @@
 
         if (formValues) {
             try {
+                const anyExplicitFalse = Object.values(formValues.permissions).some(v => v === false);
                 await db.collection('agencies').doc(agencyId).update({
                     businessType: formValues.businessType,
                     packageId: formValues.packageId,
                     monthlyFee: formValues.monthlyFee,
                     customLimits: formValues.customLimits,
                     permissions: formValues.permissions,
+                    allModulesUnlocked: !anyExplicitFalse && formValues.packageId === 'enterprise_multi',
                     updatedAt: new Date().toISOString()
                 });
 
@@ -2153,6 +2270,8 @@
                 maxBranches: 1
             };
 
+            const agencyPerms = chosenPkg.allowedModules || (DEFAULT_SAAS_PACKAGES[pkgId] && DEFAULT_SAAS_PACKAGES[pkgId].allowedModules) || {};
+
             const agencyRef = await db.collection('agencies').add({
                 name: name,
                 businessType: bizType,
@@ -2167,6 +2286,9 @@
                 mobile: mobile,
                 limits: limits,
                 customLimits: limits,
+                permissions: agencyPerms,
+                sessionTimeoutMinutes: 30,
+                sessionAutoLockEnabled: true,
                 billPrefixes: { stock: 'STK-' },
                 createdAt: new Date().toISOString(),
                 createdBy: currentAdminUid
@@ -2179,7 +2301,7 @@
                 role: 'owner',
                 agencyId: agencyRef.id,
                 packageId: pkgId,
-                permissions: { instant: true, stock: true, ntn: true, agency: true, reports: true, backup: true },
+                permissions: { instant: true, stock: true, ntn: true, agency: true, reports: true, backup: agencyPerms.backup !== false, session_security: agencyPerms.session_security !== false },
                 createdAt: new Date().toISOString(),
                 createdBy: currentAdminUid
             });

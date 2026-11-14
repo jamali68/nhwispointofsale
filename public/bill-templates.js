@@ -43,7 +43,10 @@ function getTemplateAgency(agency, bill) {
         strn: ag.strn || b.agencyStrn || '',
         logo: ag.logoBase64 || ag.logo || b.agencyLogo || null,
         invoiceFooter: ag.invoiceFooter || b.invoiceFooter || '',
-        terminalId: ag.terminalId || 'DESKTOP-POS-01'
+        terminalId: ag.terminalId || 'DESKTOP-POS-01',
+        businessCategory: ag.businessCategory || ag.businessType || b.businessCategory || (b.agency && (b.agency.businessCategory || b.agency.businessType)) || '',
+        businessType: ag.businessType || ag.businessCategory || b.businessType || (b.agency && (b.agency.businessType || b.agency.businessCategory)) || '',
+        thermalPaperWidth: ag.thermalPaperWidth || ag.thermalWidth || b.thermalWidth || ''
     };
 }
 
@@ -55,38 +58,77 @@ function getTemplateCustomer(bill) {
         id: b.customerId || '',
         code: b.customerId ? b.customerId.slice(-4) : (b.customerCode || '101'),
         name: b.customerName || (b.customer && b.customer.name) || 'Counter Sale',
-        shopName: b.customerShopName || (b.customer && b.customer.shopName) || '',
+        shopName: b.customerShopName || b.customerShop || (b.customer && b.customer.shopName) || '',
         mobile: b.customerMobile || (b.customer && b.customer.mobile) || '',
         address: b.customerAddress || (b.customer && b.customer.address) || '',
-        route: b.customerRoute || (b.customer && b.customer.route) || '',
+        route: b.customerRoute || b.route || (b.customer && b.customer.route) || '',
         city: b.customerCity || (b.customer && b.customer.city) || '',
-        area: b.customerArea || b.customerRoute || (b.customer && (b.customer.area || b.customer.route)) || '',
-        terms: b.customerTerms || (b.customer && b.customer.paymentTerms) || '',
+        area: b.customerArea || b.customerRoute || b.route || (b.customer && (b.customer.area || b.customer.route)) || '',
+        terms: b.customerTerms || b.creditTerms || (b.customer && b.customer.paymentTerms) || '',
         ntn: ntnVal,
         fbrStatus: fbrStatusVal,
         isFiler: fbrStatusVal === 'filer',
-        cnic: b.customerCnic || (b.customer && b.customer.cnic) || ''
+        cnic: b.customerCnic || b.custNic || (b.customer && b.customer.cnic) || ''
     };
 }
 
 function getTemplateItems(bill) {
-    return (bill.items || []).map((it, i) => ({
-        sno: i + 1,
-        name: it.name,
-        qty: it.qty,
-        rate: it.rate,
-        total: (it.total || 0).toFixed(2)
-    }));
+    return (bill.items || []).map((it, i) => {
+        const subText = it.itemSubtitle
+            || (typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.formatItemSubtitle === 'function'
+                ? window.BusinessCategories.formatItemSubtitle(it)
+                : '');
+        const subHtml = subText
+            ? `<div style="font-size:10px; color:#555; font-weight:normal; line-height:1.25; margin-top:1px;">${subText}</div>`
+            : '';
+        const itemRate = it.rate !== undefined ? it.rate : (it.price !== undefined ? it.price : 0);
+        const itemTotal = it.total !== undefined ? it.total : ((parseFloat(it.qty) || 0) * (parseFloat(itemRate) || 0));
+        const bonusQty = parseFloat(it.bonus !== undefined ? it.bonus : (it.freeQty !== undefined ? it.freeQty : (it.freeUnits || 0))) || 0;
+        const ctnQty = parseFloat(it.ctn !== undefined ? it.ctn : (it.carton || 0)) || 0;
+        const boxQty = parseFloat(it.box !== undefined ? it.box : (it.boxes || 0)) || 0;
+        const pcsQty = parseFloat(it.pcs || 0) || 0;
+        return {
+            sno: i + 1,
+            name: (it.name || '') + subHtml,
+            rawName: it.name || '',
+            itemSubtitle: subText,
+            unit: it.unit || '',
+            qty: it.qty,
+            rate: itemRate,
+            tp: parseFloat(it.tp !== undefined ? it.tp : (it.tradePrice !== undefined ? it.tradePrice : itemRate)) || 0,
+            discount: it.totalDiscount !== undefined ? it.totalDiscount : (it.discount || 0),
+            to: parseFloat(it.to) || 0,
+            td: parseFloat(it.td) || 0,
+            sd: parseFloat(it.sd) || 0,
+            bonus: bonusQty,
+            ctn: ctnQty,
+            box: boxQty,
+            pcs: pcsQty,
+            sku: it.sku || it.skuCode || '',
+            promoDesc: it.promoDesc || it.schemeLabel || '',
+            total: (parseFloat(itemTotal) || 0).toFixed(2)
+        };
+    });
 }
 
 function getTemplateTotals(bill) {
+    const rawSub = parseFloat(bill.subTotal || 0);
+    const rawTotalDisc = bill.totalDiscount !== undefined
+        ? (parseFloat(bill.totalDiscount) || 0)
+        : ((parseFloat(bill.discount) || 0) + (parseFloat(bill.flatDiscount) || 0));
+    const rawTax = parseFloat(bill.taxAmount !== undefined ? bill.taxAmount : (bill.tax || 0)) || 0;
+    const rawGrand = bill.billAmount !== undefined
+        ? (parseFloat(bill.billAmount) || 0)
+        : Math.max(0, (rawSub - rawTotalDisc) + rawTax);
     return {
-        subTotal: (bill.subTotal || 0).toFixed(2),
-        discount: (bill.discount || 0).toFixed(2),
-        grandTotal: (bill.grandTotal || 0).toFixed(2),
-        prevBalance: (bill.previousBalance || 0).toFixed(2),
-        received: (bill.received || 0).toFixed(2),
-        balance: (bill.balance || 0).toFixed(2)
+        subTotal: rawSub.toFixed(2),
+        discount: rawTotalDisc.toFixed(2),
+        tax: rawTax.toFixed(2),
+        grandTotal: rawGrand.toFixed(2),
+        netPayable: (parseFloat(bill.grandTotal !== undefined ? bill.grandTotal : (rawGrand + (parseFloat(bill.previousBalance) || 0))) || 0).toFixed(2),
+        prevBalance: (parseFloat(bill.previousBalance) || 0).toFixed(2),
+        received: (parseFloat(bill.received) || 0).toFixed(2),
+        balance: (parseFloat(bill.balance) || 0).toFixed(2)
     };
 }
 
@@ -1246,9 +1288,9 @@ function template6Thermal(bill, agency, customer, settings) {
     const rawWidth = (s && s.thermalWidth) ||
                      (bill && bill.thermalWidth) ||
                      (agency && agency.thermalPaperWidth) ||
-                     (typeof localStorage !== 'undefined' ? localStorage.getItem('eb_thermal_width') : null) ||
+                     (typeof localStorage !== 'undefined' ? (localStorage.getItem('eb_thermal_width') || localStorage.getItem('nh_thermal_width')) : null) ||
                      '80';
-    const is58 = String(rawWidth).trim() === '58';
+    const is58 = String(rawWidth).trim().startsWith('58');
 
     // Dynamic Sizing Tokens based on paper width
     const pageWidth = is58 ? '58mm' : '80mm';
@@ -1287,14 +1329,18 @@ function template6Thermal(bill, agency, customer, settings) {
         customerPhone: isUrdu ? 'گاہک فون:' : 'Customer Phone:',
         routeArea: isUrdu ? 'علاقہ / روٹ:' : 'Route / Area:',
         booker: isUrdu ? 'سیلز مین / آرڈر بکر:' : 'Booker / Sales:',
+        deliveryMan: isUrdu ? 'ڈلیوری مین / وین:' : 'Delivery / Van:',
+        loadForm: isUrdu ? 'لوڈ فارم / بلٹی:' : 'Load Form #:',
+        bonusFree: isUrdu ? 'مفت' : 'FREE',
+        totalBonusCount: isUrdu ? 'کل مفت بونس:' : 'Total Free Bonus:',
         itemsHeaderName: isUrdu ? 'نام و تفصیل آئٹم' : 'Item Description',
         itemsHeaderCalc: isUrdu ? 'تعداد × ریٹ &nbsp; کل رقم' : 'Qty × Rate &nbsp; Total',
         currPrefix: isUrdu ? '' : 'Rs ',
         currSuffix: isUrdu ? ' روپے' : '',
         subTotal: isUrdu ? 'خام رقم:' : 'Sub Total:',
-        discount: isUrdu ? 'رعایت (ڈسکاؤنٹ):' : 'Discount:',
+        discount: isUrdu ? 'رعایت / ٹریڈ آفر:' : 'Discount / T-O:',
         tax: isUrdu ? 'ٹیکس / جی ایس ٹی:' : 'Tax / GST:',
-        grandTotal: isUrdu ? 'کل میزان (ٹوٹل):' : 'NET TOTAL:',
+        grandTotal: isUrdu ? 'کل بل رقم:' : 'BILL NET TOTAL:',
         prevBalance: isUrdu ? 'پچھلا بقایا (کھاتہ):' : 'Prev Balance:',
         totalDue: isUrdu ? 'کل واجب الادا:' : 'Total Due:',
         received: isUrdu ? 'وصول شدہ رقم:' : 'Received / Paid:',
@@ -1303,9 +1349,24 @@ function template6Thermal(bill, agency, customer, settings) {
         paidStatus: isUrdu ? 'مکمل ادا شدہ' : 'PAID (CLEAR)',
         totalItemsCount: isUrdu ? 'کل آئٹمز:' : 'Total Items:',
         totalQuantityCount: isUrdu ? 'کل تعداد:' : 'Total Qty:',
-        termsDefault: isUrdu
-            ? 'مال واپس یا تبدیل 3 دن کے اندر بل کے ساتھ ممکن ہے۔'
-            : 'Return / Exchange within 3 days with original receipt.',
+        termsDefault: (() => {
+            let catId = (agency && (agency.businessCategory || agency.businessType))
+                || (bill && (bill.businessCategory || (bill.agency && (bill.agency.businessCategory || bill.agency.businessType))))
+                || '';
+            if (!catId) {
+                if (items.some(x => (x.itemSubtitle || '').includes('IMEI:') || (x.itemSubtitle || '').includes('PTA:'))) catId = 'mobile';
+                else if (items.some(x => x.bonus > 0 || x.ctn > 0 || (x.itemSubtitle || '').includes('Ctn:') || (x.itemSubtitle || '').includes('TP:'))) catId = 'wholesaler';
+                else if (typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+                    catId = window.BusinessCategories.resolveActiveCategory(agency, '');
+                }
+            }
+            if (typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.getThermalTerms === 'function' && catId) {
+                return window.BusinessCategories.getThermalTerms(catId, isUrdu ? 'ur' : 'en');
+            }
+            return isUrdu
+                ? 'مال واپس یا تبدیل 3 دن کے اندر بل کے ساتھ ممکن ہے۔'
+                : 'Return / Exchange within 3 days with original receipt.';
+        })(),
         thankYou: isUrdu ? 'شکریہ! دوبارہ تشریف لائیں۔' : 'Thank you for your business!',
         thankYouSub: isUrdu ? 'آپ کے تعاون کا بہت شکریہ۔' : 'Please visit us again soon.',
         signature: isUrdu ? 'دستخط مجاز' : 'Authorized Signature',
@@ -1401,11 +1462,13 @@ function template6Thermal(bill, agency, customer, settings) {
                 margin: 2px 0;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
+                word-break: break-word;
             }
             .t-subtext {
                 font-size: ${is58 ? '10px' : '11px'};
                 margin: 1.5px 0;
                 line-height: 1.3;
+                word-break: break-word;
             }
             .t-pay-badge {
                 display: inline-block;
@@ -1428,10 +1491,16 @@ function template6Thermal(bill, agency, customer, settings) {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
+                gap: 4px;
                 margin: 1.5px 0;
             }
             .t-row > span:first-child {
                 color: #222;
+                flex-shrink: 0;
+            }
+            .t-row > span:last-child {
+                word-break: break-word;
+                text-align: ${isUrdu ? 'left' : 'right'};
             }
 
             /* Items Section - Ultra-clean 2-line layout */
@@ -1581,14 +1650,21 @@ function template6Thermal(bill, agency, customer, settings) {
             ${(s.showCustomerName !== false) ? `
                 <div class="t-row">
                     <span>${L.customer}</span>
-                    <span class="t-bold">${customer.name || L.walkInCustomer}</span>
+                    <span class="t-bold">${customer.shopName && customer.shopName !== customer.name ? `${customer.name} (${customer.shopName})` : (customer.name || L.walkInCustomer)}</span>
                 </div>
             ` : ''}
 
-            ${(s.showCustomerPhone !== false) && customer.mobile ? `
+            ${(s.showCustomerPhone !== false) && (customer.mobile || bill.customerPhone) ? `
                 <div class="t-row">
                     <span>${L.customerPhone}</span>
-                    <span>${customer.mobile}</span>
+                    <span>${customer.mobile || bill.customerPhone}</span>
+                </div>
+            ` : ''}
+
+            ${(customer.cnic || customer.ntn || bill.customerCnic) ? `
+                <div class="t-row">
+                    <span>${isUrdu ? 'شناختی کارڈ / NTN:' : 'CNIC / NTN:'}</span>
+                    <span>${customer.cnic || bill.customerCnic || customer.ntn}</span>
                 </div>
             ` : ''}
 
@@ -1605,6 +1681,20 @@ function template6Thermal(bill, agency, customer, settings) {
                     <span>${bill.bookerName || bill.salesmanName}</span>
                 </div>
             ` : ''}
+
+            ${(s.showDeliveryMan !== false) && (bill.deliveredBy || bill.deliveryMan) ? `
+                <div class="t-row">
+                    <span>${L.deliveryMan}</span>
+                    <span>${bill.deliveredBy || bill.deliveryMan}</span>
+                </div>
+            ` : ''}
+
+            ${bill.loadFormNo ? `
+                <div class="t-row">
+                    <span>${L.loadForm}</span>
+                    <span>${bill.loadFormNo}</span>
+                </div>
+            ` : ''}
         </div>
 
         <!-- ITEMS HEADER -->
@@ -1613,21 +1703,39 @@ function template6Thermal(bill, agency, customer, settings) {
             <span>${L.itemsHeaderCalc}</span>
         </div>
 
-        <!-- ITEMS LIST (Smart 2-Line Architecture: Anti-truncation & 100% Readable) -->
+        <!-- ITEMS LIST (Smart 2-Line Architecture + Wholesale Carton/Bonus/Scheme + Category Sub-Block) -->
         <div class="t-items-list">
-            ${items.map(it => `
+            ${items.map(it => {
+                const packBreakdown = (it.ctn > 0 || it.pcs > 0)
+                    ? ` <span style="font-weight:bold; font-size:0.88em;">[${it.ctn > 0 ? it.ctn + ' Ctn' : ''}${it.ctn > 0 && it.pcs > 0 ? '+' : ''}${it.pcs > 0 ? it.pcs + ' Pcs' : ''}]</span>`
+                    : '';
+                const bonusTag = it.bonus > 0
+                    ? ` <span style="display:inline-block; border:1px solid #000; padding:0 3px; font-weight:900; font-size:0.88em;">+${it.bonus} ${L.bonusFree}</span>`
+                    : '';
+                const discTotalItem = parseFloat(it.discount || 0);
+                return `
                 <div class="t-item-block">
                     <div class="t-item-top">
-                        ${(s.showItemSno !== false) ? `<span>${it.sno}.</span> ` : ''}${it.name}${it.unit ? ` <span style="font-weight:normal; font-size:0.9em;">(${it.unit})</span>` : ''}
+                        ${(s.showItemSno !== false) ? `<span>${it.sno}.</span> ` : ''}${it.rawName || it.name}${it.unit ? ` <span style="font-weight:normal; font-size:0.9em;">(${it.unit})</span>` : ''}${packBreakdown}
                     </div>
+                    ${it.itemSubtitle ? `
+                        <div style="font-size:${is58 ? '9.5px' : '10.5px'}; font-weight:700; color:#000; line-height:1.25; margin:2px 0; padding-${isUrdu ? 'right' : 'left'}:4px; border-${isUrdu ? 'right' : 'left'}:2px solid #000; word-break:break-word;">
+                            ${it.itemSubtitle}
+                        </div>
+                    ` : ''}
+                    ${it.promoDesc ? `
+                        <div style="font-size:${is58 ? '9px' : '10px'}; font-weight:700; color:#111; line-height:1.2; margin:1px 0;">
+                            * ${it.promoDesc}
+                        </div>
+                    ` : ''}
                     <div class="t-item-bottom">
                         <span class="t-item-calc">
-                            ${it.qty} × ${fmt(it.rate)}${it.discount && parseFloat(it.discount) > 0 ? ` <small>(-${it.discount})</small>` : ''}
+                            ${it.qty} × ${fmt(it.rate)}${bonusTag}${discTotalItem > 0 ? ` <small>(-${discTotalItem.toFixed(0)})</small>` : ''}
                         </span>
                         <span class="t-item-amount">${fmt(it.total)}</span>
                     </div>
-                </div>
-            `).join('')}
+                </div>`;
+            }).join('')}
         </div>
 
         <div class="t-divider"></div>
@@ -1690,11 +1798,20 @@ function template6Thermal(bill, agency, customer, settings) {
 
         <div class="t-divider-double"></div>
 
-        <!-- TOTAL ITEMS COUNT -->
-        <div class="t-row t-bold" style="font-size:${is58 ? '10px' : '11px'}; margin-bottom:4px;">
+        <!-- TOTAL ITEMS COUNT (+ BONUS TOTAL IF ANY) -->
+        <div class="t-row t-bold" style="font-size:${is58 ? '10px' : '11px'}; margin-bottom:2px;">
             <span>${L.totalItemsCount} ${items.length}</span>
             <span>${L.totalQuantityCount} ${items.reduce((acc, it) => acc + (parseFloat(it.qty) || 0), 0)}</span>
         </div>
+        ${(() => {
+            const totalBonusQty = items.reduce((acc, it) => acc + (parseFloat(it.bonus) || 0), 0);
+            const totalCtnQty = items.reduce((acc, it) => acc + (parseFloat(it.ctn) || 0), 0);
+            if (totalBonusQty <= 0 && totalCtnQty <= 0) return '';
+            return `<div class="t-row t-bold" style="font-size:${is58 ? '10px' : '11px'}; margin-bottom:4px;">
+                <span>${totalCtnQty > 0 ? (isUrdu ? 'کل کارٹن:' : 'Total Ctn:') + ' ' + totalCtnQty : ''}</span>
+                <span>${totalBonusQty > 0 ? L.totalBonusCount + ' +' + totalBonusQty : ''}</span>
+            </div>`;
+        })()}
 
         <!-- FOOTER & POLICIES -->
         <div class="t-footer">
@@ -1810,7 +1927,7 @@ function template7FMCGDistribution(bill, agency, customer, settings) {
 
         return `
         <tr>
-            <td class="col-name">${it.name}</td>
+            <td class="col-name">${it.name}${it.itemSubtitle ? `<div style="font-size:8.5px; color:#555; font-weight:normal; margin-top:1px;">${it.itemSubtitle}</div>` : ''}</td>
             <td class="col-center col-sku">${sku}</td>
             <td class="col-center">${ctnVal}</td>
             <td class="col-center col-bold">${boxVal}</td>
@@ -2431,7 +2548,7 @@ function template8WholesaleUrduGrid(bill, agency, customer, settings) {
 
         return `
         <tr>
-            <td class="t-name urdu">${it.name}${packingStr}</td>
+            <td class="t-name urdu">${it.name}${packingStr}${it.itemSubtitle ? `<div style="font-size:9.5px; color:#555; font-weight:normal; margin-top:1px; direction:ltr;">${it.itemSubtitle}</div>` : ''}</td>
             <td class="t-center urdu">${qtyNum} ${unitStr}</td>
             <td class="t-num">${rateNum.toFixed(2)}</td>
             <td class="t-num">${gross.toFixed(2)}</td>
@@ -2968,7 +3085,7 @@ function template9AbidTraders(bill, agency, customer, settings) {
             <td class="t-center en-num">${qtyVal > 0 && ctnVal > 0 ? qtyVal : (ctnVal === 0 && qtyVal > 0 ? qtyVal : '-')}</td>
             <td class="t-center en-num font-bold">${ctnVal > 0 ? ctnVal : (it.unit === 'ctn' || it.unit === 'carton' ? qtyVal : '-')}</td>
             <td class="t-center en-num">${bonusVal > 0 ? bonusVal : '-'}</td>
-            <td class="t-desc urdu">${it.name}</td>
+            <td class="t-desc urdu">${it.name}${it.itemSubtitle ? `<div style="font-size:9px; color:#555; font-weight:normal; margin-top:1px; direction:ltr;">${it.itemSubtitle}</div>` : ''}</td>
             <td class="t-num en-num">${rateVal.toFixed(2)}</td>
             <td class="t-center en-num">${tdVal > 0 ? tdVal.toFixed(2) : '-'}</td>
             <td class="t-center en-num">${toVal > 0 ? toVal.toFixed(2) : '-'}</td>
@@ -3780,7 +3897,7 @@ function template10HassanDistributor(bill, agency, customer, settings) {
             <tr class="fmcg-item-row">
                 <td class="col-desc">
                     <span class="p-sku">${sku}</span> 
-                    <span class="p-name">${it.name}</span>
+                    <span class="p-name">${it.name}</span>${it.itemSubtitle ? `<div style="font-size:7.5px; color:#555; font-weight:normal; margin-top:1px;">${it.itemSubtitle}</div>` : ''}
                 </td>
                 <td class="col-center">${ctnSize}</td>
                 <td class="col-center">${ctnQty}</td>
@@ -4394,18 +4511,40 @@ const DEFAULT_TEMPLATE = 'template4';
 // ============================================
 // 🎯 MAIN RENDERER & EXPORT TO WINDOW
 // ============================================
-function buildBillHTML(bill, templateId, customSettings) {
+function buildBillHTML(bill, templateIdOrAgency, customSettingsOrCustomer, fourthSettings) {
     if (!bill) return '';
-    const agRaw = (typeof myAgency !== 'undefined' && myAgency) ? myAgency : (bill.agency || {});
+    let passedAgency = null;
+    let passedCustomer = null;
+    let templateId = null;
+    let customSettings = null;
+
+    if (typeof templateIdOrAgency === 'string') {
+        templateId = templateIdOrAgency;
+        customSettings = customSettingsOrCustomer;
+    } else if (templateIdOrAgency && typeof templateIdOrAgency === 'object') {
+        passedAgency = templateIdOrAgency;
+        passedCustomer = customSettingsOrCustomer;
+        customSettings = fourthSettings;
+        templateId = (customSettings && customSettings.template) || bill.template || passedAgency.defaultTemplate || passedAgency.template;
+    } else {
+        customSettings = customSettingsOrCustomer;
+        templateId = (customSettings && customSettings.template) || bill.template;
+    }
+
+    const agRaw = passedAgency || ((typeof myAgency !== 'undefined' && myAgency) ? myAgency : (bill.agency || {}));
     const agency = getTemplateAgency(agRaw, bill);
-    const customer = getTemplateCustomer(bill);
-    const tId = templateId || agency.defaultTemplate || agency.template || DEFAULT_TEMPLATE;
+    const baseCustomer = getTemplateCustomer(bill);
+    const customer = (passedCustomer && typeof passedCustomer === 'object')
+        ? { ...baseCustomer, ...passedCustomer, name: passedCustomer.name || baseCustomer.name, mobile: passedCustomer.mobile || baseCustomer.mobile, ntn: passedCustomer.ntn || baseCustomer.ntn, cnic: passedCustomer.cnic || passedCustomer.ntn || baseCustomer.cnic }
+        : baseCustomer;
+    const tId = templateId || bill.template || agency.defaultTemplate || agency.template || DEFAULT_TEMPLATE;
     const template = BILL_TEMPLATES[tId] || BILL_TEMPLATES[DEFAULT_TEMPLATE] || BILL_TEMPLATES['template4'];
     
-    // Read checkbox controls if print engine loaded
-    const settings = customSettings || ((window.ebPrintEngine && window.ebPrintEngine.getEffectivePrintSettings)
+    // Read checkbox controls if print engine loaded and merge customSettings cleanly
+    const baseSettings = (window.ebPrintEngine && window.ebPrintEngine.getEffectivePrintSettings)
         ? window.ebPrintEngine.getEffectivePrintSettings(agRaw)
-        : (typeof DEFAULT_PRINT_SETTINGS !== 'undefined' ? DEFAULT_PRINT_SETTINGS : {}));
+        : (typeof DEFAULT_PRINT_SETTINGS !== 'undefined' ? DEFAULT_PRINT_SETTINGS : {});
+    const settings = customSettings ? { ...baseSettings, ...customSettings } : baseSettings;
 
     return template.fn(bill, agency, customer, settings);
 }

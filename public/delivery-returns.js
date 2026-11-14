@@ -185,6 +185,7 @@ auth.onAuthStateChanged(async (user) => {
         // Initialize UI listeners
         setupTabs();
         setupFilters();
+        populateCategoryReturnReasons();
         setupReturnReasonToggle();
         setupModals();
 
@@ -313,8 +314,137 @@ function setupFilters() {
 }
 
 // ============================================
-// 🔄 RETURN REASON DYNAMIC TEXTBOX TOGGLE (User Requirement)
+// 🔄 RETURN REASON DYNAMIC TEXTBOX TOGGLE & CUSTOM REASONS
 // ============================================
+function getActiveDeliveryCategory() {
+    if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+        return window.BusinessCategories.resolveActiveCategory(myAgency, 'books');
+    }
+    const raw = (myAgency && (myAgency.businessCategory || myAgency.category || myAgency.businessType))
+        || localStorage.getItem('eb_active_business_category')
+        || localStorage.getItem('eb_active_category')
+        || 'books';
+    if (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function') {
+        const found = window.BusinessCategories.getById(raw);
+        if (found) return found.id;
+    }
+    return String(raw || 'books').toLowerCase();
+}
+
+function generateLoadFormNo() {
+    const d = new Date();
+    const ymd = d.toISOString().slice(2, 10).replace(/-/g, '');
+    const rnd = Math.floor(1000 + Math.random() * 9000);
+    return `LF-${ymd}-${rnd}`;
+}
+
+function resolveOrderItemPackSize(it) {
+    if (!it) return 1;
+    let p = parseFloat(it.packSize || (it.industryFields && it.industryFields.packSize) || 0);
+    if ((!p || p <= 1) && Array.isArray(allStock) && allStock.length > 0) {
+        const st = allStock.find(s => (it.stockId && s.id === it.stockId) || (it.name && s.name === it.name));
+        if (st) p = parseFloat(st.packSize || (st.industryFields && st.industryFields.packSize) || 0);
+    }
+    return p > 1 ? p : 1;
+}
+
+function formatWholesaleQtySummary(qty, freeQty, unit, packSize) {
+    const q = parseFloat(qty) || 0;
+    const fq = parseFloat(freeQty) || 0;
+    const total = q + fq;
+    const u = String(unit || 'Pcs').trim();
+    const uLow = u.toLowerCase();
+    const p = parseFloat(packSize) || 1;
+    if (p <= 1) return `${total} ${u}`;
+    if (['ctn', 'carton', 'box', 'pack', 'case', 'bundle'].includes(uLow)) {
+        return `${total} ${u} (${Math.round(total * p)} Pcs)`;
+    }
+    const ctns = Math.floor(total / p);
+    const loose = total % p;
+    if (ctns > 0) {
+        return `${ctns} Ctn${loose > 0 ? ' + ' + loose + ' ' + u : ''} (1x${p})`;
+    }
+    return `${total} ${u} (1x${p})`;
+}
+
+function populateCategoryReturnReasons(selectedValue = '') {
+    const sel = document.getElementById('retReasonSelect');
+    if (!sel) return;
+
+    const catId = getActiveDeliveryCategory();
+    const baseReasons = [
+        'دکان بند تھی (Shop was Closed)',
+        'غلطی سے زیادہ ہو گیا / فالتو مال بچ گیا (Excess / Overloaded Stock)',
+        'آرڈر زیادہ جنریٹ ہو گیا تھا (Order Quantity Generated in Excess)',
+        'دکان دار کے پاس رقم کم تھی / ادھار نہیں دیا (Short of Cash / Credit Refused)',
+        'غلط پروڈکٹ یا ورائٹی منگوائی تھی (Wrong Product / Variant Selected)',
+        'پیکنگ خراب یا ایکسپائری قریب تھی (Packaging Damaged / Near Expiry)'
+    ];
+
+    const catReasons = [];
+    if (window.BusinessCategories && typeof window.BusinessCategories.getReturnReasons === 'function') {
+        const activeList = window.BusinessCategories.getReturnReasons(catId) || [];
+        activeList.forEach(r => {
+            const val = typeof r === 'string' ? r : (r.value || r.label || '');
+            if (val && !catReasons.includes(val)) catReasons.push(val);
+        });
+        // Also keep mobile and books reasons accessible so multi-category agencies never miss an option
+        ['mobile', 'books'].forEach(cId => {
+            if (cId === catId) return;
+            const extra = window.BusinessCategories.getReturnReasons(cId) || [];
+            extra.forEach(r => {
+                const val = typeof r === 'string' ? r : (r.value || r.label || '');
+                if (val && !catReasons.includes(val)) catReasons.push(val);
+            });
+        });
+    }
+
+    let customSaved = [];
+    try {
+        customSaved = JSON.parse(localStorage.getItem(`eb_custom_return_reasons_${catId}`) || '[]');
+    } catch (e) { customSaved = []; }
+
+    const allUnique = [];
+    // Put category-specific reasons + custom saved reasons right after the 6 universal reasons
+    [...baseReasons, ...customSaved, ...catReasons].forEach(r => {
+        if (r && !allUnique.includes(r)) allUnique.push(r);
+    });
+
+    sel.innerHTML = '<option value="">-- واپسی کی وجہ منتخب کریں --</option>' +
+        allUnique.map((r, i) => `<option value="${r.replace(/"/g, '&quot;')}">${i + 1}. ${r}</option>`).join('') +
+        '<option value="other">✍️ دیگر وجہ (Other Reason)...</option>';
+
+    if (selectedValue) {
+        sel.value = selectedValue;
+    }
+}
+
+window.openAddCustomReturnReasonModal = async function() {
+    const catId = getActiveDeliveryCategory();
+    const { value: newReason } = await Swal.fire({
+        title: '➕ نئی واپسی کی وجہ شامل کریں (Add Custom Return Reason)',
+        html: `<div style="font-size:12.5px; color:#475569; margin-bottom:8px;">اپنے کاروبار کے مطابق مال واپسی کی نئی وجہ درج کریں (مثلاً: <b>PTA Block / Checking Return / Own Brand Exchange</b>):</div>`,
+        input: 'text',
+        inputPlaceholder: 'مثلاً: چیکنگ وارنٹی واپسی (Checking Warranty Return)',
+        showCancelButton: true,
+        confirmButtonText: '💾 شامل کریں (Save)',
+        cancelButtonText: 'منسوخ',
+        confirmButtonColor: '#6d28d9'
+    });
+
+    if (!newReason || !newReason.trim()) return;
+    const clean = newReason.trim();
+    const key = `eb_custom_return_reasons_${catId}`;
+    let saved = [];
+    try { saved = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { saved = []; }
+    if (!saved.includes(clean)) {
+        saved.unshift(clean);
+        localStorage.setItem(key, JSON.stringify(saved));
+    }
+    populateCategoryReturnReasons(clean);
+    Swal.fire({ toast: true, position: 'top-end', timer: 1800, showConfirmButton: false, icon: 'success', title: `✅ "${clean}" شامل کر دیا گیا!` });
+};
+
 function setupReturnReasonToggle() {
     const sel = document.getElementById('retReasonSelect');
     const container = document.getElementById('customReasonContainer');
@@ -725,6 +855,7 @@ function renderOrdersTable() {
         }
 
         const itemsCount = (ord.items && ord.items.length) || ord.itemCount || 0;
+        const totalFree = (ord.items || []).reduce((sum, it) => sum + (parseFloat(it.freeQty || it.bonus) || 0), 0) || ord.totalFreeUnits || 0;
         const totalAmount = Math.round(ord.billAmount || ord.grandTotal || 0).toLocaleString();
 
         return `
@@ -733,6 +864,7 @@ function renderOrdersTable() {
                 <td>
                     <b>${ord.billNo || ord.id.slice(0,8)}</b><br>
                     <small style="color:#64748b;">${ord.date || ord.createdAt?.slice(0,10) || ''}</small>
+                    ${ord.loadFormNo ? `<div style="margin-top:2px;"><span style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🚚 ${ord.loadFormNo}</span></div>` : ''}
                 </td>
                 <td>
                     <b>${ord.customerName || 'Counter Sale'}</b><br>
@@ -742,14 +874,14 @@ function renderOrdersTable() {
                     <span style="color:#0284c7; font-weight:700;"><i class="fas fa-user-edit"></i> ${ord.bookerName || 'Staff Booker'}</span>
                 </td>
                 <td>
-                    <b>${itemsCount} Items</b><br>
+                    <b>${itemsCount} Items</b> ${totalFree > 0 ? `<span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 +${totalFree} Free</span>` : ''}<br>
                     <span style="color:#10b981; font-weight:700;">Rs ${totalAmount}</span>
                 </td>
                 <td>
                     <span class="badge-status ${badgeClass}" style="${badgeStyle}">${badgeText}</span>
                 </td>
                 <td>
-                    ${ord.supplierName ? `<b style="color:#334155;"><i class="fas fa-truck"></i> ${ord.supplierName}</b>` : '<span style="color:#94a3b8;">Not Assigned</span>'}
+                    ${ord.supplierName ? `<b style="color:#334155;"><i class="fas fa-truck"></i> ${ord.supplierName}</b>${ord.loadFormNo ? `<br><small style="color:#6d28d9; font-weight:700;">${ord.loadFormNo}</small>` : ''}` : '<span style="color:#94a3b8;">Not Assigned</span>'}
                 </td>
                 <td style="text-align:right;">
                     <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
@@ -774,6 +906,9 @@ function renderOrdersTable() {
                         ` : ''}
 
                         ${ord.orderStatus === 'approved' ? `
+                            <button class="btn btn-sm" onclick="printOrderBillThermal('${ord.id}')" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; border-radius:6px; font-size:11px; padding:4px 7px; font-weight:bold;" title="Print 80mm/58mm Thermal POS Slip">
+                                🧾 Thermal
+                            </button>
                             <button class="btn btn-sm" onclick="printOrderBill('${ord.id}')" style="background:#0284c7; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px;" title="Print Customer Bill">
                                 <i class="fas fa-print"></i> Print
                             </button>
@@ -868,13 +1003,16 @@ async function approveOrder(orderId) {
             approvedBy: myUid
         });
 
-        // 2. Deduct inventory stock & record movements
+        // 2. Deduct inventory stock & record movements (Paid Qty + Free Scheme Bonus Qty)
         const movements = [];
         (ord.items || []).forEach(it => {
             if (!it.stockId) return;
             const s = allStock.find(x => x.id === it.stockId);
-            const currentQty = s ? (s.qty || 0) : 0;
-            const newQty = currentQty - (it.qty || 0);
+            const currentQty = s ? (parseFloat(s.qty) || 0) : 0;
+            const paidQty = parseFloat(it.qty) || 0;
+            const freeQty = parseFloat(it.freeQty || it.bonus) || 0;
+            const deductQty = paidQty + freeQty;
+            const newQty = currentQty - deductQty;
 
             batch.update(db.collection('stock').doc(it.stockId), {
                 qty: newQty,
@@ -883,7 +1021,9 @@ async function approveOrder(orderId) {
 
             movements.push({
                 itemName: it.name,
-                qty: it.qty,
+                qty: deductQty,
+                paidQty: paidQty,
+                freeQty: freeQty,
                 beforeQty: currentQty,
                 afterQty: newQty
             });
@@ -1044,12 +1184,23 @@ function viewOrderDetails(orderId) {
     `;
 
     (ord.items || []).forEach((it, idx) => {
-        const itemTot = (it.qty || 0) * (it.rate || 0);
+        const paidQty = parseFloat(it.qty) || 0;
+        const freeQty = parseFloat(it.freeQty || it.bonus) || 0;
+        const itemTot = parseFloat(it.total) || (paidQty * (parseFloat(it.rate) || 0));
+        const subInfo = getStockItemSubtitle(it);
+        const pSize = resolveOrderItemPackSize(it);
+        const freeBadge = freeQty > 0
+            ? `<div style="margin-top:2px;"><span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 +${freeQty} Free Bonus</span></div>`
+            : '';
         itemsTable += `
             <tr>
                 <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center;">${idx + 1}</td>
-                <td style="padding:6px 8px; border:1px solid #e2e8f0;"><b>${it.name || ''}</b></td>
-                <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center;"><b>${it.qty || 0}</b> ${it.unit || ''}</td>
+                <td style="padding:6px 8px; border:1px solid #e2e8f0;">
+                    <b>${it.name || ''}</b>
+                    ${subInfo ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${subInfo}</div>` : ''}
+                    ${freeBadge}
+                </td>
+                <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:center;"><b>${paidQty}</b> ${it.unit || ''}${pSize > 1 ? `<br><small style="color:#64748b;">${formatWholesaleQtySummary(paidQty, freeQty, it.unit, pSize)}</small>` : ''}</td>
                 <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:right;">Rs ${(it.rate || 0).toLocaleString()}</td>
                 <td style="padding:6px 8px; border:1px solid #e2e8f0; text-align:right; font-weight:bold;">Rs ${itemTot.toLocaleString()}</td>
             </tr>
@@ -1075,6 +1226,7 @@ function viewOrderDetails(orderId) {
                     ${isPending ? '⏳ Pending Approval' : '✅ Approved Bill'}
                 </span>
                 <div style="font-weight:bold; font-size:15px; margin-top:4px; color:#0284c7;">${ord.billNo || ord.id.slice(0,8)}</div>
+                ${ord.loadFormNo ? `<div style="font-size:11px; font-weight:800; color:#6d28d9;">🚚 ${ord.loadFormNo}</div>` : ''}
             </div>
         </div>
 
@@ -1091,6 +1243,8 @@ function viewOrderDetails(orderId) {
         </div>
     `;
 
+    const btnThermal = document.getElementById('btnModalThermalPrintBill');
+
     if (isPending) {
         if (canUserApproveOrders()) {
             btnApprove.style.display = 'inline-flex';
@@ -1099,10 +1253,15 @@ function viewOrderDetails(orderId) {
             btnApprove.style.display = 'none';
         }
         btnPrint.style.display = 'none';
+        if (btnThermal) btnThermal.style.display = 'none';
     } else {
         btnApprove.style.display = 'none';
         btnPrint.style.display = 'inline-flex';
         btnPrint.onclick = () => { printOrderBill(orderId); };
+        if (btnThermal) {
+            btnThermal.style.display = 'inline-flex';
+            btnThermal.onclick = () => { printOrderBillThermal(orderId); };
+        }
     }
 
     modal.style.display = 'flex';
@@ -1114,13 +1273,25 @@ window.closeOrderDetailsModal = () => {
 };
 
 // ============================================
-// 🖨️ PRINT INDIVIDUAL CUSTOMER BILL
+// 🖨️ PRINT INDIVIDUAL CUSTOMER BILL & THERMAL SLIP
 // ============================================
+function getStockItemSubtitle(it) {
+    if (!it) return '';
+    if (it.itemSubtitle) return String(it.itemSubtitle).trim();
+    const matchedStock = (it.stockId && allStock.find(s => s.id === it.stockId)) ||
+        (it.name && allStock.find(s => (s.name || '').toLowerCase() === String(it.name || '').toLowerCase()));
+    const src = matchedStock || it;
+    if (window.BusinessCategories && typeof window.BusinessCategories.formatItemSubtitle === 'function') {
+        return window.BusinessCategories.formatItemSubtitle(src);
+    }
+    return src.itemSubtitle || '';
+}
+
 function printOrderBill(orderId) {
     const ord = allOrders.find(o => o.id === orderId);
     if (!ord) return;
 
-    let templateId = (myAgency && myAgency.defaultTemplate) || 'template6';
+    let templateId = (myAgency && myAgency.defaultTemplate) || 'template4';
     let billHTML = '';
     try {
         if (typeof window.buildBillHTML === 'function') {
@@ -1138,6 +1309,44 @@ function printOrderBill(orderId) {
     setTimeout(() => win.print(), 800);
 }
 
+window.printOrderBillThermal = function(orderId, thermalWidth = '') {
+    const ord = allOrders.find(o => o.id === orderId);
+    if (!ord) return;
+
+    const catId = getActiveDeliveryCategory();
+    const resolvedWidth = thermalWidth || ((window.BusinessCategories && typeof window.BusinessCategories.getThermalWidthPreference === 'function')
+        ? window.BusinessCategories.getThermalWidthPreference(myAgency)
+        : (localStorage.getItem('eb_thermal_width') || localStorage.getItem('nh_thermal_width') || '80mm'));
+    const termsEn = (window.BusinessCategories && typeof window.BusinessCategories.getThermalTerms === 'function')
+        ? window.BusinessCategories.getThermalTerms(catId, 'en')
+        : '';
+    const termsUr = (window.BusinessCategories && typeof window.BusinessCategories.getThermalTerms === 'function')
+        ? window.BusinessCategories.getThermalTerms(catId, 'ur')
+        : '';
+
+    let billHTML = '';
+    try {
+        if (typeof window.buildBillHTML === 'function') {
+            billHTML = window.buildBillHTML(ord, 'template6', {
+                thermalWidth: resolvedWidth,
+                termsTextEn: termsEn,
+                termsTextUr: termsUr
+            });
+        } else {
+            billHTML = buildFallbackInvoiceHTML(ord);
+        }
+    } catch (e) {
+        billHTML = buildFallbackInvoiceHTML(ord);
+    }
+
+    const win = window.open('', '_blank', 'width=420,height=720');
+    if (win) {
+        win.document.write(billHTML);
+        win.document.close();
+        setTimeout(() => win.print(), 600);
+    }
+};
+
 function buildFallbackInvoiceHTML(bill) {
     return `
         <html><head><title>Bill ${bill.billNo}</title></head>
@@ -1149,7 +1358,10 @@ function buildFallbackInvoiceHTML(bill) {
             <hr>
             <table style="width:100%; border-collapse:collapse;" border="1" cellpadding="5">
                 <tr><th>Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr>
-                ${(bill.items || []).map(it => `<tr><td>${it.name}</td><td>${it.qty}</td><td>${it.rate}</td><td>${it.qty * it.rate}</td></tr>`).join('')}
+                ${(bill.items || []).map(it => {
+                    const sub = getStockItemSubtitle(it);
+                    return `<tr><td><b>${it.name}</b>${sub ? `<br><small style="color:#64748b;">${sub}</small>` : ''}</td><td>${it.qty} ${it.unit || ''}</td><td>${it.rate}</td><td>${it.qty * it.rate}</td></tr>`;
+                }).join('')}
             </table>
             <h3>Total: Rs ${bill.billAmount || bill.grandTotal}</h3>
         </body></html>
@@ -1222,6 +1434,8 @@ async function handleBulkApproveAndAssign() {
     try {
         Swal.fire({ title: 'منظوری جاری ہے...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
+        const batchLoadFormNo = supplierObj ? generateLoadFormNo() : '';
+
         for (const orderId of checked) {
             const ord = allOrders.find(o => o.id === orderId);
             if (!ord) continue;
@@ -1245,19 +1459,22 @@ async function handleBulkApproveAndAssign() {
             if (supplierObj) {
                 updateData.supplierId = supplierObj.id;
                 updateData.supplierName = supplierObj.name;
+                updateData.loadFormNo = ord.loadFormNo || batchLoadFormNo;
                 updateData.deliveryStatus = 'dispatched';
                 updateData.dispatchedAt = new Date().toISOString();
             }
 
             batch.update(billRef, updateData);
 
-            // Deduct stock if was pending
+            // Deduct stock if was pending (Paid Qty + Free Scheme Bonus Qty)
             if (isPending) {
                 (ord.items || []).forEach(it => {
                     if (!it.stockId) return;
                     const s = allStock.find(x => x.id === it.stockId);
-                    const currentQty = s ? (s.qty || 0) : 0;
-                    const newQty = currentQty - (it.qty || 0);
+                    const currentQty = s ? (parseFloat(s.qty) || 0) : 0;
+                    const paidQty = parseFloat(it.qty) || 0;
+                    const freeQty = parseFloat(it.freeQty || it.bonus) || 0;
+                    const newQty = currentQty - (paidQty + freeQty);
                     batch.update(db.collection('stock').doc(it.stockId), {
                         qty: newQty,
                         updatedAt: new Date().toISOString()
@@ -1286,6 +1503,7 @@ async function handleBulkApproveAndAssign() {
             if (supplierObj) {
                 ord.supplierId = supplierObj.id;
                 ord.supplierName = supplierObj.name;
+                ord.loadFormNo = updateData.loadFormNo;
                 ord.deliveryStatus = 'dispatched';
             }
         }
@@ -1307,17 +1525,129 @@ async function handleBulkApproveAndAssign() {
     }
 }
 
+function computeDeliverySettlementUpdate(order, cashCollectedNow = 0, customerCurrentBalance = 0) {
+    const billAmt = Math.max(0, Number(order?.billAmount || order?.grandTotal || 0));
+    const priorRec = Math.max(0, Number(order?.received || 0));
+    const remainingDue = Math.max(0, billAmt - priorRec);
+    const safeCashNow = Math.max(0, Math.min(remainingDue, Number(cashCollectedNow) || 0));
+    const newTotalReceived = priorRec + safeCashNow;
+    const newBillRemaining = Math.max(0, billAmt - newTotalReceived);
+    const curCustBal = Math.max(0, Number(customerCurrentBalance || 0));
+    const newCustomerBalance = Math.max(0, curCustBal - safeCashNow);
+
+    return {
+        billAmt,
+        priorRec,
+        remainingDue,
+        safeCashNow,
+        newTotalReceived,
+        newBillRemaining,
+        newCustomerBalance
+    };
+}
+if (typeof window !== 'undefined') {
+    window.computeDeliverySettlementUpdate = computeDeliverySettlementUpdate;
+}
+
 async function markOrderDelivered(orderId) {
+    const ord = allOrders.find(o => o.id === orderId);
+    if (!ord) return;
+
+    const preview = computeDeliverySettlementUpdate(ord, 0, 0);
+    const promptRes = await Swal.fire({
+        title: '✅ ڈلیوری و کیش وصولی تصدیق (Delivery Settlement)',
+        html: `
+            <div style="text-align:left; font-size:13px;">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:10px;">
+                    <div><b>🏪 Shop:</b> ${ord.customerName || 'Customer'} (${ord.billNo || ord.id.slice(0, 8)})</div>
+                    <div><b>💰 Bill Amount:</b> Rs ${Math.round(preview.billAmt).toLocaleString()}</div>
+                    <div><b>💵 Prior Paid:</b> Rs ${Math.round(preview.priorRec).toLocaleString()} | <b style="color:#ef4444;">Due Balance: Rs ${Math.round(preview.remainingDue).toLocaleString()}</b></div>
+                </div>
+                <label style="font-weight:700;">Van Driver Cash Collected Now (Rs):</label>
+                <input id="swalVanCashCollected" type="number" class="swal2-input" value="${Math.round(preview.remainingDue)}" min="0" max="${Math.round(preview.remainingDue)}" step="1" style="margin:6px 0 10px;">
+                <div style="display:flex; gap:6px; margin-bottom:10px;">
+                    <button type="button" onclick="document.getElementById('swalVanCashCollected').value='${Math.round(preview.remainingDue)}'" style="flex:1; padding:5px; border:1px solid #10b981; background:#ecfdf5; color:#047857; border-radius:6px; font-weight:700; cursor:pointer;">💵 Full Cash</button>
+                    <button type="button" onclick="document.getElementById('swalVanCashCollected').value='0'" style="flex:1; padding:5px; border:1px solid #f59e0b; background:#fffbeb; color:#b45309; border-radius:6px; font-weight:700; cursor:pointer;">📒 On Khata (Rs 0)</button>
+                </div>
+                <label style="font-weight:700;">Delivery Note (Optional):</label>
+                <input id="swalVanDeliveryNote" class="swal2-input" placeholder="e.g. Received by shopkeeper, bill stamped" style="margin-top:6px;">
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '✅ Confirm Delivery & Settlement',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#10b981',
+        preConfirm: () => {
+            const val = parseFloat(document.getElementById('swalVanCashCollected')?.value);
+            if (Number.isNaN(val) || val < 0) {
+                Swal.showValidationMessage('Valid cash amount likhein (0 ya ziada)!');
+                return false;
+            }
+            return {
+                cashNow: val,
+                note: (document.getElementById('swalVanDeliveryNote')?.value || '').trim()
+            };
+        }
+    });
+
+    if (!promptRes.isConfirmed || !promptRes.value) return;
+
     try {
-        await db.collection('bills').doc(orderId).update({
+        const now = new Date().toISOString();
+        let curCustBal = 0;
+        let custRef = null;
+        if (ord.customerId) {
+            custRef = db.collection('customers').doc(ord.customerId);
+            const cSnap = await custRef.get();
+            if (cSnap.exists) curCustBal = Number(cSnap.data()?.balance || 0);
+        }
+
+        const settlement = computeDeliverySettlementUpdate(ord, promptRes.value.cashNow, curCustBal);
+        const batch = db.batch();
+
+        const billUpdate = {
             deliveryStatus: 'delivered',
-            deliveredAt: new Date().toISOString()
-        });
-        const ord = allOrders.find(o => o.id === orderId);
-        if (ord) ord.deliveryStatus = 'delivered';
+            deliveredAt: now,
+            deliveredBy: myUid,
+            received: settlement.newTotalReceived,
+            vanCashCollected: settlement.safeCashNow,
+            balanceRemaining: settlement.newBillRemaining
+        };
+        if (promptRes.value.note) billUpdate.deliveryNote = promptRes.value.note;
+
+        batch.update(db.collection('bills').doc(orderId), billUpdate);
+
+        if (custRef && settlement.safeCashNow > 0) {
+            batch.update(custRef, {
+                balance: settlement.newCustomerBalance,
+                lastCashCollectedAt: now,
+                lastCashCollectedAmount: settlement.safeCashNow
+            });
+        }
+
+        await batch.commit();
+
+        try {
+            await db.collection('orders').doc(orderId).update(billUpdate);
+        } catch (eOrd) {}
+
+        ord.deliveryStatus = 'delivered';
+        ord.received = settlement.newTotalReceived;
+        ord.vanCashCollected = settlement.safeCashNow;
+        ord.balanceRemaining = settlement.newBillRemaining;
+
         renderOrdersTable();
         updateKPIRibbon();
-        Swal.fire({ toast: true, position: 'top-end', timer: 1500, icon: 'success', title: 'Order marked as Delivered!' });
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            timer: 2200,
+            icon: 'success',
+            title: settlement.safeCashNow > 0
+                ? `Delivered! Cash Collected: Rs ${Math.round(settlement.safeCashNow).toLocaleString()}`
+                : 'Order marked as Delivered (On Khata)!'
+        });
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
     }
@@ -1384,7 +1714,10 @@ function renderReturnsTable() {
     }
 
     tbody.innerHTML = filtered.map(ret => {
-        const itemsSummary = (ret.items || []).map(it => `${it.name} (${it.qty} ${it.unit || ''})`).join(', ');
+        const itemsSummary = (ret.items || []).map(it => {
+            const sub = getStockItemSubtitle(it);
+            return `<b>${it.name}</b> (${it.qty} ${it.unit || ''})${sub ? ` <span style="color:#64748b; font-size:11px;">[${sub}]</span>` : ''}`;
+        }).join(', ');
 
         return `
             <tr>
@@ -1414,9 +1747,14 @@ function renderReturnsTable() {
                     </span>
                 </td>
                 <td style="text-align:right;">
-                    <button class="btn-vyapar btn-vyapar-purple" onclick="viewReturnVoucher('${ret.id}')" style="padding:4px 10px; font-size:11px;">
-                        <i class="fas fa-receipt"></i> Voucher
-                    </button>
+                    <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
+                        <button class="btn-vyapar" onclick="printReturnVoucherThermal('${ret.id}')" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; padding:4px 8px; font-size:11px; font-weight:800;" title="Print 80mm/58mm Thermal Return Slip">
+                            🧾 Thermal
+                        </button>
+                        <button class="btn-vyapar btn-vyapar-purple" onclick="viewReturnVoucher('${ret.id}')" style="padding:4px 10px; font-size:11px;">
+                            <i class="fas fa-receipt"></i> Voucher
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -1436,7 +1774,9 @@ function addReturnItemRow(initialStockId = '', initialQty = 1) {
     let options = '<option value="">-- پروڈکٹ منتخب کریں --</option>';
     allStock.forEach(s => {
         const isSel = s.id === initialStockId ? 'selected' : '';
-        options += `<option value="${s.id}" data-unit="${s.unit || 'Unit'}" data-qty="${s.qty || 0}" ${isSel}>${s.name} (Current: ${s.qty || 0} ${s.unit || ''})</option>`;
+        const sub = getStockItemSubtitle(s);
+        const subTag = sub ? ` [${sub}]` : '';
+        options += `<option value="${s.id}" data-unit="${s.unit || 'Unit'}" data-qty="${s.qty || 0}" ${isSel}>${s.name}${subTag} (Current: ${s.qty || 0} ${s.unit || ''})</option>`;
     });
 
     row.innerHTML = `
@@ -1549,11 +1889,13 @@ document.getElementById('stockReturnForm').addEventListener('submit', async func
         if (!stockId || qty <= 0) continue;
 
         const stockObj = allStock.find(s => s.id === stockId);
+        const subInfo = stockObj ? getStockItemSubtitle(stockObj) : '';
         returnItems.push({
             stockId: stockId,
             name: stockObj ? stockObj.name : 'Unknown Product',
             qty: qty,
-            unit: stockObj ? (stockObj.unit || 'Unit') : 'Unit'
+            unit: stockObj ? (stockObj.unit || 'Unit') : 'Unit',
+            itemSubtitle: subInfo || ''
         });
         totalQty += qty;
     }
@@ -1711,9 +2053,13 @@ function displayReturnVoucher(voucher) {
 
     let itemsTableRows = '';
     (voucher.items || []).forEach((it, idx) => {
+        const sub = getStockItemSubtitle(it);
         itemsTableRows += `
             <tr style="border-bottom:1px solid #f1f5f9;">
-                <td style="padding:6px 8px; font-size:12px;">${idx + 1}. <b>${it.name}</b></td>
+                <td style="padding:6px 8px; font-size:12px;">
+                    ${idx + 1}. <b>${it.name}</b>
+                    ${sub ? `<div style="font-size:10.5px; color:#64748b; margin-top:2px;">${sub}</div>` : ''}
+                </td>
                 <td style="padding:6px 8px; font-size:12px; text-align:center; font-weight:bold; color:#7c3aed;">
                     ${it.qty} ${it.unit || ''}
                 </td>
@@ -1769,6 +2115,88 @@ function displayReturnVoucher(voucher) {
     document.getElementById('modalVoucherPreview').classList.add('show');
 }
 
+window.printReturnVoucherThermal = function(returnId = null, paperWidth = '80mm') {
+    const v = returnId ? allReturns.find(r => r.id === returnId) : lastCreatedVoucher;
+    if (!v) return;
+
+    const is58 = String(paperWidth).trim().startsWith('58');
+    const maxW = is58 ? '56mm' : '76mm';
+    const agencyName = (myAgency && (myAgency.agencyName || myAgency.name)) || 'NH POS Agency';
+    const agencyPhone = (myAgency && (myAgency.phone || myAgency.mobile)) || '';
+
+    const itemsRows = (v.items || []).map((it, i) => {
+        const sub = getStockItemSubtitle(it);
+        return `
+            <tr>
+                <td style="padding:4px 0; border-bottom:1px dashed #000;">
+                    <div style="font-weight:800; font-size:11.5px; color:#000;">${i + 1}. ${it.name}</div>
+                    ${sub ? `<div style="font-size:9.5px; font-weight:700; color:#000; margin-top:1px;">[${sub}]</div>` : ''}
+                </td>
+                <td style="padding:4px 0; border-bottom:1px dashed #000; text-align:right; font-weight:900; font-size:12px; color:#000; white-space:nowrap;">
+                    ${it.qty} ${it.unit || ''}
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Thermal Return Slip — ${v.voucherNo}</title>
+        <style>
+            @page { size: ${is58 ? '58mm' : '80mm'} auto; margin: 2mm; }
+            body { width: ${maxW}; margin: 0 auto; font-family: 'Courier New', monospace, sans-serif; color: #000; background: #fff; font-size: 11px; line-height: 1.35; }
+            .center { text-align: center; }
+            .hr { border-top: 1.5px dashed #000; margin: 6px 0; }
+            .badge { display: inline-block; border: 1.5px solid #000; padding: 2px 6px; font-weight: 900; font-size: 11px; margin-top: 3px; }
+        </style>
+    </head>
+    <body onload="window.print();">
+        <div class="center">
+            <div style="font-size:15px; font-weight:900;">${agencyName}</div>
+            ${agencyPhone ? `<div style="font-size:10.5px; font-weight:700;">Tel: ${agencyPhone}</div>` : ''}
+            <div class="badge">🔄 STOCK RETURN SLIP (مال واپسی پرچی)</div>
+        </div>
+        <div class="hr"></div>
+        <div><b>Voucher #:</b> ${v.voucherNo || ''}</div>
+        <div><b>Date:</b> ${v.date || ''} ${v.time || ''}</div>
+        <div><b>Shop/Party:</b> ${v.shopName || 'Route Customer'}</div>
+        ${v.billNo ? `<div><b>Ref Bill #:</b> ${v.billNo}</div>` : ''}
+        <div><b>Salesman:</b> ${v.supplierName || '—'}</div>
+        <div><b>Booker:</b> ${v.bookerName || '—'}</div>
+        <div class="hr"></div>
+        <table style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="border-bottom:1.5px solid #000;">
+                    <th style="text-align:left; font-size:10.5px;">RETURNED ITEM / IMEI</th>
+                    <th style="text-align:right; font-size:10.5px;">QTY</th>
+                </tr>
+            </thead>
+            <tbody>${itemsRows}</tbody>
+        </table>
+        <div class="hr"></div>
+        <div style="font-weight:800;">Total Returned Units: ${v.totalUnitsCount || 0}</div>
+        <div style="margin-top:4px; border:1px solid #000; padding:4px; font-size:10.5px;">
+            <b>Reason (وجہ واپسی):</b><br>${v.reasonDetails || v.reasonCategory || 'Unsold Return'}
+        </div>
+        <div style="margin-top:6px; font-size:9.5px; text-align:center; font-weight:700;">
+            * 0 Profit / 0 Loss Physical Stock Restored *
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:18px; font-size:9.5px; font-weight:700;">
+            <div>________________<br>Supplier Sign</div>
+            <div>________________<br>Store Incharge</div>
+        </div>
+    </body>
+    </html>`;
+
+    const win = window.open('', '_blank', 'width=400,height=650');
+    if (win) {
+        win.document.write(html);
+        win.document.close();
+    }
+};
+
 // WhatsApp Share Handler
 document.getElementById('btnWhatsAppShareVoucher').addEventListener('click', function() {
     if (!lastCreatedVoucher) return;
@@ -1786,7 +2214,8 @@ document.getElementById('btnWhatsAppShareVoucher').addEventListener('click', fun
     text += `------------------------------------\n`;
     text += `📦 *واپس آیا ہوا فزیکل مال:*\n`;
     (v.items || []).forEach((it, idx) => {
-        text += `${idx + 1}. *${it.name}* — ${it.qty} ${it.unit || ''}\n`;
+        const sub = getStockItemSubtitle(it);
+        text += `${idx + 1}. *${it.name}*${sub ? ` (${sub})` : ''} — ${it.qty} ${it.unit || ''}\n`;
     });
     text += `------------------------------------\n`;
     text += `📝 *وجہ واپسی:* ${v.reasonDetails || v.reasonCategory}\n`;
@@ -1910,25 +2339,43 @@ document.getElementById('btnConfirmDispatch').addEventListener('click', async fu
     try {
         const batch = db.batch();
         const now = new Date().toISOString();
+        const dispatchLoadFormNo = generateLoadFormNo();
+        const supNameResolved = supplierObj ? (supplierObj.name || supplierObj.email) : 'Delivery Salesman';
 
         checked.forEach(orderId => {
+            const ord = allOrders.find(o => o.id === orderId);
+            const lfNo = (ord && ord.loadFormNo) || dispatchLoadFormNo;
             const ref = db.collection('bills').doc(orderId);
             batch.update(ref, {
                 deliveryStatus: 'dispatched',
                 supplierId: supplierId,
-                supplierName: supplierObj ? (supplierObj.name || supplierObj.email) : 'Delivery Salesman',
+                supplierName: supNameResolved,
+                loadFormNo: lfNo,
                 dispatchedAt: now
             });
 
-            const ord = allOrders.find(o => o.id === orderId);
             if (ord) {
                 ord.deliveryStatus = 'dispatched';
                 ord.supplierId = supplierId;
-                ord.supplierName = supplierObj ? (supplierObj.name || supplierObj.email) : 'Delivery Salesman';
+                ord.supplierName = supNameResolved;
+                ord.loadFormNo = lfNo;
             }
         });
 
         await batch.commit();
+
+        for (const orderId of checked) {
+            try {
+                const ord = allOrders.find(o => o.id === orderId);
+                await db.collection('orders').doc(orderId).update({
+                    deliveryStatus: 'dispatched',
+                    supplierId: supplierId,
+                    supplierName: supNameResolved,
+                    loadFormNo: (ord && ord.loadFormNo) || dispatchLoadFormNo,
+                    dispatchedAt: now
+                });
+            } catch (eOrd) {}
+        }
 
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-truck"></i> Confirm Dispatch &amp; Generate Challan';
@@ -1938,7 +2385,7 @@ document.getElementById('btnConfirmDispatch').addEventListener('click', async fu
         updateKPIRibbon();
 
         // 🚚 Auto-open Consolidated Loading Sheet & Gate Pass
-        generateAndShowLoadingSheet(supplierId, checked);
+        generateAndShowLoadingSheet(supplierId, checked, dispatchLoadFormNo);
 
     } catch (e) {
         btn.disabled = false;
@@ -1958,10 +2405,10 @@ window.openLoadingSheetForOrder = function(orderId) {
     const supId = ord.supplierId;
     const supOrders = allOrders.filter(o => o.supplierId === supId && o.deliveryStatus === 'dispatched');
     const orderList = supOrders.length > 0 ? supOrders : [ord];
-    generateAndShowLoadingSheet(supId, orderList.map(o => o.id));
+    generateAndShowLoadingSheet(supId, orderList.map(o => o.id), ord.loadFormNo || '');
 };
 
-function generateAndShowLoadingSheet(supplierId, orderIds) {
+function generateAndShowLoadingSheet(supplierId, orderIds, preferredSheetNo = '') {
     const supplierObj = allStaff.find(s => s.id === supplierId);
     const orders = allOrders.filter(o => orderIds.includes(o.id));
 
@@ -1974,57 +2421,82 @@ function generateAndShowLoadingSheet(supplierId, orderIds) {
     const supMobile = supplierObj ? (supplierObj.mobile || '') : '';
     const supRoute = supplierObj ? (supplierObj.route || 'General Depot Route') : (orders[0]?.customerRoute || 'General Area');
 
-    // Consolidated Stock items sum
+    // Consolidated Stock items sum (keyed by item + unit, including Scheme Free Bonus units)
     const stockMap = {};
     let totalPieces = 0;
+    let totalFreePieces = 0;
     let grandBillTotal = 0;
 
     orders.forEach(ord => {
         grandBillTotal += Number(ord.billAmount || ord.grandTotal || 0);
         (ord.items || []).forEach(it => {
             const name = (it.name || 'Item').trim();
-            const unit = it.unit || 'Pcs';
+            const unit = String(it.unit || 'Pcs').trim();
+            const key = `${it.stockId || name}||${unit}`;
             const qty = Number(it.qty) || 0;
+            const freeQty = Number(it.freeQty || it.bonus) || 0;
+            const packSize = resolveOrderItemPackSize(it);
             totalPieces += qty;
+            totalFreePieces += freeQty;
 
-            if (!stockMap[name]) {
-                stockMap[name] = { name, unit, totalQty: 0, orderCount: 0 };
+            if (!stockMap[key]) {
+                stockMap[key] = {
+                    name,
+                    unit,
+                    packSize,
+                    totalQty: 0,
+                    totalFreeQty: 0,
+                    orderCount: 0,
+                    subtitle: getStockItemSubtitle(it)
+                };
             }
-            stockMap[name].totalQty += qty;
-            stockMap[name].orderCount++;
+            stockMap[key].totalQty += qty;
+            stockMap[key].totalFreeQty += freeQty;
+            stockMap[key].orderCount++;
         });
     });
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' });
-    const sheetNo = 'LS-' + Date.now().toString().slice(-5);
+    const sheetNo = preferredSheetNo || orders.find(o => o.loadFormNo)?.loadFormNo || ('LS-' + Date.now().toString().slice(-5));
 
     currentLoadingSheetData = {
-        sheetNo, dateStr, timeStr, supName, supMobile, supRoute, orders, stockMap, totalPieces, grandBillTotal
+        sheetNo, dateStr, timeStr, supName, supMobile, supRoute, orders, stockMap, totalPieces, totalFreePieces, grandBillTotal
     };
 
     const container = document.getElementById('loadingSheetPrintArea');
     if (!container) return;
 
-    let stockRows = Object.values(stockMap).map((st, idx) => `
+    let stockRows = Object.values(stockMap).map((st, idx) => {
+        const totalLoadText = formatWholesaleQtySummary(st.totalQty, st.totalFreeQty, st.unit, st.packSize);
+        return `
         <tr style="border-bottom:1px solid #e2e8f0;">
             <td style="padding:6px 8px; text-align:center;">${idx + 1}</td>
-            <td style="padding:6px 8px;"><b>${st.name}</b></td>
-            <td style="padding:6px 8px; text-align:center;">${st.unit}</td>
-            <td style="padding:6px 8px; text-align:center; font-size:15px; font-weight:800; color:#0284c7;">${st.totalQty}</td>
+            <td style="padding:6px 8px;">
+                <b>${st.name}</b>
+                ${st.subtitle ? `<div style="font-size:10.5px; color:#64748b;">${st.subtitle}</div>` : ''}
+            </td>
+            <td style="padding:6px 8px; text-align:center;">${st.unit}${st.packSize > 1 ? `<br><small style="color:#0369a1; font-weight:700;">1x${st.packSize}</small>` : ''}</td>
+            <td style="padding:6px 8px; text-align:center; font-weight:700; color:#334155;">${st.totalQty}</td>
+            <td style="padding:6px 8px; text-align:center; font-weight:800; color:#a21caf;">${st.totalFreeQty > 0 ? `+${st.totalFreeQty}` : '—'}</td>
+            <td style="padding:6px 8px; text-align:center; font-size:14px; font-weight:800; color:#0284c7;">${totalLoadText}</td>
             <td style="padding:6px 8px; text-align:center; color:#64748b;">${st.orderCount} دکانیں</td>
             <td style="padding:6px 8px; text-align:center;"><input type="checkbox" checked style="width:16px; height:16px;"></td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 
     let orderRows = orders.map((ord, idx) => {
-        const itemsSummary = (ord.items || []).map(i => `${i.name} (${i.qty})`).join(', ');
+        const itemsSummary = (ord.items || []).map(i => {
+            const fq = Number(i.freeQty || i.bonus) || 0;
+            return `${i.name} (${i.qty}${fq > 0 ? ` +${fq} Free` : ''})`;
+        }).join(', ');
         const amt = Math.round(ord.billAmount || ord.grandTotal || 0).toLocaleString();
         return `
             <tr style="border-bottom:1px solid #e2e8f0; font-size:12px;">
                 <td style="padding:6px 8px; text-align:center;">${idx + 1}</td>
-                <td style="padding:6px 8px;"><b>${ord.billNo || ord.id.slice(0,8)}</b></td>
+                <td style="padding:6px 8px;"><b>${ord.billNo || ord.id.slice(0,8)}</b>${ord.loadFormNo ? `<br><small style="color:#6d28d9;">${ord.loadFormNo}</small>` : ''}</td>
                 <td style="padding:6px 8px;"><b>${ord.customerName}</b><br><small style="color:#64748b;">${ord.customerMobile || ord.customerRoute || ''}</small></td>
                 <td style="padding:6px 8px;">${itemsSummary}</td>
                 <td style="padding:6px 8px; text-align:right; font-weight:800; color:#10b981;">Rs ${amt}</td>
@@ -2043,7 +2515,7 @@ function generateAndShowLoadingSheet(supplierId, orderIds) {
                     <div style="font-size:12px; color:#64748b;">${(myAgency && myAgency.city) || 'Main Depot'}</div>
                 </div>
                 <div style="text-align:right; font-size:12px;">
-                    <div><b>Sheet #:</b> <span style="font-size:15px; font-weight:800; color:#0284c7;">${sheetNo}</span></div>
+                    <div><b>Load Form #:</b> <span style="font-size:15px; font-weight:800; color:#6d28d9;">${sheetNo}</span></div>
                     <div><b>Date:</b> ${dateStr} ${timeStr}</div>
                     <div style="margin-top:4px;"><span style="background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:8px; font-weight:bold;">Active Dispatch</span></div>
                 </div>
@@ -2062,7 +2534,7 @@ function generateAndShowLoadingSheet(supplierId, orderIds) {
             <div style="margin-bottom:18px;">
                 <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
                     <span>📦 1. گودام سے گاڑی میں لوڈ ہونے والے کل آئٹمز (Consolidated Warehouse Items)</span>
-                    <span style="font-size:12px; color:#0284c7; font-weight:bold;">کل آئٹمز کی تعداد: ${totalPieces}</span>
+                    <span style="font-size:12px; color:#0284c7; font-weight:bold;">کل آئٹمز: ${totalPieces}${totalFreePieces > 0 ? ` + ${totalFreePieces} Free` : ''}</span>
                 </div>
                 <table style="width:100%; border-collapse:collapse; font-size:12px; border:1px solid #cbd5e1;">
                     <thead>
@@ -2070,7 +2542,9 @@ function generateAndShowLoadingSheet(supplierId, orderIds) {
                             <th style="padding:6px 8px; width:30px; text-align:center;">#</th>
                             <th style="padding:6px 8px;">آئٹم کا نام (Product Name)</th>
                             <th style="padding:6px 8px; width:70px; text-align:center;">یونٹ</th>
-                            <th style="padding:6px 8px; width:90px; text-align:center;">کل تعداد برائے لوڈنگ</th>
+                            <th style="padding:6px 8px; width:70px; text-align:center;">Sale Qty</th>
+                            <th style="padding:6px 8px; width:70px; text-align:center;">+Free</th>
+                            <th style="padding:6px 8px; width:115px; text-align:center;">کل تعداد برائے لوڈنگ</th>
                             <th style="padding:6px 8px; width:80px; text-align:center;">دکانوں کی تعداد</th>
                             <th style="padding:6px 8px; width:60px; text-align:center;">تصدیق</th>
                         </tr>
@@ -2090,7 +2564,7 @@ function generateAndShowLoadingSheet(supplierId, orderIds) {
                     <thead>
                         <tr style="background:#f1f5f9; text-align:left; border-bottom:2px solid #cbd5e1;">
                             <th style="padding:6px 8px; width:30px; text-align:center;">#</th>
-                            <th style="padding:6px 8px; width:70px;">بل نمبر</th>
+                            <th style="padding:6px 8px; width:85px;">بل نمبر</th>
                             <th style="padding:6px 8px; width:140px;">دکان / کسٹمر</th>
                             <th style="padding:6px 8px;">مال کی تفصیل</th>
                             <th style="padding:6px 8px; width:80px; text-align:right;">بل رقم</th>
@@ -2148,11 +2622,12 @@ document.getElementById('btnShareLoadingSheetWA')?.addEventListener('click', fun
     const d = currentLoadingSheetData;
     let text = `🚚 *گاڑی لوڈنگ شیٹ و گودام گیٹ پاس*\n`;
     text += `🏢 *${(myAgency && myAgency.name) || 'Our Agency'}*\n`;
-    text += `📄 شیٹ نمبر: *${d.sheetNo}* (${d.dateStr})\n`;
+    text += `📄 لوڈ فارم نمبر: *${d.sheetNo}* (${d.dateStr})\n`;
     text += `🚚 سپلائر: *${d.supName}* | روٹ: *${d.supRoute}*\n\n`;
     text += `📦 *گودام سے لوڈ ہونے والے کل آئٹمز:*\n`;
     Object.values(d.stockMap).forEach((st, idx) => {
-        text += `${idx + 1}. *${st.name}*: ${st.totalQty} ${st.unit}\n`;
+        const freeTxt = st.totalFreeQty > 0 ? ` (+${st.totalFreeQty} Free)` : '';
+        text += `${idx + 1}. *${st.name}*: ${st.totalQty} ${st.unit}${freeTxt}\n`;
     });
     text += `\n🏪 *دکانیں:* ${d.orders.length} | 💰 *کل رقم:* Rs ${d.grandBillTotal.toLocaleString()}\n`;
     text += `برائے مہربانی مال گاڑی میں گن کر لوڈ کریں اور دکانوں پر بل کے مطابق سپلائی کریں۔`;
@@ -2406,11 +2881,18 @@ window.openLoadingSheetForCurrentSupplier = function() {
 // ============================================
 
 const DEFAULT_CLAIM_CATEGORIES = [
+    { id: 'cat_mob_official_warranty', name: '🛡️ Official Brand Service Center Warranty Claim (آفیشل کمپنی وارنٹی کلیم)', type: 'defect', icon: 'fa-shield-halved', color: '#0284c7', desc: 'Pin pack phone or official brand accessory sent to service center' },
+    { id: 'cat_mob_checking_warranty', name: '📱 Used Phone Checking Warranty Claim (استعمال شدہ فون چیکنگ وارنٹی کلیم)', type: 'defect', icon: 'fa-mobile-screen-button', color: '#7c3aed', desc: 'Used/Kit phone returned under shop checking warranty' },
+    { id: 'cat_mob_lcd_folder', name: '🖥️ Defective LCD Panel / Combo Folder Claim (خراب پینل / فولڈر سپلائر کلیم)', type: 'broken', icon: 'fa-mobile-retro', color: '#dc2626', desc: 'Touch/Display fault before fitting — supplier replacement claim' },
+    { id: 'cat_mob_accessory_claim', name: '🔌 Branded Charger / Cable / Earbuds Warranty Claim (چارجر، کیبل و ایئربڈز وارنٹی کلیم)', type: 'defect', icon: 'fa-plug-circle-bolt', color: '#d97706', desc: 'Ronin/Audionic/Faster/Zero accessory replacement claim' },
+    { id: 'cat_mob_battery_swollen', name: '🔋 Swollen / Dead Battery Claim (پھولی ہوئی یا خراب بیٹری کلیم)', type: 'expired', icon: 'fa-battery-empty', color: '#ea580c', desc: 'Battery backup fault or swollen cell warranty replacement' },
     { id: 'cat_expired', name: '⏰ Expired Items (تاریخ ختم)', type: 'expired', icon: 'fa-hourglass-end', color: '#f59e0b', desc: 'Expiry date passed / obsolete' },
     { id: 'cat_broken', name: '💥 Broken / Physical Damage (ٹوٹ پھوٹ)', type: 'broken', icon: 'fa-burst', color: '#ef4444', desc: 'Broken bottles, packs, crushed cartons' },
     { id: 'cat_leaked', name: '📦 Leaked / Damaged Packing (لیکج یا ڈبہ خراب)', type: 'damage', icon: 'fa-box-tissue', color: '#dc2626', desc: 'Torn wrapper, leaked liquid, seal broken' },
     { id: 'cat_near_expiry', name: '⚠️ Near Expiry / Short Expiry (قریب المعیاد مال)', type: 'near_expiry', icon: 'fa-calendar-xmark', color: '#d97706', desc: 'Short expiry stock returned from route' },
     { id: 'cat_defect', name: '🏭 Company / Manufacturing Defect (کمپنی نقص)', type: 'defect', icon: 'fa-industry', color: '#8b5cf6', desc: 'Faulty manufacturing or factory seal issue' },
+    { id: 'cat_misprint', name: '📖 Misprint / Binding Defect (مس پرنٹنگ یا بائنڈنگ خراب)', type: 'defect', icon: 'fa-book-open', color: '#7c3aed', desc: 'Missing pages, misprinted text or torn book binding' },
+    { id: 'cat_old_edition', name: '📚 Old Edition / Syllabus Changed (پرانا ایڈیشن / سلیبس تبدیل)', type: 'expired', icon: 'fa-book-bookmark', color: '#d97706', desc: 'Outdated academic edition or syllabus revision claim' },
     { id: 'cat_weather', name: '💧 Weather / Water Damaged (بارش یا نمی سے خراب)', type: 'weather', icon: 'fa-cloud-showers-heavy', color: '#0284c7', desc: 'Dampness, rain or transit degradation' },
     { id: 'cat_other', name: '📝 Other Damage / Lost (دیگر نقصان)', type: 'other', icon: 'fa-triangle-exclamation', color: '#64748b', desc: 'General warehouse loss or transit issue' }
 ];
@@ -2431,13 +2913,30 @@ async function loadClaimCategories() {
             allClaimCategories.push(data);
         });
 
-        // If no custom categories found, fallback to defaults
+        // Merge category-specific claimCategories from BusinessCategories so Mobile & Books categories are always available
+        const catId = getActiveDeliveryCategory();
+        const catSpecific = (window.BusinessCategories && typeof window.BusinessCategories.getClaimCategories === 'function')
+            ? window.BusinessCategories.getClaimCategories(catId)
+            : [];
+
         if (allClaimCategories.length === 0) {
-            allClaimCategories = DEFAULT_CLAIM_CATEGORIES.map(c => ({
+            const combinedDefaults = [...catSpecific];
+            DEFAULT_CLAIM_CATEGORIES.forEach(dc => {
+                if (!combinedDefaults.some(x => x.id === dc.id || x.name === dc.name)) {
+                    combinedDefaults.push(dc);
+                }
+            });
+            allClaimCategories = combinedDefaults.map(c => ({
                 ...c,
                 agencyId: myAgencyId,
                 isDefault: true
             }));
+        } else if (catSpecific.length > 0) {
+            catSpecific.forEach(cs => {
+                if (!allClaimCategories.some(x => x.id === cs.id || x.name === cs.name)) {
+                    allClaimCategories.unshift({ ...cs, agencyId: myAgencyId, isDefault: true });
+                }
+            });
         }
 
         populateCategoryDropdowns();
@@ -2759,6 +3258,8 @@ function renderClaimsTable() {
                 </td>
                 <td>
                     <b style="color:#0f172a; font-size:13px;">${c.itemName}</b>
+                    ${c.imeiSerial ? `<div style="font-size:11px; color:#6d28d9; font-weight:800; font-family:monospace; margin-top:2px;">📱 IMEI/SN: ${c.imeiSerial}</div>` : ''}
+                    ${(c.itemSubtitle || getStockItemSubtitle({ stockId: c.stockId, name: c.itemName })) ? `<div style="font-size:11px; color:#0284c7; font-weight:600; margin-top:2px;">${c.itemSubtitle || getStockItemSubtitle({ stockId: c.stockId, name: c.itemName })}</div>` : ''}
                     ${c.notes ? `<br><small style="color:#64748b;">${c.notes}</small>` : ''}
                 </td>
                 <td>
@@ -2786,6 +3287,9 @@ function renderClaimsTable() {
                     <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
                         <button class="btn btn-sm" onclick="openClaimRecoveryModal('${c.id}')" style="background:#15803d; color:#fff; padding:5px 9px; border-radius:6px; font-size:11px; font-weight:bold;" title="Record Claim Recovery">
                             <i class="fas fa-hand-holding-dollar"></i> Recover <span class="ur-sub">(وصول)</span>
+                        </button>
+                        <button class="btn btn-sm" onclick="printClaimVoucherThermal('${c.id}')" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; padding:5px 8px; border-radius:6px; font-size:11px; font-weight:800;" title="Print 80mm/58mm Thermal Claim Slip">
+                            🧾 Thermal
                         </button>
                         <button class="btn btn-sm" onclick="viewClaimVoucher('${c.id}')" style="background:#0284c7; color:#fff; padding:5px 8px; border-radius:6px; font-size:11px;" title="Print Official Voucher">
                             <i class="fas fa-print"></i> Voucher <span class="ur-sub">(واؤچر)</span>
@@ -2881,7 +3385,10 @@ function setupProductAutocomplete() {
             const n = (s.name || '').toLowerCase();
             const c = (s.code || '').toLowerCase();
             const b = (s.barcode || '').toLowerCase();
-            return n.includes(query) || c.includes(query) || b.includes(query);
+            const ind = s.industryFields || {};
+            const sub = (getStockItemSubtitle(s) || '').toLowerCase();
+            const imeiStr = [s.imei1, s.imei2, s.imei3, s.imei4, ind.imei1, ind.imei2, ind.imei3, ind.imei4].filter(Boolean).join(' ').toLowerCase();
+            return n.includes(query) || c.includes(query) || b.includes(query) || sub.includes(query) || imeiStr.includes(query);
         }).slice(0, 8);
 
         if (matches.length === 0) {
@@ -2892,10 +3399,12 @@ function setupProductAutocomplete() {
 
         dropdown.innerHTML = matches.map(s => {
             const pRate = s.purchaseRate || s.purchasePrice || s.costPrice || 0;
+            const sub = getStockItemSubtitle(s);
             return `
                 <div class="product-search-item" onclick="selectProductForClaim('${s.id}')">
                     <div>
-                        <b>${s.name}</b><br>
+                        <b>${s.name}</b>
+                        ${sub ? `<div style="font-size:11px; color:#0284c7; font-weight:600;">${sub}</div>` : '<br>'}
                         <small style="color:#64748b;">موجودہ اسٹاک: ${s.qty || 0} ${s.unit || ''} | خرید ریٹ: Rs ${pRate}</small>
                     </div>
                     <span style="font-size:11px; color:#0284c7; font-weight:bold;">منتخب کریں →</span>
@@ -2940,11 +3449,116 @@ window.selectProductForClaim = function(stockId) {
 
     const meta = document.getElementById('claimSelectedProductMeta');
     if (meta) {
+        const sub = getStockItemSubtitle(s);
         meta.style.display = 'block';
-        meta.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981;"></i> موجودہ اسٹاک: <b>${s.qty || 0} ${s.unit || ''}</b> | پہلے سے درج خرید قیمت: <b>Rs ${pRate}</b>`;
+        meta.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981;"></i> موجودہ اسٹاک: <b>${s.qty || 0} ${s.unit || ''}</b> | خرید قیمت: <b>Rs ${pRate}</b>${sub ? ` | <span style="color:#0369a1;">${sub}</span>` : ''}`;
+    }
+
+    // Auto-fill supplier/publisher/brand name if empty
+    const supInput = document.getElementById('claimSupplierName');
+    if (supInput && !supInput.value) {
+        const ind = s.industryFields || {};
+        const pub = s.publisherBoard || ind.publisherBoard || s.brandCompany || ind.brandCompany || s.supplierName || '';
+        if (pub) supInput.value = pub;
+    }
+
+    // Auto-fill IMEI if product has IMEI in stock
+    const imeiInp = document.getElementById('claimImeiInput');
+    if (imeiInp && !imeiInp.value) {
+        const ind = s.industryFields || {};
+        const imei = s.imei1 || ind.imei1 || s.imeiSerial || ind.imeiSerial || '';
+        if (imei) imeiInp.value = imei;
     }
 
     recalcClaimLoss();
+};
+
+window.lookupSoldItemByImeiForClaim = function() {
+    const imeiInp = document.getElementById('claimImeiInput');
+    const resEl = document.getElementById('claimImeiLookupResult');
+    const q = (imeiInp ? imeiInp.value : '').trim().toLowerCase();
+    if (!q || q.length < 4) {
+        Swal.fire('⚠️ توجہ', 'برائے مہربانی کم از کم 4 ہندسوں کا IMEI یا سیریل نمبر درج کریں۔', 'warning');
+        return;
+    }
+
+    // 1. Search Sold Bills (allOrders) for matching IMEI
+    let matchedBill = null;
+    let matchedItem = null;
+    for (const b of allOrders) {
+        for (const it of (b.items || [])) {
+            const ind = it.industryFields || {};
+            const hay = [
+                it.imei1, it.imei2, it.imei3, it.imei4, it.imeiSerial,
+                ind.imei1, ind.imei2, ind.imei3, ind.imei4,
+                it.itemSubtitle, it.name
+            ].filter(Boolean).join(' ').toLowerCase();
+            if (hay.includes(q)) {
+                matchedBill = b;
+                matchedItem = it;
+                break;
+            }
+        }
+        if (matchedBill) break;
+    }
+
+    if (matchedBill && matchedItem) {
+        const s = (matchedItem.stockId && allStock.find(x => x.id === matchedItem.stockId))
+            || allStock.find(x => (x.name || '').toLowerCase() === (matchedItem.name || '').toLowerCase());
+
+        document.getElementById('claimStockId').value = (s && s.id) || matchedItem.stockId || '';
+        document.getElementById('claimProductSearch').value = matchedItem.name || (s && s.name) || '';
+        const pRate = parseFloat((s && (s.purchaseRate || s.purchasePrice)) || matchedItem.purchaseRate || matchedItem.rate || 0);
+        document.getElementById('claimPurchaseRate').value = pRate;
+        document.getElementById('claimQty').value = 1;
+        document.getElementById('claimDeductStock').checked = false; // Since already sold to customer
+
+        const supInp = document.getElementById('claimSupplierName');
+        if (supInp && !supInp.value) {
+            const ind = (s && s.industryFields) || matchedItem.industryFields || {};
+            supInp.value = (s && (s.supplierName || s.brandCompany)) || ind.brandCompany || '';
+        }
+
+        const catSel = document.getElementById('claimCategorySelect');
+        if (catSel && !catSel.value) {
+            const warrantyOpt = Array.from(catSel.options).find(o => o.value.includes('Warranty'));
+            if (warrantyOpt) catSel.value = warrantyOpt.value;
+        }
+
+        const noteInp = document.getElementById('claimNotes');
+        const billSummary = `Sold Bill #${matchedBill.billNo || ''} (${matchedBill.date || ''}) | Customer: ${matchedBill.customerName || 'Walk-in'} | IMEI: ${imeiInp.value.trim()}`;
+        if (noteInp) {
+            noteInp.value = billSummary;
+        }
+
+        if (resEl) {
+            resEl.style.display = 'block';
+            resEl.innerHTML = `✅ بل مل گیا! <b>Bill #${matchedBill.billNo || ''}</b> • گاہک: <b>${matchedBill.customerName || 'Walk-in'}</b> • تاریخ: <b>${matchedBill.date || ''}</b> • آئٹم: <b>${matchedItem.name}</b>`;
+        }
+        recalcClaimLoss();
+        return;
+    }
+
+    // 2. Fallback: Search in-house Inventory (allStock)
+    const stockMatch = allStock.find(s => {
+        const ind = s.industryFields || {};
+        const hay = [s.imei1, s.imei2, s.imei3, s.imei4, ind.imei1, ind.imei2, ind.imei3, ind.imei4, getStockItemSubtitle(s)].filter(Boolean).join(' ').toLowerCase();
+        return hay.includes(q);
+    });
+
+    if (stockMatch) {
+        selectProductForClaim(stockMatch.id);
+        if (resEl) {
+            resEl.style.display = 'block';
+            resEl.innerHTML = `📦 انوینٹری اسٹاک میں مل گیا: <b>${stockMatch.name}</b> (موجودہ اسٹاک: ${stockMatch.qty || 0})`;
+        }
+        return;
+    }
+
+    if (resEl) {
+        resEl.style.display = 'block';
+        resEl.innerHTML = `<span style="color:#dc2626;">⚠️ اس IMEI (${imeiInp.value.trim()}) کا کوئی پرانا بل نہیں ملا، آپ دستی طور پر پروڈکٹ منتخب کر کے کلیم درج کر سکتے ہیں۔</span>`;
+    }
 };
 
 window.recalcClaimLoss = function() {
@@ -2972,6 +3586,8 @@ window.openDamageClaimModal = function(claimId = null) {
     document.getElementById('claimEditId').value = '';
     document.getElementById('claimStockId').value = '';
     document.getElementById('claimSelectedProductMeta').style.display = 'none';
+    const imeiRes = document.getElementById('claimImeiLookupResult');
+    if (imeiRes) { imeiRes.style.display = 'none'; imeiRes.innerHTML = ''; }
 
     // Defaults
     const today = new Date().toISOString().slice(0, 10);
@@ -2983,6 +3599,9 @@ window.openDamageClaimModal = function(claimId = null) {
             document.getElementById('claimEditId').value = c.id;
             document.getElementById('claimStockId').value = c.stockId || '';
             document.getElementById('claimProductSearch').value = c.itemName || '';
+            if (document.getElementById('claimImeiInput')) {
+                document.getElementById('claimImeiInput').value = c.imeiSerial || '';
+            }
             document.getElementById('claimCategorySelect').value = c.category || '';
             document.getElementById('claimIncidentDate').value = c.incidentDate || today;
             document.getElementById('claimExpiryDate').value = c.expiryDate || '';
@@ -3012,6 +3631,7 @@ window.handleDamageClaimSubmit = async function(e) {
     const editId = document.getElementById('claimEditId').value;
     const stockId = document.getElementById('claimStockId').value;
     const itemName = (document.getElementById('claimProductSearch').value || '').trim();
+    const imeiSerial = (document.getElementById('claimImeiInput')?.value || '').trim();
     const category = document.getElementById('claimCategorySelect').value;
     const incidentDate = document.getElementById('claimIncidentDate').value;
     const expiryDate = document.getElementById('claimExpiryDate').value;
@@ -3043,11 +3663,16 @@ window.handleDamageClaimSubmit = async function(e) {
     try {
         const voucherNo = 'CLM-' + (allClaims.length + 1001);
 
+        const matchedStockObj = stockId ? allStock.find(x => x.id === stockId) : null;
+        const itemSubtitle = matchedStockObj ? getStockItemSubtitle(matchedStockObj) : '';
+
         const claimData = {
             agencyId: myAgencyId,
             voucherNo: editId ? (allClaims.find(x => x.id === editId)?.voucherNo || voucherNo) : voucherNo,
             stockId: stockId || '',
             itemName: itemName,
+            imeiSerial: imeiSerial || '',
+            itemSubtitle: itemSubtitle || '',
             category: category,
             incidentDate: incidentDate,
             expiryDate: expiryDate || '',
@@ -3487,6 +4112,8 @@ window.viewClaimVoucher = function(claimId) {
                     <tr>
                         <td style="padding:10px 8px; border-bottom:1px solid #e2e8f0;">
                             <b>${claim.itemName}</b>
+                            ${claim.imeiSerial ? `<div style="font-size:11px; color:#6d28d9; font-weight:800; font-family:monospace; margin-top:2px;">📱 IMEI/SN: ${claim.imeiSerial}</div>` : ''}
+                            ${(claim.itemSubtitle || getStockItemSubtitle({ stockId: claim.stockId, name: claim.itemName })) ? `<div style="font-size:11px; color:#0284c7; font-weight:600; margin-top:2px;">${claim.itemSubtitle || getStockItemSubtitle({ stockId: claim.stockId, name: claim.itemName })}</div>` : ''}
                             ${claim.notes ? `<br><small style="color:#64748b;">${claim.notes}</small>` : ''}
                         </td>
                         <td style="padding:10px 8px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:bold;">
@@ -3541,7 +4168,7 @@ window.viewClaimVoucher = function(claimId) {
     const waBtn = document.getElementById('btnShareClaimWA');
     if (waBtn) {
         waBtn.onclick = function() {
-            const text = `*DAMAGE / EXPIRE CLAIM VOUCHER*\nAgency: ${agencyName}\nVoucher #: ${claim.voucherNo}\nProduct: ${claim.itemName}\nQty: ${claim.qty} ${claim.unit || 'pcs'}\nClaim Value: Rs ${totalLoss}\nStatus: ${statusText}\nRemaining Loss: Rs ${remaining}`;
+            const text = `*WARRANTY / DAMAGE CLAIM VOUCHER*\nAgency: ${agencyName}\nVoucher #: ${claim.voucherNo}\nProduct: ${claim.itemName}${claim.imeiSerial ? `\nIMEI/SN: ${claim.imeiSerial}` : ''}\nQty: ${claim.qty} ${claim.unit || 'pcs'}\nClaim Value: Rs ${totalLoss}\nStatus: ${statusText}\nRemaining Loss: Rs ${remaining}`;
             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
         };
     }
@@ -3574,6 +4201,81 @@ window.printClaimVoucherDoc = function() {
         </html>
     `);
     w.document.close();
+};
+
+window.printClaimVoucherThermal = function(claimId = null, paperWidth = '80mm') {
+    const claim = claimId ? allClaims.find(c => c.id === claimId) : activeClaimForVoucher;
+    if (!claim) return;
+
+    const is58 = String(paperWidth).trim().startsWith('58');
+    const maxW = is58 ? '56mm' : '76mm';
+    const agencyName = (myAgency && (myAgency.agencyName || myAgency.name)) || 'NH POS Agency';
+    const agencyPhone = (myAgency && (myAgency.phone || myAgency.mobile)) || '';
+
+    const totalLoss = Math.round(claim.totalLoss || 0);
+    const recAmount = Math.round(claim.recoveredAmount || 0);
+    const remaining = Math.round(claim.remainingLoss !== undefined ? claim.remainingLoss : Math.max(0, totalLoss - recAmount));
+    const sub = claim.itemSubtitle || getStockItemSubtitle({ stockId: claim.stockId, name: claim.itemName });
+
+    let statusText = 'PENDING CLAIM (زیر التواء)';
+    if (claim.status === 'recovered') statusText = '100% RECOVERED (مکمل وصول)';
+    else if (claim.status === 'partial') statusText = 'PARTIAL RECOVERY (جزوی وصول)';
+    else if (claim.status === 'loss') statusText = 'WRITTEN OFF LOSS (خالص نقصان)';
+
+    const html = `<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Thermal Claim Slip — ${claim.voucherNo}</title>
+        <style>
+            @page { size: ${is58 ? '58mm' : '80mm'} auto; margin: 2mm; }
+            body { width: ${maxW}; margin: 0 auto; font-family: 'Courier New', monospace, sans-serif; color: #000; background: #fff; font-size: 11px; line-height: 1.35; }
+            .center { text-align: center; }
+            .hr { border-top: 1.5px dashed #000; margin: 6px 0; }
+            .badge { display: inline-block; border: 1.5px solid #000; padding: 2px 6px; font-weight: 900; font-size: 11px; margin-top: 3px; }
+        </style>
+    </head>
+    <body onload="window.print();">
+        <div class="center">
+            <div style="font-size:15px; font-weight:900;">${agencyName}</div>
+            ${agencyPhone ? `<div style="font-size:10.5px; font-weight:700;">Tel: ${agencyPhone}</div>` : ''}
+            <div class="badge">🛡️ WARRANTY / DAMAGE CLAIM SLIP</div>
+        </div>
+        <div class="hr"></div>
+        <div><b>Claim #:</b> ${claim.voucherNo || ''}</div>
+        <div><b>Date:</b> ${claim.incidentDate || (claim.createdAt || '').slice(0,10)}</div>
+        <div><b>Company/Supplier:</b> ${claim.supplierName || 'Service Center / Supplier'}</div>
+        <div><b>Category:</b> ${claim.category || 'Warranty / Damage'}</div>
+        <div class="hr"></div>
+        <div style="font-weight:900; font-size:12px;">📦 ${claim.itemName}</div>
+        ${claim.imeiSerial ? `<div style="font-weight:900; font-size:11px; margin-top:2px;">📱 IMEI/SN: ${claim.imeiSerial}</div>` : ''}
+        ${sub ? `<div style="font-size:10px; font-weight:700; margin-top:2px;">[${sub}]</div>` : ''}
+        ${claim.notes ? `<div style="font-size:10px; margin-top:3px;"><b>Notes:</b> ${claim.notes}</div>` : ''}
+        <div class="hr"></div>
+        <div style="display:flex; justify-content:space-between; font-weight:800;">
+            <span>Qty: ${claim.qty} ${claim.unit || 'pcs'} @ Rs ${claim.purchaseRate}</span>
+            <span>Rs ${totalLoss.toLocaleString()}</span>
+        </div>
+        ${recAmount > 0 ? `<div style="display:flex; justify-content:space-between; font-weight:800; margin-top:2px;"><span>Recovered:</span><span>Rs ${recAmount.toLocaleString()}</span></div>` : ''}
+        <div style="display:flex; justify-content:space-between; font-weight:900; font-size:12px; margin-top:2px; border-top:1px solid #000; padding-top:2px;">
+            <span>Balance Claim:</span>
+            <span>Rs ${remaining.toLocaleString()}</span>
+        </div>
+        <div style="margin-top:5px; border:1px solid #000; padding:3px; text-align:center; font-weight:900; font-size:10.5px;">
+            STATUS: ${statusText}
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:18px; font-size:9.5px; font-weight:700;">
+            <div>________________<br>Manager Sign</div>
+            <div>________________<br>Receiver Sign</div>
+        </div>
+    </body>
+    </html>`;
+
+    const win = window.open('', '_blank', 'width=400,height=650');
+    if (win) {
+        win.document.write(html);
+        win.document.close();
+    }
 };
 
 window.printClaimsTableReport = function() {

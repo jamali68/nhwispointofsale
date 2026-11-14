@@ -118,6 +118,12 @@
             <a href="bills.html" class="btn" style="background:#0284c7; color:#fff; text-decoration:none; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
                 <i class="fas fa-plus-circle"></i> <span>Book Order (کیٹلاگ)</span>
             </a>
+            <button type="button" class="btn" id="btnOpenRepairJobModal" onclick="openRepairJobBookingModal()" style="background:#0f766e; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:800; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Book Mobile Repairing Job Card &amp; Print Customer Thermal Token">
+                <i class="fas fa-tools"></i> <span>🛠️ + Repairing Job / Token (ریپئرنگ ٹوکن)</span>
+            </button>
+            <button type="button" class="btn" id="btnOpenVanLoadSheet" onclick="printVanLoadingChallan()" style="background:#7c3aed; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:800; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Print Consolidated Van Loading Gate Pass (لوڈنگ گیٹ پاس)">
+                <i class="fas fa-truck-loading"></i> <span>🚚 Van Load Sheet</span>
+            </button>
             <button type="button" class="btn" id="btnOpenPrintHub" style="background:#059669; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px; cursor:pointer;">
                 <i class="fas fa-print"></i> <span>Print Hub (پرنٹ سینٹر)</span>
             </button>
@@ -323,7 +329,7 @@
             <!-- Search Input -->
             <div class="search-box" style="flex:1; min-width:240px;">
                 <i class="fas fa-search"></i>
-                <input type="text" id="orderSearchInput" placeholder="Search by Order #, Customer, Shop name, Route, or Booker...">
+                <input type="text" id="orderSearchInput" placeholder="Search by Order #, Customer, Shop, IMEI 1-4, Brand, Model, Repair Token #...">
             </div>
 
             <!-- Booker Dropdown Filter -->
@@ -331,6 +337,14 @@
                 <label style="font-size:12px; font-weight:700; color:#475569; white-space:nowrap;">Booker:</label>
                 <select id="filterBookerSelect" style="padding:7px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:700; background:#fff; outline:none;">
                     <option value="all">👥 All Order Bookers</option>
+                </select>
+            </div>
+
+            <!-- PJP Route / Beat Filter -->
+            <div style="display:flex; align-items:center; gap:6px;">
+                <label style="font-size:12px; font-weight:700; color:#475569; white-space:nowrap;">Route:</label>
+                <select id="filterRouteSelect" style="padding:7px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:700; background:#fff; outline:none;">
+                    <option value="all">🛣️ All PJP Routes</option>
                 </select>
             </div>
 
@@ -363,6 +377,9 @@
             </button>
             <button class="filter-chip" data-status="approved" style="color:#15803d; font-weight:700;">
                 ✅ Approved (<span id="chipApprovedCount">0</span>)
+            </button>
+            <button class="filter-chip" data-status="repair_job" style="color:#0f766e; font-weight:800; border-color:#99f6e4;">
+                🛠️ Repairing Jobs (<span id="chipRepairJobsCount">0</span>)
             </button>
             <button class="filter-chip" data-status="dispatched" style="color:#9333ea;">
                 🚚 On Delivery Van (<span id="chipDispatchedCount">0</span>)
@@ -503,14 +520,19 @@
             </div>
 
             <!-- Option 5: Batch Print Invoices -->
-            <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:12px 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:12px 16px; gap:8px; flex-wrap:wrap;">
                 <div>
-                    <div style="font-weight:800; color:#334155; font-size:14px;"><i class="fas fa-receipt"></i> Batch Print Customer Invoices (گاہکوں کے بل پرنٹ کریں)</div>
-                    <div style="font-size:12px; color:#64748b;">منتخب یا منظور شدہ آرڈرز کے تھرمل 80mm یا A4 بل ایک ساتھ پرنٹ کریں۔</div>
+                    <div style="font-weight:800; color:#334155; font-size:14px;"><i class="fas fa-receipt"></i> Batch Print Customer Invoices &amp; Thermal Slips (گاہکوں کے بل پرنٹ کریں)</div>
+                    <div style="font-size:12px; color:#64748b;">منتخب یا منظور شدہ آرڈرز کے تھرمل 80mm/58mm پرچی یا A4 بل ایک ساتھ پرنٹ کریں۔</div>
                 </div>
-                <button type="button" onclick="closePrintHubModal(); handleBulkPrint()" class="btn" style="background:#10b981; color:#fff; font-weight:800; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; flex-shrink:0;">
-                    <i class="fas fa-print"></i> بیچ پرنٹ
-                </button>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="button" onclick="closePrintHubModal(); handleBulkPrint(true)" class="btn" style="background:#7c3aed; color:#fff; font-weight:800; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; flex-shrink:0;">
+                        <i class="fas fa-receipt"></i> 🧾 تھرمل پرچیاں
+                    </button>
+                    <button type="button" onclick="closePrintHubModal(); handleBulkPrint(false)" class="btn" style="background:#10b981; color:#fff; font-weight:800; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; flex-shrink:0;">
+                        <i class="fas fa-print"></i> بیچ پرنٹ
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -649,6 +671,7 @@
 <script src="sync-engine.js"></script>
 <script src="print-settings.js"></script>
 <script src="bill-templates.js"></script>
+<script src="business-categories.js"></script>
 
 <!-- Booker Orders Hub Engine -->
 <script src="booker-orders.js"></script>

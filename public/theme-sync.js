@@ -1,5 +1,5 @@
 // 🏷️ Central Application Version (Single source of truth)
-window.EASYBILL_VERSION = '5.3.0';
+window.EASYBILL_VERSION = '5.4.0';
 
 // 🔄 Live Version Synchronization with manifest.json
 (function syncManifestVersion() {
@@ -269,13 +269,25 @@ window.EASYBILL_VERSION = '5.3.0';
         }
     };
 
-    // 📱 PWA Service Worker Registration & Live Version Deployment (Active Everywhere)
+    // 📱 PWA Service Worker Registration & Live Version Deployment (Active on Netlify / GitHub Pages)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
+            if (window.location.hostname.includes('run.app')) {
+                navigator.serviceWorker.getRegistrations().then((regs) => {
+                    regs.forEach((r) => r.unregister());
+                }).catch(() => {});
+                return;
+            }
             const isSubpath = window.location.pathname.startsWith('/nhsm/');
             const swPath = isSubpath ? '/nhsm/sw.js' : 'sw.js';
             const swScope = isSubpath ? '/nhsm/' : './';
-            navigator.serviceWorker.register(swPath, { scope: swScope })
+            let refreshingOnSwUpdate = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshingOnSwUpdate) return;
+                refreshingOnSwUpdate = true;
+                window.location.reload();
+            });
+            navigator.serviceWorker.register(swPath, { scope: swScope, updateViaCache: 'none' })
                 .then((registration) => {
                     // Check for updates on page load
                     try { registration.update(); } catch (_) {}

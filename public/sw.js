@@ -1,12 +1,12 @@
 // ==========================================================================
-// 🚀 NH POS — TURBO SERVICE WORKER (v5.3.0)
+// 🚀 NH POS — TURBO SERVICE WORKER (v5.4.0)
 // ✅ Ultra-lean App Shell pre-caching (No network choke on install)
 // ✅ Dynamic Subpath & Scope resolution (GitHub Pages /nhsm/ & Netlify root)
 // ✅ Instant Stale-While-Revalidate caching for lightning-fast loads
 // ✅ Zero lag navigation with fast fallback & Anti-Corruption Guard
 // ==========================================================================
 
-const CACHE_NAME = 'nhpos-pwa-v5.3.0-live';
+const CACHE_NAME = 'nhpos-pwa-v5.4.0-live';
 
 // Complete Offline & Instant App Shell (All modules precached for 0ms transitions)
 const RELATIVE_SHELL_ASSETS = [
@@ -84,8 +84,9 @@ self.addEventListener('install', (event) => {
       });
 
       const promises = targetAssets.map((assetUrl) => {
-        return cache.add(assetUrl).catch((err) => {
-          console.warn(`[PWA SW v5.3.0] Pre-cache skipped for ${assetUrl}:`, err.message);
+        const req = new Request(assetUrl, { cache: 'reload' });
+        return cache.add(req).catch((err) => {
+          console.warn(`[PWA SW v5.4.0] Pre-cache skipped for ${assetUrl}:`, err.message);
         });
       });
       return Promise.all(promises);
@@ -100,7 +101,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => {
-          console.log('[PWA SW v5.3.0] Purged outdated cache:', key);
+          console.log('[PWA SW v5.4.0] Purged outdated cache:', key);
           return caches.delete(key);
         })
       );

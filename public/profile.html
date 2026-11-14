@@ -143,21 +143,21 @@
                 <div class="form-group">
                     <label>🏪 Business Type *</label>
                     <select id="pfBizType" class="select-input" required>
-                        <option value="books">📚 Book Depot &amp; Stationery (بک ڈپو، اسٹیشنری و بک پوائنٹ)</option>
-                        <option value="mobile">📱 Mobile Shop &amp; Accessories (موبائل اور ایسیسریز)</option>
-                        <option value="medical">💊 Medical Store &amp; Pharmacy (میڈیکل اسٹور و فارمیسی)</option>
-                        <option value="shoes">👟 Shoe Store &amp; Footwear (جوتے و فٹ ویئر)</option>
-                        <option value="garments">👕 Garments &amp; Clothing (گارمنٹس و ملبوسات)</option>
-                        <option value="general">🛒 General Store &amp; Kiryana (جنرل اسٹور و کریانہ)</option>
-                        <option value="wholesaler">📦 Wholesaler &amp; Bulk Distribution (تھوک ڈیلر)</option>
-                        <option value="confectionery">🍪 Confectionery &amp; Biscuits (کنفیکشنری و بسکٹ)</option>
-                        <option value="hardware">🔧 Hardware, Sanitary &amp; Paint (ہارڈویئر و سینیٹری)</option>
-                        <option value="electronics">💻 Electronics &amp; Home Appliances (الیکٹرانکس)</option>
-                        <option value="cosmetics">💄 Cosmetics &amp; Beauty (کاسمیٹکس)</option>
-                        <option value="auto_parts">🚗 Auto Parts &amp; Spare Parts (آٹو پارٹس)</option>
-                        <option value="bakery">🍞 Bakery, Sweets &amp; Cafe (بیکری و مٹھائی)</option>
-                        <option value="furniture">🪑 Furniture &amp; Decor (فرنیچر)</option>
-                        <option value="other">💼 Other Business (دیگر کاروبار)</option>
+                        <option value="books">📚 Book Depot &amp; Stationery (بک ڈپو، اسٹیشنری و بک پوائنٹ) — ✅ Complete</option>
+                        <option value="mobile">📱 Mobile Shop &amp; Accessories (موبائل اور ایسیسریز) — ✅ Complete</option>
+                        <option value="medical">💊 Medical Store &amp; Pharmacy (میڈیکل اسٹور و فارمیسی) — 🚧 Under Development • Coming Soon</option>
+                        <option value="shoes">👟 Shoe Store &amp; Footwear (جوتے و فٹ ویئر) — 🚧 Under Development • Coming Soon</option>
+                        <option value="garments">👕 Garments &amp; Clothing (گارمنٹس و ملبوسات) — 🚧 Under Development • Coming Soon</option>
+                        <option value="general">🛒 General Store &amp; Kiryana (جنرل اسٹور و کریانہ) — 🚧 Under Development • Coming Soon</option>
+                        <option value="wholesaler">📦 Wholesaler &amp; Bulk Distribution (تھوک ڈیلر) — ✅ Complete</option>
+                        <option value="confectionery">🍪 Confectionery &amp; Biscuits (کنفیکشنری و بسکٹ) — 🚧 Under Development • Coming Soon</option>
+                        <option value="hardware">🔧 Hardware, Sanitary &amp; Paint (ہارڈویئر و سینیٹری) — 🚧 Under Development • Coming Soon</option>
+                        <option value="electronics">💻 Electronics &amp; Home Appliances (الیکٹرانکس) — 🚧 Under Development • Coming Soon</option>
+                        <option value="cosmetics">💄 Cosmetics &amp; Beauty (کاسمیٹکس) — 🚧 Under Development • Coming Soon</option>
+                        <option value="auto_parts">🚗 Auto Parts &amp; Spare Parts (آٹو پارٹس) — 🚧 Under Development • Coming Soon</option>
+                        <option value="bakery">🍞 Bakery, Sweets &amp; Cafe (بیکری و مٹھائی) — 🚧 Under Development • Coming Soon</option>
+                        <option value="furniture">🪑 Furniture &amp; Decor (فرنیچر) — 🚧 Under Development • Coming Soon</option>
+                        <option value="other">💼 Other Business (دیگر کاروبار) — 🚧 Under Development • Coming Soon</option>
                     </select>
                 </div>
             </div>
@@ -466,7 +466,15 @@
                 if (agDoc.exists) {
                     const ag = agDoc.data();
                     document.getElementById('pfBizName').value = ag.name || '';
-                    document.getElementById('pfBizType').value = ag.businessType || 'other';
+                    const resolvedBiz = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+                        ? window.BusinessCategories.resolveActiveCategory(ag, 'other')
+                        : (ag.businessCategory || ag.businessType || 'other');
+                    const pfBizSel = document.getElementById('pfBizType');
+                    if (pfBizSel && window.BusinessCategories && typeof window.BusinessCategories.populateSelect === 'function') {
+                        window.BusinessCategories.populateSelect(pfBizSel, resolvedBiz, { showDevStatus: true });
+                    } else if (pfBizSel) {
+                        pfBizSel.value = resolvedBiz;
+                    }
                     document.getElementById('pfBizMobile').value = ag.mobile || '';
                     document.getElementById('pfBizMobile2').value = ag.mobile2 || '';
                     // ✅ Mobile 3 REMOVE — ab load nahi hota

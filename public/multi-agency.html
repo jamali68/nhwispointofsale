@@ -176,8 +176,65 @@
             transition: width 0.3s;
         }
 
+        /* Executive Spotlight Leaderboard (Top / Low Margin / Heavy Cost) */
+        .spotlight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .spotlight-card {
+            border-radius: 12px;
+            padding: 14px 16px;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .spotlight-tag {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .spotlight-name {
+            font-size: 15px;
+            font-weight: 900;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .spotlight-meta {
+            font-size: 12px;
+            color: #475569;
+            font-weight: 600;
+        }
+        .period-bar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .period-chip {
+            padding: 5px 11px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            font-size: 12px;
+            font-weight: 700;
+            color: #334155;
+            cursor: pointer;
+        }
+        .period-chip.active {
+            background: #0284c7;
+            color: #fff;
+            border-color: #0284c7;
+        }
+
         @media print {
-            .panel-topbar, .top-actions, .branch-actions, #registerBranchBtn, .btn-print-comp {
+            .panel-topbar, .top-actions, .branch-actions, #registerBranchBtn, .btn-print-comp, .period-bar {
                 display: none !important;
             }
             body { background: #fff; padding: 0; }
@@ -193,65 +250,109 @@
     <div class="panel-card" style="border-top-color:#3b82f6; padding:18px 22px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
             <div>
-                <div style="font-size:12px; color:#64748b; font-weight:bold; text-transform:uppercase;">Package Tier</div>
+                <div style="font-size:12px; color:#64748b; font-weight:bold; text-transform:uppercase;">
+                    Package Tier &bull; <span id="ownerTitle" style="color:#0284c7;">Owner Hub</span>
+                </div>
                 <div style="font-size:18px; font-weight:800; color:var(--primary); margin-top:2px;" id="pkgNameDisplay">
-                    💎 Multi-Agency Enterprise (Up to 5 Branches)
+                    💎 Enterprise Mega Multi (Up to 10 Branches)
                 </div>
             </div>
             <div style="text-align:right;">
-                <div style="font-size:12px; color:#64748b; font-weight:bold;">BRANCH ALLOCATION</div>
+                <div style="font-size:12px; color:#64748b; font-weight:bold;">AGENCY / BRANCH ALLOCATION</div>
                 <div style="font-size:16px; font-weight:800; color:#10b981;" id="branchCountRatio">
-                    0 / 5 Branches Used
+                    0 / 10 Branches Used
                 </div>
             </div>
         </div>
         <div class="quota-bar" style="margin-top:10px;">
-            <div class="quota-fill" id="branchQuotaFill" style="width: 20%;"></div>
+            <div class="quota-fill" id="branchQuotaFill" style="width: 10%;"></div>
         </div>
     </div>
 
-    <!-- ===== 📊 CONSOLIDATED EXECUTIVE METRICS (Across All Branches) ===== -->
+    <!-- ===== 📊 CONSOLIDATED EXECUTIVE METRICS (Across Up to 10 Agencies) ===== -->
     <div class="panel-card" style="border-top-color:#10b981;">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
-                <h2><i class="fas fa-chart-pie"></i> Consolidated Multi-Branch Performance</h2>
-                <small class="header-note">تمام برانچز کا مجموعی اور یکجا تجارتی جائزہ</small>
+                <h2><i class="fas fa-chart-pie"></i> Consolidated 10-Agency Distributor P&amp;L Hub</h2>
+                <small class="header-note">تمام برانچز / ایجنسیز کی سیلز، اخراجات، تنخواہیں اور خالص نفع نقصان کا یکجا جائزہ</small>
             </div>
-            <button class="btn btn-sm" id="refreshConsolidatedBtn" style="background:#0284c7; color:#fff;">
-                <i class="fas fa-sync-alt"></i> Refresh All Data
-            </button>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <div class="period-bar" id="agencyPeriodBar">
+                    <button type="button" class="period-chip" data-period="today">Today</button>
+                    <button type="button" class="period-chip active" data-period="thismonth">This Month</button>
+                    <button type="button" class="period-chip" data-period="lastmonth">Last Month</button>
+                    <button type="button" class="period-chip" data-period="alltime">All Time</button>
+                </div>
+                <button class="btn btn-sm" id="refreshConsolidatedBtn" style="background:#0284c7; color:#fff;">
+                    <i class="fas fa-sync-alt"></i> Refresh All
+                </button>
+            </div>
         </div>
 
         <div class="exec-grid" id="execMetricsGrid">
             <div class="exec-card">
                 <div class="exec-icon" style="background:#3b82f6;">🏢</div>
                 <div class="exec-value" id="totBranchesVal">0</div>
-                <div class="exec-label">Connected Branches</div>
+                <div class="exec-label">Connected Agencies</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#10b981;">💰</div>
                 <div class="exec-value" id="totSalesVal">Rs 0</div>
-                <div class="exec-label">Month Sales (All Branches)</div>
+                <div class="exec-label">Period Sales (All)</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#8b5cf6;">📈</div>
                 <div class="exec-value" id="totProfitVal">Rs 0</div>
-                <div class="exec-label">Est. Gross Margin</div>
+                <div class="exec-label">Gross Profit (After COGS)</div>
             </div>
             <div class="exec-card">
-                <div class="exec-icon" style="background:#f59e0b;">👥</div>
-                <div class="exec-value" id="totBookersVal">0</div>
-                <div class="exec-label">Total Order Bookers</div>
+                <div class="exec-icon" style="background:#f97316;">💸</div>
+                <div class="exec-value" id="totExpensesVal" style="color:#c2410c;">Rs 0</div>
+                <div class="exec-label">Expenses &amp; Salaries</div>
+            </div>
+            <div class="exec-card" style="border-color:#86efac; background:#f0fdf4;">
+                <div class="exec-icon" style="background:#059669;">💎</div>
+                <div class="exec-value" id="totNetProfitVal" style="color:#047857;">Rs 0</div>
+                <div class="exec-label">Final Net Profit / Loss</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#ef4444;">📉</div>
                 <div class="exec-value" id="totReceivablesVal">Rs 0</div>
-                <div class="exec-label">Total Khata Receivables</div>
+                <div class="exec-label">Market Khata Udhaar</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#06b6d4;">📦</div>
                 <div class="exec-value" id="totInventoryVal">Rs 0</div>
-                <div class="exec-label">Total Inventory Worth</div>
+                <div class="exec-label">Total Stock Worth</div>
+            </div>
+            <div class="exec-card">
+                <div class="exec-icon" style="background:#f59e0b;">👥</div>
+                <div class="exec-value" id="totBookersVal">0</div>
+                <div class="exec-label">Bookers &amp; Staff</div>
+            </div>
+        </div>
+
+        <!-- Executive Spotlights: Top / Low Margin / Heavy Cost / Khata Risk -->
+        <div class="spotlight-grid" id="spotlightCardsGrid">
+            <div class="spotlight-card" style="border-color:#86efac; background:#f0fdf4;">
+                <div class="spotlight-tag" style="color:#15803d;">🏆 Top Performer Agency</div>
+                <div class="spotlight-name" id="spotTopName">—</div>
+                <div class="spotlight-meta" id="spotTopMeta">Calculating rankings...</div>
+            </div>
+            <div class="spotlight-card" style="border-color:#fde68a; background:#fffbeb;">
+                <div class="spotlight-tag" style="color:#b45309;">📉 Low Margin / Weak Agency</div>
+                <div class="spotlight-name" id="spotLowName">—</div>
+                <div class="spotlight-meta" id="spotLowMeta">Calculating margins...</div>
+            </div>
+            <div class="spotlight-card" style="border-color:#fecaca; background:#fef2f2;">
+                <div class="spotlight-tag" style="color:#b91c1c;">🔥 Heavy Cost / Expense Agency</div>
+                <div class="spotlight-name" id="spotHeavyName">—</div>
+                <div class="spotlight-meta" id="spotHeavyMeta">Calculating expenses...</div>
+            </div>
+            <div class="spotlight-card" style="border-color:#bae6fd; background:#f0f9ff;">
+                <div class="spotlight-tag" style="color:#0369a1;">💳 Highest Khata Risk Agency</div>
+                <div class="spotlight-name" id="spotKhataName">—</div>
+                <div class="spotlight-meta" id="spotKhataMeta">Calculating market udhaar...</div>
             </div>
         </div>
     </div>
@@ -289,18 +390,23 @@
             <table class="comp-table" id="branchMatrixTable">
                 <thead>
                     <tr>
-                        <th>Branch Name</th>
-                        <th>City / Area</th>
-                        <th>Today Sales</th>
-                        <th>Month Sales</th>
-                        <th>Bookers</th>
+                        <th>#</th>
+                        <th>Agency / Branch Name</th>
+                        <th>City / Type</th>
+                        <th>Period Sales</th>
+                        <th>COGS</th>
+                        <th>Gross Profit</th>
+                        <th>Expenses &amp; Salaries</th>
+                        <th>Net Profit / Loss</th>
+                        <th>Net Margin %</th>
+                        <th>Claims Loss</th>
                         <th>Khata Balance</th>
-                        <th>Inventory Value</th>
-                        <th>Status</th>
+                        <th>Stock Worth</th>
+                        <th>Ranking Tag</th>
                     </tr>
                 </thead>
                 <tbody id="matrixTbody">
-                    <tr><td colspan="8" style="text-align:center; color:#94a3b8;">Loading matrix comparison...</td></tr>
+                    <tr><td colspan="13" style="text-align:center; color:#94a3b8;">Loading matrix comparison...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -313,6 +419,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+<!-- 🏢 BUSINESS CATEGORIES REGISTRY -->
+<script src="business-categories.js"></script>
 <!-- 🧭 SIDEBAR SYSTEM -->
 <script src="sidebar.js"></script>
 <!-- 🏢 MULTI-AGENCY CONTROLLER -->

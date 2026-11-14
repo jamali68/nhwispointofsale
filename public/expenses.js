@@ -26,7 +26,7 @@ let myUser = null;
 let myAgencyId = null;
 let myAgency = null;
 
-let currentView = 'all'; // 'all' | 'category' | 'day' | 'weekly' | 'monthly'
+let currentView = 'all'; // 'all' | 'category' | 'day' | 'weekly' | 'monthly' | 'salary'
 let dateStart = '';
 let dateEnd = '';
 let currentSearch = '';
@@ -38,6 +38,13 @@ let rawExpenses = [];
 let expenseCategories = [];
 let activeTableData = [];
 
+// Staff Salary & Payroll State
+let salaryMonth = '';
+let salaryStatusFilter = 'all';
+let agencyStaffList = [];
+let agencyAllSalaryExpenses = [];
+let salaryMonthSalesMap = {};
+
 // ==========================================================================
 // 🏷️ STANDARD DEFAULT EXPENSE CATEGORIES (Requested by User)
 // ==========================================================================
@@ -47,7 +54,10 @@ const DEFAULT_CATEGORIES = [
     { id: 'cat_fuel', name: 'Fuel Bill', urdu: 'فیول / پٹرول خرچ', icon: 'fa-gas-pump', color: '#f97316', isDefault: true },
     { id: 'cat_guests', name: 'Guests Bill', urdu: 'مہمان نوازی / چائے پانی', icon: 'fa-mug-hot', color: '#8b5cf6', isDefault: true },
     { id: 'cat_rent', name: 'Shop / Warehouse Rent', urdu: 'دکان / گودام کرایہ', icon: 'fa-building', color: '#3b82f6', isDefault: true },
-    { id: 'cat_salary', name: 'Staff Salaries & Wages', urdu: 'ملازمین تنخواہ و دیہاڑی', icon: 'fa-user-tie', color: '#10b981', isDefault: true },
+    { id: 'cat_salary', name: 'Staff Salaries & Wages', urdu: 'ملازمین تنخواہ و پیشگی', icon: 'fa-user-tie', color: '#10b981', isDefault: true },
+    { id: 'cat_commission', name: 'Booker & Driver Commission', urdu: 'کمیشن و ٹارگٹ بونس', icon: 'fa-award', color: '#059669', isDefault: true },
+    { id: 'cat_van_diesel', name: 'Delivery Van Maintenance & Toll', urdu: 'وین مرمت و ٹول ٹیکس', icon: 'fa-van-shuttle', color: '#0284c7', isDefault: true },
+    { id: 'cat_loading_labor', name: 'Loading / Unloading Mazdoori', urdu: 'لوڈنگ و ان لوڈنگ مزدوری', icon: 'fa-people-carry-box', color: '#d97706', isDefault: true },
     { id: 'cat_packaging', name: 'Packaging & Supplies', urdu: 'پیکنگ و ضروری سامان', icon: 'fa-box-archive', color: '#6366f1', isDefault: true },
     { id: 'cat_maintenance', name: 'Maintenance & Repairs', urdu: 'مرمت و دیکھ بھال', icon: 'fa-screwdriver-wrench', color: '#ec4899', isDefault: true },
     { id: 'cat_transport', name: 'Transport & Carriage', urdu: 'کرایہ مال / ٹرانسپورٹ', icon: 'fa-truck', color: '#14b8a6', isDefault: true },
@@ -110,13 +120,27 @@ auth.onAuthStateChanged(async (user) => {
         }
 
         // Apply default preset: This Month
+        salaryMonth = getPktToday().slice(0, 7);
+        const salMonthInp = document.getElementById('salaryMonthInput');
+        if (salMonthInp) salMonthInp.value = salaryMonth;
+
         applyPreset('thismonth');
 
         // Setup DOM event listeners
         setupEventListeners();
 
-        // Load Categories and Expenses
+        // Check URL param for initial tab (e.g. ?tab=salary)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'salary') {
+            currentView = 'salary';
+            const tabs = document.querySelectorAll('#expenseViewTabs .report-tab-btn');
+            tabs.forEach(t => t.classList.toggle('active', t.dataset.view === 'salary'));
+            updateViewTitles();
+        }
+
+        // Load Categories, Staff Payroll Context, and Expenses
         await loadCategories();
+        await loadStaffPayrollContext();
         await loadExpenses();
 
         if (window.hideNHLoader) {
@@ -425,6 +449,12 @@ function calculateAndRenderKPIs() {
     const topCatName = topCatObj ? topCatObj.name : (topCatAmount > 0 ? topCatId : 'None');
     const topCatPct = totalExp > 0 ? ((topCatAmount / totalExp) * 100).toFixed(1) : '0';
 
+    // Staff Salaries & Commissions Total in Period
+    const salaryTotal = rawExpenses
+        .filter(e => e.categoryId === 'cat_salary' || e.categoryId === 'cat_commission' || !!e.isSalaryPayroll)
+        .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    const opsTotal = Math.max(0, totalExp - salaryTotal);
+
     // Average per voucher
     const avgExpense = count > 0 ? Math.round(totalExp / count) : 0;
 
@@ -438,6 +468,8 @@ function calculateAndRenderKPIs() {
     const elTopCatAmt = document.getElementById('kpiTopCategoryAmount');
     const elAvg = document.getElementById('kpiAvgExpense');
     const elActiveCats = document.getElementById('kpiActiveCategories');
+    const elSal = document.getElementById('kpiStaffSalaries');
+    const elSalSub = document.getElementById('kpiSalarySub');
 
     if (elTotal) elTotal.innerText = `Rs ${totalExp.toLocaleString()}`;
     if (elCount) elCount.innerText = `${count} Vouchers (${dateStart} to ${dateEnd})`;
@@ -448,6 +480,8 @@ function calculateAndRenderKPIs() {
     if (elTopCatAmt) elTopCatAmt.innerText = `Rs ${topCatAmount.toLocaleString()} (${topCatPct}% of Total)`;
     if (elAvg) elAvg.innerText = `Rs ${avgExpense.toLocaleString()}`;
     if (elActiveCats) elActiveCats.innerText = `${Object.keys(catTotals).length} Categories Active`;
+    if (elSal) elSal.innerText = `Rs ${salaryTotal.toLocaleString()}`;
+    if (elSalSub) elSalSub.innerText = `Operations: Rs ${opsTotal.toLocaleString()}`;
 }
 
 // ==========================================================================
@@ -456,6 +490,16 @@ function calculateAndRenderKPIs() {
 function renderCurrentViewTable() {
     const container = document.getElementById('expenseTableContainer');
     if (!container) return;
+
+    const salToolbar = document.getElementById('salaryPayrollToolbar');
+    if (salToolbar) {
+        salToolbar.style.display = currentView === 'salary' ? 'flex' : 'none';
+    }
+
+    if (currentView === 'salary') {
+        renderStaffSalaryPayrollTable(container);
+        return;
+    }
 
     // Filter Raw Expenses by Search, Category Filter, and Payment Mode Filter
     let filtered = rawExpenses.filter(e => {
@@ -1281,6 +1325,12 @@ function exportToCSV() {
         activeTableData.forEach((item, idx) => {
             csvContent += `"${idx + 1}","${item.monthKey}","${item.count}","${item.amount}"\n`;
         });
+    } else if (currentView === 'salary') {
+        fileName = `Staff_Payroll_${salaryMonth}.csv`;
+        csvContent += 'Index,StaffName,Role,Route,MonthSales,BaseSalary,CommBonus,AdvanceDeducted,NetPayable,PaidAlready,Status\n';
+        activeTableData.forEach((item, idx) => {
+            csvContent += `"${idx + 1}","${cleanCSV(item.name)}","${cleanCSV(item.roleLabel)}","${cleanCSV(item.route)}","${item.monthSales}","${item.baseSalary}","${item.commissionAmt}","${item.advancesPaid}","${item.netPayable}","${item.salaryPaidAmt}","${item.isPaid ? 'PAID' : 'PENDING'}"\n`;
+        });
     }
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1362,6 +1412,37 @@ function setupEventListeners() {
     const btnAdd = document.getElementById('btnOpenAddExpenseModal');
     if (btnAdd) btnAdd.addEventListener('click', () => openExpenseModal());
 
+    const btnQuickSalary = document.getElementById('btnQuickOpenSalaryTab');
+    if (btnQuickSalary) {
+        btnQuickSalary.addEventListener('click', () => {
+            currentView = 'salary';
+            const tabButtons = document.querySelectorAll('#expenseViewTabs .report-tab-btn');
+            tabButtons.forEach(b => b.classList.toggle('active', b.dataset.view === 'salary'));
+            updateViewTitles();
+            renderCurrentViewTable();
+        });
+    }
+
+    const salMonthInp = document.getElementById('salaryMonthInput');
+    if (salMonthInp) {
+        salMonthInp.addEventListener('change', async (e) => {
+            salaryMonth = e.target.value || getPktToday().slice(0, 7);
+            await loadStaffPayrollContext();
+            renderCurrentViewTable();
+        });
+    }
+
+    const salStatusSel = document.getElementById('salaryStatusFilter');
+    if (salStatusSel) {
+        salStatusSel.addEventListener('change', (e) => {
+            salaryStatusFilter = e.target.value || 'all';
+            renderCurrentViewTable();
+        });
+    }
+
+    const btnAddPayStaff = document.getElementById('btnAddPayrollStaff');
+    if (btnAddPayStaff) btnAddPayStaff.addEventListener('click', () => openAddPayrollStaffModal());
+
     const btnCat = document.getElementById('btnOpenCatModal');
     if (btnCat) btnCat.addEventListener('click', () => openCategoryModal());
 
@@ -1369,7 +1450,12 @@ function setupEventListeners() {
     if (btnQuickCat) btnQuickCat.addEventListener('click', () => openCategoryModal());
 
     const btnRefresh = document.getElementById('btnRefreshExpenses');
-    if (btnRefresh) btnRefresh.addEventListener('click', () => loadExpenses());
+    if (btnRefresh) {
+        btnRefresh.addEventListener('click', async () => {
+            await loadStaffPayrollContext();
+            await loadExpenses();
+        });
+    }
 
     const btnExport = document.getElementById('btnExportExpenseCSV');
     if (btnExport) btnExport.addEventListener('click', exportToCSV);
@@ -1503,6 +1589,9 @@ function updateViewTitles() {
     } else if (currentView === 'monthly') {
         titleEl.innerHTML = '<i class="fas fa-calendar-alt" style="color:#3b82f6;"></i> Monthly Expenses Overview';
         subEl.innerText = 'ماہانہ اخراجات کا تاریخی جائزہ اور موازنہ';
+    } else if (currentView === 'salary') {
+        titleEl.innerHTML = '<i class="fas fa-user-tie" style="color:#059669;"></i> Staff Salaries, Commission &amp; Advance (Peshgi) Manager';
+        subEl.innerText = 'آرڈر بکر، ڈلیوری سپلائر، ڈرائیور اور گودام عملے کی تنخواہ، سیلز کمیشن، پیشگی کٹوتی اور سیلری سلپ';
     }
 }
 
@@ -1517,3 +1606,552 @@ function getPaymentBadge(mode) {
     }
     return '<span class="pay-mode-badge" style="background:#dcfce7; color:#15803d;"><i class="fas fa-money-bill-1"></i> Cash</span>';
 }
+
+// ==========================================================================
+// 💼 10. STAFF SALARIES, COMMISSION & ADVANCE (PESHGI) ENGINE
+// ==========================================================================
+async function loadStaffPayrollContext() {
+    const targetMonth = salaryMonth || getPktToday().slice(0, 7);
+    salaryMonth = targetMonth;
+
+    try {
+        const [usersSnap, customStaffSnap, salExpSnap, billsSnap] = await Promise.all([
+            db.collection('users').where('agencyId', '==', myAgencyId).get(),
+            db.collection('staff_payroll_profiles').where('agencyId', '==', myAgencyId).get().catch(() => ({ forEach: () => {} })),
+            db.collection('expenses').where('agencyId', '==', myAgencyId).get().catch(() => ({ forEach: () => {} })),
+            db.collection('bills').where('agencyId', '==', myAgencyId).get().catch(() => ({ forEach: () => {} }))
+        ]);
+
+        const staffMap = new Map();
+        usersSnap.forEach(d => {
+            const u = d.data();
+            if (u.status === 'deleted') return;
+            if (u.role === 'owner' || u.role === 'super-admin') return;
+            staffMap.set(d.id, {
+                id: d.id,
+                source: 'users',
+                name: u.name || u.email || 'Staff Member',
+                role: u.role || 'staff',
+                mobile: u.mobile || '',
+                route: u.route || 'General Depot',
+                baseSalary: Number(u.baseSalary || 0),
+                commissionPct: Number(u.commissionPct || 0),
+                fixedAllowance: Number(u.fixedAllowance || 0)
+            });
+        });
+
+        customStaffSnap.forEach(d => {
+            const s = d.data();
+            if (s.status === 'deleted') return;
+            staffMap.set(d.id, {
+                id: d.id,
+                source: 'staff_payroll_profiles',
+                name: s.name || 'Depot Staff',
+                role: s.role || 'helper',
+                mobile: s.mobile || '',
+                route: s.route || 'Godown / Van',
+                baseSalary: Number(s.baseSalary || 0),
+                commissionPct: Number(s.commissionPct || 0),
+                fixedAllowance: Number(s.fixedAllowance || 0)
+            });
+        });
+
+        agencyStaffList = Array.from(staffMap.values());
+
+        agencyAllSalaryExpenses = [];
+        salExpSnap.forEach(d => {
+            const e = { id: d.id, ...d.data() };
+            if (e.categoryId === 'cat_salary' || e.categoryId === 'cat_commission' || !!e.isSalaryPayroll) {
+                agencyAllSalaryExpenses.push(e);
+            }
+        });
+
+        salaryMonthSalesMap = {};
+        billsSnap.forEach(d => {
+            const b = d.data();
+            if (b.orderStatus === 'cancelled') return;
+            const bDate = (b.date || (b.createdAt ? b.createdAt.slice(0, 10) : '')).slice(0, 7);
+            if (bDate !== targetMonth) return;
+            const amt = Number(b.billAmount || b.grandTotal || 0);
+            if (b.createdBy) {
+                salaryMonthSalesMap[b.createdBy] = (salaryMonthSalesMap[b.createdBy] || 0) + amt;
+            }
+            if (b.supplierId && b.supplierId !== b.createdBy) {
+                salaryMonthSalesMap[b.supplierId] = (salaryMonthSalesMap[b.supplierId] || 0) + amt;
+            }
+        });
+    } catch (e) {
+        console.warn('Payroll context load error:', e);
+    }
+}
+
+function getStaffRoleLabel(role) {
+    const r = String(role || '').toLowerCase();
+    if (r === 'booker') return '📕 Order Booker';
+    if (r === 'supplier' || r === 'delivery') return '🚚 Delivery Supplier';
+    if (r === 'driver') return '🚛 Van Driver';
+    if (r === 'loader' || r === 'helper') return '📦 Godown Loader / Helper';
+    if (r === 'accountant' || r === 'manager') return '💼 Manager / Munshi';
+    return `👤 ${role || 'Staff'}`;
+}
+
+function buildPayrollRows() {
+    const targetMonth = salaryMonth || getPktToday().slice(0, 7);
+
+    return agencyStaffList.map(st => {
+        const monthSales = salaryMonthSalesMap[st.id] || 0;
+        const commAmt = st.commissionPct > 0 ? Math.round((monthSales * st.commissionPct) / 100) : 0;
+
+        const staffMonthVouchers = agencyAllSalaryExpenses.filter(e => {
+            const vMonth = e.payrollMonth || (e.date || '').slice(0, 7);
+            return e.staffId === st.id && vMonth === targetMonth;
+        });
+
+        const advancesPaid = staffMonthVouchers
+            .filter(e => e.salaryType === 'advance')
+            .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+        const salaryPaidVouchers = staffMonthVouchers.filter(e => e.salaryType === 'monthly_salary' || (!e.salaryType && e.categoryId === 'cat_salary'));
+        const salaryPaidAmt = salaryPaidVouchers.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+        const grossPay = (Number(st.baseSalary) || 0) + (Number(st.fixedAllowance) || 0) + commAmt;
+        const netPayable = Math.max(0, grossPay - advancesPaid);
+        const isPaid = salaryPaidAmt > 0;
+        const remainingDue = isPaid ? 0 : netPayable;
+
+        return {
+            ...st,
+            roleLabel: getStaffRoleLabel(st.role),
+            monthSales,
+            commissionAmt: commAmt,
+            advancesPaid,
+            grossPay,
+            netPayable,
+            salaryPaidAmt,
+            remainingDue,
+            isPaid,
+            lastVoucherId: salaryPaidVouchers[0] ? salaryPaidVouchers[0].id : (staffMonthVouchers[0] ? staffMonthVouchers[0].id : null)
+        };
+    });
+}
+
+function renderStaffSalaryPayrollTable(container) {
+    let rows = buildPayrollRows();
+
+    if (salaryStatusFilter === 'paid') rows = rows.filter(r => r.isPaid);
+    else if (salaryStatusFilter === 'pending') rows = rows.filter(r => !r.isPaid);
+
+    if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        rows = rows.filter(r =>
+            (r.name || '').toLowerCase().includes(q) ||
+            (r.roleLabel || '').toLowerCase().includes(q) ||
+            (r.route || '').toLowerCase().includes(q) ||
+            (r.mobile || '').toLowerCase().includes(q)
+        );
+    }
+
+    activeTableData = rows;
+
+    const totalPayrollGross = rows.reduce((s, r) => s + r.grossPay, 0);
+    const totalAdvances = rows.reduce((s, r) => s + r.advancesPaid, 0);
+    const totalPaidFinal = rows.reduce((s, r) => s + r.salaryPaidAmt, 0);
+    const totalRemaining = rows.reduce((s, r) => s + r.remainingDue, 0);
+
+    const sumPill = document.getElementById('salarySummaryPill');
+    if (sumPill) {
+        sumPill.innerHTML = `Staff: ${rows.length} &bull; Gross: Rs ${totalPayrollGross.toLocaleString()} &bull; Peshgi: Rs ${totalAdvances.toLocaleString()} &bull; Paid: Rs ${totalPaidFinal.toLocaleString()} &bull; Pending: <span style="color:#b91c1c;">Rs ${totalRemaining.toLocaleString()}</span>`;
+    }
+
+    if (rows.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-user-tie" style="font-size:36px; color:#cbd5e1; margin-bottom:12px;"></i>
+                <h3>No Staff Found for Payroll (${salaryMonth})</h3>
+                <p>Staff &amp; Bookers mein member add karein ya "+ Add Godown / Driver / Office Staff" button use karein.</p>
+                <button type="button" class="btn btn-sm" onclick="openAddPayrollStaffModal()" style="background:#0284c7; color:#fff; margin-top:8px;">
+                    <i class="fas fa-user-plus"></i> + Add Godown / Driver Staff
+                </button>
+            </div>`;
+        return;
+    }
+
+    const trs = rows.map((r, idx) => `
+        <tr>
+            <td style="font-size:12px; font-weight:700; color:#475569;">${idx + 1}</td>
+            <td>
+                <div style="font-weight:800; color:#0f172a; font-size:13px;">${r.name}</div>
+                <div style="font-size:11px; color:#475569;">${r.roleLabel}${r.mobile ? ' • ' + r.mobile : ''}</div>
+            </td>
+            <td style="font-size:12px; color:#334155;">${r.route}</td>
+            <td style="text-align:right; font-weight:700; color:#0369a1;">
+                Rs ${Math.round(r.monthSales).toLocaleString()}
+                ${r.commissionPct > 0 ? `<br><small style="color:#059669;">@${r.commissionPct}% Comm.</small>` : ''}
+            </td>
+            <td style="text-align:right; font-weight:700;">
+                Rs ${Math.round(r.baseSalary).toLocaleString()}
+                ${r.fixedAllowance > 0 ? `<br><small style="color:#64748b;">+Allow: Rs ${r.fixedAllowance.toLocaleString()}</small>` : ''}
+            </td>
+            <td style="text-align:right; font-weight:700; color:#059669;">Rs ${Math.round(r.commissionAmt).toLocaleString()}</td>
+            <td style="text-align:right; font-weight:700; color:#d97706;">Rs ${Math.round(r.advancesPaid).toLocaleString()}</td>
+            <td style="text-align:right; font-weight:900; font-size:14px; color:${r.isPaid ? '#15803d' : '#b91c1c'};">
+                Rs ${Math.round(r.isPaid ? r.salaryPaidAmt : r.netPayable).toLocaleString()}
+            </td>
+            <td style="text-align:center;">
+                ${r.isPaid
+                    ? `<span style="background:#dcfce7; color:#15803d; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:800;">✅ PAID</span>`
+                    : `<span style="background:#fef3c7; color:#b45309; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:800;">⏳ PENDING</span>`
+                }
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+                <button class="btn btn-sm" onclick="openStaffSalaryConfigModal('${r.id}')" style="background:#f1f5f9; color:#334155; padding:4px 8px; border-radius:6px;" title="Set Base Salary & Commission %">
+                    <i class="fas fa-gear"></i> Setup
+                </button>
+                <button class="btn btn-sm" onclick="openPayAdvanceModal('${r.id}')" style="background:#fef3c7; color:#b45309; padding:4px 8px; border-radius:6px;" title="Give Salary Advance / Peshgi">
+                    <i class="fas fa-hand-holding-dollar"></i> Peshgi
+                </button>
+                ${!r.isPaid ? `
+                    <button class="btn btn-sm" onclick="openPaySalaryModal('${r.id}')" style="background:#059669; color:#fff; padding:4px 9px; border-radius:6px; font-weight:bold;" title="Pay Final Monthly Salary">
+                        <i class="fas fa-check"></i> Pay
+                    </button>
+                ` : ''}
+                <button class="btn btn-sm" onclick="printSalarySlip('${r.id}')" style="background:#e0f2fe; color:#0369a1; padding:4px 8px; border-radius:6px;" title="Print Salary Slip">
+                    <i class="fas fa-print"></i> Slip
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+    container.innerHTML = `
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th style="width:40px;">#</th>
+                    <th>Staff Member</th>
+                    <th>Route / Dept</th>
+                    <th style="text-align:right;">Month Sales</th>
+                    <th style="text-align:right;">Base + Allow</th>
+                    <th style="text-align:right;">Comm.</th>
+                    <th style="text-align:right;">Peshgi Cut</th>
+                    <th style="text-align:right;">Net Payable / Paid</th>
+                    <th style="text-align:center;">Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>${trs}</tbody>
+            <tfoot>
+                <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1;">
+                    <td colspan="6" style="text-align:right; font-size:13px;">PAYROLL TOTALS (${salaryMonth}):</td>
+                    <td style="text-align:right; color:#d97706;">Rs ${totalAdvances.toLocaleString()}</td>
+                    <td style="text-align:right; font-size:14px; color:#047857; font-weight:900;">Paid: Rs ${totalPaidFinal.toLocaleString()}</td>
+                    <td colspan="2" style="text-align:right; color:#b91c1c; font-size:12px;">Pending: Rs ${totalRemaining.toLocaleString()}</td>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+}
+
+window.openAddPayrollStaffModal = async function() {
+    const { value: val } = await Swal.fire({
+        title: '➕ Add Godown / Driver / Office Staff',
+        html: `
+            <div style="text-align:left; font-size:13px;">
+                <label><b>Staff Name *</b></label>
+                <input id="psName" class="swal2-input" placeholder="e.g. Muhammad Usman" style="margin-top:4px; margin-bottom:8px;">
+                <label><b>Designation / Role *</b></label>
+                <select id="psRole" class="swal2-input" style="margin-top:4px; margin-bottom:8px;">
+                    <option value="driver">🚛 Delivery Van Driver</option>
+                    <option value="loader">📦 Godown Loader / Helper</option>
+                    <option value="accountant">💼 Munshi / Accountant</option>
+                    <option value="manager">🏢 Warehouse Manager</option>
+                    <option value="staff">👤 Office Boy / Guard</option>
+                </select>
+                <label><b>Mobile</b></label>
+                <input id="psMobile" class="swal2-input" placeholder="03001234567" style="margin-top:4px; margin-bottom:8px;">
+                <label><b>Monthly Base Salary (Rs) *</b></label>
+                <input id="psSalary" type="number" class="swal2-input" placeholder="e.g. 25000" value="25000" style="margin-top:4px;">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save Staff',
+        confirmButtonColor: '#0284c7',
+        preConfirm: () => {
+            const name = document.getElementById('psName').value.trim();
+            const baseSalary = Number(document.getElementById('psSalary').value) || 0;
+            if (!name) { Swal.showValidationMessage('Staff Name lazmi hai!'); return false; }
+            return {
+                name,
+                role: document.getElementById('psRole').value,
+                mobile: document.getElementById('psMobile').value.trim(),
+                baseSalary
+            };
+        }
+    });
+
+    if (!val) return;
+    try {
+        await db.collection('staff_payroll_profiles').add({
+            agencyId: myAgencyId,
+            name: val.name,
+            role: val.role,
+            mobile: val.mobile,
+            route: 'Agency / Godown',
+            baseSalary: val.baseSalary,
+            commissionPct: 0,
+            fixedAllowance: 0,
+            status: 'active',
+            createdBy: myUid,
+            createdAt: new Date().toISOString()
+        });
+        await loadStaffPayrollContext();
+        renderCurrentViewTable();
+        Swal.fire({ toast: true, position: 'top-end', timer: 1600, showConfirmButton: false, icon: 'success', title: 'Staff added to Payroll!' });
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    }
+};
+
+window.openStaffSalaryConfigModal = async function(staffId) {
+    const st = agencyStaffList.find(s => s.id === staffId);
+    if (!st) return;
+
+    const { value: val } = await Swal.fire({
+        title: `⚙️ Salary Setup: ${st.name}`,
+        html: `
+            <div style="text-align:left; font-size:13px;">
+                <label><b>Monthly Base Salary (Rs)</b></label>
+                <input id="cfgBaseSal" type="number" class="swal2-input" value="${st.baseSalary || 0}" style="margin-top:4px; margin-bottom:10px;">
+                <label><b>Fixed TA/DA / Fuel Allowance (Rs)</b></label>
+                <input id="cfgAllow" type="number" class="swal2-input" value="${st.fixedAllowance || 0}" style="margin-top:4px; margin-bottom:10px;">
+                <label><b>Sales Commission % (for Bookers/Suppliers)</b></label>
+                <input id="cfgComm" type="number" step="0.1" class="swal2-input" value="${st.commissionPct || 0}" style="margin-top:4px;">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save Salary Config',
+        confirmButtonColor: '#059669',
+        preConfirm: () => ({
+            baseSalary: Number(document.getElementById('cfgBaseSal').value) || 0,
+            fixedAllowance: Number(document.getElementById('cfgAllow').value) || 0,
+            commissionPct: Number(document.getElementById('cfgComm').value) || 0
+        })
+    });
+
+    if (!val) return;
+    try {
+        const colName = st.source === 'staff_payroll_profiles' ? 'staff_payroll_profiles' : 'users';
+        await db.collection(colName).doc(st.id).update({
+            baseSalary: val.baseSalary,
+            fixedAllowance: val.fixedAllowance,
+            commissionPct: val.commissionPct,
+            updatedAt: new Date().toISOString()
+        });
+        await loadStaffPayrollContext();
+        renderCurrentViewTable();
+        Swal.fire({ toast: true, position: 'top-end', timer: 1600, showConfirmButton: false, icon: 'success', title: 'Salary config saved!' });
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    }
+};
+
+window.openPayAdvanceModal = async function(staffId) {
+    const st = agencyStaffList.find(s => s.id === staffId);
+    if (!st) return;
+
+    const { value: val } = await Swal.fire({
+        title: `💵 Pay Advance (پیشگی): ${st.name}`,
+        html: `
+            <div style="text-align:left; font-size:13px;">
+                <label><b>Payroll Month</b></label>
+                <input id="advMonth" type="month" class="swal2-input" value="${salaryMonth}" style="margin-top:4px; margin-bottom:8px;">
+                <label><b>Advance / Peshgi Amount (Rs) *</b></label>
+                <input id="advAmt" type="number" class="swal2-input" placeholder="e.g. 5000" style="margin-top:4px; margin-bottom:8px;">
+                <label><b>Payment Mode</b></label>
+                <select id="advMode" class="swal2-input" style="margin-top:4px; margin-bottom:8px;">
+                    <option value="cash">Cash (نقد)</option>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="wallet">JazzCash / EasyPaisa</option>
+                </select>
+                <label><b>Note</b></label>
+                <input id="advNote" class="swal2-input" placeholder="e.g. Mid-month Peshgi" style="margin-top:4px;">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Record Advance',
+        confirmButtonColor: '#d97706',
+        preConfirm: () => {
+            const amount = Number(document.getElementById('advAmt').value) || 0;
+            if (amount <= 0) { Swal.showValidationMessage('Valid amount likhein!'); return false; }
+            return {
+                payrollMonth: document.getElementById('advMonth').value || salaryMonth,
+                amount,
+                paymentMethod: document.getElementById('advMode').value,
+                notes: document.getElementById('advNote').value.trim()
+            };
+        }
+    });
+
+    if (!val) return;
+    try {
+        const expData = {
+            agencyId: myAgencyId,
+            categoryId: 'cat_salary',
+            category: 'Staff Salaries & Wages',
+            isSalaryPayroll: true,
+            salaryType: 'advance',
+            payrollMonth: val.payrollMonth,
+            staffId: st.id,
+            staffName: st.name,
+            amount: val.amount,
+            date: getPktToday(),
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            title: `Salary Advance (Peshgi) — ${st.name} (${val.payrollMonth})`,
+            description: `Salary Advance (Peshgi) — ${st.name}`,
+            paidTo: st.name,
+            paymentMethod: val.paymentMethod,
+            voucherNo: 'ADV-' + Date.now().toString().slice(-6),
+            notes: val.notes || `Advance deducted in ${val.payrollMonth} payroll`,
+            createdBy: myUid,
+            createdAt: new Date().toISOString()
+        };
+        await db.collection('expenses').add(expData);
+        await loadStaffPayrollContext();
+        await loadExpenses();
+        Swal.fire({ icon: 'success', title: 'Advance Recorded!', text: `Rs ${val.amount.toLocaleString()} Peshgi ${st.name} ke khate mein darj ho gayi.`, timer: 1800, showConfirmButton: false });
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    }
+};
+
+window.openPaySalaryModal = async function(staffId) {
+    const row = buildPayrollRows().find(r => r.id === staffId);
+    if (!row) return;
+
+    const { value: val } = await Swal.fire({
+        title: `✅ Pay Monthly Salary: ${row.name}`,
+        html: `
+            <div style="text-align:left; font-size:13px;">
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; padding:8px 10px; border-radius:8px; margin-bottom:10px; font-size:12px;">
+                    📅 Month: <b>${salaryMonth}</b> &bull; Sales: <b>Rs ${Math.round(row.monthSales).toLocaleString()}</b> &bull; Peshgi Already Paid: <b style="color:#b45309;">Rs ${Math.round(row.advancesPaid).toLocaleString()}</b>
+                </div>
+                <label><b>Base Salary + Allowance (Rs)</b></label>
+                <input id="payBase" type="number" class="swal2-input" value="${(row.baseSalary || 0) + (row.fixedAllowance || 0)}" style="margin-top:4px; margin-bottom:8px;">
+                <label><b>Commission / Target Bonus (Rs)</b></label>
+                <input id="payBonus" type="number" class="swal2-input" value="${row.commissionAmt || 0}" style="margin-top:4px; margin-bottom:8px;">
+                <label><b>Advance (Peshgi) / Fine Deduction (Rs)</b></label>
+                <input id="payDed" type="number" class="swal2-input" value="${row.advancesPaid || 0}" style="margin-top:4px; margin-bottom:8px;">
+                <label><b>Payment Mode</b></label>
+                <select id="payMode" class="swal2-input" style="margin-top:4px; margin-bottom:8px;">
+                    <option value="cash">Cash (نقد)</option>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="wallet">JazzCash / EasyPaisa</option>
+                </select>
+                <label><b>Remarks / Notes</b></label>
+                <input id="payNotes" class="swal2-input" placeholder="e.g. Full month settled" style="margin-top:4px;">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💸 Pay & Generate Salary Voucher',
+        confirmButtonColor: '#059669',
+        preConfirm: () => {
+            const base = Number(document.getElementById('payBase').value) || 0;
+            const bonus = Number(document.getElementById('payBonus').value) || 0;
+            const deduction = Number(document.getElementById('payDed').value) || 0;
+            const netPaid = Math.max(0, base + bonus - deduction);
+            if (netPaid <= 0) { Swal.showValidationMessage('Net payable amount 0 se zyada honi chahiye!'); return false; }
+            return {
+                base,
+                bonus,
+                deduction,
+                netPaid,
+                paymentMethod: document.getElementById('payMode').value,
+                notes: document.getElementById('payNotes').value.trim()
+            };
+        }
+    });
+
+    if (!val) return;
+    try {
+        const expData = {
+            agencyId: myAgencyId,
+            categoryId: 'cat_salary',
+            category: 'Staff Salaries & Wages',
+            isSalaryPayroll: true,
+            salaryType: 'monthly_salary',
+            payrollMonth: salaryMonth,
+            staffId: row.id,
+            staffName: row.name,
+            amount: val.netPaid,
+            salaryBreakdown: {
+                baseAndAllowance: val.base,
+                commissionBonus: val.bonus,
+                advanceDeducted: val.deduction,
+                netPaid: val.netPaid,
+                monthSales: row.monthSales
+            },
+            date: getPktToday(),
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            title: `Monthly Salary — ${row.name} (${salaryMonth})`,
+            description: `Monthly Salary — ${row.name} (${salaryMonth})`,
+            paidTo: row.name,
+            paymentMethod: val.paymentMethod,
+            voucherNo: 'SAL-' + Date.now().toString().slice(-6),
+            notes: val.notes || `Base+Allow: Rs ${val.base} + Bonus: Rs ${val.bonus} - Ded: Rs ${val.deduction}`,
+            createdBy: myUid,
+            createdAt: new Date().toISOString()
+        };
+        await db.collection('expenses').add(expData);
+        await loadStaffPayrollContext();
+        await loadExpenses();
+        Swal.fire({ icon: 'success', title: 'Salary Paid & Recorded!', html: `<b>${row.name}</b> ko <b>Rs ${val.netPaid.toLocaleString()}</b> (${salaryMonth}) ada kar diye gaye.` });
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    }
+};
+
+window.printSalarySlip = function(staffId) {
+    const row = buildPayrollRows().find(r => r.id === staffId);
+    if (!row) return;
+    const printArea = document.getElementById('printableExpenseArea');
+    if (!printArea) return;
+
+    const agencyName = (myAgency && myAgency.name) || 'NH POS Distribution';
+    const agencyPhone = (myAgency && (myAgency.phone || myAgency.mobile)) || '';
+    const agencyCity = (myAgency && myAgency.city) || '';
+    const paidVoucher = agencyAllSalaryExpenses.find(e => e.staffId === staffId && (e.payrollMonth || (e.date || '').slice(0, 7)) === salaryMonth && e.salaryType === 'monthly_salary');
+    const br = (paidVoucher && paidVoucher.salaryBreakdown) || {};
+    const baseAllow = br.baseAndAllowance !== undefined ? br.baseAndAllowance : (row.baseSalary + row.fixedAllowance);
+    const bonus = br.commissionBonus !== undefined ? br.commissionBonus : row.commissionAmt;
+    const ded = br.advanceDeducted !== undefined ? br.advanceDeducted : row.advancesPaid;
+    const netAmt = paidVoucher ? paidVoucher.amount : row.netPayable;
+
+    printArea.innerHTML = `
+        <div style="font-family:'Segoe UI',sans-serif; max-width:600px; margin:0 auto; padding:20px; border:2px solid #0f172a; border-radius:10px; background:#fff; color:#0f172a;">
+            <div style="text-align:center; border-bottom:2px solid #0f172a; padding-bottom:10px; margin-bottom:12px;">
+                <h2 style="margin:0; font-size:21px; font-weight:900; text-transform:uppercase;">${agencyName}</h2>
+                ${agencyCity ? `<div style="font-size:12px; color:#475569;">${agencyCity} ${agencyPhone ? '• Tel: ' + agencyPhone : ''}</div>` : ''}
+                <div style="margin-top:6px; font-size:13px; font-weight:800; background:#059669; color:#fff; display:inline-block; padding:3px 14px; border-radius:12px;">
+                    STAFF PAYROLL / SALARY SLIP (${salaryMonth})
+                </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:12px;">
+                <div><b>Employee:</b> ${row.name}<br><b>Role:</b> ${row.roleLabel}<br><b>Route:</b> ${row.route}</div>
+                <div style="text-align:right;"><b>Slip #:</b> ${(paidVoucher && paidVoucher.voucherNo) || 'PREVIEW'}<br><b>Status:</b> ${row.isPaid ? '✅ PAID' : '⏳ PENDING'}<br><b>Date:</b> ${(paidVoucher && paidVoucher.date) || getPktToday()}</div>
+            </div>
+            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
+                <tr style="background:#f8fafc;"><th style="text-align:left; padding:8px; border:1px solid #cbd5e1;">Earnings / Deductions</th><th style="text-align:right; padding:8px; border:1px solid #cbd5e1;">Amount (PKR)</th></tr>
+                <tr><td style="padding:7px 8px; border:1px solid #cbd5e1;">Base Salary + Allowance</td><td style="text-align:right; padding:7px 8px; border:1px solid #cbd5e1;">Rs ${Number(baseAllow).toLocaleString()}</td></tr>
+                <tr><td style="padding:7px 8px; border:1px solid #cbd5e1;">Commission &amp; Target Bonus (Sales: Rs ${Math.round(row.monthSales).toLocaleString()})</td><td style="text-align:right; padding:7px 8px; border:1px solid #cbd5e1; color:#15803d;">+ Rs ${Number(bonus).toLocaleString()}</td></tr>
+                <tr><td style="padding:7px 8px; border:1px solid #cbd5e1;">Advance (Peshgi) / Deductions</td><td style="text-align:right; padding:7px 8px; border:1px solid #cbd5e1; color:#dc2626;">- Rs ${Number(ded).toLocaleString()}</td></tr>
+                <tr style="background:#ecfdf5; font-weight:900; font-size:15px;"><td style="padding:9px 8px; border:1px solid #cbd5e1;">NET SALARY ${row.isPaid ? 'PAID' : 'PAYABLE'}</td><td style="text-align:right; padding:9px 8px; border:1px solid #cbd5e1; color:#047857;">Rs ${Number(netAmt).toLocaleString()}</td></tr>
+            </table>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:42px;">
+                <div style="text-align:center; border-top:1px solid #0f172a; width:150px; padding-top:5px;">Employee Signature</div>
+                <div style="text-align:center; border-top:1px solid #0f172a; width:150px; padding-top:5px;">Owner / Manager Signature</div>
+            </div>
+        </div>
+    `;
+    printArea.style.display = 'block';
+    window.print();
+    setTimeout(() => { printArea.style.display = 'none'; }, 1000);
+};

@@ -29,7 +29,28 @@ let myUser = null;
 let myPrimaryAgencyId = null;
 let myActiveAgencyId = null;
 let ownedBranches = [];
-let maxBranchesAllowed = 5;
+let maxBranchesAllowed = 10;
+let activePeriod = 'thismonth'; // 'today' | 'thismonth' | 'lastmonth' | 'alltime'
+let comparisonSummary = null;
+
+function getPeriodDateRange(periodKey) {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const toYMD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (periodKey === 'today') {
+        const y = toYMD(now);
+        return { start: y, end: y, label: 'Today' };
+    } else if (periodKey === 'lastmonth') {
+        const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const e = new Date(now.getFullYear(), now.getMonth(), 0);
+        return { start: toYMD(s), end: toYMD(e), label: 'Last Month' };
+    } else if (periodKey === 'alltime') {
+        return { start: '2020-01-01', end: '2035-12-31', label: 'All Time' };
+    }
+    const s = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { start: toYMD(s), end: toYMD(now), label: 'This Month' };
+}
 
 // Auth Guard
 auth.onAuthStateChanged(async (user) => {
@@ -61,7 +82,12 @@ auth.onAuthStateChanged(async (user) => {
         myPrimaryAgencyId = myUser.agencyId;
         myActiveAgencyId = localStorage.getItem('eb_active_agencyId') || myPrimaryAgencyId;
 
-        document.getElementById('ownerTitle').innerText = `${myUser.name || 'Owner'} (${myUser.email || ''})`;
+        const ownerTitleEl = document.getElementById('ownerTitle');
+        if (ownerTitleEl) {
+            ownerTitleEl.innerText = `${myUser.name || 'Owner'} (${myUser.email || ''})`;
+        }
+
+        setupPeriodChips();
 
         // Step 1: Instant render from local cache (Quota Shield)
         loadFromCache();
@@ -80,11 +106,24 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
+function setupPeriodChips() {
+    const chips = document.querySelectorAll('#agencyPeriodBar .period-chip');
+    chips.forEach(btn => {
+        btn.addEventListener('click', async () => {
+            chips.forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            activePeriod = btn.dataset.period || 'thismonth';
+            loadFromCache();
+            await loadOwnedAgencies();
+        });
+    });
+}
+
 // ============================================
 // 💾 SMART CACHING (QUOTA SHIELD)
 // ============================================
 function getCacheKey() {
-    return `eb_multi_agency_cache_${myUid}`;
+    return `eb_multi_agency_cache_${myUid}_${activePeriod}`;
 }
 
 function loadFromCache() {
@@ -94,7 +133,9 @@ function loadFromCache() {
             const data = JSON.parse(cached);
             if (Array.isArray(data.branches) && data.branches.length > 0) {
                 ownedBranches = data.branches;
+                comparisonSummary = computeLocalAgencyComparison(ownedBranches);
                 renderExecutiveMetrics();
+                renderSpotlights();
                 renderBranchesList();
                 renderComparisonMatrix();
                 if (window.hideNHLoader) {
@@ -111,6 +152,7 @@ function saveToCache(branches) {
     try {
         localStorage.setItem(getCacheKey(), JSON.stringify({
             branches: branches,
+            period: activePeriod,
             timestamp: new Date().toISOString()
         }));
     } catch (e) {
@@ -163,15 +205,19 @@ async function loadOwnedAgencies() {
         }
 
         const pkgId = firstAgency.packageId || 'free';
-        evaluatePackageLimits(pkgId);
+        evaluatePackageLimits(pkgId, firstAgency);
 
         // Fetch detailed aggregated metrics per branch (in parallel)
         ownedBranches = await Promise.all(rawBranches.map(async (b) => {
             return await fetchBranchMetrics(b);
         }));
 
+        // Compute consolidated ranking (Serverless Core API with local fallback)
+        comparisonSummary = await syncMultiAgencyComparison(ownedBranches);
+
         saveToCache(ownedBranches);
         renderExecutiveMetrics();
+        renderSpotlights();
         renderBranchesList();
         renderComparisonMatrix();
 
@@ -180,89 +226,166 @@ async function loadOwnedAgencies() {
     }
 }
 
-function evaluatePackageLimits(pkgId) {
-    if (pkgId === 'pro' || pkgId === 'enterprise' || pkgId === 'multi') {
-        maxBranchesAllowed = 5;
-        document.getElementById('pkgNameDisplay').innerHTML = '💎 Enterprise Multi-Agency (Up to 5 Branches)';
+function evaluatePackageLimits(pkgId, agencyObj) {
+    if (myUser && myUser.role === 'super-admin') {
+        maxBranchesAllowed = 25;
+        document.getElementById('pkgNameDisplay').innerHTML = '👑 Super Admin Unlimited Hub (Up to 25 Branches)';
+        return;
+    }
+
+    const customMax = agencyObj && agencyObj.customLimits && Number(agencyObj.customLimits.maxBranches);
+    const saasPkg = window.SaaSModules && window.SaaSModules.SAAS_PACKAGES && window.SaaSModules.SAAS_PACKAGES[pkgId];
+    const pkgMax = saasPkg && saasPkg.limits && Number(saasPkg.limits.maxBranches);
+
+    if (customMax && customMax > 0) {
+        maxBranchesAllowed = customMax;
+        document.getElementById('pkgNameDisplay').innerHTML = `💎 Custom Multi-Agency Tier (Up to ${maxBranchesAllowed} Branches)`;
+    } else if (pkgId === 'enterprise_multi' || pkgId === 'enterprise' || pkgId === 'pro' || pkgId === 'multi') {
+        maxBranchesAllowed = pkgMax || 10;
+        document.getElementById('pkgNameDisplay').innerHTML = `👑 Enterprise Mega Multi (Up to ${maxBranchesAllowed} Agencies)`;
+    } else if (pkgId === 'multi_pro') {
+        maxBranchesAllowed = pkgMax || 3;
+        document.getElementById('pkgNameDisplay').innerHTML = `💎 Multi-Agency Pro (Up to ${maxBranchesAllowed} Branches)`;
     } else if (pkgId === 'basic') {
         maxBranchesAllowed = 2;
         document.getElementById('pkgNameDisplay').innerHTML = '💳 Basic Multi-Agency (Up to 2 Branches)';
+    } else if (pkgMax && pkgMax > 1) {
+        maxBranchesAllowed = pkgMax;
+        document.getElementById('pkgNameDisplay').innerHTML = `💎 ${(saasPkg && saasPkg.nameEn) || pkgId} (Up to ${maxBranchesAllowed} Branches)`;
     } else {
         maxBranchesAllowed = 1;
         document.getElementById('pkgNameDisplay').innerHTML = '🆓 Single Agency Package (1 Branch)';
     }
 }
 
-// Fetch single branch operational numbers efficiently
+// Fetch single branch operational + real P&L numbers efficiently
 async function fetchBranchMetrics(agency) {
     const branchId = agency.id;
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const monthPrefix = todayStr.slice(0, 7); // YYYY-MM
+    const range = getPeriodDateRange(activePeriod);
+    const todayStr = new Date().toISOString().slice(0, 10);
 
     let todaySales = 0;
-    let monthSales = 0;
+    let periodSales = 0;
+    let cogs = 0;
     let billsCount = 0;
     let bookersCount = 0;
     let totalKhata = 0;
     let stockValue = 0;
     let stockItemsCount = 0;
     let lowStockCount = 0;
+    let staffSalaries = 0;
+    let otherExpenses = 0;
+    let claimsNetLoss = 0;
 
     try {
-        // Bills query for this month
-        const billsSnap = await db.collection('bills')
-            .where('agencyId', '==', branchId)
-            .where('date', '>=', monthPrefix + '-01')
-            .get();
+        const [billsSnap, stockSnap, usersSnap, custSnap, expSnap, claimsSnap] = await Promise.all([
+            db.collection('bills').where('agencyId', '==', branchId).get(),
+            db.collection('stock').where('agencyId', '==', branchId).get(),
+            db.collection('users').where('agencyId', '==', branchId).get(),
+            db.collection('customers').where('agencyId', '==', branchId).get(),
+            db.collection('expenses').where('agencyId', '==', branchId).get().catch(() => ({ forEach: () => {} })),
+            db.collection('damage_claims').where('agencyId', '==', branchId).get().catch(() => ({ forEach: () => {} }))
+        ]);
 
-        billsSnap.forEach(d => {
-            const b = d.data();
-            const total = Number(b.billAmount || b.grandTotal || 0);
-            monthSales += total;
-            billsCount++;
-            if (b.date === todayStr) {
-                todaySales += total;
-            }
-        });
-
-        // Bookers query
-        const bookersSnap = await db.collection('users')
-            .where('agencyId', '==', branchId)
-            .where('role', '==', 'booker')
-            .get();
-        bookersCount = bookersSnap.size;
-
-        // Customers khata query
-        const custSnap = await db.collection('customers')
-            .where('agencyId', '==', branchId)
-            .get();
-        custSnap.forEach(d => {
-            totalKhata += Number(d.data().balance || 0);
-        });
-
-        // Stock valuation query
-        const stockSnap = await db.collection('stock')
-            .where('agencyId', '==', branchId)
-            .get();
+        // Stock valuation & cost lookup map
+        const costById = {};
+        const costByName = {};
         stockItemsCount = stockSnap.size;
         stockSnap.forEach(d => {
             const item = d.data();
             const qty = Number(item.qty || 0);
-            const rate = Number(item.retailRate || item.rate || 0);
-            stockValue += (qty * rate);
+            const purRate = Number(item.purchaseRate || item.purchasePrice || 0);
+            const sellRate = Number(item.retailRate || item.rate || 0);
+            costById[d.id] = purRate;
+            if (item.name) costByName[String(item.name).toLowerCase().trim()] = purRate;
+
+            stockValue += (qty * (purRate > 0 ? purRate : sellRate));
             const limit = item.lowStockLimit !== undefined ? Number(item.lowStockLimit) : 10;
             if (qty <= limit) lowStockCount++;
+        });
+
+        // Bills & COGS calculation
+        billsSnap.forEach(d => {
+            const b = d.data();
+            if (b.orderStatus === 'cancelled') return;
+            const bDate = b.date || (b.createdAt ? b.createdAt.slice(0, 10) : '');
+            const total = Number(b.billAmount || b.grandTotal || Math.max(0, (Number(b.subTotal) || 0) - (Number(b.discount) || 0)));
+
+            if (bDate === todayStr) {
+                todaySales += total;
+            }
+            if (bDate >= range.start && bDate <= range.end) {
+                periodSales += total;
+                billsCount++;
+                (b.items || []).forEach(it => {
+                    const paidQ = Number(it.qty || 0);
+                    const freeQ = Number(it.freeQty || it.bonus || 0);
+                    let cRate = Number(it.purchaseRate || it.costPrice || 0);
+                    if (!cRate && it.stockId && costById[it.stockId]) cRate = costById[it.stockId];
+                    if (!cRate && it.name && costByName[String(it.name).toLowerCase().trim()]) cRate = costByName[String(it.name).toLowerCase().trim()];
+                    cogs += (paidQ + freeQ) * cRate;
+                });
+            }
+        });
+
+        // Active field staff count (bookers + suppliers)
+        usersSnap.forEach(d => {
+            const u = d.data();
+            if (u.status !== 'deleted' && (u.role === 'booker' || u.role === 'supplier' || u.role === 'delivery')) {
+                bookersCount++;
+            }
+        });
+
+        // Customers Khata Receivables
+        custSnap.forEach(d => {
+            totalKhata += Math.max(0, Number(d.data().balance || 0));
+        });
+
+        // Expenses & Staff Salaries split
+        expSnap.forEach(d => {
+            const e = d.data();
+            const eDate = (e.date || (e.createdAt ? e.createdAt.slice(0, 10) : '')).slice(0, 10);
+            if (eDate && (eDate < range.start || eDate > range.end)) return;
+            const amt = Number(e.amount || 0);
+            const isSal = e.categoryId === 'cat_salary' || e.categoryId === 'cat_commission' || !!e.isSalaryPayroll || (e.category || '').toLowerCase().includes('salary');
+            if (isSal) staffSalaries += amt;
+            else otherExpenses += amt;
+        });
+
+        // Damage / Expiry Claims Net Unrecovered Loss
+        claimsSnap.forEach(d => {
+            const c = d.data();
+            const cDate = (c.incidentDate || (c.createdAt ? c.createdAt.slice(0, 10) : '')).slice(0, 10);
+            if (cDate && (cDate < range.start || cDate > range.end)) return;
+            const grossLoss = Number(c.totalLoss || (Number(c.qty || 0) * Number(c.purchaseRate || 0)));
+            const rec = Number(c.recoveredAmount || 0);
+            claimsNetLoss += Math.max(0, grossLoss - rec);
         });
 
     } catch (e) {
         console.warn(`Metrics fetch error for agency ${branchId}:`, e);
     }
 
+    const grossProfit = periodSales - cogs;
+    const totalExpenses = staffSalaries + otherExpenses;
+    const netProfit = grossProfit - totalExpenses;
+    const netMarginPct = periodSales > 0 ? Number(((netProfit / periodSales) * 100).toFixed(1)) : 0;
+    const expenseRatioPct = periodSales > 0 ? Number(((totalExpenses / periodSales) * 100).toFixed(1)) : (totalExpenses > 0 ? 100 : 0);
+
     return {
         ...agency,
         todaySales,
-        monthSales,
+        monthSales: periodSales,
+        periodSales,
+        cogs,
+        grossProfit,
+        staffSalaries,
+        otherExpenses,
+        totalExpenses,
+        claimsNetLoss,
+        netProfit,
+        netMarginPct,
+        expenseRatioPct,
         billsCount,
         bookersCount,
         totalKhata,
@@ -272,28 +395,96 @@ async function fetchBranchMetrics(agency) {
     };
 }
 
+function computeLocalAgencyComparison(branches) {
+    const activePool = branches.filter(b => (b.periodSales || 0) > 0 || (b.totalExpenses || 0) > 0);
+    const pool = activePool.length > 0 ? activePool : branches;
+
+    const topProfitAgency = [...pool].sort((a, b) => (b.netProfit || 0) - (a.netProfit || 0))[0] || null;
+    const topSalesAgency = [...pool].sort((a, b) => (b.periodSales || 0) - (a.periodSales || 0))[0] || null;
+    const lowMarginAgency = [...pool].sort((a, b) => ((a.netMarginPct || 0) - (b.netMarginPct || 0)) || ((a.netProfit || 0) - (b.netProfit || 0)))[0] || null;
+    const heavyCostAgency = [...pool].sort((a, b) => ((b.totalExpenses || 0) - (a.totalExpenses || 0)) || ((b.expenseRatioPct || 0) - (a.expenseRatioPct || 0)))[0] || null;
+    const highKhataAgency = [...branches].sort((a, b) => (b.totalKhata || 0) - (a.totalKhata || 0))[0] || null;
+
+    return {
+        spotlights: {
+            topProfitAgency,
+            topSalesAgency,
+            lowMarginAgency,
+            heavyCostAgency,
+            highKhataAgency
+        }
+    };
+}
+
+async function syncMultiAgencyComparison(branches) {
+    const localResult = computeLocalAgencyComparison(branches);
+    try {
+        const res = await fetch('/.netlify/functions/secure-api', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'compare-agencies',
+                branches: branches.map(b => ({
+                    id: b.id,
+                    name: b.name,
+                    city: b.city,
+                    periodSales: b.periodSales,
+                    cogs: b.cogs,
+                    grossProfit: b.grossProfit,
+                    staffSalaries: b.staffSalaries,
+                    otherExpenses: b.otherExpenses,
+                    totalExpenses: b.totalExpenses,
+                    claimsNetLoss: b.claimsNetLoss,
+                    totalKhata: b.totalKhata,
+                    stockValue: b.stockValue
+                }))
+            })
+        });
+        if (res.ok) {
+            const serverData = await res.json();
+            if (serverData && serverData.spotlights) return serverData;
+        }
+    } catch (e) {
+        // Offline / static preview fallback handled cleanly by localResult
+    }
+    return localResult;
+}
+
 // ============================================
-// 📊 RENDER CONSOLIDATED EXECUTIVE METRICS
+// 📊 RENDER CONSOLIDATED EXECUTIVE METRICS & SPOTLIGHTS
 // ============================================
 function renderExecutiveMetrics() {
     let totSales = 0;
+    let totGrossProfit = 0;
+    let totExpenses = 0;
+    let totNetProfit = 0;
     let totBookers = 0;
     let totKhata = 0;
     let totInventory = 0;
 
     ownedBranches.forEach(b => {
-        totSales += (b.monthSales || 0);
+        totSales += (b.periodSales || b.monthSales || 0);
+        totGrossProfit += (b.grossProfit || 0);
+        totExpenses += (b.totalExpenses || 0);
+        totNetProfit += (b.netProfit || 0);
         totBookers += (b.bookersCount || 0);
         totKhata += (b.totalKhata || 0);
         totInventory += (b.stockValue || 0);
     });
 
-    // Estimated Gross Margin (assuming ~18-20% standard margin across distribution)
-    const estProfit = totSales * 0.18;
-
     document.getElementById('totBranchesVal').innerText = ownedBranches.length;
     document.getElementById('totSalesVal').innerText = 'Rs ' + Math.round(totSales).toLocaleString();
-    document.getElementById('totProfitVal').innerText = 'Rs ' + Math.round(estProfit).toLocaleString();
+    document.getElementById('totProfitVal').innerText = 'Rs ' + Math.round(totGrossProfit).toLocaleString();
+
+    const expEl = document.getElementById('totExpensesVal');
+    if (expEl) expEl.innerText = 'Rs ' + Math.round(totExpenses).toLocaleString();
+
+    const netEl = document.getElementById('totNetProfitVal');
+    if (netEl) {
+        netEl.innerText = 'Rs ' + Math.round(totNetProfit).toLocaleString();
+        netEl.style.color = totNetProfit >= 0 ? '#047857' : '#b91c1c';
+    }
+
     document.getElementById('totBookersVal').innerText = totBookers;
     document.getElementById('totReceivablesVal').innerText = 'Rs ' + Math.round(totKhata).toLocaleString();
     document.getElementById('totInventoryVal').innerText = 'Rs ' + Math.round(totInventory).toLocaleString();
@@ -307,6 +498,50 @@ function renderExecutiveMetrics() {
         document.getElementById('branchQuotaFill').style.background = '#e74c3c';
     } else {
         document.getElementById('branchQuotaFill').style.background = '#10b981';
+    }
+}
+
+function renderSpotlights() {
+    const sp = (comparisonSummary && comparisonSummary.spotlights) || computeLocalAgencyComparison(ownedBranches).spotlights;
+    const top = sp.topProfitAgency;
+    const low = sp.lowMarginAgency;
+    const heavy = sp.heavyCostAgency;
+    const khata = sp.highKhataAgency;
+
+    const topNameEl = document.getElementById('spotTopName');
+    const topMetaEl = document.getElementById('spotTopMeta');
+    if (topNameEl && topMetaEl) {
+        topNameEl.innerText = top ? top.name : '—';
+        topMetaEl.innerText = top
+            ? `Net Profit: Rs ${Math.round(top.netProfit || 0).toLocaleString()} (${top.netMarginPct || 0}% Margin) • Sales: Rs ${Math.round(top.sales !== undefined ? top.sales : (top.periodSales || 0)).toLocaleString()}`
+            : 'No agency data yet';
+    }
+
+    const lowNameEl = document.getElementById('spotLowName');
+    const lowMetaEl = document.getElementById('spotLowMeta');
+    if (lowNameEl && lowMetaEl) {
+        lowNameEl.innerText = low ? low.name : '—';
+        lowMetaEl.innerText = low
+            ? `Net Margin: ${low.netMarginPct || 0}% • Net P&L: Rs ${Math.round(low.netProfit || 0).toLocaleString()}`
+            : 'No agency data yet';
+    }
+
+    const heavyNameEl = document.getElementById('spotHeavyName');
+    const heavyMetaEl = document.getElementById('spotHeavyMeta');
+    if (heavyNameEl && heavyMetaEl) {
+        heavyNameEl.innerText = heavy ? heavy.name : '—';
+        heavyMetaEl.innerText = heavy
+            ? `Expenses+Salaries: Rs ${Math.round(heavy.totalExpenses || 0).toLocaleString()} (${heavy.expenseRatioPct || 0}% of Sales)`
+            : 'No expenses recorded yet';
+    }
+
+    const khataNameEl = document.getElementById('spotKhataName');
+    const khataMetaEl = document.getElementById('spotKhataMeta');
+    if (khataNameEl && khataMetaEl) {
+        khataNameEl.innerText = khata ? khata.name : '—';
+        khataMetaEl.innerText = khata
+            ? `Pending Market Udhaar: Rs ${Math.round(khata.totalKhata || 0).toLocaleString()}`
+            : 'No credit balances';
     }
 }
 
@@ -325,13 +560,29 @@ function renderBranchesList() {
         return;
     }
 
+    const sp = (comparisonSummary && comparisonSummary.spotlights) || computeLocalAgencyComparison(ownedBranches).spotlights;
+    const topId = sp.topProfitAgency ? sp.topProfitAgency.id : null;
+    const lowId = sp.lowMarginAgency ? sp.lowMarginAgency.id : null;
+    const heavyId = sp.heavyCostAgency ? sp.heavyCostAgency.id : null;
+
     let html = '';
-    ownedBranches.forEach((b, idx) => {
+    ownedBranches.forEach((b) => {
         const isActive = (b.id === myActiveAgencyId);
         const cardClass = isActive ? 'branch-card active-branch' : 'branch-card';
         const badgeHtml = isActive 
-            ? '<span class="branch-badge badge-active"><i class="fas fa-check-circle"></i> CURRENT ACTIVE BRANCH</span>'
-            : '<span class="branch-badge badge-inactive">Secondary Branch</span>';
+            ? '<span class="branch-badge badge-active"><i class="fas fa-check-circle"></i> ACTIVE SESSION</span>'
+            : '<span class="branch-badge badge-inactive">Connected Agency</span>';
+
+        let tagBadges = '';
+        if (ownedBranches.length > 1) {
+            if (b.id === topId && (b.netProfit || 0) > 0) tagBadges += ' <span class="branch-badge" style="background:#dcfce7; color:#15803d;">🏆 Top Agency</span>';
+            if (b.id === heavyId && (b.totalExpenses || 0) > 0) tagBadges += ' <span class="branch-badge" style="background:#fee2e2; color:#b91c1c;">🔥 Heavy Cost</span>';
+            if (b.id === lowId && b.id !== topId) tagBadges += ' <span class="branch-badge" style="background:#fef3c7; color:#b45309;">📉 Low Margin</span>';
+        }
+
+        const catLabel = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function' && b.businessType)
+            ? (window.BusinessCategories.getById(b.businessType)?.nameEn || b.businessType)
+            : (b.businessType || 'Distribution');
 
         html += `
         <div class="${cardClass}">
@@ -340,19 +591,20 @@ function renderBranchesList() {
                     <div class="branch-name">
                         <span>🏢 ${b.name || 'Unnamed Agency'}</span>
                         ${badgeHtml}
+                        ${tagBadges}
                     </div>
                     <div style="font-size:12px; color:#64748b; margin-top:2px;">
-                        📍 ${b.city || 'Pakistan'} &nbsp;|&nbsp; 📱 ${b.mobile || 'No Phone'} &nbsp;|&nbsp; 🧾 Prefix: <b>${(b.billPrefixes && b.billPrefixes.stock) || 'STK-'}</b>
+                        📍 ${b.city || 'Pakistan'} &nbsp;|&nbsp; 🏷️ ${catLabel} &nbsp;|&nbsp; 📱 ${b.mobile || 'No Phone'} &nbsp;|&nbsp; 🧾 Prefix: <b>${(b.billPrefixes && b.billPrefixes.stock) || 'STK-'}</b>
                     </div>
                 </div>
                 <div class="branch-actions">
                     ${!isActive ? `
                         <button class="btn btn-sm" style="background:#10b981; color:#fff;" onclick="switchActiveBranch('${b.id}', '${(b.name || '').replace(/'/g, "\\'")}')">
-                            <i class="fas fa-toggle-on"></i> Switch to This Branch
+                            <i class="fas fa-toggle-on"></i> Switch Here
                         </button>
                     ` : `
                         <span style="font-size:12px; font-weight:bold; color:#15803d; padding:6px 10px; background:#dcfce7; border-radius:6px;">
-                            ✅ Active Working Session
+                            ✅ Active Session
                         </span>
                     `}
                     <button class="btn btn-sm" style="background:#0284c7; color:#fff;" onclick="openBranchSection('${b.id}', 'bills.html')">
@@ -361,36 +613,42 @@ function renderBranchesList() {
                     <button class="btn btn-sm" style="background:#f59e0b; color:#fff;" onclick="openBranchSection('${b.id}', 'stock.html')">
                         <i class="fas fa-boxes"></i> Stock
                     </button>
+                    <button class="btn btn-sm" style="background:#ef4444; color:#fff;" onclick="openBranchSection('${b.id}', 'expenses.html')">
+                        <i class="fas fa-wallet"></i> Expenses
+                    </button>
+                    <button class="btn btn-sm" style="background:#059669; color:#fff;" onclick="openBranchSection('${b.id}', 'profit.html')">
+                        <i class="fas fa-sack-dollar"></i> P&amp;L
+                    </button>
                     <button class="btn btn-sm" style="background:#6366f1; color:#fff;" onclick="openBranchSection('${b.id}', 'owner.html')">
-                        <i class="fas fa-users"></i> Bookers
+                        <i class="fas fa-users"></i> Staff
                     </button>
                 </div>
             </div>
 
             <div class="branch-stats">
                 <div class="b-stat-item">
-                    <div class="b-stat-num" style="color:#10b981;">Rs ${Math.round(b.todaySales || 0).toLocaleString()}</div>
-                    <div class="b-stat-lbl">Today Sales</div>
+                    <div class="b-stat-num" style="color:#0284c7;">Rs ${Math.round(b.periodSales || 0).toLocaleString()}</div>
+                    <div class="b-stat-lbl">Period Sales (${b.billsCount || 0} Bills)</div>
                 </div>
                 <div class="b-stat-item">
-                    <div class="b-stat-num" style="color:#0284c7;">Rs ${Math.round(b.monthSales || 0).toLocaleString()}</div>
-                    <div class="b-stat-lbl">Month Sales</div>
+                    <div class="b-stat-num" style="color:#7c3aed;">Rs ${Math.round(b.grossProfit || 0).toLocaleString()}</div>
+                    <div class="b-stat-lbl">Gross Profit</div>
                 </div>
                 <div class="b-stat-item">
-                    <div class="b-stat-num">${b.billsCount || 0}</div>
-                    <div class="b-stat-lbl">Month Bills</div>
+                    <div class="b-stat-num" style="color:#c2410c;">Rs ${Math.round(b.totalExpenses || 0).toLocaleString()}</div>
+                    <div class="b-stat-lbl">Exp (Sal: Rs ${Math.round(b.staffSalaries || 0).toLocaleString()})</div>
                 </div>
                 <div class="b-stat-item">
-                    <div class="b-stat-num">${b.bookersCount || 0}</div>
-                    <div class="b-stat-lbl">Active Bookers</div>
+                    <div class="b-stat-num" style="color:${(b.netProfit || 0) >= 0 ? '#15803d' : '#b91c1c'};">Rs ${Math.round(b.netProfit || 0).toLocaleString()}</div>
+                    <div class="b-stat-lbl">Net P&amp;L (${b.netMarginPct || 0}%)</div>
                 </div>
                 <div class="b-stat-item">
                     <div class="b-stat-num" style="color:#ef4444;">Rs ${Math.round(b.totalKhata || 0).toLocaleString()}</div>
-                    <div class="b-stat-lbl">Customer Khata</div>
+                    <div class="b-stat-lbl">Market Khata</div>
                 </div>
                 <div class="b-stat-item">
                     <div class="b-stat-num">${b.stockItemsCount || 0} (${b.lowStockCount || 0} low)</div>
-                    <div class="b-stat-lbl">Stock Items</div>
+                    <div class="b-stat-lbl">Stock (Rs ${Math.round(b.stockValue || 0).toLocaleString()})</div>
                 </div>
             </div>
         </div>`;
@@ -400,28 +658,51 @@ function renderBranchesList() {
 }
 
 // ============================================
-// 📈 RENDER COMPARATIVE MATRIX TABLE
+// 📈 RENDER COMPARATIVE MATRIX TABLE (10-Agency P&L)
 // ============================================
 function renderComparisonMatrix() {
     const tbody = document.getElementById('matrixTbody');
     if (ownedBranches.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No branches registered.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;">No branches registered.</td></tr>';
         return;
     }
 
+    const sp = (comparisonSummary && comparisonSummary.spotlights) || computeLocalAgencyComparison(ownedBranches).spotlights;
+    const topId = sp.topProfitAgency ? sp.topProfitAgency.id : null;
+    const lowId = sp.lowMarginAgency ? sp.lowMarginAgency.id : null;
+    const heavyId = sp.heavyCostAgency ? sp.heavyCostAgency.id : null;
+
+    const sorted = [...ownedBranches].sort((a, b) => (b.netProfit || 0) - (a.netProfit || 0));
+
     let html = '';
-    ownedBranches.forEach(b => {
+    sorted.forEach((b, idx) => {
         const isActive = (b.id === myActiveAgencyId);
+        let perfBadge = '<span class="branch-badge badge-inactive">Balanced</span>';
+        if (b.id === topId && (b.netProfit || 0) > 0) perfBadge = '<span class="branch-badge badge-active">🏆 Top Agency</span>';
+        else if ((b.netProfit || 0) < 0) perfBadge = '<span class="branch-badge" style="background:#fee2e2; color:#b91c1c;">🔴 Loss Making</span>';
+        else if (b.id === heavyId && (b.totalExpenses || 0) > 0) perfBadge = '<span class="branch-badge" style="background:#ffedd5; color:#c2410c;">🔥 Heavy Cost</span>';
+        else if (b.id === lowId) perfBadge = '<span class="branch-badge" style="background:#fef3c7; color:#b45309;">📉 Low Margin</span>';
+
         html += `
         <tr style="${isActive ? 'background:#f0fdf4; font-weight:600;' : ''}">
+            <td><b>#${idx + 1}</b></td>
             <td><b>${b.name || 'Branch'}</b> ${isActive ? '✅' : ''}</td>
-            <td>${b.city || '—'}</td>
-            <td style="color:#15803d; font-weight:bold;">Rs ${Math.round(b.todaySales || 0).toLocaleString()}</td>
-            <td style="color:#0369a1; font-weight:bold;">Rs ${Math.round(b.monthSales || 0).toLocaleString()}</td>
-            <td>${b.bookersCount || 0}</td>
+            <td>${b.city || '—'}<br><small style="color:#64748b;">${b.businessType || 'general'}</small></td>
+            <td style="color:#0369a1; font-weight:bold;">Rs ${Math.round(b.periodSales || 0).toLocaleString()}</td>
+            <td style="color:#64748b;">Rs ${Math.round(b.cogs || 0).toLocaleString()}</td>
+            <td style="color:#7c3aed; font-weight:bold;">Rs ${Math.round(b.grossProfit || 0).toLocaleString()}</td>
+            <td style="color:#c2410c; font-weight:bold;">
+                Rs ${Math.round(b.totalExpenses || 0).toLocaleString()}
+                <br><small style="color:#64748b;">Sal: Rs ${Math.round(b.staffSalaries || 0).toLocaleString()}</small>
+            </td>
+            <td style="font-weight:900; color:${(b.netProfit || 0) >= 0 ? '#15803d' : '#b91c1c'};">
+                Rs ${Math.round(b.netProfit || 0).toLocaleString()}
+            </td>
+            <td style="font-weight:bold;">${b.netMarginPct || 0}%</td>
+            <td style="color:#dc2626;">Rs ${Math.round(b.claimsNetLoss || 0).toLocaleString()}</td>
             <td style="color:#b91c1c;">Rs ${Math.round(b.totalKhata || 0).toLocaleString()}</td>
             <td>Rs ${Math.round(b.stockValue || 0).toLocaleString()}</td>
-            <td><span class="branch-badge ${isActive ? 'badge-active' : 'badge-inactive'}">${isActive ? 'Active' : 'Standby'}</span></td>
+            <td>${perfBadge}</td>
         </tr>`;
     });
 
@@ -491,13 +772,22 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
         return;
     }
 
+    const primaryCat = (ownedBranches[0] && (ownedBranches[0].businessCategory || ownedBranches[0].businessType)) || 'wholesaler';
     const { value: formValues } = await Swal.fire({
-        title: '🏢 Register New Branch',
+        title: '🏢 Register New Agency / Branch',
         html: `
             <div style="text-align:left; font-size:13px;">
-                <label><b>Branch / Agency Name *</b></label>
-                <input id="swalBrName" class="swal2-input" placeholder="e.g. GS Bag House (Faisalabad Branch)" style="margin-top:4px; margin-bottom:10px;">
+                <label><b>Agency / Branch Name *</b></label>
+                <input id="swalBrName" class="swal2-input" placeholder="e.g. Al-Noor Distribution (Unilever Agency)" style="margin-top:4px; margin-bottom:10px;">
                 
+                <label><b>Business Category *</b></label>
+                <select id="swalBrCat" class="swal2-input" style="margin-top:4px; margin-bottom:10px;">
+                    <option value="wholesaler" ${primaryCat === 'wholesaler' ? 'selected' : ''}>📦 Wholesaler &amp; Bulk Distribution</option>
+                    <option value="books" ${primaryCat === 'books' ? 'selected' : ''}>📚 Book Depot &amp; Stationery</option>
+                    <option value="mobile" ${primaryCat === 'mobile' ? 'selected' : ''}>📱 Mobile Shop &amp; Accessories</option>
+                    <option value="general" ${primaryCat === 'general' ? 'selected' : ''}>🛒 General Store &amp; Kiryana</option>
+                </select>
+
                 <label><b>City / District *</b></label>
                 <input id="swalBrCity" class="swal2-input" placeholder="e.g. Faisalabad" style="margin-top:4px; margin-bottom:10px;">
                 
@@ -508,7 +798,7 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
                 <input id="swalBrAddr" class="swal2-input" placeholder="e.g. Grain Market, Shop 42" style="margin-top:4px; margin-bottom:10px;">
 
                 <label><b>Bill Invoice Prefix (Unique)</b></label>
-                <input id="swalBrPrefix" class="swal2-input" placeholder="e.g. FSD-" value="BR${ownedBranches.length + 1}-" style="margin-top:4px;">
+                <input id="swalBrPrefix" class="swal2-input" placeholder="e.g. AG${ownedBranches.length + 1}-" value="AG${ownedBranches.length + 1}-" style="margin-top:4px;">
             </div>
         `,
         focusConfirm: false,
@@ -519,6 +809,7 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
             const name = document.getElementById('swalBrName').value.trim();
             const city = document.getElementById('swalBrCity').value.trim();
             const prefix = document.getElementById('swalBrPrefix').value.trim();
+            const bCat = document.getElementById('swalBrCat').value || 'wholesaler';
             if (!name) {
                 Swal.showValidationMessage('Branch Name lazmi hai!');
                 return false;
@@ -530,9 +821,10 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
             return {
                 name: name,
                 city: city,
+                businessType: bCat,
                 mobile: document.getElementById('swalBrPhone').value.trim(),
                 address: document.getElementById('swalBrAddr').value.trim(),
-                billPrefix: prefix || `BR${ownedBranches.length + 1}-`
+                billPrefix: prefix || `AG${ownedBranches.length + 1}-`
             };
         }
     });
@@ -548,7 +840,8 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
                 address: formValues.address,
                 ownerUid: myUid,
                 ownerEmail: (myUser.email || '').toLowerCase(),
-                businessType: primaryAgency.businessType || 'general',
+                businessType: formValues.businessType || primaryAgency.businessType || 'wholesaler',
+                businessCategory: formValues.businessType || primaryAgency.businessCategory || 'wholesaler',
                 packageId: primaryAgency.packageId || 'free',
                 status: 'active',
                 billPrefixes: {
@@ -558,11 +851,11 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
                 createdBy: myUid
             };
 
-            const docRef = await db.collection('agencies').add(newAgencyData);
+            await db.collection('agencies').add(newAgencyData);
 
             Swal.fire({
                 icon: 'success',
-                title: '🎉 Branch Registered Successfully!',
+                title: '🎉 Agency / Branch Registered!',
                 text: `${formValues.name} ab aap ke Multi-Agency Hub mein shamil ho chuki hai!`
             });
 
@@ -576,36 +869,44 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
 });
 
 // Refresh Button
-document.getElementById('refreshConsolidatedBtn').addEventListener('click', async () => {
-    const btn = document.getElementById('refreshConsolidatedBtn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-    btn.disabled = true;
-    await loadOwnedAgencies();
-    btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh All Data';
-    btn.disabled = false;
-    Swal.fire({
-        toast: true, position: 'top-end', showConfirmButton: false,
-        timer: 1600, icon: 'success', title: '✅ Multi-Agency Data Synced!'
+const refreshBtnEl = document.getElementById('refreshConsolidatedBtn');
+if (refreshBtnEl) {
+    refreshBtnEl.addEventListener('click', async () => {
+        refreshBtnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        refreshBtnEl.disabled = true;
+        await loadOwnedAgencies();
+        refreshBtnEl.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh All';
+        refreshBtnEl.disabled = false;
+        Swal.fire({
+            toast: true, position: 'top-end', showConfirmButton: false,
+            timer: 1600, icon: 'success', title: '✅ Multi-Agency Data Synced!'
+        });
     });
-});
+}
 
 // Print comparison matrix
-document.getElementById('printMatrixBtn').addEventListener('click', () => {
-    window.print();
-});
-
-// Logout
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-    const res = await Swal.fire({
-        title: 'Logout?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#e74c3c',
-        confirmButtonText: 'Yes',
-        cancelButtonText: 'Cancel'
+const printMatrixEl = document.getElementById('printMatrixBtn');
+if (printMatrixEl) {
+    printMatrixEl.addEventListener('click', () => {
+        window.print();
     });
-    if (res.isConfirmed) {
-        await auth.signOut();
-        window.location.href = 'auth.html';
-    }
-});
+}
+
+// Logout (guarded if topbar renders its own logout)
+const logoutBtnEl = document.getElementById('logoutBtn');
+if (logoutBtnEl) {
+    logoutBtnEl.addEventListener('click', async () => {
+        const res = await Swal.fire({
+            title: 'Logout?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel'
+        });
+        if (res.isConfirmed) {
+            await auth.signOut();
+            window.location.href = 'auth.html';
+        }
+    });
+}

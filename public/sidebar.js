@@ -7,7 +7,7 @@
 // ✅ Role-aware menu (Booker ko limited)
 // ============================================
 
-window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.3.0';
+window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
 
 (function initSidebar() {
     // Inject dark-theme.css link dynamically if not present
@@ -138,6 +138,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.3.0';
             title: 'REPORTS <span class="ur-sub">(کاروباری رپورٹس)</span>',
             items: [
                 { icon: 'fa-sack-dollar', text: 'Profit Analytics <span class="ur-sub">(منافع کا تجزیہ)</span>', url: 'profit.html', roles: ['super-admin', 'owner'], phase: 'PROFIT' },
+                { icon: 'fa-boxes-stacked', text: 'Wholesale & PJP Reports <span class="ur-sub">(ہول سیل و ڈسٹری بیوشن)</span>', url: 'reports.html?tab=wholesaler_analytics', roles: ['super-admin', 'owner'] },
                 { icon: 'fa-chart-column', text: 'Sales Reports <span class="ur-sub">(سیلز رپورٹس)</span>', url: 'reports.html?tab=sales', roles: ['super-admin', 'owner', 'booker'] },
                 { icon: 'fa-trophy', text: 'Best Sellers <span class="ur-sub">(زیادہ بکنے والا سامان)</span>', url: 'reports.html?tab=bestsellers', roles: ['super-admin', 'owner'] },
                 { icon: 'fa-hourglass-half', text: 'Slow & Dead Stock <span class="ur-sub">(سست و رکا ہوا مال)</span>', url: 'reports.html?tab=slow', roles: ['super-admin', 'owner'] },
@@ -908,6 +909,13 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.3.0';
                     }
                 }
 
+                if (window.SaaSModules && typeof window.SaaSModules.syncPackagesFromCloud === 'function') {
+                    await window.SaaSModules.syncPackagesFromCloud(db);
+                }
+
+                // Sync Agency Session Timeout configuration & publish to parent/localStorage
+                syncSessionTimeoutConfig(myAgencyData, myProfile);
+
                 window.__myAgencyData = myAgencyData;
                 window.__myProfile = myProfile;
 
@@ -968,7 +976,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.3.0';
                         ${isSuperAdmin ? '<span style="font-size:12px;">👑</span>' : ''}
                     </div>
                     <div class="eb-sidebar-agency" style="padding-left:0; font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agencyTitleText}</div>
-                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.3.0'}</div>
+                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.4.0'}</div>
                 </div>
             </div>
         </div>`;
@@ -1584,5 +1592,119 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.3.0';
         } catch (e) {}
     }
 
-    window.ebSidebar = { toggle: toggleSidebar, refresh: renderSidebar, syncBadge: syncLowStockBadge };
+    // 7️⃣ ⏱️ CONFIGURABLE SESSION TIMEOUT & ACTIVITY BRIDGE (Works inside App.tsx iframe & standalone PWA)
+    let __ebIdleTimer = null;
+    let __ebSessionExpiredShown = false;
+    let __ebLastActivityPing = 0;
+
+    function getEffectiveSessionTimeoutConfig(agencyObj, profileObj) {
+        const lsMins = localStorage.getItem('eb_session_timeout_mins');
+        const lsEnabled = localStorage.getItem('eb_session_autolock');
+        const rawMins = (agencyObj && agencyObj.sessionTimeoutMinutes !== undefined)
+            ? Number(agencyObj.sessionTimeoutMinutes)
+            : (lsMins !== null ? Number(lsMins) : 30);
+        const safeMins = Number.isFinite(rawMins) && rawMins >= 0 ? Math.min(480, Math.round(rawMins)) : 30;
+        let enabled = (agencyObj && agencyObj.sessionAutoLockEnabled !== undefined)
+            ? agencyObj.sessionAutoLockEnabled !== false
+            : (lsEnabled !== 'false');
+
+        // Check Super Admin package/permission lock for custom session control
+        if (window.SaaSModules && agencyObj && profileObj && profileObj.role !== 'super-admin') {
+            const secAcc = window.SaaSModules.checkModuleAccess('session_security', agencyObj, profileObj.role, agencyObj.permissions);
+            if (secAcc && secAcc.locked) {
+                // Locked by package/admin: enforce safe 30-min default
+                return { timeoutMinutes: 30, enabled: true, lockedByAdmin: true };
+            }
+        }
+        if (safeMins === 0) enabled = false;
+        return { timeoutMinutes: safeMins || 30, enabled, lockedByAdmin: false };
+    }
+
+    function syncSessionTimeoutConfig(agencyObj, profileObj) {
+        const cfg = getEffectiveSessionTimeoutConfig(agencyObj, profileObj);
+        try {
+            localStorage.setItem('eb_session_timeout_mins', String(cfg.timeoutMinutes));
+            localStorage.setItem('eb_session_autolock', cfg.enabled ? 'true' : 'false');
+        } catch (_) {}
+
+        if (window.parent && window.parent !== window) {
+            try {
+                window.parent.postMessage({
+                    type: 'SESSION_CONFIG',
+                    timeoutMinutes: cfg.timeoutMinutes,
+                    enabled: cfg.enabled,
+                    lockedByAdmin: cfg.lockedByAdmin
+                }, '*');
+            } catch (_) {}
+        } else {
+            restartStandaloneIdleTimer(cfg);
+        }
+        return cfg;
+    }
+
+    function restartStandaloneIdleTimer(cfgOverride) {
+        if (window.parent && window.parent !== window) return; // Handled centrally by App.tsx
+        if (__ebIdleTimer) clearTimeout(__ebIdleTimer);
+        const cfg = cfgOverride || getEffectiveSessionTimeoutConfig(window.__myAgencyData, window.__myProfile);
+        if (!cfg.enabled || cfg.timeoutMinutes <= 0 || __ebSessionExpiredShown) return;
+
+        const ms = cfg.timeoutMinutes * 60 * 1000;
+        __ebIdleTimer = setTimeout(async () => {
+            __ebSessionExpiredShown = true;
+            if (typeof Swal !== 'undefined') {
+                const res = await Swal.fire({
+                    icon: 'warning',
+                    title: '⏱️ Session Expired (Inactivity Timeout)',
+                    html: `Aap pichle <b>${cfg.timeoutMinutes} minutes</b> se inactive thay. Security ke liye dubara login / re-authenticate karein.<br><small style="color:#64748b;">(Agency Admin Settings se is timer ko kam ya zyada kiya ja sakta hai)</small>`,
+                    confirmButtonText: '🔐 Re-Authenticate (Login)',
+                    confirmButtonColor: '#10b981',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                });
+                if (res.isConfirmed) {
+                    try {
+                        if (typeof firebase !== 'undefined' && firebase.auth) await firebase.auth().signOut();
+                    } catch (_) {}
+                    window.location.href = 'auth.html';
+                }
+            } else {
+                window.location.href = 'auth.html';
+            }
+        }, ms);
+    }
+
+    function recordUserActivityBridge() {
+        const now = Date.now();
+        if (now - __ebLastActivityPing < 5000) return; // Throttle to once per 5s
+        __ebLastActivityPing = now;
+        if (window.parent && window.parent !== window) {
+            try {
+                window.parent.postMessage({ type: 'USER_ACTIVITY', timestamp: now }, '*');
+            } catch (_) {}
+        } else {
+            restartStandaloneIdleTimer();
+        }
+    }
+
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(evtName => {
+        window.addEventListener(evtName, recordUserActivityBridge, { passive: true });
+    });
+
+    function notifyGlobalToast(level, message, title) {
+        if (window.parent && window.parent !== window) {
+            try {
+                window.parent.postMessage({ type: 'TOAST', level, title: title || '', message: String(message || '') }, '*');
+                return true;
+            } catch (_) {}
+        }
+        return false;
+    }
+
+    window.ebSidebar = {
+        toggle: toggleSidebar,
+        refresh: renderSidebar,
+        syncBadge: syncLowStockBadge,
+        syncSessionConfig: syncSessionTimeoutConfig,
+        notifyToast: notifyGlobalToast
+    };
 })();

@@ -136,6 +136,9 @@
             <button class="btn btn-sm" id="btnOpenAddExpenseModal" style="background:#ef4444; color:#fff; font-weight:bold;" title="Record New Expense">
                 <i class="fas fa-plus-circle"></i> + Record Expense (نیا خرچ)
             </button>
+            <button class="btn btn-sm" id="btnQuickOpenSalaryTab" style="background:#059669; color:#fff; font-weight:bold;" title="Manage Staff Salaries & Commission">
+                <i class="fas fa-user-tie"></i> Staff Salaries (اسٹاف تنخواہیں)
+            </button>
             <button class="btn btn-sm" id="btnOpenCatModal" style="background:#6366f1; color:#fff;" title="Manage Categories">
                 <i class="fas fa-tags"></i> Categories (کیٹیگریز)
             </button>
@@ -197,6 +200,15 @@
                 <small class="kpi-sub" id="kpiActiveCategories">-- Categories</small>
             </div>
         </div>
+
+        <div class="kpi-card" style="border-left: 4px solid #059669; background: #ecfdf5;">
+            <div class="kpi-icon" style="color:#059669;"><i class="fas fa-user-tie"></i></div>
+            <div class="kpi-details">
+                <span class="kpi-title" style="color:#047857; font-weight:bold;">Staff Salaries &amp; Comm. (تنخواہیں)</span>
+                <span class="kpi-val" id="kpiStaffSalaries" style="color:#047857;">Rs --</span>
+                <small class="kpi-sub" id="kpiSalarySub">Paid Salaries &amp; Advances</small>
+            </div>
+        </div>
     </div>
 
     <!-- ===== 📅 DATE FILTER & PRESETS BAR ===== -->
@@ -240,6 +252,9 @@
         <button class="report-tab-btn" data-view="monthly">
             <i class="fas fa-calendar-alt"></i> 5. Monthly-wise Breakdown (ماہانہ)
         </button>
+        <button class="report-tab-btn" data-view="salary" style="background:#ecfdf5; border-color:#86efac; color:#047857; font-weight:700;">
+            <i class="fas fa-user-tie"></i> 6. Staff Salaries &amp; Payroll (تنخواہیں و پیشگی)
+        </button>
     </div>
 
     <!-- ===== 📊 DYNAMIC REPORT TABLE CONTAINER ===== -->
@@ -282,6 +297,29 @@
                     <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>
                     <input type="text" id="expenseSearchInput" placeholder="Search title, vendor..." style="width:100%; padding:6px 10px 6px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none;">
                 </div>
+            </div>
+        </div>
+
+        <!-- Staff Salary & Payroll Controls Toolbar (Visible in Salary View) -->
+        <div id="salaryPayrollToolbar" style="display:none; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px 14px; margin-bottom:14px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <label style="font-size:12px; font-weight:800; color:#065f46;">
+                    📅 Payroll Month:
+                    <input type="month" id="salaryMonthInput" style="margin-left:4px; padding:5px 8px; border:1px solid #6ee7b7; border-radius:6px; font-size:12px; font-weight:700; background:#fff;">
+                </label>
+                <select id="salaryStatusFilter" style="padding:6px 10px; border:1px solid #6ee7b7; border-radius:6px; font-size:12px; font-weight:700; background:#fff; color:#065f46;">
+                    <option value="all">All Staff (تمام عملہ)</option>
+                    <option value="pending">⏳ Salary Pending</option>
+                    <option value="paid">✅ Paid This Month</option>
+                </select>
+                <span id="salarySummaryPill" style="font-size:12px; font-weight:800; color:#047857; background:#fff; padding:5px 10px; border-radius:8px; border:1px solid #a7f3d0;">
+                    Loading payroll summary...
+                </span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm" id="btnAddPayrollStaff" style="background:#0284c7; color:#fff; font-weight:bold;">
+                    <i class="fas fa-user-plus"></i> + Add Godown / Driver / Office Staff
+                </button>
             </div>
         </div>
 

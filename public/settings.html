@@ -147,15 +147,21 @@
                     <div class="form-group">
                         <label>🏪 Business Category</label>
                         <select id="setBizType">
-                            <option value="general">🏪 General Distribution</option>
-                            <option value="wholesaler">📦 Wholesale Trader</option>
-                            <option value="fmcg">🥤 FMCG &amp; Food Agency</option>
-                            <option value="medical">💊 Medical &amp; Pharma Store</option>
-                            <option value="cosmetics">💄 Cosmetics &amp; Beauty</option>
-                            <option value="garments">👔 Garments &amp; Fabrics</option>
-                            <option value="mobile">📱 Mobile &amp; Accessories</option>
-                            <option value="hardware">🔧 Hardware &amp; Electrical</option>
-                            <option value="other">💼 Other Business</option>
+                            <option value="books">📚 Book Depot &amp; Stationery — ✅ Complete</option>
+                            <option value="mobile">📱 Mobile Shop, Repairing &amp; Accessories — ✅ Complete</option>
+                            <option value="medical">💊 Medical &amp; Pharma Store — 🚧 Under Development • Coming Soon</option>
+                            <option value="shoes">👟 Footwear &amp; Shoes Store — 🚧 Under Development • Coming Soon</option>
+                            <option value="garments">👔 Garments &amp; Fabrics — 🚧 Under Development • Coming Soon</option>
+                            <option value="general">🏪 General &amp; Karyana Store — 🚧 Under Development • Coming Soon</option>
+                            <option value="wholesaler">📦 Wholesale Distributor / Agency — ✅ Complete</option>
+                            <option value="confectionery">🍬 Confectionery &amp; Sweets — 🚧 Under Development • Coming Soon</option>
+                            <option value="hardware">🔧 Hardware &amp; Electrical — 🚧 Under Development • Coming Soon</option>
+                            <option value="electronics">📺 Electronics &amp; Appliances — 🚧 Under Development • Coming Soon</option>
+                            <option value="cosmetics">💄 Cosmetics &amp; Beauty — 🚧 Under Development • Coming Soon</option>
+                            <option value="auto_parts">🏍️ Auto &amp; Bike Spare Parts — 🚧 Under Development • Coming Soon</option>
+                            <option value="bakery">🥐 Bakery &amp; Mart — 🚧 Under Development • Coming Soon</option>
+                            <option value="furniture">🪑 Furniture &amp; Home — 🚧 Under Development • Coming Soon</option>
+                            <option value="other">💼 Other Business — 🚧 Under Development • Coming Soon</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -642,6 +648,75 @@
             </div>
 
             <div style="display:flex; flex-direction:column; gap:16px;">
+                <!-- ⏱️ SESSION AUTO-TIMEOUT & SECURITY CONTROL (Agency Admin Editable) -->
+                <div id="sessionSecurityBox" style="background:#f8fafc; padding:16px; border-radius:12px; border:1.5px solid #cbd5e1;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                        <div>
+                            <div style="font-weight:800; font-size:14.5px; color:#0f172a; display:flex; align-items:center; gap:8px;">
+                                <i class="fas fa-user-clock" style="color:#0284c7;"></i>
+                                <span>Inactivity Session Auto-Timeout (سیکیورٹی ٹائم آؤٹ)</span>
+                            </div>
+                            <div style="font-size:12px; color:#64748b; margin-top:2px;">
+                                اگر سافٹ ویئر پر کوئی کام نہ ہو رہا ہو تو کتنے منٹ بعد خودکار طور پر دوبارہ لاگ ان (Re-Authenticate) مانگے
+                            </div>
+                        </div>
+                        <span id="sessionSecLockBadge" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; background:#dcfce7; color:#15803d; border:1px solid #86efac;">
+                            🔓 Active
+                        </span>
+                    </div>
+
+                    <div id="sessionSecControlsWrap">
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+                            <span style="font-size:13px; font-weight:700; color:#1e293b;">Enable Auto-Logout on Inactivity</span>
+                            <label class="switch-toggle">
+                                <input type="checkbox" id="setSessionAutoLockEnabled" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:12px; align-items:end; margin-bottom:10px;">
+                            <div>
+                                <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
+                                    ⏱️ Timeout Duration (Minutes — منٹ کم یا زیادہ کریں)
+                                </label>
+                                <input type="number" id="setSessionTimeoutMins" min="1" max="480" value="30" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:800; color:#0f172a;">
+                            </div>
+                            <div>
+                                <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Quick Presets (تیز انتخاب):</label>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    <button type="button" class="btn btn-sm sec-timeout-preset" data-mins="10" style="background:#e2e8f0; color:#0f172a; font-weight:700; border:none;">10m</button>
+                                    <button type="button" class="btn btn-sm sec-timeout-preset" data-mins="15" style="background:#e2e8f0; color:#0f172a; font-weight:700; border:none;">15m</button>
+                                    <button type="button" class="btn btn-sm sec-timeout-preset" data-mins="30" style="background:#dbeafe; color:#1d4ed8; font-weight:800; border:1px solid #93c5fd;">30m</button>
+                                    <button type="button" class="btn btn-sm sec-timeout-preset" data-mins="60" style="background:#e2e8f0; color:#0f172a; font-weight:700; border:none;">60m</button>
+                                    <button type="button" class="btn btn-sm sec-timeout-preset" data-mins="120" style="background:#e2e8f0; color:#0f172a; font-weight:700; border:none;">120m</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <small style="font-size:11px; color:#64748b;">Recommended: 30 minutes (Range: 1 – 480 mins). Turn toggle OFF to keep session always active.</small>
+                            <button type="button" class="btn btn-sm" id="btnSaveSessionSecurity" style="background:#0284c7; color:#fff; font-weight:800;">
+                                <i class="fas fa-save"></i> Save Timeout Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 💾 BACKUP & RESTORE ACCESS STATUS -->
+                <div id="backupSecurityBox" style="background:#f0fdf4; padding:16px; border-radius:12px; border:1.5px solid #bbf7d0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <div style="font-weight:800; font-size:14px; color:#14532d; display:flex; align-items:center; gap:8px;">
+                            <i class="fas fa-cloud-arrow-up" style="color:#10b981;"></i>
+                            <span>Agency Backup &amp; JSON Restore (ڈیٹا بیک اپ و بحالی)</span>
+                            <span id="backupSecStatusBadge" style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; background:#dcfce7; color:#15803d; border:1px solid #86efac;">🔓 Unlocked</span>
+                        </div>
+                        <div style="font-size:12px; color:#166534; margin-top:2px;">Tamam 10 collections ka complete JSON backup download ya clean/merge restore karein</div>
+                    </div>
+                    <button type="button" class="btn btn-sm" id="btnOpenBackupFromSettings" style="background:#10b981; color:#fff; font-weight:800;">
+                        <i class="fas fa-external-link-alt"></i> Open Backup &amp; Restore
+                    </button>
+                </div>
+
                 <div style="background:#f8fafc; padding:16px; border-radius:10px; border:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div>
                         <div style="font-weight:700; font-size:14px; color:#1e293b;">🔑 Change Account Password</div>
@@ -672,6 +747,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+<!-- 💎 SAAS MODULES REGISTRY -->
+<script src="saas-modules.js"></script>
+<!-- 🏢 BUSINESS CATEGORIES REGISTRY -->
+<script src="business-categories.js"></script>
 <!-- 🧭 SIDEBAR SYSTEM -->
 <script src="sidebar.js"></script>
 <!-- ⚡ CLOUD SYNC & FIREBASE QUOTA SAVER -->

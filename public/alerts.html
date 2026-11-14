@@ -189,6 +189,11 @@
                 <div class="alert-kpi-lbl">Est. Replenishment Cost</div>
                 <div class="alert-kpi-val" id="kpiReorderCost" style="color:#10b981;">Rs --</div>
             </div>
+            <div class="alert-kpi-card" style="border-left: 4px solid #9333ea;">
+                <div class="alert-kpi-lbl">Expired / ≤30d Batches</div>
+                <div class="alert-kpi-val" id="kpiExpiryCritical" style="color:#9333ea;">0</div>
+                <div id="kpiExpiryRiskVal" style="font-size:10.5px; color:#64748b; font-weight:700; margin-top:2px;">At-Risk: Rs 0</div>
+            </div>
         </div>
 
         <!-- Toolbar: Filters & Actions -->
@@ -201,10 +206,15 @@
                 <select id="categoryFilter" style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
                     <option value="">All Categories</option>
                 </select>
+                <select id="supplierFilter" style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
+                    <option value="">All Principals / Suppliers</option>
+                </select>
                 <select id="severityFilter" style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                    <option value="all">All Alerts (Out + Low)</option>
+                    <option value="all">All Stock Alerts (Out + Low)</option>
                     <option value="out">Out of Stock Only (0 Qty)</option>
-                    <option value="low">Low Stock Only (< Limit)</option>
+                    <option value="low">Low Stock Only (&lt; Limit)</option>
+                    <option value="expiry_critical">🚨 Expired &amp; ≤30d Critical Batches</option>
+                    <option value="expiry_warning">⏳ Near-Expiry Watchlist (≤90d)</option>
                 </select>
             </div>
 
@@ -224,11 +234,11 @@
                 <thead>
                     <tr>
                         <th>Product Name</th>
-                        <th>Category</th>
-                        <th>Current Qty</th>
+                        <th>Principal / Category</th>
+                        <th>Current Qty &amp; Batch</th>
                         <th>Alert Limit</th>
                         <th>Suggested Reorder</th>
-                        <th>Est. Cost</th>
+                        <th>Est. Cost / Risk</th>
                         <th class="btn-action-cell">Quick Actions</th>
                     </tr>
                 </thead>
@@ -246,6 +256,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+<!-- 🏢 BUSINESS CATEGORIES REGISTRY -->
+<script src="business-categories.js"></script>
 <!-- 🧭 SIDEBAR SYSTEM -->
 <script src="sidebar.js"></script>
 <!-- 🔔 ALERTS CONTROLLER -->

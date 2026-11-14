@@ -71,9 +71,17 @@
 
     <!-- ===== 🔍 SEARCH & QUICK FILTER PILLS ===== -->
     <div class="search-filter-bar">
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Search by name, shop, mobile, route, city, booker...">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <div class="search-box" style="flex:1; min-width:220px;">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search by name, shop, mobile, route, city, booker...">
+            </div>
+            <select id="custRouteFilter" style="padding:10px 12px; border:2px solid #e0e6e8; border-radius:12px; font-size:13px; font-weight:700; background:#fff; color:#1e293b; outline:none; max-width:240px;" title="Filter by Route / Market / PJP Beat">
+                <option value="all">🛣️ All Routes / PJP Beats</option>
+            </select>
+            <button type="button" id="btnPrintRouteList" onclick="printWholesalePjpRouteSheet()" style="padding:10px 14px; border:none; border-radius:12px; font-size:12.5px; font-weight:800; background:#0284c7; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;" title="Print PJP Route Customer &amp; Recovery Sheet">
+                <i class="fas fa-print"></i> <span>Route Khata Sheet</span>
+            </button>
         </div>
         <!-- Quick Filter Tabs -->
         <div class="cust-filter-tabs">
@@ -82,6 +90,7 @@
             <button class="filter-tab" data-filter="clear">✅ Zero Balance (<span id="tabCountClear">0</span>)</button>
             <button class="filter-tab" data-filter="wholesale">📦 Wholesale</button>
             <button class="filter-tab" data-filter="retail">🛒 Retail</button>
+            <button class="filter-tab" data-filter="institutional" id="tabFilterInstitutional">🏫 Schools &amp; Dealers (<span id="tabCountInstitutional">0</span>)</button>
         </div>
     </div>
 
@@ -136,6 +145,55 @@
                 </div>
             </div>
 
+            <!-- 📚 / 📱 CATEGORY-SPECIFIC CUSTOMER PROFILE DETAILS (Optional) -->
+            <div id="bookCustomerFieldsPanel" style="background:#f5f3ff; border:1px solid #ddd6fe; padding:10px 12px; border-radius:10px; margin-bottom:12px;">
+                <div style="font-size:12px; font-weight:800; color:#5b21b6; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                    <span id="custProfilePanelTitle"><i class="fas fa-graduation-cap"></i> Book Depot, School &amp; Institutional Profile (Optional)</span>
+                    <span id="custProfilePanelSub" style="font-size:10.5px; color:#6d28d9; font-weight:600;">آٹو ڈسکاؤنٹ اور سلیبس بورڈ ریکارڈ کے لیے</span>
+                </div>
+                <div class="form-row" style="margin-bottom:8px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label id="custSegmentLabel">🏫 Customer Segment / Sub-Category (optional)</label>
+                        <select id="custSubCategory" class="select-input">
+                            <option value="">— Select Segment (Optional) —</option>
+                            <option value="school_college">🏫 School / College / Academy (اسکول / کالج / اکیڈمی)</option>
+                            <option value="sub_dealer">📚 Bookshop / Sub-Dealer (بک شاپ / سب ڈیلر)</option>
+                            <option value="library_inst">🏛️ Library / Govt Institution (لائبریری / سرکاری ادارہ)</option>
+                            <option value="teacher_tutor">👨‍🏫 Teacher / Coaching Center (ٹیچر / کوچنگ سینٹر)</option>
+                            <option value="student_parent">🎒 Student / Parent (طالب علم / والدین)</option>
+                            <option value="general_cust">👤 General Customer (عام گاہک)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="display:flex; justify-content:space-between; align-items:center; gap:4px; flex-wrap:wrap;">
+                            <span id="custBoardLabel">🏛️ Affiliated Board / Syllabus (optional)</span>
+                            <button type="button" onclick="openAddCustomCustomerSpecialtyModal()" style="background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd; border-radius:5px; padding:1px 7px; font-size:10px; font-weight:800; cursor:pointer;" title="Apna Naya Brand / Dealership / Board Add Karein">➕ Add New</button>
+                        </label>
+                        <input type="text" id="custBoardSyllabus" list="custBoardDatalist" maxlength="60" placeholder="e.g. PCTB, Oxford, Apple, Samsung, Accessories">
+                        <datalist id="custBoardDatalist">
+                            <option value="PCTB (Punjab Textbook Board)"></option>
+                            <option value="Oxford University Press (OUP)"></option>
+                            <option value="Afaq Sun / Iqbal Series"></option>
+                            <option value="Gaba Educational Books"></option>
+                            <option value="Federal Board (FBISE)"></option>
+                            <option value="Cambridge / O-Level"></option>
+                            <option value="Paramount / Read Foundation"></option>
+                            <option value="Dars-e-Nizami / Wafaq"></option>
+                        </datalist>
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom:0;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label id="custDiscountLabel">🏷️ Agreed Trade / School Discount % (optional)</label>
+                        <input type="number" id="custAgreedDiscount" min="0" max="100" step="0.5" placeholder="e.g. 15 or 20 (%) — Auto-applies on POS">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label id="custFocalLabel">👔 Principal / Focal Person Name (optional)</label>
+                        <input type="text" id="custFocalPerson" maxlength="60" placeholder="e.g. Principal Tariq Sb / Guarantor Name &amp; Phone">
+                    </div>
+                </div>
+            </div>
+
             <!-- 📍 LOCATION + ROUTE -->
             <div class="form-row">
                 <div class="form-group">
@@ -179,8 +237,11 @@
             <!-- 🇵🇰 FBR NTN / STRN & FILER STATUS -->
             <div class="form-row" style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 12px; border-radius:10px; margin-bottom:12px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label>🔢 NTN / STRN / CNIC (optional)</label>
-                    <input type="text" id="custNTN" maxlength="30" placeholder="e.g. 1234567-8 or CNIC">
+                    <label style="display:flex; justify-content:space-between; align-items:center; gap:4px; flex-wrap:wrap;">
+                        <span>🔢 NTN / STRN / CNIC (optional)</span>
+                        <button type="button" onclick="formatCustomerCnicInput()" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:5px; padding:1px 7px; font-size:10px; font-weight:800; cursor:pointer;" title="Auto-format 13-digit CNIC (xxxxx-xxxxxxx-x)">🪪 Format CNIC</button>
+                    </label>
+                    <input type="text" id="custNTN" maxlength="30" placeholder="e.g. 35202-1234567-1 or NTN">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label>🇵🇰 FBR Tax Category</label>
@@ -239,8 +300,14 @@
                 <button class="btn-action-sm btn-new-bill-cust" onclick="createNewBillForThisCustomer()" title="Create New Bill">
                     <i class="fas fa-plus-circle"></i> <span>New Bill</span>
                 </button>
-                <button class="btn-action-sm btn-print-ledger" onclick="printCustomerLedger()" title="Print Full Khata Statement">
-                    <i class="fas fa-print"></i> <span>Print Khata</span>
+                <button class="btn-action-sm" style="background:#0f766e; color:#fff;" onclick="openCustomerDeviceImeiModal()" title="View Sold / Repaired Phones, IMEIs &amp; Warranties for this Customer">
+                    <i class="fas fa-mobile-alt"></i> <span>IMEI / Devices</span>
+                </button>
+                <button class="btn-action-sm btn-print-ledger" onclick="printCustomerLedger()" title="Print Full A4 Khata Statement">
+                    <i class="fas fa-print"></i> <span>A4 Khata</span>
+                </button>
+                <button class="btn-action-sm" style="background:#7c3aed; color:#fff;" onclick="printCustomerLedgerThermal()" title="Print 80mm / 58mm Thermal Khata Parchi">
+                    <i class="fas fa-receipt"></i> <span>🧾 Thermal Slip</span>
                 </button>
                 <button class="btn-action-sm btn-whatsapp-ledger" onclick="shareLedgerWhatsapp()" title="Share Khata Statement on WhatsApp">
                     <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
@@ -376,6 +443,7 @@
 <!-- ⚙️ PRINT ENGINE & TEMPLATES (Print support for statement/bills) -->
 <script src="print-settings.js"></script>
 <script src="bill-templates.js"></script>
+<script src="business-categories.js"></script>
 
 <!-- 🧭 SIDEBAR SYSTEM -->
 <script src="sidebar.js"></script>

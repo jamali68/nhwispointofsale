@@ -430,7 +430,19 @@
         <div style="margin-bottom:10px;">
             <div style="position:relative; margin-bottom:8px;">
                 <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
-                <input type="text" id="catSearchInput" placeholder="🔍 Quick search product name, brand or barcode..." style="width:100%; height:38px; padding-left:36px; padding-right:12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13px; box-sizing:border-box;">
+                <input type="text" id="catSearchInput" placeholder="🔍 Search product name, IMEI, ISBN, brand, model, class, publisher or barcode..." style="width:100%; height:38px; padding-left:36px; padding-right:12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13px; box-sizing:border-box;">
+            </div>
+            <!-- 📚 BOOK DEPOT CATALOGUE FILTER BAR (Class, Publisher & 1-Click Class Syllabus Booking) -->
+            <div id="catBookFilterBar" style="display:none; background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:6px 8px; margin-bottom:8px; align-items:center; gap:6px; flex-wrap:wrap;">
+                <select id="catFilterClass" style="flex:1; min-width:125px; height:32px; padding:2px 6px; border:1.5px solid #7dd3fc; border-radius:7px; font-size:11.5px; font-weight:700; color:#0f172a; background:#fff;">
+                    <option value="all">🎓 All Classes / تمام جماعتیں</option>
+                </select>
+                <select id="catFilterPublisher" style="flex:1; min-width:130px; height:32px; padding:2px 6px; border:1.5px solid #7dd3fc; border-radius:7px; font-size:11.5px; font-weight:700; color:#0f172a; background:#fff;">
+                    <option value="all">🏛️ All Publishers / تمام پبلشرز</option>
+                </select>
+                <button type="button" id="btnCatAddClassSet" style="display:none; background:#0284c7; color:#fff; border:none; height:32px; padding:0 10px; border-radius:7px; font-size:11px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;">
+                    <i class="fas fa-layer-group"></i> <span id="btnCatAddClassSetText">+ Book Class Set</span>
+                </button>
             </div>
             <div class="cat-category-chips" id="catCategoryChips">
                 <button type="button" class="cat-chip active" data-cat="all">📂 All Products</button>
@@ -449,6 +461,9 @@
             <div id="catItemTitle" style="font-size:19px; font-weight:900; color:#0f172a; text-align:center; padding:4px 6px; min-height:46px; display:flex; align-items:center; justify-content:center; line-height:1.3;">
                 Product Title
             </div>
+
+            <!-- 📚 Book Depot & Category Specifications Strip (Shown when item has industryFields) -->
+            <div id="catBookSpecsRow" style="display:none; text-align:center; padding:2px 8px 6px; display:flex; flex-wrap:wrap; justify-content:center; gap:4px;"></div>
 
             <!-- 🖼️ PHOTO FRAME (Portrait 3:4 Catalog Showcase) -->
             <div class="cat-photo-frame" id="catPhotoFrame" title="Tap to view fullscreen showcase">
@@ -577,7 +592,7 @@
                     </div>
                 </div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 <select id="mainBillTemplateSelect" style="padding: 5px 10px; border-radius: 7px; border: 1.5px solid #3b82f6; font-size: 12.5px; font-weight: 800; color: #1e3a8a; outline: none; background: #fff; cursor: pointer; box-shadow:0 1px 3px rgba(59,130,246,0.15);">
                     <option value="template4" selected>⚡ Modern Minimal / Table Invoice (Default — عام پرچون بل)</option>
                     <option value="template1">🇵🇰 Urdu Classic (Nastaliq — کلاسک اردو بل)</option>
@@ -590,6 +605,10 @@
                     <option value="template7">📦 FMCG Corporate Cash Memo (الرحیم / کوکانیہ فارمیٹ)</option>
                     <option value="template11">📦 Al-Raheem Agencies FMCG Distribution (کارپوریٹ ڈسٹری بیوشن)</option>
                     <option value="template10">🏢 Hassan Distributor Corporate FMCG & Tax Invoice [101067]</option>
+                </select>
+                <select id="mainThermalWidthSelect" style="padding: 5px 8px; border-radius: 7px; border: 1.5px solid #0284c7; font-size: 12px; font-weight: 800; color: #0369a1; outline: none; background: #f0f9ff; cursor: pointer;" title="Thermal Receipt Roll Size (80mm Desktop vs 58mm Mini Bluetooth)">
+                    <option value="80" selected>🧾 80mm Roll</option>
+                    <option value="58">🧾 58mm Roll</option>
                 </select>
             </div>
         </div>
@@ -649,9 +668,27 @@
              📋 INTERACTIVE LIST VIEW (ORDER BOOKER PRO)
              ============================================ -->
         <div id="interactiveListSection" style="margin-top:2px;">
+            <!-- 🔍 Order Booker Fast Search & Book Depot Class/Publisher Bar -->
+            <div id="bookerListFilterBar" style="background:#fff; border:1.5px solid #e2e8f0; border-radius:8px; padding:6px 8px; margin-bottom:4px; display:flex; flex-direction:column; gap:5px;">
+                <div style="position:relative;">
+                    <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>
+                    <input type="text" id="listSearchInput" placeholder="🔍 Search item, brand, model, IMEI, book, class, publisher or ISBN..." style="width:100%; height:32px; padding-left:30px; padding-right:8px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; box-sizing:border-box;">
+                </div>
+                <div id="bookerBookQuickFilters" style="display:none; align-items:center; gap:5px; flex-wrap:wrap;">
+                    <select id="bookerFilterClass" style="flex:1; min-width:115px; height:29px; padding:2px 6px; border:1.5px solid #bae6fd; border-radius:6px; font-size:11px; font-weight:700; color:#0f172a; background:#f0f9ff;">
+                        <option value="all">🎓 All Classes</option>
+                    </select>
+                    <select id="bookerFilterPublisher" style="flex:1; min-width:120px; height:29px; padding:2px 6px; border:1.5px solid #bae6fd; border-radius:6px; font-size:11px; font-weight:700; color:#0f172a; background:#f0f9ff;">
+                        <option value="all">🏛️ All Publishers</option>
+                    </select>
+                    <button type="button" id="btnBookerAddClassSet" style="display:none; background:#0284c7; color:#fff; border:none; height:29px; padding:0 9px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;">
+                        <i class="fas fa-layer-group"></i> <span id="btnBookerAddClassSetText">+ Book Class Set</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- Hidden backward-compatibility elements -->
             <div style="display:none;" aria-hidden="true">
-                <input type="text" id="listSearchInput">
                 <div id="listFilterTabs">
                     <button class="list-filter-pill active" data-filter="all"></button>
                     <button class="list-filter-pill" data-filter="offers"></button>
@@ -681,13 +718,35 @@
                     <div style="flex:1; position:relative;">
                         <div style="position:relative; display:flex; align-items:center;">
                             <i class="fas fa-barcode" style="position:absolute; left:12px; color:#64748b; font-size:16px;"></i>
-                            <input type="text" id="barcodeScanInput" placeholder="Scan Barcode or quick search..." autocomplete="off"
+                            <input type="text" id="barcodeScanInput" placeholder="Scan Barcode / IMEI 1-4 / ISBN or search mobile, model, book, brand..." autocomplete="off"
                                    style="width:100%; height:42px; padding-left:38px; padding-right:10px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
                         </div>
                         <div class="suggest-box" id="barcodeSuggest"></div>
                     </div>
                     <button type="button" id="openCameraBtn" class="btn" onclick="openCameraScanner()" style="background:#10b981; color:#fff; border:none; height:42px; padding:0 16px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(16,185,129,0.3); white-space:nowrap; flex-shrink:0;">
                         <i class="fas fa-camera"></i> <span>Camera</span>
+                    </button>
+                </div>
+
+                <!-- 📚📱 BOOK DEPOT & MOBILE SHOP POS QUICK FILTER & ACTION BAR -->
+                <div id="posIndustryQuickBar" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed #e2e8f0; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span id="posIndustryFilterLabel" style="font-size:11.5px; font-weight:800; color:#0369a1; white-space:nowrap;">
+                        📚 Book POS Filter:
+                    </span>
+                    <select id="posFilterClass" style="flex:1; min-width:140px; height:32px; padding:3px 8px; border:1.5px solid #bae6fd; border-radius:7px; font-size:12px; font-weight:700; color:#0f172a; background:#f0f9ff; cursor:pointer;">
+                        <option value="all">🎓 All Classes / تمام جماعتیں</option>
+                    </select>
+                    <select id="posFilterPublisher" style="flex:1; min-width:150px; height:32px; padding:3px 8px; border:1.5px solid #bae6fd; border-radius:7px; font-size:12px; font-weight:700; color:#0f172a; background:#f0f9ff; cursor:pointer;">
+                        <option value="all">🏛️ All Publishers / تمام پبلشرز</option>
+                    </select>
+                    <button type="button" id="btnAddClassSyllabusSet" style="display:none; background:#0284c7; color:#fff; border:none; height:32px; padding:0 12px; border-radius:7px; font-size:11.5px; font-weight:800; cursor:pointer; align-items:center; gap:5px; white-space:nowrap; box-shadow:0 2px 5px rgba(2,132,199,0.25);" title="Add all available books of the selected Class into the invoice">
+                        <i class="fas fa-layer-group"></i> <span id="btnAddClassSyllabusText">+ Add Class Syllabus Set</span>
+                    </button>
+                    <button type="button" id="btnMobileRepairJob" onclick="openMobileRepairJobPosModal()" style="display:none; background:#7c3aed; color:#fff; border:none; height:32px; padding:0 11px; border-radius:7px; font-size:11.5px; font-weight:800; cursor:pointer; align-items:center; gap:5px; white-space:nowrap; box-shadow:0 2px 5px rgba(124,58,237,0.25);" title="Add Mobile Repairing Job / LCD Fitting / Software Service to Bill">
+                        🛠️ <span>+ Repairing / Service Job (ریپئرنگ جاب)</span>
+                    </button>
+                    <button type="button" id="btnMobileTradeIn" onclick="openMobileTradeInPosModal()" style="display:none; background:#059669; color:#fff; border:none; height:32px; padding:0 11px; border-radius:7px; font-size:11.5px; font-weight:800; cursor:pointer; align-items:center; gap:5px; white-space:nowrap; box-shadow:0 2px 5px rgba(5,150,105,0.25);" title="Record Customer Old Phone Exchange / Trade-In Deduction">
+                        🔄 <span>+ Exchange / Trade-In (پرانا موبائل ایکسچینج)</span>
                     </button>
                 </div>
             </div>
@@ -898,7 +957,14 @@
                 <span>Rs <span id="sumSubTotal">0.00</span></span>
             </div>
             <div class="total-row">
-                <span>Discount (Rs):</span>
+                <span style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <span>Discount:</span>
+                    <span style="display:inline-flex; align-items:center; gap:3px; background:#f1f5f9; padding:2px 6px; border-radius:6px; font-size:11.5px; color:#475569;" title="Optional: Enter discount percentage (%) to auto-calculate Discount Rs">
+                        <input type="number" id="sumDiscountPercent" placeholder="%" min="0" max="100" step="0.1"
+                               style="width:48px; padding:3px 4px; border:1px solid #cbd5e1; border-radius:4px; text-align:right; font-size:11.5px; font-weight:bold; background:#fff;">
+                        <b>%</b>
+                    </span>
+                </span>
                 <input type="number" id="sumDiscount" value="0" min="0" step="0.01"
                        style="width:100px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; text-align:right; font-weight:bold;">
             </div>
@@ -1005,13 +1071,16 @@
             </div>
         </div>
 
-        <!-- 🏢 ADMIN ACTION BUTTONS (DIRECT PRINT & SAVE) -->
+        <!-- 🏢 ADMIN ACTION BUTTONS (DIRECT PRINT, THERMAL PRINT & SAVE) -->
         <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;" id="billActionBtnsContainer">
-            <button type="button" class="btn-save-bill" id="saveAndPrintBillBtn" style="flex:1 1 240px; margin-top:0; min-width:200px; background:#10b981; color:#fff; border:none; padding:13px 18px; border-radius:10px; font-size:15px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 3px 10px rgba(16,185,129,0.35);">
-                <i class="fas fa-print" style="font-size:18px;"></i> <span>🖨️ SAVE & DIRECT PRINT BILL <span class="ur-sub">(محفوظ اور پرنٹ کریں)</span></span>
+            <button type="button" class="btn-save-bill" id="saveAndPrintBillBtn" style="flex:1 1 220px; margin-top:0; min-width:190px; background:#10b981; color:#fff; border:none; padding:13px 16px; border-radius:10px; font-size:14.5px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 3px 10px rgba(16,185,129,0.35);">
+                <i class="fas fa-print" style="font-size:17px;"></i> <span>🖨️ SAVE &amp; PRINT BILL <span class="ur-sub">(محفوظ اور پرنٹ)</span></span>
             </button>
-            <button class="btn-save-bill" id="saveBillBtn" style="flex:1 1 200px; margin-top:0; min-width:180px; background:#0284c7; color:#fff; border:none; padding:13px 16px; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 3px 8px rgba(2,132,199,0.3);">
-                <i class="fas fa-check-circle"></i> <span>💾 SAVE INVOICE ONLY <span class="ur-sub">(صرف بل محفوظ کریں)</span></span>
+            <button type="button" class="btn-save-bill" id="saveAndThermalPrintBtn" style="flex:1 1 220px; margin-top:0; min-width:190px; background:#0f172a; color:#fff; border:1.5px solid #334155; padding:13px 16px; border-radius:10px; font-size:14px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 3px 10px rgba(15,23,42,0.35);" title="Save Bill &amp; Print on 80mm/58mm Thermal Receipt Printer">
+                <i class="fas fa-receipt" style="font-size:17px; color:#38bdf8;"></i> <span>🧾 SAVE &amp; THERMAL SLIP <span class="ur-sub">(تھرمل پرچی پرنٹ)</span></span>
+            </button>
+            <button class="btn-save-bill" id="saveBillBtn" style="flex:1 1 180px; margin-top:0; min-width:165px; background:#0284c7; color:#fff; border:none; padding:13px 14px; border-radius:10px; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 3px 8px rgba(2,132,199,0.3);">
+                <i class="fas fa-check-circle"></i> <span>💾 SAVE ONLY <span class="ur-sub">(صرف محفوظ کریں)</span></span>
             </button>
             <button type="button" class="btn" id="adminNewBillBtn" style="flex:0 0 auto; background:#f8fafc; color:#475569; border:1.5px solid #cbd5e1; padding:12px 16px; border-radius:10px; font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
                 <i class="fas fa-redo"></i> <span>Reset / New Bill <span class="ur-sub">(نیا بل)</span></span>
@@ -1039,22 +1108,26 @@
             <div class="total-row balance"><span>New Customer Balance:</span><span>Rs <span id="ssBalance">0.00</span></span></div>
         </div>
         
-        <!-- Print Template & Language Selector -->
+        <!-- Print Template, Thermal Roll Size & Language Selector -->
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span style="font-size:13px; font-weight:bold; color:var(--primary);">🎨 Style:</span>
                 <select id="ssTemplateSelect" style="padding:7px 12px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px; font-weight:bold; outline:none; background:#fff;">
                     <option value="template4" selected>⚡ Modern Minimal / Table Invoice (Default)</option>
+                    <option value="template6">🧾 Thermal POS Slip (58mm / 80mm — پرچی پرنٹر)</option>
                     <option value="template1">🇵🇰 Urdu Classic (Nastaliq)</option>
                     <option value="template2">📋 Traders English (Header)</option>
                     <option value="template3">🇵🇰 Urdu + English Mix</option>
                     <option value="template5">💎 Premium Full (All Boxes)</option>
-                    <option value="template6">🧾 Thermal POS Slip (58mm / 80mm)</option>
                     <option value="template8">🇵🇰 Classic Wholesale Urdu Grid (Legal Half-Cut 8.5"x7")</option>
                     <option value="template9">🇵🇰 Abid Traders Sales Invoice — Manthar Road Sadiqabad (Phase 6 — Complete)</option>
                     <option value="template7">📦 FMCG Corporate Cash Memo/Invoice (Al-Raheem Format)</option>
                     <option value="template11">📦 Al-Raheem Agencies Cash Memo / Invoice (Phase 4 — FMCG Distribution)</option>
                     <option value="template10">🏢 Hassan Distributor Corporate FMCG & Tax Invoice [101067] (Phase 5 — Complete)</option>
+                </select>
+                <select id="ssThermalWidthSelect" style="padding:7px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:12.5px; font-weight:bold; outline:none; background:#f0f9ff; color:#0369a1;" title="Thermal Printer Roll Width (80mm Desktop vs 58mm Portable)">
+                    <option value="80" selected>🧾 80mm Thermal Roll</option>
+                    <option value="58">🧾 58mm Mini Roll</option>
                 </select>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
@@ -1069,6 +1142,9 @@
         <div class="output-grid">
             <button class="output-btn" id="outPrintBtn" style="background: var(--primary);">
                 <i class="fas fa-print"></i> PRINT INVOICE
+            </button>
+            <button class="output-btn" id="outThermalPrintBtn" style="background: #0f172a; color: #fff;" title="1-Click Thermal Receipt Print (80mm / 58mm)">
+                <i class="fas fa-receipt" style="color:#38bdf8;"></i> THERMAL SLIP (پرچی)
             </button>
             <button class="output-btn" id="outPdfBtn" style="background: #e74c3c;">
                 <i class="fas fa-file-pdf"></i> SAVE PDF
@@ -1264,6 +1340,8 @@
 <script src="bills-db.js?v=1.0.0"></script>
 <!-- ⚙️ PRINT ENGINE -->
 <script src="print-settings.js"></script>
+<!-- 🏢 BUSINESS CATEGORY & INDUSTRY REGISTRY -->
+<script src="business-categories.js"></script>
 <!-- 🎨 BILL TEMPLATES -->
 <script src="bill-templates.js"></script>
 <!-- 🧾 PRO BILLING & OFFLINE ENGINE -->

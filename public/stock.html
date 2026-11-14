@@ -117,12 +117,21 @@
     <div class="search-filter-bar">
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Search by item name, code or barcode...">
+            <input type="text" id="searchInput" placeholder="Search by item name, code, barcode, class, publisher or subject...">
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <select id="categoryFilter" style="padding:7px 12px; border:2px solid #e0e6e8; border-radius:18px; font-size:13px; font-weight:bold; background:#fff; outline:none; color:var(--primary);">
                 <option value="all">📂 All Categories</option>
             </select>
+            <!-- 📚 Dynamic Industry Quick Filters (Class / Board / Publisher for Book Depot) -->
+            <div id="industryQuickFilterBar" style="display:none; gap:8px; flex-wrap:wrap; align-items:center;">
+                <select id="industryFilterPrimary" style="padding:6px 10px; border:1.5px solid #bae6fd; border-radius:16px; font-size:12px; font-weight:bold; background:#f0f9ff; color:#0369a1; outline:none;">
+                    <option value="all">🎓 All Classes / Grades</option>
+                </select>
+                <select id="industryFilterSecondary" style="padding:6px 10px; border:1.5px solid #bae6fd; border-radius:16px; font-size:12px; font-weight:bold; background:#f0f9ff; color:#0369a1; outline:none;">
+                    <option value="all">🏛️ All Publishers / Brands</option>
+                </select>
+            </div>
             <div class="filter-chips">
                 <button class="filter-chip active" data-filter="all">All Items</button>
                 <button class="filter-chip" data-filter="low">⚠️ Low Stock</button>
@@ -294,6 +303,111 @@
                 </div>
             </div>
 
+            <!-- 📚📱 CATEGORY-AWARE PURCHASE, SUPPLIER / DEALER DISCOUNT & USED PHONE SELLER VERIFICATION HELPER -->
+            <div id="bookPurchaseHelperBox" style="display:none; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:12px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                    <span style="font-size:12px; font-weight:bold; color:#b45309;">
+                        <i class="fas fa-calculator"></i> <span id="purchaseHelperTitle">پبلشر ڈسکاؤنٹ اور خریداری ریٹ کیلکولیٹر (Publisher Trade Discount & Supplier - اختیاری)</span>
+                    </span>
+                    <div style="display:flex; flex-wrap:wrap; gap:5px; align-items:center;">
+                        <button type="button" id="btnAddQuickSupplier" onclick="openAddCustomSupplierModal('itemSupplierName')" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:6px; padding:2px 8px; font-size:10px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:3px;">
+                            🏢 + New Supplier / Dealer
+                        </button>
+                        <button type="button" id="btnToggleUsedSellerBox" onclick="toggleUsedPhoneSellerBox()" style="display:none; background:#dcfce7; color:#15803d; border:1px solid #86efac; border-radius:6px; padding:2px 8px; font-size:10px; font-weight:bold; cursor:pointer; align-items:center; gap:3px;">
+                            🪪 Used Phone Seller / CNIC Record (استعمال شدہ فون فروخت کنندہ)
+                        </button>
+                        <span style="font-size:10.5px; background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:10px; font-weight:bold;">
+                            Auto Cost & Wholesale Calculator
+                        </span>
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label id="lblItemSupplier" style="font-size:11px; font-weight:bold; color:#92400e;">🏛️ پبلشر / سپلائر (Supplier / Publisher)</label>
+                        <input type="text" id="itemSupplierName" list="supplierSuggestionsList" placeholder="مثلاً: PCTB, Oxford, Afaq, Ilmi" style="font-size:12px;">
+                        <datalist id="supplierSuggestionsList"></datalist>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label id="lblItemMrp" style="font-size:11px; font-weight:bold; color:#92400e;">🏷️ درج شدہ قیمت (Printed Price / MRP)</label>
+                        <input type="number" id="itemPrintedMrp" placeholder="مثلاً: 500" min="0" step="0.01" style="font-size:12px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label id="lblItemPubDisc" style="font-size:11px; font-weight:bold; color:#92400e;">📉 پبلشر ڈسکاؤنٹ % (Purchase Disc %)</label>
+                        <input type="number" id="itemPublisherDisc" placeholder="مثلاً: 25 (25% Off)" min="0" max="99" step="0.1" style="font-size:12px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label id="lblItemWhDisc" style="font-size:11px; font-weight:bold; color:#92400e;">🏪 ہول سیل ڈسکاؤنٹ % (Wholesale Disc %)</label>
+                        <input type="number" id="itemWholesaleDisc" placeholder="مثلاً: 15 (15% Off)" min="0" max="99" step="0.1" style="font-size:12px;">
+                    </div>
+                </div>
+
+                <!-- 📦 WHOLESALER MASTER CARTON → PER-PIECE COST & TP CALCULATOR -->
+                <div id="wholesaleCartonCalcBar" style="display:none; margin-top:10px; padding:10px; background:#eff6ff; border:1.5px dashed #3b82f6; border-radius:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:7px;">
+                        <span style="font-size:11.5px; font-weight:bold; color:#1d4ed8;">
+                            📦 ماسٹر کارٹن ↔ فی پیس ریٹ کیلکولیٹر (Master Carton to Per-Piece Cost & Margin Calculator)
+                        </span>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                            <button type="button" id="btnWhApplyPerPiece" style="background:#0284c7; color:#fff; border:none; border-radius:6px; padding:3px 8px; font-size:10px; font-weight:bold; cursor:pointer;" title="کارٹن ریٹس کو پیسز سے تقسیم کر کے فی پیس ریٹس لگائیں">
+                                🔢 Convert Carton → Per-Piece Rates
+                            </button>
+                            <button type="button" id="btnWhApplyCartonCost" style="background:#15803d; color:#fff; border:none; border-radius:6px; padding:3px 8px; font-size:10px; font-weight:bold; cursor:pointer;" title="ماسٹر کارٹن لاگت سے فی پیس خریداری ریٹ نکالیں">
+                                📥 Calc Per-Piece Cost from Carton
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; align-items:end;">
+                        <div>
+                            <label style="font-size:10.5px; font-weight:bold; color:#1e40af; display:block; margin-bottom:2px;">🔢 پیسز فی کارٹن / بوری (Pack Size)</label>
+                            <input type="number" id="whCalcPackSize" min="1" step="1" placeholder="مثلاً: 24" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #93c5fd; border-radius:6px; font-size:12px; background:#fff;">
+                        </div>
+                        <div>
+                            <label style="font-size:10.5px; font-weight:bold; color:#1e40af; display:block; margin-bottom:2px;">🏭 کارٹن خریداری لاگت (Master Carton Cost)</label>
+                            <input type="number" id="whCalcCartonCost" min="0" step="0.01" placeholder="مثلاً: 4500" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #93c5fd; border-radius:6px; font-size:12px; background:#fff;">
+                        </div>
+                        <div id="whCalcBreakdownBadge" style="background:#ffffff; border:1px solid #bfdbfe; border-radius:6px; padding:6px 8px; font-size:11px; color:#1e3a8a; font-weight:600; min-height:30px; display:flex; align-items:center;">
+                            💡 Pack Size اور Rate لکھیں — فی پیس لاگت اور منافع خود نظر آئے گا
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🪪 USED / SECOND-HAND MOBILE SELLER CNIC & PHONE VERIFICATION RECORD (Mobile Shop Security Shield) -->
+                <div id="usedPhoneSellerBox" style="display:none; margin-top:10px; padding:10px; background:#f0fdf4; border:1.5px dashed #22c55e; border-radius:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                        <span style="font-size:11.5px; font-weight:bold; color:#166534;">
+                            🪪 استعمال شدہ / سیکنڈ ہینڈ موبائل بیچنے والے کا ریکارڈ (Used Phone Seller CNIC & Security Verification)
+                        </span>
+                        <button type="button" onclick="printUsedPhoneUndertakingFromForm()" style="background:#15803d; color:#fff; border:none; border-radius:6px; padding:3px 9px; font-size:10.5px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                            🖨️ Print Purchase Undertaking (اقرار نامہ خریداری پرنٹ کریں)
+                        </button>
+                    </div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)); gap:8px;">
+                        <div>
+                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">👤 فروخت کنندہ کا نام (Seller Full Name)</label>
+                            <input type="text" id="itemSellerName" placeholder="مثلاً: محمد علی ولد احمد" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">🪪 شناختی کارڈ نمبر (Seller CNIC No)</label>
+                            <input type="text" id="itemSellerCnic" placeholder="35202-1234567-1" maxlength="16" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">📞 موبائل نمبر (Seller Mobile No)</label>
+                            <input type="text" id="itemSellerPhone" placeholder="0300-1234567" maxlength="15" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">📦 ڈبہ اور لوازمات (Box & Accessories Status)</label>
+                            <select id="itemSellerBoxStatus" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
+                                <option value="">— ڈبہ / چارجر منتخب کریں —</option>
+                                <option value="Complete Box + Original Charger (مکمل ڈبہ اور اوریجنل چارجر)">📦 Complete Box + Original Charger (مکمل ڈبہ اور چارجر)</option>
+                                <option value="Original Box Only (صرف اصل ڈبہ موجود ہے)">📦 Original Box Only (صرف اصل ڈبہ موجود ہے)</option>
+                                <option value="Kit Only - CNIC Copy Attached (صرف کٹ - شناختی کارڈ کاپی ہمراہ)">🪪 Kit Only - CNIC Copy Attached (صرف کٹ - شناختی کارڈ ضمانت)</option>
+                                <option value="Shop Purchase Receipt Attached (پرانی دکان کی رسید موجود ہے)">🧾 Shop Purchase Receipt Attached (پرانی رسید موجود ہے)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- DUAL PRICING: Wholesale & Retail + Purchase Cost for Profit Tracking -->
             <div class="form-row" style="background:#f8fafc; padding:12px; border-radius:10px; border:1px solid #e2e8f0;">
                 <div class="form-group">
@@ -376,30 +490,113 @@
 
 <!-- 📥📤 STOCK IN/OUT RESTOCK MODAL -->
 <div id="stockModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; padding:15px;">
-    <div style="background:#fff; border-radius:16px; padding:25px; width:100%; max-width:400px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-        <h3 id="stockModalTitle" style="color:var(--primary); margin-bottom:5px;">📥 Stock IN</h3>
-        <p id="stockModalItem" style="color:#7f8c8d; font-size:13px; margin-bottom:15px; font-weight:600;"></p>
+    <div style="background:#fff; border-radius:16px; padding:22px; width:100%; max-width:460px; max-height:90vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+        <h3 id="stockModalTitle" style="color:var(--primary); margin-bottom:4px;">📥 Stock IN</h3>
+        <p id="stockModalItem" style="color:#7f8c8d; font-size:13px; margin-bottom:14px; font-weight:600;"></p>
         
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:10px;">
             <label style="font-weight:bold; font-size:13px;">🔢 Quantity *</label>
-            <input type="number" id="modalQty" min="0.01" step="0.01" placeholder="0" required style="width:100%; padding:10px; border:2px solid #e0e6e8; border-radius:8px;">
+            <input type="number" id="modalQty" min="0.01" step="0.01" placeholder="0" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:2px solid #e0e6e8; border-radius:8px;">
         </div>
 
-        <!-- Optional: Purchase Rate Update during IN -->
-        <div class="form-group" id="modalPurchaseGroup" style="margin-bottom:12px;">
-            <label style="font-weight:bold; font-size:13px;">💵 New Purchase Rate (optional update)</label>
-            <input type="number" id="modalNewPurchase" min="0" step="0.01" placeholder="Current cost rate" style="width:100%; padding:10px; border:2px solid #e0e6e8; border-radius:8px;">
+        <!-- Optional: Supplier / Publisher & Purchase Pricing during Stock IN -->
+        <div id="modalPurchaseGroup" style="margin-bottom:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                        <label id="modalSupplierLabel" style="font-weight:bold; font-size:11px; color:#334155;">🏛️ Publisher / Supplier</label>
+                        <button type="button" onclick="openAddCustomSupplierModal('modalSupplierName')" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:5px; padding:1px 6px; font-size:9.5px; font-weight:bold; cursor:pointer;">+ New</button>
+                    </div>
+                    <input type="text" id="modalSupplierName" list="supplierSuggestionsList" placeholder="e.g. PCTB, Oxford, Airlink" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px;">
+                </div>
+                <div>
+                    <label id="modalInvoiceLabel" style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">🧾 Invoice / Bilty # (اختیاری)</label>
+                    <input type="text" id="modalInvoiceNo" placeholder="e.g. Inv #412 / Bilty #88" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px;">
+                </div>
+            </div>
+
+            <!-- Category-Aware MRP / Official Price & Trade Discount % Auto-Calculator -->
+            <div id="modalBookCalcGroup" style="display:none; background:#fffbeb; border:1px dashed #f59e0b; border-radius:8px; padding:8px; margin-bottom:8px;">
+                <div id="modalCalcGroupTitle" style="font-size:11px; font-weight:bold; color:#b45309; margin-bottom:5px;">
+                    📚 Printed Price (MRP) & Trade Discount % Calculator (اختیاری)
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div>
+                        <label id="modalMrpLabel" style="font-size:11px; font-weight:600; color:#92400e; display:block; margin-bottom:2px;">🏷️ Printed MRP (درج قیمت)</label>
+                        <input type="number" id="modalMrpRate" min="0" step="0.01" placeholder="MRP / Official Rate" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #fcd34d; border-radius:6px; font-size:12px; background:#fff;">
+                    </div>
+                    <div>
+                        <label id="modalDiscLabel" style="font-size:11px; font-weight:600; color:#92400e; display:block; margin-bottom:2px;">📉 Trade Discount % (ڈسکاؤنٹ)</label>
+                        <input type="number" id="modalDiscPercent" min="0" max="99" step="0.1" placeholder="e.g. 8 or 20%" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #fcd34d; border-radius:6px; font-size:12px; background:#fff;">
+                    </div>
+                </div>
+                <div id="modalWholesaleCartonRow" style="display:none; margin-top:6px; padding:5px 8px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; font-size:11px; color:#1e40af; font-weight:700;">
+                    📦 Packing: <span id="modalCartonPackLabel">--</span> &nbsp;|&nbsp; <span id="modalPerPieceCostBadge">Per-Piece Cost: Rs --</span>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div>
+                    <label style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">💵 Purchase Rate (لاگت ریٹ)</label>
+                    <input type="number" id="modalNewPurchase" min="0" step="0.01" placeholder="Net cost rate" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; background:#fff;">
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">🏷️ Retail / MRP (پرچون ریٹ)</label>
+                    <input type="number" id="modalNewRetail" min="0" step="0.01" placeholder="Retail rate" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; background:#fff;">
+                </div>
+            </div>
+
+            <!-- Edition / Session Update on Restock (Book Depot) -->
+            <div id="modalEditionGroup" style="display:none; margin-top:8px;">
+                <label style="font-weight:bold; font-size:11.5px; color:#0369a1; display:block; margin-bottom:3px;">📅 Edition / Academic Session Update (ایڈیشن اپڈیٹ - اختیاری)</label>
+                <input type="text" id="modalEditionYear" placeholder="مثلاً: 2026-27 New Edition" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #bae6fd; border-radius:7px; font-size:12px; background:#f0f9ff;">
+            </div>
+
+            <!-- 📱 Mobile Shop Restock: Direct IMEI 1 & 2 Update + Used Phone Seller CNIC Verification -->
+            <div id="modalMobileRestockGroup" style="display:none; margin-top:8px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:8px;">
+                <div style="font-size:11px; font-weight:bold; color:#0369a1; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>📱 نئے آنے والے فون کے IMEI نمبرز (Incoming Handset IMEIs - اختیاری)</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:6px;">
+                    <div>
+                        <label style="font-size:10.5px; font-weight:bold; color:#0c4a6e; display:block; margin-bottom:2px;">🔢 IMEI 1 (15 Digits)</label>
+                        <input type="text" id="modalRestockImei1" placeholder="Scan or Enter IMEI 1" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #7dd3fc; border-radius:6px; font-size:11.5px; background:#fff;">
+                    </div>
+                    <div>
+                        <label style="font-size:10.5px; font-weight:bold; color:#0c4a6e; display:block; margin-bottom:2px;">🔢 IMEI 2 (Dual SIM)</label>
+                        <input type="text" id="modalRestockImei2" placeholder="Scan or Enter IMEI 2" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #7dd3fc; border-radius:6px; font-size:11.5px; background:#fff;">
+                    </div>
+                </div>
+                <div style="border-top:1px dashed #7dd3fc; padding-top:6px; margin-top:4px;">
+                    <div style="font-size:10.5px; font-weight:bold; color:#15803d; margin-bottom:4px;">
+                        🪪 استعمال شدہ فون فروخت کنندہ کا شناختی کارڈ اور نمبر (Used Phone Seller CNIC & Mobile - اختیاری)
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px;">
+                        <div>
+                            <input type="text" id="modalSellerCnic" placeholder="CNIC: 35202-1234567-1" maxlength="16" style="width:100%; box-sizing:border-box; padding:5px 7px; border:1px solid #86efac; border-radius:6px; font-size:11.5px; background:#fff;">
+                        </div>
+                        <div>
+                            <input type="text" id="modalSellerPhone" placeholder="Mobile: 0300-1234567" maxlength="15" style="width:100%; box-sizing:border-box; padding:5px 7px; border:1px solid #86efac; border-radius:6px; font-size:11.5px; background:#fff;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Total Purchase Bill Calculation -->
+            <div id="modalPurchaseSummaryBadge" style="display:none; margin-top:8px; padding:6px 10px; background:#dcfce7; color:#166534; border:1px solid #86efac; border-radius:7px; font-size:12px; font-weight:bold; text-align:center;">
+                💰 Total Purchase Value: Rs 0
+            </div>
         </div>
 
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:10px;">
             <label style="font-weight:bold; font-size:13px;">📝 Reason *</label>
-            <select id="modalReason" style="width:100%; padding:10px; border:2px solid #e0e6e8; border-radius:8px; background:#fff;">
+            <select id="modalReason" style="width:100%; box-sizing:border-box; padding:9px 10px; border:2px solid #e0e6e8; border-radius:8px; background:#fff;">
                 <!-- Filled dynamically by JS -->
             </select>
         </div>
-        <div class="form-group" style="margin-bottom:15px;">
-            <label style="font-weight:bold; font-size:13px;">📝 Note / Invoice # (optional)</label>
-            <input type="text" id="modalNote" maxlength="100" placeholder="e.g. Invoice # 412 from supplier" style="width:100%; padding:10px; border:2px solid #e0e6e8; border-radius:8px;">
+        <div class="form-group" style="margin-bottom:14px;">
+            <label style="font-weight:bold; font-size:13px;">📝 Extra Note / Remarks (optional)</label>
+            <input type="text" id="modalNote" maxlength="100" placeholder="e.g. Checked & verified bundle" style="width:100%; box-sizing:border-box; padding:9px 10px; border:2px solid #e0e6e8; border-radius:8px;">
         </div>
         
         <div style="display:flex; gap:10px;">

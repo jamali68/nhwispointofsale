@@ -586,11 +586,834 @@ function UNIT_LBL(u) {
     const m = {
         'kg': 'kg', 'g': 'g', 'pound': 'lb', 'maund': 'Maund', 'liter': 'L',
         'pcs': 'pcs', 'dozen': 'Dozen', 'packet': 'Pkt', 'bag': 'Bag',
-        'box': 'Box', 'carton': 'Ctn', 'bottle': 'Btl', 'can': 'Can',
-        'meter': 'm', 'feet': 'ft', 'gallon': 'Gal', 'unit': 'Unit'
+        'box': 'Box', 'carton': 'Ctn', 'master_ctn': 'M.Ctn', 'crate': 'Crate',
+        'bottle': 'Btl', 'can': 'Can', 'set': 'Set', 'bundle': 'Bndl', 'ream': 'Ream',
+        'pair': 'Pair', 'suit': 'Suit', 'meter': 'm', 'feet': 'ft', 'gallon': 'Gal', 'unit': 'Unit'
     };
-    return m[u] || u || '';
+    if (m[u]) return m[u];
+    if (window.BusinessCategories && window.BusinessCategories.UNIT_CATALOG && window.BusinessCategories.UNIT_CATALOG[u]) {
+        return window.BusinessCategories.UNIT_CATALOG[u].short || u;
+    }
+    return u || '';
 }
+
+// ============================================
+// 📚 CATEGORY-AWARE POS HELPERS (BOOK DEPOT & STATIONERY - SUB-PHASE D)
+// ============================================
+let posActiveClassFilter = 'all';
+let posActivePublisherFilter = 'all';
+
+function getActiveAgencyBusinessType() {
+    if (myAgency && myAgency.businessType) return String(myAgency.businessType).toLowerCase().trim();
+    try {
+        const cachedAg = JSON.parse(localStorage.getItem('eb_user_agency') || '{}');
+        if (cachedAg && cachedAg.businessType) return String(cachedAg.businessType).toLowerCase().trim();
+    } catch (_) {}
+    return 'books';
+}
+
+function isBookDepotAgency() {
+    const bt = getActiveAgencyBusinessType();
+    if (window.BusinessCategories) {
+        const cat = window.BusinessCategories.getById(bt);
+        if (cat) return cat.id === 'books';
+    }
+    return bt === 'books' || bt === 'book_depot' || bt === 'stationery' || bt === 'book_points';
+}
+
+function isMobileShopAgency() {
+    const bt = getActiveAgencyBusinessType();
+    if (window.BusinessCategories) {
+        const cat = window.BusinessCategories.getById(bt);
+        if (cat) return cat.id === 'mobile';
+    }
+    return bt === 'mobile' || bt === 'mobile_shop' || bt === 'mobile_repairing' || bt === 'mobile_accessories';
+}
+
+function isWholesalerAgency() {
+    const bt = getActiveAgencyBusinessType();
+    if (window.BusinessCategories) {
+        const cat = window.BusinessCategories.getById(bt);
+        if (cat) return cat.id === 'wholesaler';
+    }
+    return bt === 'wholesaler' || bt === 'distributor' || bt === 'wholesale' || bt === 'agency' || bt === 'fmcg_distributor';
+}
+
+// Concise subtitle for POS rows & Printed Invoices (supports Book Depot, Mobile Shop IMEI 1..4, Wholesaler Carton/TP/Bonus, etc.)
+function formatStockIndustrySubtitle(s) {
+    if (!s) return '';
+    if (window.BusinessCategories && typeof window.BusinessCategories.formatItemSubtitle === 'function') {
+        const sub = window.BusinessCategories.formatItemSubtitle(s);
+        if (sub) return sub;
+    }
+    const ind = (s.industryFields && typeof s.industryFields === 'object') ? s.industryFields : {};
+    const parts = [];
+    if (ind.classGrade) parts.push(ind.classGrade);
+    if (ind.publisherBoard) parts.push(ind.publisherBoard);
+    if (ind.subjectAuthor) parts.push(ind.subjectAuthor);
+    if (ind.mediumLang) parts.push(ind.mediumLang);
+    if (ind.editionYear) parts.push(ind.editionYear);
+    if (ind.pagesRuling) parts.push(ind.pagesRuling);
+    if (ind.bindingVariant) parts.push(ind.bindingVariant);
+    if (ind.brandCompany) parts.push(ind.brandCompany);
+    if (ind.modelVariant) parts.push(`Model: ${ind.modelVariant}`);
+    if (ind.ramStorage) parts.push(ind.ramStorage);
+    if (ind.colorFinish) parts.push(ind.colorFinish);
+    if (ind.ptaStatus) parts.push(ind.ptaStatus);
+    if (ind.conditionGrade) parts.push(ind.conditionGrade);
+    const imeiList = [ind.imei1, ind.imei2, ind.imei3, ind.imei4].map(x => String(x || '').trim()).filter(Boolean);
+    if (imeiList.length > 0) {
+        parts.push(`IMEI: ${imeiList.join(' / ')}`);
+    } else if (ind.imeiSerial) {
+        parts.push(`IMEI: ${ind.imeiSerial}`);
+    }
+    if (ind.warrantyInfo) parts.push(`Warranty: ${ind.warrantyInfo}`);
+    if (ind.cartonPacking) parts.push(`Ctn: ${ind.cartonPacking}`);
+    if (Number(ind.tradePriceTP) > 0) parts.push(`TP: Rs ${ind.tradePriceTP}`);
+    if (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme')) parts.push(`Scheme: ${ind.bonusSchemeRule}`);
+    if (ind.skuBatchCode) parts.push(`SKU: ${ind.skuBatchCode}`);
+    if (ind.expiryDate) parts.push(`Exp: ${ind.expiryDate}`);
+    const packSz = parseFloat(ind.packSize) || (s.unit === 'maund' ? 40 : 0);
+    if (packSz > 1) {
+        const uLbl = s.unit === 'set' ? (isMobileShopAgency() ? 'Items/Set' : 'Books/Set') : (s.unit === 'ream' ? 'Sheets' : (s.unit === 'maund' ? 'kg/Maund' : `Pcs/${UNIT_LBL(s.unit)}`));
+        parts.push(`${packSz} ${uLbl}`);
+    }
+    if (ind.isbnCode) parts.push(`ISBN: ${ind.isbnCode}`);
+    return parts.join(' | ');
+}
+
+// Rich HTML badge line for POS autocomplete dropdowns, Interactive List, and 3:4 Portrait Catalogue
+function formatStockSuggestionMeta(s) {
+    if (!s) return '';
+    const ind = (s.industryFields && typeof s.industryFields === 'object') ? s.industryFields : {};
+    const isWholesaleMode = isWholesalerAgency();
+    const badges = [];
+    if (ind.classGrade) badges.push(`🎓 ${ind.classGrade}`);
+    if (ind.publisherBoard) badges.push(`🏛️ ${ind.publisherBoard}`);
+    if (ind.brandCompany) badges.push(`${isWholesaleMode ? '🏭' : '📱'} ${ind.brandCompany}`);
+    if (!ind.publisherBoard && !ind.brandCompany && s.supplierName) badges.push(`🏢 ${s.supplierName}`);
+    if (ind.modelVariant) badges.push(`📲 ${ind.modelVariant}`);
+    if (ind.ramStorage) badges.push(`💾 ${ind.ramStorage}`);
+    if (ind.subjectAuthor) badges.push(`✍️ ${ind.subjectAuthor}`);
+    if (ind.mediumLang) badges.push(`🌐 ${ind.mediumLang}`);
+    if (ind.editionYear) badges.push(`📅 ${ind.editionYear}`);
+    if (ind.pagesRuling) badges.push(`📒 ${ind.pagesRuling}`);
+    if (ind.bindingVariant) badges.push(`🎨 ${ind.bindingVariant}`);
+    if (ind.colorFinish) badges.push(`🎨 ${ind.colorFinish}`);
+    if (ind.ptaStatus) badges.push(`📡 ${ind.ptaStatus}`);
+    if (ind.conditionGrade) badges.push(`✨ ${ind.conditionGrade}`);
+    const imeiList = [ind.imei1, ind.imei2, ind.imei3, ind.imei4].map(x => String(x || '').trim()).filter(Boolean);
+    if (imeiList.length > 0) {
+        badges.push(`🔢 IMEI: ${imeiList.join(' / ')}`);
+    } else if (ind.imeiSerial) {
+        badges.push(`🔢 IMEI: ${ind.imeiSerial}`);
+    }
+    if (ind.warrantyInfo) badges.push(`🛡️ ${ind.warrantyInfo}`);
+    if (ind.cartonPacking) badges.push(`📦 ${ind.cartonPacking}`);
+    if (Number(ind.tradePriceTP) > 0) badges.push(`💰 TP: Rs ${Number(ind.tradePriceTP).toLocaleString()}`);
+    if (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme')) badges.push(`🎁 ${ind.bonusSchemeRule}`);
+    if (ind.skuBatchCode) badges.push(`🔖 ${ind.skuBatchCode}`);
+    if (ind.expiryDate) badges.push(`⏳ Exp: ${ind.expiryDate}`);
+    const packSz = parseFloat(ind.packSize) || (s.unit === 'dozen' ? 12 : (s.unit === 'ream' ? 500 : (s.unit === 'maund' ? 40 : 0)));
+    if (packSz > 1) {
+        const subWord = s.unit === 'set' ? (isMobileShopAgency() ? 'Items/Set' : 'Books/Set') : (s.unit === 'ream' ? 'Sheets/Ream' : (s.unit === 'maund' ? 'kg/Maund' : `Pcs/${UNIT_LBL(s.unit)}`));
+        badges.push(`📦 ${packSz} ${subWord}`);
+    }
+    if (ind.isbnCode) badges.push(`🔢 ${ind.isbnCode}`);
+    if (badges.length === 0) return '';
+    return `<div style="font-size:10.5px; color:#0369a1; background:#f0f9ff; border:1px solid #bae6fd; border-radius:5px; padding:2px 6px; margin-top:2px; display:inline-block;">${badges.join(' &nbsp;•&nbsp; ')}</div>`;
+}
+
+// Match stock item against POS search query AND active Class/Brand/Company & Publisher/PTA/Group filters
+function matchesPosSearchAndFilters(s, rawQuery = '') {
+    if (!s) return false;
+    const ind = (s.industryFields && typeof s.industryFields === 'object') ? s.industryFields : {};
+    const isMobMode = isMobileShopAgency();
+    const isBookMode = isBookDepotAgency();
+    const isWhlMode = isWholesalerAgency() && !isBookMode && !isMobMode;
+
+    if (posActiveClassFilter !== 'all') {
+        const targetPri = posActiveClassFilter.toLowerCase();
+        if (isMobMode || isWhlMode) {
+            const br = String(ind.brandCompany || s.supplierName || s.lastSupplier || '').trim().toLowerCase();
+            if (br !== targetPri) return false;
+        } else {
+            if (String(ind.classGrade || '').trim().toLowerCase() !== targetPri) {
+                return false;
+            }
+        }
+    }
+    if (posActivePublisherFilter !== 'all') {
+        const targetSec = posActivePublisherFilter.toLowerCase();
+        if (isMobMode) {
+            const pta = String(ind.ptaStatus || '').trim().toLowerCase();
+            const cond = String(ind.conditionGrade || '').trim().toLowerCase();
+            const warr = String(ind.warrantyInfo || '').trim().toLowerCase();
+            if (pta !== targetSec && cond !== targetSec && warr !== targetSec) {
+                return false;
+            }
+        } else if (isWhlMode) {
+            const schemeRule = String(ind.bonusSchemeRule || '').trim();
+            const hasActiveScheme = Boolean(s.hasScheme || (schemeRule && !schemeRule.startsWith('No Scheme')));
+            if (targetSec === '__active_scheme__') {
+                if (!hasActiveScheme) return false;
+            } else {
+                const subGrp = String(ind.itemSubType || s.category || '').trim().toLowerCase();
+                const ruleLower = schemeRule.toLowerCase();
+                const slabelLower = String(s.schemeLabel || '').trim().toLowerCase();
+                if (subGrp !== targetSec && ruleLower !== targetSec && slabelLower !== targetSec) {
+                    return false;
+                }
+            }
+        } else {
+            const pub = String(ind.publisherBoard || s.supplierName || s.lastSupplier || '').trim().toLowerCase();
+            if (pub !== targetSec) {
+                return false;
+            }
+        }
+    }
+
+    const q = String(rawQuery || '').toLowerCase().trim();
+    if (!q) return true;
+
+    const qCleanCode = q.replace(/[-\s\/]/g, '');
+    const itemIsbnClean = String(ind.isbnCode || '').toLowerCase().replace(/[-\s]/g, '');
+    const itemSkuClean = String(ind.skuBatchCode || s.sku || '').toLowerCase().replace(/[-\s]/g, '');
+    const itemImeisClean = [ind.imei1, ind.imei2, ind.imei3, ind.imei4, ind.imeiSerial]
+        .map(x => String(x || '').toLowerCase().replace(/[-\s\/]/g, ''))
+        .filter(Boolean);
+
+    if ((s.name || '').toLowerCase().includes(q)) return true;
+    if ((s.barcode || '').toLowerCase().includes(q)) return true;
+    if ((s.category || '').toLowerCase().includes(q)) return true;
+    if ((s.supplierName || '').toLowerCase().includes(q)) return true;
+    if (itemIsbnClean && qCleanCode && itemIsbnClean.includes(qCleanCode)) return true;
+    if (itemSkuClean && qCleanCode && itemSkuClean.includes(qCleanCode)) return true;
+    if (qCleanCode && itemImeisClean.some(im => im.includes(qCleanCode))) return true;
+
+    return Object.values(ind).some(val => String(val || '').toLowerCase().includes(q));
+}
+
+function setupBookPosQuickFilterBar() {
+    const bar = document.getElementById('posIndustryQuickBar');
+    const bookerBar = document.getElementById('bookerBookQuickFilters');
+    const catBar = document.getElementById('catBookFilterBar');
+    const filterLbl = document.getElementById('posIndustryFilterLabel');
+    const btnRepairJob = document.getElementById('btnMobileRepairJob');
+    const btnTradeIn = document.getElementById('btnMobileTradeIn');
+
+    const clsSelects = [
+        document.getElementById('posFilterClass'),
+        document.getElementById('bookerFilterClass'),
+        document.getElementById('catFilterClass')
+    ].filter(Boolean);
+
+    const pubSelects = [
+        document.getElementById('posFilterPublisher'),
+        document.getElementById('bookerFilterPublisher'),
+        document.getElementById('catFilterPublisher')
+    ].filter(Boolean);
+
+    const addSetBtns = [
+        { btn: document.getElementById('btnAddClassSyllabusSet'), txt: document.getElementById('btnAddClassSyllabusText') },
+        { btn: document.getElementById('btnBookerAddClassSet'), txt: document.getElementById('btnBookerAddClassSetText') },
+        { btn: document.getElementById('btnCatAddClassSet'), txt: document.getElementById('btnCatAddClassSetText') }
+    ].filter(x => x.btn);
+
+    if (clsSelects.length === 0) return;
+
+    const isMobMode = isMobileShopAgency() || allMyStock.some(s => s.industryFields && (s.industryFields.imei1 || s.industryFields.brandCompany || s.industryFields.ptaStatus || s.industryFields.modelVariant));
+    const hasBookItems = allMyStock.some(s => s.industryFields && (s.industryFields.classGrade || s.industryFields.publisherBoard || s.industryFields.isbnCode));
+    const hasWholesaleItems = allMyStock.some(s => s.industryFields && (s.industryFields.cartonPacking || s.industryFields.tradePriceTP || s.industryFields.bonusSchemeRule || s.industryFields.skuBatchCode));
+    const isWholesaleMode = isWholesalerAgency() || (!isBookDepotAgency() && !isMobileShopAgency() && hasWholesaleItems);
+
+    if (!isBookDepotAgency() && !hasBookItems && !isMobMode && !isWholesaleMode) {
+        if (bar) bar.style.display = 'none';
+        if (bookerBar) bookerBar.style.display = 'none';
+        if (catBar) catBar.style.display = 'none';
+        posActiveClassFilter = 'all';
+        posActivePublisherFilter = 'all';
+        return;
+    }
+
+    if (bar) bar.style.display = 'flex';
+    if (bookerBar) bookerBar.style.display = 'flex';
+    if (catBar) catBar.style.display = 'flex';
+
+    if (isWholesaleMode && !isBookDepotAgency() && !isMobileShopAgency()) {
+        if (filterLbl) filterLbl.innerHTML = '📦 Wholesale Filter:';
+        if (btnRepairJob) btnRepairJob.style.display = 'none';
+        if (btnTradeIn) btnTradeIn.style.display = 'none';
+
+        const scanInp = document.getElementById('barcodeScanInput');
+        if (scanInp) scanInp.placeholder = 'Scan Barcode / SKU / Batch or search product, brand, carton Packing, bonus...';
+        const listInp = document.getElementById('listSearchInput');
+        if (listInp) listInp.placeholder = '🔍 Search product, principal company, carton packing, SKU or scheme...';
+
+        const companies = new Set();
+        const groupsAndSchemes = new Set();
+
+        allMyStock.forEach(s => {
+            const ind = s.industryFields || {};
+            const comp = String(ind.brandCompany || s.supplierName || s.lastSupplier || '').trim();
+            const grp = String(ind.itemSubType || s.category || '').trim();
+            const sch = String(ind.bonusSchemeRule || s.schemeLabel || '').trim();
+            if (comp) companies.add(comp);
+            if (grp) groupsAndSchemes.add(grp);
+            if (sch && !sch.startsWith('No Scheme')) groupsAndSchemes.add(sch);
+        });
+
+        if (!companies.has(posActiveClassFilter)) posActiveClassFilter = 'all';
+        if (posActivePublisherFilter !== '__active_scheme__' && !groupsAndSchemes.has(posActivePublisherFilter)) {
+            posActivePublisherFilter = 'all';
+        }
+
+        clsSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">🏭 All Principal Companies / تمام کمپنیاں</option>';
+            companies.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c;
+                o.textContent = `🏭 ${c}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActiveClassFilter;
+        });
+
+        pubSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">📦 All Groups & Schemes / تمام گروپس</option><option value="__active_scheme__">🎁 Active Bonus / Scheme Items Only</option>';
+            groupsAndSchemes.forEach(gs => {
+                const o = document.createElement('option');
+                o.value = gs;
+                o.textContent = `📦 ${gs}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActivePublisherFilter;
+        });
+
+        addSetBtns.forEach(({ btn }) => { btn.style.display = 'none'; });
+    } else if (isMobMode && !isBookDepotAgency()) {
+        if (filterLbl) filterLbl.innerHTML = '📱 Mobile POS:';
+        if (btnRepairJob) btnRepairJob.style.display = 'inline-flex';
+        if (btnTradeIn) btnTradeIn.style.display = 'inline-flex';
+
+        const brands = new Set();
+        const ptaAndConds = new Set();
+
+        allMyStock.forEach(s => {
+            const ind = s.industryFields || {};
+            const br = String(ind.brandCompany || s.supplierName || '').trim();
+            const pta = String(ind.ptaStatus || '').trim();
+            const cond = String(ind.conditionGrade || '').trim();
+            if (br) brands.add(br);
+            if (pta) ptaAndConds.add(pta);
+            if (cond) ptaAndConds.add(cond);
+        });
+
+        if (!brands.has(posActiveClassFilter)) posActiveClassFilter = 'all';
+        if (!ptaAndConds.has(posActivePublisherFilter)) posActivePublisherFilter = 'all';
+
+        clsSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">📱 All Brands / تمام برانڈز</option>';
+            brands.forEach(b => {
+                const o = document.createElement('option');
+                o.value = b;
+                o.textContent = `📱 ${b}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActiveClassFilter;
+        });
+
+        pubSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">📡 All PTA / کنڈیشن</option>';
+            ptaAndConds.forEach(pc => {
+                const o = document.createElement('option');
+                o.value = pc;
+                o.textContent = `📡 ${pc}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActivePublisherFilter;
+        });
+
+        addSetBtns.forEach(({ btn }) => { btn.style.display = 'none'; });
+    } else {
+        if (filterLbl) filterLbl.innerHTML = '📚 Book POS Filter:';
+        if (btnRepairJob) btnRepairJob.style.display = 'none';
+        if (btnTradeIn) btnTradeIn.style.display = 'none';
+
+        const classes = new Set();
+        const publishers = new Set();
+
+        allMyStock.forEach(s => {
+            const ind = s.industryFields || {};
+            const c = String(ind.classGrade || '').trim();
+            const p = String(ind.publisherBoard || s.supplierName || '').trim();
+            if (c) classes.add(c);
+            if (p) publishers.add(p);
+        });
+
+        if (!classes.has(posActiveClassFilter)) posActiveClassFilter = 'all';
+        if (!publishers.has(posActivePublisherFilter)) posActivePublisherFilter = 'all';
+
+        clsSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">🎓 All Classes / تمام جماعتیں</option>';
+            classes.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c;
+                o.textContent = `🎓 ${c}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActiveClassFilter;
+        });
+
+        pubSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">🏛️ All Publishers / تمام پبلشرز</option>';
+            publishers.forEach(p => {
+                const o = document.createElement('option');
+                o.value = p;
+                o.textContent = `🏛️ ${p}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActivePublisherFilter;
+        });
+    }
+
+    const syncAddSetBtnVisibility = () => {
+        if ((isMobMode || isWholesaleMode) && !isBookDepotAgency()) {
+            addSetBtns.forEach(({ btn }) => { btn.style.display = 'none'; });
+            return;
+        }
+        const count = posActiveClassFilter !== 'all'
+            ? allMyStock.filter(s => matchesPosSearchAndFilters(s, '') && (Number(s.qty) || 0) > 0).length
+            : 0;
+        addSetBtns.forEach(({ btn, txt }) => {
+            btn.style.display = (posActiveClassFilter !== 'all' && count > 0) ? 'inline-flex' : 'none';
+            if (txt) {
+                txt.innerText = `+ ${posActiveClassFilter} Set (${count} Books)`;
+            }
+        });
+    };
+
+    const refreshFilteredViews = () => {
+        syncAddSetBtnVisibility();
+        if (typeof renderInteractiveProductList === 'function') renderInteractiveProductList();
+        if (typeof filterAndRenderCatalogue === 'function') {
+            catIndex = 0;
+            filterAndRenderCatalogue();
+        }
+    };
+
+    clsSelects.forEach(sel => {
+        if (!sel.dataset.boundPosFilter) {
+            sel.dataset.boundPosFilter = 'true';
+            sel.addEventListener('change', () => {
+                posActiveClassFilter = sel.value;
+                clsSelects.forEach(other => { if (other !== sel) other.value = posActiveClassFilter; });
+                refreshFilteredViews();
+            });
+        }
+    });
+
+    pubSelects.forEach(sel => {
+        if (!sel.dataset.boundPosFilter) {
+            sel.dataset.boundPosFilter = 'true';
+            sel.addEventListener('change', () => {
+                posActivePublisherFilter = sel.value;
+                pubSelects.forEach(other => { if (other !== sel) other.value = posActivePublisherFilter; });
+                refreshFilteredViews();
+            });
+        }
+    });
+
+    const handleAddClassSetClick = () => {
+        if (posActiveClassFilter === 'all') return;
+        const classBooks = allMyStock.filter(s => matchesPosSearchAndFilters(s, '') && (Number(s.qty) || 0) > 0);
+        if (classBooks.length === 0) return;
+
+        const isBooker = isOrderBookerMode();
+        const catSec = document.getElementById('catalogueOrderSection');
+        const isCatVisible = catSec && catSec.style.display !== 'none';
+
+        if (isBooker && !selectedCustomer) {
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'warning',
+                title: 'پہلے اوپر دکان دار منتخب کریں / Select Shopkeeper first!',
+                showConfirmButton: false, timer: 2200
+            });
+            if (window.focusShopkeeperInput) window.focusShopkeeperInput();
+            return;
+        }
+
+        if (isBooker || isCatVisible) {
+            classBooks.forEach(book => {
+                const curQty = (catCart[book.id] && catCart[book.id].qty) ? catCart[book.id].qty : 0;
+                updateCatItemQty(book, curQty + 1);
+            });
+            if (typeof renderInteractiveProductList === 'function') renderInteractiveProductList();
+            if (typeof syncCatCartToTotals === 'function') syncCatCartToTotals();
+        } else {
+            classBooks.forEach(book => addItemToRows(book));
+        }
+
+        Swal.fire({
+            toast: true, position: 'top-end', showConfirmButton: false,
+            timer: 2000, icon: 'success',
+            title: `📚 Added ${classBooks.length} items for ${posActiveClassFilter}!`
+        });
+    };
+
+    addSetBtns.forEach(({ btn }) => {
+        if (!btn.dataset.boundPosSet) {
+            btn.dataset.boundPosSet = 'true';
+            btn.addEventListener('click', handleAddClassSetClick);
+        }
+    });
+
+    syncAddSetBtnVisibility();
+}
+
+// 🛠️ Mobile Shop POS: Quick Repairing / Service Job Billing Modal
+window.openMobileRepairJobPosModal = async function() {
+    const { value: jobData } = await Swal.fire({
+        title: '🛠️ موبائل ریپئرنگ / سروس جاب بل میں شامل کریں',
+        width: 540,
+        html: `
+            <div style="text-align:right; direction:rtl; font-size:12.5px; color:#1e293b;">
+                <div style="margin-bottom:8px;">
+                    <label style="font-weight:bold; display:block; margin-bottom:4px; color:#475569;">⚡ فوری سروس منتخب کریں (Quick Service Chips):</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:5px;">
+                        <button type="button" onclick="document.getElementById('repFaultType').value='Panel / LCD Combo Replacement (پینل / ایل سی ڈی تبدیلی)'" style="background:#f3e8ff; color:#6d28d9; border:1px solid #d8b4fe; border-radius:6px; padding:3px 7px; font-size:10.5px; font-weight:bold; cursor:pointer;">📲 Panel / LCD Fitting</button>
+                        <button type="button" onclick="document.getElementById('repFaultType').value='Charging Base / Jack Repair (چارجنگ جیک ریپئرنگ)'" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:6px; padding:3px 7px; font-size:10.5px; font-weight:bold; cursor:pointer;">🔌 Charging Jack</button>
+                        <button type="button" onclick="document.getElementById('repFaultType').value='New Battery Replacement (نئی بیٹری تبدیلی)'" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; border-radius:6px; padding:3px 7px; font-size:10.5px; font-weight:bold; cursor:pointer;">🔋 Battery Change</button>
+                        <button type="button" onclick="document.getElementById('repFaultType').value='Software / Flashing / FRP Unlock (سافٹ ویئر و ان لاک)'" style="background:#fef3c7; color:#b45309; border:1px solid #fcd34d; border-radius:6px; padding:3px 7px; font-size:10.5px; font-weight:bold; cursor:pointer;">🔓 Software / FRP</button>
+                        <button type="button" onclick="document.getElementById('repFaultType').value='Motherboard / IC / Water Damage Repair (بورڈ / آئی سی ریپئرنگ)'" style="background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; border-radius:6px; padding:3px 7px; font-size:10.5px; font-weight:bold; cursor:pointer;">🔧 IC / Board Work</button>
+                        <button type="button" onclick="document.getElementById('repFaultType').value='PTA Official Tax / Registration Service (پی ٹی اے ٹیکس سروس)'" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; border-radius:6px; padding:3px 7px; font-size:10.5px; font-weight:bold; cursor:pointer;">📡 PTA Tax Service</button>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">📱 کسٹمر موبائل ماڈل (Device Model) *</label>
+                        <input id="repDeviceModel" class="swal2-input" placeholder="e.g. Vivo Y20 / iPhone 11" style="margin:0; width:100%; box-sizing:border-box; height:36px; font-size:12.5px;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">💵 ریپئرنگ / سروس چارجز (Charges Rs) *</label>
+                        <input id="repCharges" type="number" min="0" class="swal2-input" placeholder="e.g. 3500" style="margin:0; width:100%; box-sizing:border-box; height:36px; font-size:13px; font-weight:bold; direction:ltr;">
+                    </div>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label style="font-weight:bold; display:block; margin-bottom:3px;">🛠️ فالٹ / ریپئرنگ کی تفصیل (Repair / Service Description) *</label>
+                    <input id="repFaultType" class="swal2-input" placeholder="مثلاً: Panel / LCD Replacement + Fitting" style="margin:0; width:100%; box-sizing:border-box; height:36px; font-size:12.5px;">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">🔢 کسٹمر فون IMEI / پاس کوڈ نوٹ (اختیاری)</label>
+                        <input id="repImeiNote" class="swal2-input" placeholder="IMEI or Screen Lock Code" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">🛡️ وارنٹی نوٹ (Warranty Policy)</label>
+                        <select id="repWarrantyPolicy" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:11.5px; padding:2px 6px;">
+                            <option value="Counter Check Only - No Panel/Display Warranty After Fitting">Counter Check Only (پینل چیک وارنٹی)</option>
+                            <option value="3 Days Repair Checking Warranty">3 Days Check Warranty</option>
+                            <option value="7 Days Service Warranty">7 Days Service Warranty</option>
+                            <option value="No Warranty (بغیر وارنٹی)">No Warranty (بغیر وارنٹی)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '✅ Add Repair Job to Bill (بل میں شامل کریں)',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#7c3aed',
+        preConfirm: () => {
+            const devModel = (document.getElementById('repDeviceModel')?.value || '').trim();
+            const fault = (document.getElementById('repFaultType')?.value || '').trim();
+            const charges = parseFloat(document.getElementById('repCharges')?.value) || 0;
+            const imeiNote = (document.getElementById('repImeiNote')?.value || '').trim();
+            const warr = (document.getElementById('repWarrantyPolicy')?.value || '').trim();
+            if (!devModel && !fault) {
+                Swal.showValidationMessage('موبائل ماڈل یا ریپئرنگ کی تفصیل درج کریں!');
+                return false;
+            }
+            return { devModel, fault, charges, imeiNote, warr };
+        }
+    });
+
+    if (jobData) {
+        const itemTitle = `🛠️ ${jobData.devModel ? jobData.devModel + ' — ' : ''}${jobData.fault || 'Mobile Repairing Service'}`;
+        const subParts = [];
+        if (jobData.devModel) subParts.push(`Device: ${jobData.devModel}`);
+        if (jobData.imeiNote) subParts.push(`IMEI/Note: ${jobData.imeiNote}`);
+        if (jobData.warr) subParts.push(`Policy: ${jobData.warr}`);
+        const subStr = subParts.join(' | ');
+
+        addItemToRows({
+            id: 'repair_job_' + Date.now(),
+            name: itemTitle,
+            qty: 1,
+            unit: 'job',
+            rate: jobData.charges,
+            retailRate: jobData.charges,
+            wholesaleRate: jobData.charges,
+            availableQty: 1,
+            itemSubtitle: subStr,
+            category: 'موبائل ریپئرنگ و سروس (Mobile Repairing)',
+            industryFields: {
+                itemSubType: 'Spare Part / LCD Panel (پینل / بیٹری / اسپیئر پارٹ)',
+                modelVariant: jobData.devModel,
+                imei1: jobData.imeiNote,
+                warrantyInfo: jobData.warr
+            }
+        });
+
+        Swal.fire({
+            toast: true, position: 'top-end', showConfirmButton: false,
+            timer: 1800, icon: 'success', title: '🛠️ ریپئرنگ جاب بل میں شامل کر دی گئی!'
+        });
+    }
+};
+
+// 🔄 Mobile Shop POS: Customer Old Phone Exchange / Trade-In Modal
+window.openMobileTradeInPosModal = async function() {
+    const { value: exData } = await Swal.fire({
+        title: '🔄 کسٹمر کا پرانا موبائل ایکسچینج (Trade-In / Exchange)',
+        width: 550,
+        html: `
+            <div style="text-align:right; direction:rtl; font-size:12.5px; color:#1e293b;">
+                <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:8px 10px; margin-bottom:10px; font-size:11.5px; color:#166534;">
+                    💡 گاہک سے لیا گیا پرانا موبائل فون یہاں درج کریں۔ اس کی طے شدہ قیمت موجودہ بل سے خودکار منہا (Deduct) ہو جائے گی اور بل پر ایکسچینج تفصیل پرنٹ ہوگی۔
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">📱 پرانے موبائل کا برانڈ و ماڈل *</label>
+                        <input id="exModelName" class="swal2-input" placeholder="e.g. Infinix Note 12 / Vivo Y33s" style="margin:0; width:100%; box-sizing:border-box; height:36px; font-size:12.5px;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">💾 ریم / میموری و کنڈیشن</label>
+                        <input id="exSpecsCond" class="swal2-input" placeholder="e.g. 8GB/128GB - 9/10 PTA Approved" style="margin:0; width:100%; box-sizing:border-box; height:36px; font-size:12px;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">🔢 پرانے فون کا IMEI 1 *</label>
+                        <input id="exImei1" class="swal2-input" placeholder="15-digit IMEI 1" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">🔢 پرانے فون کا IMEI 2 (Dual SIM)</label>
+                        <input id="exImei2" class="swal2-input" placeholder="15-digit IMEI 2" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; direction:ltr;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">🪪 گاہک کا شناختی کارڈ نمبر (CNIC)</label>
+                        <input id="exCustomerCnic" class="swal2-input" placeholder="35202-1234567-1" maxlength="16" style="margin:0; width:100%; box-sizing:border-box; height:36px; font-size:12px; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px; color:#15803d;">💰 طے شدہ ایکسچینج قیمت (Deduction Rs) *</label>
+                        <input id="exAgreedValue" type="number" min="1" class="swal2-input" placeholder="e.g. 22000" style="margin:0; width:100%; box-sizing:border-box; height:36px; font-size:13.5px; font-weight:bold; color:#15803d; direction:ltr;">
+                    </div>
+                </div>
+                <label style="display:flex; align-items:center; gap:7px; background:#f8fafc; border:1px solid #cbd5e1; padding:7px 10px; border-radius:7px; cursor:pointer; font-weight:bold; font-size:12px; color:#0f172a;">
+                    <input type="checkbox" id="exAutoAddToStock" checked>
+                    <span>📥 اس ایکسچینج موبائل کو خودکار دکان کے اسٹاک (Used Phones Inventory) میں بھی شامل کریں</span>
+                </label>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '🔄 Apply Exchange to Bill (بل میں منہا کریں)',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#059669',
+        preConfirm: () => {
+            const modelName = (document.getElementById('exModelName')?.value || '').trim();
+            const specsCond = (document.getElementById('exSpecsCond')?.value || '').trim();
+            const imei1 = (document.getElementById('exImei1')?.value || '').trim();
+            const imei2 = (document.getElementById('exImei2')?.value || '').trim();
+            const cnic = (document.getElementById('exCustomerCnic')?.value || '').trim();
+            const val = parseFloat(document.getElementById('exAgreedValue')?.value) || 0;
+            const autoStock = Boolean(document.getElementById('exAutoAddToStock')?.checked);
+            if (!modelName || val <= 0) {
+                Swal.showValidationMessage('پرانے موبائل کا ماڈل اور طے شدہ ایکسچینج قیمت لکھنا لازمی ہے!');
+                return false;
+            }
+            return { modelName, specsCond, imei1, imei2, cnic, val, autoStock };
+        }
+    });
+
+    if (exData) {
+        const imeiTxt = [exData.imei1, exData.imei2].filter(Boolean).join(' / ');
+        const subDetails = [
+            exData.specsCond,
+            imeiTxt ? `IMEI: ${imeiTxt}` : '',
+            exData.cnic ? `Seller CNIC: ${exData.cnic}` : '',
+            `Exchange Credit: -Rs ${exData.val.toLocaleString()}`
+        ].filter(Boolean).join(' | ');
+
+        // Apply Trade-In Value to Bill Discount so Net Payable deducts the Old Phone's price!
+        const sumDiscEl = document.getElementById('sumDiscount');
+        if (sumDiscEl) {
+            const prevDisc = parseFloat(sumDiscEl.value) || 0;
+            sumDiscEl.value = prevDisc + exData.val;
+        }
+
+        // Also add a descriptive 0-rate Exchange Record Line Item on the invoice so it prints clearly on all 11 bill templates!
+        addRow({
+            name: `🔄 Exchange / Trade-In Taken: ${exData.modelName} (-Rs ${exData.val.toLocaleString()})`,
+            qty: 1,
+            rate: 0,
+            unit: 'unit',
+            itemSubtitle: subDetails,
+            category: 'استعمال شدہ و سیکنڈ ہینڈ فونز (Used / Refurbished Phones)'
+        });
+        calcTotals();
+
+        // Optionally add the exchanged phone directly into Shop Inventory (Stock)
+        if (exData.autoStock && typeof db !== 'undefined' && myAgencyId) {
+            try {
+                const custName = selectedCustomer ? selectedCustomer.name : ((document.getElementById('custNameInput')?.value || '').trim() || 'Exchange Customer');
+                const custPhone = selectedCustomer ? (selectedCustomer.mobile || '') : '';
+                const newStockDoc = {
+                    name: `${exData.modelName} (Used Exchange)`,
+                    barcode: exData.imei1 || ('EX-' + Date.now().toString().slice(-6)),
+                    category: 'استعمال شدہ و سیکنڈ ہینڈ فونز (Used / Refurbished Phones)',
+                    unit: 'unit',
+                    qty: 1,
+                    purchaseRate: exData.val,
+                    wholesaleRate: Math.round(exData.val * 1.08),
+                    retailRate: Math.round(exData.val * 1.12),
+                    rate: Math.round(exData.val * 1.12),
+                    lowStockLimit: 1,
+                    supplierName: custName,
+                    industryFields: {
+                        itemSubType: 'Used / Second-Hand Phone (استعمال شدہ / سیکنڈ ہینڈ فون)',
+                        modelVariant: exData.modelName,
+                        ramStorage: exData.specsCond,
+                        conditionGrade: 'Used - Exchange / Trade-In (ایکسچینج میں لیا گیا فون)',
+                        imei1: exData.imei1,
+                        imei2: exData.imei2,
+                        imeiSerial: imeiTxt,
+                        sellerName: custName,
+                        sellerCnic: exData.cnic,
+                        sellerPhone: custPhone
+                    },
+                    agencyId: myAgencyId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                const addedRef = await db.collection('stock').add(newStockDoc);
+                newStockDoc.id = addedRef.id;
+                allMyStock.push(newStockDoc);
+            } catch (err) {
+                console.warn('Auto-add exchange phone to stock warning:', err);
+            }
+        }
+
+        Swal.fire({
+            toast: true, position: 'top-end', showConfirmButton: false,
+            timer: 2400, icon: 'success',
+            title: `🔄 Rs ${exData.val.toLocaleString()} ایکسچینج بل میں منہا ہو گیا!`
+        });
+    }
+};
+
+// ✏️ Inline POS Row IMEI 1..4 / Warranty / Subtitle Quick Editor
+window.openRowImeiWarrantyModal = async function(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    const nameInput = row.querySelector('.ir-name');
+    const stockId = nameInput ? nameInput.dataset.stockId : '';
+    const stockItem = stockId ? allMyStock.find(x => x.id === stockId) : null;
+    const curInd = (row.dataset.industryFieldsJson ? JSON.parse(row.dataset.industryFieldsJson) : (stockItem && stockItem.industryFields ? stockItem.industryFields : {})) || {};
+    const curSub = row.dataset.itemSubtitle || '';
+
+    const { value: updated } = await Swal.fire({
+        title: '📱 بل آئٹم کے IMEI نمبرز اور وارنٹی درج / تبدیل کریں',
+        width: 520,
+        html: `
+            <div style="text-align:right; direction:rtl; font-size:12.5px; color:#1e293b;">
+                <div style="font-weight:bold; color:#0369a1; margin-bottom:8px;">📦 آئٹم: ${nameInput ? nameInput.value : ''}</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">🔢 IMEI 1 (Primary)</label>
+                        <input id="rowEditImei1" class="swal2-input" value="${curInd.imei1 || ''}" placeholder="15-digit IMEI 1" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">🔢 IMEI 2 (Dual SIM)</label>
+                        <input id="rowEditImei2" class="swal2-input" value="${curInd.imei2 || ''}" placeholder="15-digit IMEI 2" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; direction:ltr;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">🔢 IMEI 3 (اختیاری)</label>
+                        <input id="rowEditImei3" class="swal2-input" value="${curInd.imei3 || ''}" placeholder="Optional IMEI 3" style="margin:0; width:100%; box-sizing:border-box; height:32px; font-size:11.5px; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">🔢 IMEI 4 (اختیاری)</label>
+                        <input id="rowEditImei4" class="swal2-input" value="${curInd.imei4 || ''}" placeholder="Optional IMEI 4" style="margin:0; width:100%; box-sizing:border-box; height:32px; font-size:11.5px; direction:ltr;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">📡 PTA اسٹیٹس / کنڈیشن</label>
+                        <input id="rowEditPtaCond" class="swal2-input" value="${[curInd.ptaStatus, curInd.conditionGrade].filter(Boolean).join(' - ')}" placeholder="e.g. Official PTA Approved" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">🛡️ وارنٹی (Warranty on Bill)</label>
+                        <input id="rowEditWarranty" class="swal2-input" value="${curInd.warrantyInfo || ''}" placeholder="e.g. 1 Year Official / 7 Days Check" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px;">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-weight:bold; display:block; margin-bottom:2px;">📝 بل پر چھپنے والی مکمل تفصیل (Printed Invoice Subtitle)</label>
+                    <input id="rowEditCustomSub" class="swal2-input" value="${curSub.replace(/"/g, '&quot;')}" placeholder="Auto-generated from above or type custom specification" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:11.5px; direction:ltr;">
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '✅ Update Bill Row (محفوظ کریں)',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#0284c7',
+        preConfirm: () => {
+            return {
+                imei1: (document.getElementById('rowEditImei1')?.value || '').trim(),
+                imei2: (document.getElementById('rowEditImei2')?.value || '').trim(),
+                imei3: (document.getElementById('rowEditImei3')?.value || '').trim(),
+                imei4: (document.getElementById('rowEditImei4')?.value || '').trim(),
+                ptaCond: (document.getElementById('rowEditPtaCond')?.value || '').trim(),
+                warranty: (document.getElementById('rowEditWarranty')?.value || '').trim(),
+                customSub: (document.getElementById('rowEditCustomSub')?.value || '').trim()
+            };
+        }
+    });
+
+    if (updated) {
+        const newInd = { ...curInd };
+        if (updated.imei1 || updated.imei2 || updated.imei3 || updated.imei4) {
+            newInd.imei1 = updated.imei1;
+            newInd.imei2 = updated.imei2;
+            newInd.imei3 = updated.imei3;
+            newInd.imei4 = updated.imei4;
+            newInd.imeiSerial = [updated.imei1, updated.imei2, updated.imei3, updated.imei4].filter(Boolean).join(' / ');
+        }
+        if (updated.ptaCond) newInd.ptaStatus = updated.ptaCond;
+        if (updated.warranty) newInd.warrantyInfo = updated.warranty;
+
+        row.dataset.industryFieldsJson = JSON.stringify(newInd);
+        const rebuiltSub = formatStockIndustrySubtitle({ ...(stockItem || {}), industryFields: newInd });
+        const finalSub = (updated.customSub && updated.customSub !== curSub) ? updated.customSub : (rebuiltSub || updated.customSub);
+        row.dataset.itemSubtitle = finalSub;
+
+        const hint = row.querySelector('.stock-hint');
+        if (hint) {
+            hint.style.display = 'inline-block';
+            hint.innerHTML = buildRowStockHintHtml({
+                ...(stockItem || { unit: row.dataset.unit || 'unit', qty: 1 }),
+                itemSubtitle: finalSub,
+                industryFields: newInd
+            }, rowId);
+        }
+    }
+};
 
 // ============================================
 // 📶 OFFLINE QUEUE HELPERS (POWERED BY INDEXEDDB + LOCALSTORAGE MIRROR)
@@ -1196,16 +2019,25 @@ function applyRateTierToRows() {
     document.querySelectorAll('#itemsRows .item-row').forEach(row => {
         const nameInput = row.querySelector('.ir-name');
         const rateInput = row.querySelector('.ir-rate');
+        const tpInput = row.querySelector('.ir-tp');
         const stockId = nameInput.dataset.stockId;
         if (stockId) {
             const s = allMyStock.find(x => x.id === stockId);
             if (s) {
+                const ind = s.industryFields || {};
                 const targetRate = activeRateTier === 'wholesale' 
-                    ? (s.wholesaleRate || s.rate || 0) 
+                    ? (s.wholesaleRate || ind.tradePriceTP || s.rate || 0) 
                     : (s.retailRate || s.rate || 0);
                 rateInput.value = targetRate;
-                const qty = parseFloat(row.querySelector('.ir-qty').value) || 0;
-                row.querySelector('.row-total').innerText = 'Rs ' + (qty * targetRate).toFixed(2);
+                if (tpInput && activeRateTier === 'wholesale') {
+                    tpInput.value = ind.tradePriceTP || s.wholesaleRate || targetRate;
+                }
+                if (typeof row._updateRowCalc === 'function') {
+                    row._updateRowCalc();
+                } else {
+                    const qty = parseFloat(row.querySelector('.ir-qty').value) || 0;
+                    row.querySelector('.row-total').innerText = 'Rs ' + (qty * targetRate).toFixed(2);
+                }
             }
         }
     });
@@ -1249,6 +2081,22 @@ function updateLockState() {
     }
 }
 
+function getCustomerSegmentBadgeText(c) {
+    if (!c || !c.subCategory) return '';
+    if (window.BusinessCategories && typeof window.BusinessCategories.getCustomerSegmentLabel === 'function') {
+        return window.BusinessCategories.getCustomerSegmentLabel(getActiveAgencyBusinessType(), c.subCategory);
+    }
+    const map = {
+        school_college: '🏫 School / Academy',
+        sub_dealer: '📚 Bookshop / Dealer',
+        library_inst: '🏛️ Library / Office',
+        teacher_tutor: '👨‍🏫 Teacher / Tutor',
+        student_parent: '🎒 Student / Parent',
+        general_cust: '👤 General Customer'
+    };
+    return map[c.subCategory] || c.subCategory;
+}
+
 function selectCustomerObject(c) {
     if (!c) return;
     selectedCustomer = c;
@@ -1264,23 +2112,49 @@ function selectCustomerObject(c) {
     if (custSuggest) custSuggest.classList.remove('show');
     if (catSuggest) catSuggest.classList.remove('show');
 
-    // 🎯 AUTO-SELECT WHOLESALE vs RETAIL BASED ON CUSTOMER TYPE!
-    if (c.customerType === 'wholesale') {
+    // 🎯 AUTO-SELECT WHOLESALE vs RETAIL BASED ON CUSTOMER TYPE OR SEGMENT!
+    if (c.customerType === 'wholesale' || c.subCategory === 'school_college' || c.subCategory === 'sub_dealer' || c.subCategory === 'library_inst' || c.subCategory === 'repair_tech' || c.subCategory === 'corporate_inst') {
         setRateTier('wholesale', true);
-    } else if (c.customerType === 'retail') {
+    } else if (c.customerType === 'retail' || c.subCategory === 'student_parent' || c.subCategory === 'installment_cust' || c.subCategory === 'used_buyer_seller') {
         setRateTier('retail', true);
+    }
+
+    // 🏷️ Auto-apply Customer's Agreed Institutional / Trade / Dealer Discount % if configured
+    const discPctInput = document.getElementById('sumDiscountPercent');
+    const agreedPct = parseFloat(c.agreedDiscountPercent) || 0;
+    if (discPctInput) {
+        if (agreedPct > 0) {
+            discPctInput.value = agreedPct;
+            discPctInput.dataset.activeTyping = 'true';
+            try { calcTotals(); } catch (_) {}
+            discPctInput.dataset.activeTyping = 'false';
+        }
     }
 
     // 🇵🇰 NTN & FBR Filer / Non-Filer badge
     const ntnVal = c.ntn || c.custNTN || '';
     const isFiler = c.fbrStatus === 'filer' || (ntnVal && c.fbrStatus !== 'non-filer');
     const prevBal = parseFloat(c.balance || 0);
+    const segLabel = getCustomerSegmentBadgeText(c);
+    const isMobMode = isMobileShopAgency();
 
     let info = '<div class="cust-chips-wrap">';
     const displayName = c.name || c.shopName || 'Customer';
     const displayShop = (c.shopName && c.shopName !== displayName) ? ` (${c.shopName})` : '';
     info += `<span class="c-chip c-chip-shop"><i class="fas fa-user-check"></i> <b>${displayName}${displayShop}</b></span>`;
 
+    if (segLabel) {
+        info += `<span class="c-chip" style="background:#ede9fe; color:#6d28d9; border:1px solid #ddd6fe; font-weight:800;">${segLabel}</span>`;
+    }
+    if (c.affiliatedBoard) {
+        info += `<span class="c-chip" style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd;">${isMobMode ? '📱' : '🏛️'} ${c.affiliatedBoard}</span>`;
+    }
+    if (c.focalPerson) {
+        info += `<span class="c-chip" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">${isMobMode ? '🤝' : '👔'} ${c.focalPerson}</span>`;
+    }
+    if (agreedPct > 0) {
+        info += `<span class="c-chip" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:800;">🏷️ Agreed Disc: ${agreedPct}%</span>`;
+    }
     if (c.mobile) {
         info += `<span class="c-chip c-chip-phone"><i class="fas fa-phone"></i> ${c.mobile}</span>`;
     }
@@ -1318,7 +2192,7 @@ function selectCustomerObject(c) {
     // Update Booker Recovery Section (below items in list view)
     const bBadge = document.getElementById('bookerSelectedCustBadge');
     if (bBadge) {
-        bBadge.innerHTML = `👤 <b>${displayName}${displayShop}</b>`;
+        bBadge.innerHTML = `👤 <b>${displayName}${displayShop}</b> ${segLabel ? `<span style="font-size:10px; color:#6d28d9;">(${segLabel})</span>` : ''}`;
     }
     const bPending = document.getElementById('bookerPendingKhataDisplay');
     if (bPending) {
@@ -1529,12 +2403,20 @@ function renderCustomerSuggestions(matches) {
         const typeBadge = c.customerType === 'retail'
             ? `<span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; margin-left:6px;">🏷️ RETAIL</span>`
             : `<span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; margin-left:6px;">🏪 WHOLESALE</span>`;
+        const segTxt = getCustomerSegmentBadgeText(c);
+        const segBadge = segTxt
+            ? `<span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; background:#ede9fe; color:#6d28d9; border:1px solid #ddd6fe; margin-left:4px;">${segTxt}</span>`
+            : '';
+        const discBadge = (parseFloat(c.agreedDiscountPercent) || 0) > 0
+            ? `<span style="font-size:10px; font-weight:800; padding:1px 6px; border-radius:8px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; margin-left:4px;">-${c.agreedDiscountPercent}% Disc</span>`
+            : '';
         html += `
         <div class="suggest-item" data-id="${c.id}" style="padding:9px 12px; cursor:pointer; border-bottom:1px solid #f1f5f9;">
-            <b>👤 ${c.name}</b> ${c.shopName ? `(${c.shopName})` : ''} ${typeBadge}<br>
+            <b>👤 ${c.name}</b> ${c.shopName ? `(${c.shopName})` : ''} ${typeBadge} ${segBadge} ${discBadge}<br>
             <span class="s-sub" style="font-size:11px; color:#64748b;">
                 ${c.mobile ? '📱 ' + c.mobile : ''} 
                 ${c.route ? ' | 🛣️ ' + c.route : ''}
+                ${c.affiliatedBoard ? ' | 🏛️ ' + c.affiliatedBoard : ''}
                 | 💰 Bal: <b>Rs ${(c.balance || 0).toLocaleString()}</b>
             </span>
         </div>`;
@@ -1577,7 +2459,10 @@ custInput?.addEventListener('input', function() {
         (c.name || '').toLowerCase().includes(val) ||
         (c.mobile || '').includes(val) ||
         (c.shopName || '').toLowerCase().includes(val) ||
-        (c.route || '').toLowerCase().includes(val)
+        (c.route || '').toLowerCase().includes(val) ||
+        (c.subCategory || '').toLowerCase().includes(val) ||
+        (c.affiliatedBoard || '').toLowerCase().includes(val) ||
+        (c.focalPerson || '').toLowerCase().includes(val)
     );
 
     renderCustomerSuggestions(matches);
@@ -1591,27 +2476,62 @@ document.addEventListener('click', (e) => {
 
 // ➕ QUICK ADD CUSTOMER MODAL
 document.getElementById('quickAddCustBtn').addEventListener('click', async () => {
+    const segments = (window.BusinessCategories && typeof window.BusinessCategories.getCustomerSegments === 'function')
+        ? window.BusinessCategories.getCustomerSegments(getActiveAgencyBusinessType())
+        : [
+            { value: '', label: '— کسٹمر کیٹیگری منتخب کریں (Optional) —', defaultTier: '' },
+            { value: 'school_college', label: '🏫 اسکول / کالج / اکیڈمی (School / College / Academy)', defaultTier: 'wholesale' },
+            { value: 'sub_dealer', label: '📚 بک شاپ / سب ڈیلر (Bookshop / Sub-Dealer)', defaultTier: 'wholesale' },
+            { value: 'library_inst', label: '🏛️ لائبریری / سرکاری و دفتری ادارہ (Library / Office)', defaultTier: 'wholesale' },
+            { value: 'student_parent', label: '🎒 طالب علم / والدین (Student / Retail Parent)', defaultTier: 'retail' },
+            { value: 'general_cust', label: '👤 عام گاہک (Walk-in / General)', defaultTier: 'retail' }
+        ];
+    const segOptionsHtml = segments.map(s => `<option value="${s.value}" data-tier="${s.defaultTier || ''}">${s.label}</option>`).join('');
+
     const { value: formValues } = await Swal.fire({
         title: '➕ Quick Add New Customer',
         html: `
             <div style="text-align:left; font-size:13px;">
                 <label><b>Customer / Contact Name *</b></label>
-                <input id="swalCustName" class="swal2-input" placeholder="e.g. Aslam Khan" style="margin-top:4px; margin-bottom:12px;">
-                <label><b>Customer Type (ریٹ کی کیٹیگری) *</b></label>
-                <select id="swalCustType" class="swal2-input" style="margin-top:4px; margin-bottom:12px; height:42px;">
-                    <option value="wholesale" selected>🏪 Wholesale Customer (ہول سیل ریٹ)</option>
-                    <option value="retail">🏷️ Retail Customer (پرچون ریٹ)</option>
+                <input id="swalCustName" class="swal2-input" placeholder="e.g. Allied School / Aslam Khan" style="margin-top:4px; margin-bottom:10px; height:38px;">
+                <label><b>Customer Segment (اسکول / بک شاپ / طالب علم - Optional)</b></label>
+                <select id="swalCustSubCategory" class="swal2-input" style="margin-top:4px; margin-bottom:10px; height:40px; font-size:12.5px;">
+                    ${segOptionsHtml}
                 </select>
-                <label><b>Shop / Business Name</b></label>
-                <input id="swalShopName" class="swal2-input" placeholder="e.g. Bismillah Kiryana Store" style="margin-top:4px; margin-bottom:12px;">
+                <div style="display:grid; grid-template-columns:1.2fr 0.8fr; gap:8px; margin-bottom:10px;">
+                    <div>
+                        <label><b>Rate Tier (ریٹ کی کیٹیگری) *</b></label>
+                        <select id="swalCustType" class="swal2-input" style="margin-top:4px; margin-bottom:0; height:40px; width:100%; font-size:12.5px;">
+                            <option value="wholesale" selected>🏪 Wholesale Rate</option>
+                            <option value="retail">🏷️ Retail Rate</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label><b>Agreed Disc % (رعایت)</b></label>
+                        <input id="swalCustDiscPct" type="number" min="0" max="100" step="0.5" class="swal2-input" placeholder="0%" style="margin-top:4px; margin-bottom:0; height:40px; width:100%;">
+                    </div>
+                </div>
+                <label><b>Shop / School / Institution Name</b></label>
+                <input id="swalShopName" class="swal2-input" placeholder="e.g. Al-Madina Book Center / City Campus" style="margin-top:4px; margin-bottom:10px; height:38px;">
                 <label><b>Mobile Number</b></label>
-                <input id="swalMobile" class="swal2-input" placeholder="03001234567" style="margin-top:4px; margin-bottom:12px;">
+                <input id="swalMobile" class="swal2-input" placeholder="03001234567" style="margin-top:4px; margin-bottom:10px; height:38px;">
                 <label><b>Route / Area</b></label>
-                <input id="swalRoute" class="swal2-input" placeholder="e.g. Main Bazar Route" style="margin-top:4px; margin-bottom:12px;">
+                <input id="swalRoute" class="swal2-input" placeholder="e.g. Main Bazar / College Road" style="margin-top:4px; margin-bottom:10px; height:38px;">
                 <label><b>Opening Balance (Rs)</b></label>
-                <input id="swalBal" type="number" class="swal2-input" placeholder="0" style="margin-top:4px;">
+                <input id="swalBal" type="number" class="swal2-input" placeholder="0" style="margin-top:4px; height:38px;">
             </div>
         `,
+        didOpen: () => {
+            const segSel = document.getElementById('swalCustSubCategory');
+            const typeSel = document.getElementById('swalCustType');
+            if (segSel && typeSel) {
+                segSel.addEventListener('change', () => {
+                    const opt = segSel.options[segSel.selectedIndex];
+                    const tier = opt ? opt.getAttribute('data-tier') : '';
+                    if (tier) typeSel.value = tier;
+                });
+            }
+        },
         focusConfirm: false,
         showCancelButton: true,
         confirmButtonText: '✅ Save & Select',
@@ -1624,7 +2544,9 @@ document.getElementById('quickAddCustBtn').addEventListener('click', async () =>
             }
             return {
                 name: name,
+                subCategory: document.getElementById('swalCustSubCategory')?.value || '',
                 customerType: document.getElementById('swalCustType').value,
+                agreedDiscountPercent: parseFloat(document.getElementById('swalCustDiscPct')?.value) || 0,
                 shopName: document.getElementById('swalShopName').value.trim(),
                 mobile: document.getElementById('swalMobile').value.trim(),
                 route: document.getElementById('swalRoute').value.trim(),
@@ -1879,6 +2801,9 @@ function handlePopulatedStock(itemsList) {
     if (typeof refreshCatalogueData === 'function') {
         refreshCatalogueData();
     }
+    if (typeof setupBookPosQuickFilterBar === 'function') {
+        setupBookPosQuickFilterBar();
+    }
 }
 
 function loadStock() {
@@ -1902,12 +2827,14 @@ function loadStock() {
             if (Array.isArray(items) && items.length > 0 && allMyStock.length === 0) {
                 allMyStock = items;
                 if (typeof refreshCatalogueData === 'function') refreshCatalogueData();
+                if (typeof setupBookPosQuickFilterBar === 'function') setupBookPosQuickFilterBar();
             }
         }).catch(() => {});
     }
 
-    if (allMyStock.length > 0 && typeof refreshCatalogueData === 'function') {
-        refreshCatalogueData();
+    if (allMyStock.length > 0) {
+        if (typeof refreshCatalogueData === 'function') refreshCatalogueData();
+        if (typeof setupBookPosQuickFilterBar === 'function') setupBookPosQuickFilterBar();
     }
 
     // 2. Fetch fresh stock from Firestore (Smart with fallback)
@@ -1962,6 +2889,7 @@ window.addEventListener('eb-data-synced', (e) => {
         if (Array.isArray(e.detail.stock) && e.detail.stock.length > 0) {
             allMyStock = e.detail.stock;
             if (typeof refreshCatalogueData === 'function') refreshCatalogueData();
+            if (typeof setupBookPosQuickFilterBar === 'function') setupBookPosQuickFilterBar();
         }
         if (Array.isArray(e.detail.customers) && e.detail.customers.length > 0) {
             allMyCustomers = e.detail.customers;
@@ -2007,18 +2935,29 @@ function handleScannedBarcode(rawCode) {
     lastScanTime = now;
 
     const codeLower = code.toLowerCase();
-    const matched = allMyStock.find(s => 
-        (s.barcode && String(s.barcode).trim().toLowerCase() === codeLower) ||
-        (s.id && String(s.id).trim().toLowerCase() === codeLower)
-    );
+    const codeClean = codeLower.replace(/[-\s\/]/g, '');
+    const matched = allMyStock.find(s => {
+        if (s.barcode && String(s.barcode).trim().toLowerCase() === codeLower) return true;
+        if (s.id && String(s.id).trim().toLowerCase() === codeLower) return true;
+        const ind = s.industryFields || {};
+        const isbn = ind.isbnCode ? String(ind.isbnCode).trim().toLowerCase() : '';
+        if (isbn && (isbn === codeLower || isbn.replace(/[-\s]/g, '') === codeClean)) return true;
+        const imeis = [ind.imei1, ind.imei2, ind.imei3, ind.imei4, ind.imeiSerial]
+            .map(x => String(x || '').trim().toLowerCase())
+            .filter(Boolean);
+        if (imeis.some(im => im === codeLower || im.replace(/[-\s\/]/g, '') === codeClean || im.split(/[\/,]+/).map(p => p.trim()).includes(codeLower))) {
+            return true;
+        }
+        return false;
+    });
 
     const statusEl = document.getElementById('scannerStatusText');
 
     if (!matched) {
-        if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444;">⚠️ Barcode "${code}" not found!</span>`;
+        if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444;">⚠️ Barcode / IMEI / ISBN "${code}" not found!</span>`;
         Swal.fire({
             toast: true, position: 'top-end', showConfirmButton: false,
-            timer: 2000, icon: 'warning', title: `⚠️ Barcode "${code}" not in stock!`
+            timer: 2000, icon: 'warning', title: `⚠️ Barcode / IMEI / ISBN "${code}" not in stock!`
         });
         return;
     }
@@ -2130,11 +3069,7 @@ if (barcodeInput) {
         const val = this.value.toLowerCase().trim();
         if (!val) { if (barcodeSuggest) barcodeSuggest.classList.remove('show'); return; }
 
-        const matches = allMyStock.filter(s =>
-            (s.name || '').toLowerCase().includes(val) ||
-            (s.barcode || '').includes(val) ||
-            (s.category || '').toLowerCase().includes(val)
-        );
+        const matches = allMyStock.filter(s => matchesPosSearchAndFilters(s, val));
 
         if (matches.length === 0) {
             if (barcodeSuggest) barcodeSuggest.classList.remove('show');
@@ -2142,16 +3077,18 @@ if (barcodeInput) {
         }
 
         let html = '';
-        matches.slice(0, 6).forEach(s => {
+        matches.slice(0, 8).forEach(s => {
             const rate = activeRateTier === 'wholesale' ? (s.wholesaleRate || s.rate || 0) : (s.retailRate || s.rate || 0);
             const schemeTag = s.hasScheme ? `<span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold; margin-left:4px;">🎁 ${s.schemeLabel || 'Scheme'}</span>` : '';
             const thumb = s.photoUrl ? `<img src="${s.photoUrl}" style="width:24px; height:24px; border-radius:4px; object-fit:cover; margin-right:6px; vertical-align:middle;">` : '';
+            const metaBadges = formatStockSuggestionMeta(s);
             html += `
             <div class="suggest-item" data-sid="${s.id}">
                 <b>${thumb}${s.name}</b> ${s.barcode ? `(${s.barcode})` : ''} ${schemeTag}<br>
                 <span class="s-sub">
                     📦 Stock: <b>${s.qty || 0} ${UNIT_LBL(s.unit)}</b> | 💰 ${activeRateTier === 'wholesale' ? 'Wholesale' : 'Retail'}: Rs ${rate}
                 </span>
+                ${metaBadges}
             </div>`;
         });
         if (barcodeSuggest) {
@@ -2178,6 +3115,24 @@ if (barcodeInput) {
     });
 }
 
+function buildRowStockHintHtml(stockItem, rowId = '') {
+    const qtyVal = stockItem.availableQty !== undefined ? stockItem.availableQty : (stockItem.qty || 0);
+    const colorClass = qtyVal <= 0 ? 'stock-out' : (qtyVal <= 10 ? 'stock-low' : 'stock-ok');
+    let hintContent = `Available: <span class="stock-badge ${colorClass}"><b>${qtyVal} ${UNIT_LBL(stockItem.unit)}</b></span>`;
+    const sub = stockItem.itemSubtitle !== undefined ? stockItem.itemSubtitle : formatStockIndustrySubtitle(stockItem);
+    const iconPrefix = isMobileShopAgency() ? '📱' : (isWholesalerAgency() ? '📦' : '📚');
+    if (sub) {
+        hintContent += ` <span style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:700;">${iconPrefix} ${sub}</span>`;
+    }
+    if (rowId && isMobileShopAgency()) {
+        hintContent += ` <button type="button" onclick="openRowImeiWarrantyModal('${rowId}')" style="background:#e0f2fe; color:#0284c7; border:1px solid #7dd3fc; border-radius:5px; padding:1px 6px; font-size:9.5px; font-weight:800; cursor:pointer;" title="Edit or Scan IMEI 1-4 & Warranty on this Bill Row">✏️ IMEI / Warranty</button>`;
+    }
+    if (stockItem.hasScheme) {
+        hintContent += ` <span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 ${stockItem.schemeLabel || 'Scheme'}</span>`;
+    }
+    return hintContent;
+}
+
 function addItemToRows(stockItem) {
     // Check if item is already in rows, if so, just increase Qty!
     let existingRow = null;
@@ -2196,37 +3151,71 @@ function addItemToRows(stockItem) {
         const rateInp = existingRow.querySelector('.ir-rate');
         const currentQty = parseFloat(qtyInp.value) || 0;
         qtyInp.value = currentQty + 1;
-        const total = (currentQty + 1) * (parseFloat(rateInp.value) || 0);
-        existingRow.querySelector('.row-total').innerText = 'Rs ' + total.toFixed(2);
-        calcTotals();
+        if (typeof existingRow._updateRowCalc === 'function') {
+            existingRow._updateRowCalc();
+        } else {
+            const total = (currentQty + 1) * (parseFloat(rateInp.value) || 0);
+            existingRow.querySelector('.row-total').innerText = 'Rs ' + total.toFixed(2);
+            calcTotals();
+        }
         return;
     }
 
     // Otherwise add or populate
+    const ind = stockItem.industryFields || {};
     const rate = activeRateTier === 'wholesale' 
-        ? (stockItem.wholesaleRate || stockItem.rate || 0) 
+        ? (stockItem.wholesaleRate || ind.tradePriceTP || stockItem.rate || 0) 
         : (stockItem.retailRate || stockItem.rate || 0);
+    const tpVal = ind.tradePriceTP || stockItem.wholesaleRate || stockItem.rate || rate;
+    const itemSubtitle = stockItem.itemSubtitle !== undefined ? stockItem.itemSubtitle : formatStockIndustrySubtitle(stockItem);
+    const packSz = parseFloat(ind.packSize) || (stockItem.unit === 'dozen' ? 12 : (stockItem.unit === 'ream' ? 500 : (stockItem.unit === 'maund' ? 40 : 0)));
+    const skuVal = ind.imei1 || ind.isbnCode || ind.skuBatchCode || stockItem.barcode || stockItem.sku || '';
+    const promoText = stockItem.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '';
 
     if (emptyRow) {
         const nameInput = emptyRow.querySelector('.ir-name');
         const qtyInput = emptyRow.querySelector('.ir-qty');
         const rateInput = emptyRow.querySelector('.ir-rate');
+        const tpInp = emptyRow.querySelector('.ir-tp');
+        const retInp = emptyRow.querySelector('.ir-retail-price');
+        const boxInp = emptyRow.querySelector('.ir-box');
+        const bonusInp = emptyRow.querySelector('.ir-bonus');
+        const promoInp = emptyRow.querySelector('.ir-promo-desc');
+        const ctnSizeInp = emptyRow.querySelector('.ir-ctn-size');
+        const skuInp = emptyRow.querySelector('.ir-sku');
+        const catInp = emptyRow.querySelector('.ir-cat');
         const hint = emptyRow.querySelector('.stock-hint');
 
         nameInput.value = stockItem.name;
         nameInput.dataset.stockId = stockItem.id;
+        emptyRow.dataset.itemSubtitle = itemSubtitle;
+        emptyRow.dataset.unit = stockItem.unit || 'unit';
+        emptyRow.dataset.hasScheme = stockItem.hasScheme ? 'true' : 'false';
+        emptyRow.dataset.schemeType = stockItem.schemeType || '';
+        emptyRow.dataset.schemeMinQty = stockItem.schemeMinQty || '';
+        emptyRow.dataset.schemeValue = stockItem.schemeValue || '';
+        if (stockItem.industryFields) {
+            emptyRow.dataset.industryFieldsJson = JSON.stringify(stockItem.industryFields);
+        }
         qtyInput.value = 1;
         rateInput.value = rate;
+        if (tpInp) tpInp.value = tpVal;
+        if (retInp) retInp.value = stockItem.retailRate || stockItem.rate || rate;
+        if (boxInp) boxInp.value = 1;
+        if (bonusInp) delete bonusInp.dataset.manualOverride;
+        if (promoInp && promoText) promoInp.value = promoText;
+        if (ctnSizeInp && (stockItem.ctnSize || packSz > 1)) ctnSizeInp.value = stockItem.ctnSize || packSz;
+        if (skuInp) skuInp.value = skuVal;
+        if (catInp && stockItem.category) catInp.value = stockItem.category;
 
         hint.style.display = 'inline-block';
-        const colorClass = (stockItem.qty || 0) <= 0 ? 'stock-out' : ((stockItem.qty || 0) <= 10 ? 'stock-low' : 'stock-ok');
-        let hintContent = `Available: <span class="stock-badge ${colorClass}"><b>${stockItem.qty || 0} ${UNIT_LBL(stockItem.unit)}</b></span>`;
-        if (stockItem.hasScheme) {
-            hintContent += ` <span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 ${stockItem.schemeLabel || 'Scheme'}</span>`;
+        hint.innerHTML = buildRowStockHintHtml(stockItem, emptyRow.id);
+        if (typeof emptyRow._updateRowCalc === 'function') {
+            emptyRow._updateRowCalc();
+        } else {
+            emptyRow.querySelector('.row-total').innerText = 'Rs ' + rate.toFixed(2);
+            calcTotals();
         }
-        hint.innerHTML = hintContent;
-        emptyRow.querySelector('.row-total').innerText = 'Rs ' + rate.toFixed(2);
-        calcTotals();
         return;
     }
 
@@ -2235,10 +3224,21 @@ function addItemToRows(stockItem) {
         stockId: stockItem.id,
         qty: 1,
         rate: rate,
+        tradePrice: tpVal,
+        retailPrice: stockItem.retailRate || stockItem.rate || rate,
         unit: stockItem.unit,
         availableQty: stockItem.qty || 0,
         hasScheme: stockItem.hasScheme,
-        schemeLabel: stockItem.schemeLabel
+        schemeType: stockItem.schemeType || '',
+        schemeMinQty: stockItem.schemeMinQty || '',
+        schemeValue: stockItem.schemeValue || '',
+        schemeLabel: stockItem.schemeLabel,
+        promoDesc: promoText,
+        itemSubtitle: itemSubtitle,
+        industryFields: stockItem.industryFields,
+        ctnSize: stockItem.ctnSize || (packSz > 1 ? packSz : undefined),
+        sku: skuVal,
+        category: stockItem.category || ''
     });
 }
 
@@ -2618,15 +3618,19 @@ function addRow(data = {}) {
     const suggest = row.querySelector('.ir-suggest');
     const hint = row.querySelector('.stock-hint');
 
-    if (data.stockId) {
-        nameInput.dataset.stockId = data.stockId;
-        hint.style.display = 'inline-block';
-        const colorClass = (data.availableQty || 0) <= 0 ? 'stock-out' : ((data.availableQty || 0) <= 10 ? 'stock-low' : 'stock-ok');
-        let hintContent = `Available: <span class="stock-badge ${colorClass}"><b>${data.availableQty || 0} ${UNIT_LBL(data.unit)}</b></span>`;
-        if (data.hasScheme) {
-            hintContent += ` <span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 ${data.schemeLabel || 'Scheme'}</span>`;
+    if (data.stockId || data.itemSubtitle) {
+        if (data.stockId) nameInput.dataset.stockId = data.stockId;
+        row.dataset.itemSubtitle = data.itemSubtitle || '';
+        row.dataset.unit = data.unit || 'unit';
+        row.dataset.hasScheme = data.hasScheme ? 'true' : 'false';
+        row.dataset.schemeType = data.schemeType || '';
+        row.dataset.schemeMinQty = data.schemeMinQty || '';
+        row.dataset.schemeValue = data.schemeValue || '';
+        if (data.industryFields) {
+            row.dataset.industryFieldsJson = JSON.stringify(data.industryFields);
         }
-        hint.innerHTML = hintContent;
+        hint.style.display = 'inline-block';
+        hint.innerHTML = buildRowStockHintHtml(data, rowId);
     }
 
     function updateRowCalc() {
@@ -2649,6 +3653,17 @@ function addRow(data = {}) {
         }
 
         const q = parseFloat(qtyInput.value) || 0;
+
+        // Auto-apply Buy-X-Get-Y free bonus qty unless manually overridden
+        if (bonusInput && bonusInput.dataset.manualOverride !== 'true' && row.dataset.hasScheme === 'true' && row.dataset.schemeType === 'buy_x_get_y') {
+            const minQ = parseFloat(row.dataset.schemeMinQty) || 0;
+            const freePerBlock = parseFloat(row.dataset.schemeValue) || 0;
+            if (minQ > 0 && freePerBlock > 0) {
+                const autoBonus = q >= minQ ? Math.floor(q / minQ) * freePerBlock : 0;
+                bonusInput.value = autoBonus > 0 ? autoBonus : '';
+            }
+        }
+
         const r = parseFloat(rateInput.value) || 0;
         const td = parseFloat(tdInput.value) || 0;
         const to = parseFloat(toInput.value) || 0;
@@ -2669,20 +3684,25 @@ function addRow(data = {}) {
         row.querySelector('.row-total').innerText = 'Rs ' + net.toFixed(2);
         calcTotals();
     }
+    row._updateRowCalc = updateRowCalc;
 
-    [qtyInput, rateInput, ctnInput, boxInput, pcsInput, ctnSizeInput, retailPriceInput, tpInput, bonusInput, tdInput, toInput, sdInput, taxInput, furtherTaxInput, advTaxInput, gstFreeInput, promoDescInput].forEach(inp => {
+    if (bonusInput) {
+        bonusInput.addEventListener('input', function() {
+            this.dataset.manualOverride = 'true';
+            updateRowCalc();
+        });
+    }
+
+    [qtyInput, rateInput, ctnInput, boxInput, pcsInput, ctnSizeInput, retailPriceInput, tpInput, tdInput, toInput, sdInput, taxInput, furtherTaxInput, advTaxInput, gstFreeInput, promoDescInput].forEach(inp => {
         if (inp) inp.addEventListener('input', updateRowCalc);
     });
 
-    // Stock Suggestions for inline row typing
+    // Stock Suggestions for inline row typing (supports Book Depot, Mobile Shop & Wholesaler Carton/TP/SKU)
     nameInput.addEventListener('input', function() {
         const val = this.value.toLowerCase().trim();
         if (!val) { suggest.classList.remove('show'); return; }
 
-        const matches = allMyStock.filter(s =>
-            (s.name || '').toLowerCase().includes(val) ||
-            (s.barcode || '').includes(val)
-        );
+        const matches = allMyStock.filter(s => matchesPosSearchAndFilters(s, val));
 
         if (matches.length === 0) {
             suggest.classList.remove('show');
@@ -2692,9 +3712,11 @@ function addRow(data = {}) {
         let html = '';
         matches.slice(0, 8).forEach(s => {
             const stockColor = (s.qty || 0) <= 0 ? '#ef4444' : '#16a34a';
-            const chosenRate = activeRateTier === 'wholesale' ? (s.wholesaleRate || s.rate || 0) : (s.retailRate || s.rate || 0);
+            const indS = s.industryFields || {};
+            const chosenRate = activeRateTier === 'wholesale' ? (s.wholesaleRate || indS.tradePriceTP || s.rate || 0) : (s.retailRate || s.rate || 0);
             const schemeTag = s.hasScheme ? `<span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold; margin-left:4px;">🎁 ${s.schemeLabel || 'Scheme'}</span>` : '';
             const thumb = s.photoUrl ? `<img src="${s.photoUrl}" style="width:22px; height:22px; border-radius:4px; object-fit:cover; margin-right:4px; vertical-align:middle;">` : '';
+            const metaBadges = formatStockSuggestionMeta(s);
             html += `
             <div class="suggest-item" data-sid="${s.id}">
                 <b>${thumb}${s.name}</b> ${s.barcode ? `[${s.barcode}]` : ''} ${schemeTag}<br>
@@ -2702,6 +3724,7 @@ function addRow(data = {}) {
                     📦 <b style="color:${stockColor};">${s.qty || 0} ${UNIT_LBL(s.unit)}</b> 
                     | 💰 ${activeRateTier === 'wholesale' ? 'Wholesale' : 'Retail'}: Rs ${chosenRate}
                 </span>
+                ${metaBadges}
             </div>`;
         });
         suggest.innerHTML = html;
@@ -2714,39 +3737,53 @@ function addRow(data = {}) {
 
                 nameInput.value = s.name;
                 nameInput.dataset.stockId = s.id;
+                row.dataset.itemSubtitle = formatStockIndustrySubtitle(s);
+                row.dataset.unit = s.unit || 'unit';
+                row.dataset.hasScheme = s.hasScheme ? 'true' : 'false';
+                row.dataset.schemeType = s.schemeType || '';
+                row.dataset.schemeMinQty = s.schemeMinQty || '';
+                row.dataset.schemeValue = s.schemeValue || '';
+                if (s.industryFields) {
+                    row.dataset.industryFieldsJson = JSON.stringify(s.industryFields);
+                }
                 qtyInput.value = 1;
 
+                const ind = s.industryFields || {};
                 const chosenRate = activeRateTier === 'wholesale' 
-                    ? (s.wholesaleRate || s.rate || 0) 
+                    ? (s.wholesaleRate || ind.tradePriceTP || s.rate || 0) 
                     : (s.retailRate || s.rate || 0);
                 rateInput.value = chosenRate;
 
-                // Auto-fill FMCG / Wholesale inputs
-                if (tpInput) tpInput.value = s.wholesaleRate || s.rate || chosenRate;
+                const packSz = parseFloat(ind.packSize) || (s.unit === 'dozen' ? 12 : (s.unit === 'ream' ? 500 : (s.unit === 'maund' ? 40 : 0)));
+
+                // Auto-fill FMCG / Wholesale / Book Depot / Mobile Shop inputs
+                if (tpInput) tpInput.value = ind.tradePriceTP || s.wholesaleRate || s.rate || chosenRate;
                 if (retailPriceInput) retailPriceInput.value = s.retailRate || s.rate || chosenRate;
-                if (skuInput) skuInput.value = s.barcode || s.sku || (s.id ? s.id.slice(-6) : '');
+                if (skuInput) skuInput.value = ind.imei1 || ind.isbnCode || ind.skuBatchCode || s.barcode || s.sku || (s.id ? s.id.slice(-6) : '');
                 if (catInput && s.category) catInput.value = s.category;
-                if (ctnSizeInput && s.ctnSize) ctnSizeInput.value = s.ctnSize;
+                if (ctnSizeInput && (s.ctnSize || packSz > 1)) ctnSizeInpOrSize(ctnSizeInput, s.ctnSize || packSz);
                 if (boxInput) boxInput.value = 1;
+                if (bonusInput) delete bonusInput.dataset.manualOverride;
+                if (promoDescInput) {
+                    promoDescInput.value = s.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '';
+                }
 
                 suggest.classList.remove('show');
 
                 hint.style.display = 'inline-block';
-                const colorClass = (s.qty || 0) <= 0 ? 'stock-out' : ((s.qty || 0) <= 10 ? 'stock-low' : 'stock-ok');
-                let hintContent = `Available: <span class="stock-badge ${colorClass}"><b>${s.qty || 0} ${UNIT_LBL(s.unit)}</b></span>`;
-                if (s.hasScheme) {
-                    hintContent += ` <span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 ${s.schemeLabel || 'Scheme'}</span>`;
-                }
-                hint.innerHTML = hintContent;
+                hint.innerHTML = buildRowStockHintHtml(s, rowId);
 
-                row.querySelector('.row-total').innerText = 'Rs ' + (1 * chosenRate).toFixed(2);
-                calcTotals();
+                updateRowCalc();
             });
         });
     });
 
+    function ctnSizeInpOrSize(inp, val) {
+        if (inp && val) inp.value = val;
+    }
+
     if (data.name) {
-        row.querySelector('.row-total').innerText = 'Rs ' + ((data.qty || 0) * (data.rate || 0)).toFixed(2);
+        updateRowCalc();
     } else {
         // Auto-focus and scroll into view on mobile/desktop
         setTimeout(() => {
@@ -2790,7 +3827,14 @@ function calcTotals() {
         itemAdvTaxes += advTaxVal;
     });
 
-    const manualDiscount = parseFloat(document.getElementById('sumDiscount')?.value) || 0;
+    const discPctInput = document.getElementById('sumDiscountPercent');
+    const sumDiscEl = document.getElementById('sumDiscount');
+    if (discPctInput && discPctInput.dataset.activeTyping === 'true' && sumDiscEl) {
+        const pct = parseFloat(discPctInput.value) || 0;
+        sumDiscEl.value = pct > 0 ? (Math.round((subTotal * pct) / 100 * 100) / 100) : 0;
+    }
+
+    const manualDiscount = parseFloat(sumDiscEl?.value) || 0;
     const flatDiscount = parseFloat(document.getElementById('billFlatDiscount')?.value) || 0;
     const totalDiscount = manualDiscount + flatDiscount + itemDiscounts;
     
@@ -2817,7 +3861,16 @@ function calcTotals() {
     document.getElementById('sumBalance').innerText = newRemainingBalance.toFixed(2);
 }
 
-document.getElementById('sumDiscount')?.addEventListener('input', calcTotals);
+document.getElementById('sumDiscountPercent')?.addEventListener('input', function() {
+    this.dataset.activeTyping = 'true';
+    calcTotals();
+    this.dataset.activeTyping = 'false';
+});
+document.getElementById('sumDiscount')?.addEventListener('input', function() {
+    const pctEl = document.getElementById('sumDiscountPercent');
+    if (pctEl && pctEl.dataset.activeTyping !== 'true') pctEl.value = '';
+    calcTotals();
+});
 document.getElementById('billFlatDiscount')?.addEventListener('input', calcTotals);
 document.getElementById('sumReceived')?.addEventListener('input', calcTotals);
 document.getElementById('taxEnabled')?.addEventListener('change', calcTotals);
@@ -2826,7 +3879,7 @@ document.getElementById('taxRate')?.addEventListener('input', calcTotals);
 // ============================================
 // 💾 SAVE BILL & OFFLINE ORDER COMMIT (DIRECT BILL vs FIELD ORDER)
 // ============================================
-async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
+async function executeSaveBill(forceFieldOrder = false, directPrint = false, forceTemplate = '') {
     // Ensure all booked items from List View / Visual Catalogue are synced into itemsRows ONLY for Booker
     if (isOrderBookerMode()) {
         syncCatCartToTableRows();
@@ -2861,10 +3914,19 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
         if (!name || qty <= 0) { hasError = true; return; }
 
         let purchaseRate = 0;
+        let itemUnit = row.dataset.unit || 'unit';
+        let itemSubtitle = row.dataset.itemSubtitle || '';
+        let itemIndustryFields = row.dataset.industryFieldsJson ? JSON.parse(row.dataset.industryFieldsJson) : null;
+
         if (stockId && typeof allMyStock !== 'undefined' && Array.isArray(allMyStock)) {
             const s = allMyStock.find(x => x.id === stockId);
-            if (s && s.purchaseRate !== undefined) {
-                purchaseRate = parseFloat(s.purchaseRate) || 0;
+            if (s) {
+                if (s.purchaseRate !== undefined) {
+                    purchaseRate = parseFloat(s.purchaseRate) || 0;
+                }
+                if (s.unit) itemUnit = s.unit;
+                if (!itemSubtitle) itemSubtitle = formatStockIndustrySubtitle(s);
+                if (!itemIndustryFields && s.industryFields) itemIndustryFields = s.industryFields;
             }
         }
 
@@ -2873,9 +3935,10 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
         const effectiveBox = box > 0 ? box : (qty > 0 ? qty : 1);
         const npPerBox = effectiveBox > 0 ? (itemNet / effectiveBox) : itemNet;
 
-        items.push({
+        const savedItemObj = {
             name,
             qty,
+            unit: itemUnit,
             rate,
             ctn,
             box,
@@ -2906,7 +3969,11 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
             stockId,
             purchaseRate: purchaseRate,
             costTotal: qty * purchaseRate
-        });
+        };
+        if (itemSubtitle) savedItemObj.itemSubtitle = itemSubtitle;
+        if (itemIndustryFields) savedItemObj.industryFields = itemIndustryFields;
+
+        items.push(savedItemObj);
     });
 
     if (items.length === 0 || hasError) {
@@ -2974,9 +4041,13 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
 
     let subTotal = 0;
     let itemDiscounts = 0;
+    let itemTaxes = 0;
+    let itemAdvFurtherTaxes = 0;
     items.forEach(it => {
         subTotal += (it.gross || it.total);
         itemDiscounts += ((it.td || 0) + (it.to || 0) + (it.sd || 0));
+        itemTaxes += (it.tax18 || 0);
+        itemAdvFurtherTaxes += ((it.advTax || 0) + (it.furtherTax || 0));
     });
 
     const totalDiscount = discount + flatDiscount + itemDiscounts;
@@ -2984,13 +4055,13 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
     const taxEnabled = document.getElementById('taxEnabled');
     const taxRateInput = document.getElementById('taxRate');
     let taxRate = 0;
-    let taxAmount = 0;
+    let taxAmount = itemTaxes;
     if (taxEnabled && taxEnabled.checked && taxRateInput) {
         taxRate = parseFloat(taxRateInput.value) || 0;
-        if (taxRate > 0) taxAmount = (Math.max(0, subTotal - totalDiscount) * taxRate) / 100;
+        if (taxRate > 0) taxAmount += (Math.max(0, subTotal - totalDiscount) * taxRate) / 100;
     }
 
-    const currentBillTotal = Math.max(0, (subTotal - totalDiscount) + taxAmount);
+    const currentBillTotal = Math.max(0, (subTotal - totalDiscount) + taxAmount + itemAdvFurtherTaxes);
     const prevBal = selectedCustomer ? (selectedCustomer.balance || 0) : 0;
     const totalPayable = prevBal + currentBillTotal;
     const balance = totalPayable - received;
@@ -3021,9 +4092,11 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
 
     const saveBtn = document.getElementById('saveBillBtn');
     const savePrintBtn = document.getElementById('saveAndPrintBillBtn');
+    const saveThermalBtn = document.getElementById('saveAndThermalPrintBtn');
     const bookBtn = document.getElementById('bookFieldOrderBtn');
     if (saveBtn) saveBtn.disabled = true;
     if (savePrintBtn) savePrintBtn.disabled = true;
+    if (saveThermalBtn) saveThermalBtn.disabled = true;
     if (bookBtn) bookBtn.disabled = true;
 
     const bookerName = (myUser && myUser.name) ? myUser.name : ((myUser && myUser.email) ? myUser.email.split('@')[0] : 'Staff');
@@ -3074,6 +4147,9 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
         customerFbrStatus: selectedCustomer ? (selectedCustomer.fbrStatus || ((selectedCustomer.ntn || selectedCustomer.custNTN) ? 'filer' : 'non-filer')) : '',
         customerCnic: document.getElementById('billCustNic')?.value || (selectedCustomer ? (selectedCustomer.cnic || '') : ''),
         customerTerms: selectedCustomer ? (selectedCustomer.paymentTerms || '') : '',
+        customerSubCategory: selectedCustomer ? (selectedCustomer.subCategory || '') : '',
+        affiliatedBoard: selectedCustomer ? (selectedCustomer.affiliatedBoard || '') : '',
+        agreedDiscountPercent: selectedCustomer ? (selectedCustomer.agreedDiscountPercent || 0) : 0,
         customer: selectedCustomer ? { ...selectedCustomer } : null,
         agency: (typeof myAgency !== 'undefined' && myAgency) ? { ...myAgency } : null,
         items: items,
@@ -3093,7 +4169,7 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
         rateTier: activeRateTier,
         date: new Date().toISOString().slice(0, 10),
         time: new Date().toLocaleTimeString('en-PK', {hour:'2-digit', minute:'2-digit'}),
-        template: getActiveBillTemplate(),
+        template: forceTemplate || getActiveBillTemplate(),
         createdAt: new Date().toISOString()
     };
 
@@ -3125,11 +4201,12 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
         showSuccessScreen(billData, true);
         if (saveBtn) saveBtn.disabled = false;
         if (savePrintBtn) savePrintBtn.disabled = false;
+        if (saveThermalBtn) saveThermalBtn.disabled = false;
         if (bookBtn) bookBtn.disabled = false;
 
         if (directPrint) {
             try {
-                printBillDirectly(billData);
+                printBillDirectly(billData, forceTemplate);
             } catch (pErr) {
                 console.warn('Direct print error:', pErr);
             }
@@ -3153,6 +4230,7 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
 
             showSuccessScreen(billData, false);
             if (saveBtn) saveBtn.disabled = false;
+            if (saveThermalBtn) saveThermalBtn.disabled = false;
             if (bookBtn) bookBtn.disabled = false;
 
             Swal.fire({
@@ -3231,12 +4309,13 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
         showSuccessScreen(billData, false);
         if (saveBtn) saveBtn.disabled = false;
         if (savePrintBtn) savePrintBtn.disabled = false;
+        if (saveThermalBtn) saveThermalBtn.disabled = false;
         if (bookBtn) bookBtn.disabled = false;
 
         // 🖨️ DIRECT PRINT IF REQUESTED BY ADMIN
         if (directPrint) {
             try {
-                printBillDirectly(billData);
+                printBillDirectly(billData, forceTemplate);
             } catch (pErr) {
                 console.warn('Direct print error:', pErr);
             }
@@ -3245,6 +4324,7 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
     } catch (error) {
         if (saveBtn) saveBtn.disabled = false;
         if (savePrintBtn) savePrintBtn.disabled = false;
+        if (saveThermalBtn) saveThermalBtn.disabled = false;
         if (bookBtn) bookBtn.disabled = false;
         console.error('Invoice save error:', error);
 
@@ -3277,7 +4357,7 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
             });
 
             if (directPrint) {
-                try { printBillDirectly(billData); } catch (e) {}
+                try { printBillDirectly(billData, forceTemplate); } catch (e) {}
             }
             return;
         }
@@ -3287,12 +4367,13 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false) {
 }
 
 // 🖨️ DIRECT BILL PRINT HELPER (Works in Iframe & Desktop/Mobile browsers)
-function printBillDirectly(b) {
+function printBillDirectly(b, forceTemplate = '') {
     const bill = b || lastSavedBill;
     if (!bill) return;
 
     function getActivePrintConfig() {
-        const selectedTemplate = (bill && bill.template) 
+        const selectedTemplate = forceTemplate
+            || (bill && bill.template) 
             || (document.getElementById('mainBillTemplateSelect')?.value)
             || (document.getElementById('ssTemplateSelect')?.value)
             || (typeof myAgency !== 'undefined' && myAgency && (myAgency.defaultTemplate || myAgency.template))
@@ -3300,9 +4381,15 @@ function printBillDirectly(b) {
             || 'template4';
         const langSelect = document.getElementById('ssLanguageSelect');
         const selectedLang = langSelect ? langSelect.value : (localStorage.getItem('eb_bill_language') || 'en');
+        const thermalW = document.getElementById('ssThermalWidthSelect')?.value
+            || document.getElementById('mainThermalWidthSelect')?.value
+            || (typeof myAgency !== 'undefined' && myAgency && (myAgency.thermalPaperWidth || myAgency.thermalWidth))
+            || localStorage.getItem('eb_thermal_width')
+            || localStorage.getItem('nh_thermal_width')
+            || '80';
         return {
             template: selectedTemplate,
-            settings: { billLanguage: selectedLang }
+            settings: { billLanguage: selectedLang, thermalWidth: thermalW }
         };
     }
 
@@ -3356,9 +4443,13 @@ function printBillDirectly(b) {
     }
 }
 window.printBillDirectly = printBillDirectly;
+window.printThermalBillDirectly = function(b) {
+    printBillDirectly(b || lastSavedBill, 'template6');
+};
 
 // Bind Admin and Booker Button Listeners
 document.getElementById('saveAndPrintBillBtn')?.addEventListener('click', () => executeSaveBill(false, true));
+document.getElementById('saveAndThermalPrintBtn')?.addEventListener('click', () => executeSaveBill(false, true, 'template6'));
 document.getElementById('saveBillBtn')?.addEventListener('click', () => executeSaveBill(false, false));
 document.getElementById('adminNewBillBtn')?.addEventListener('click', () => {
     selectedCustomer = null;
@@ -3575,38 +4666,59 @@ document.getElementById('outNewBillBtn').addEventListener('click', () => {
 });
 
 function getSelectedBillConfig() {
-    const selectedTemplate = (typeof lastSavedBill !== 'undefined' && lastSavedBill && lastSavedBill.template)
-        || (document.getElementById('ssTemplateSelect')?.value)
+    const selectedTemplate = (document.getElementById('ssTemplateSelect')?.value)
+        || (typeof lastSavedBill !== 'undefined' && lastSavedBill && lastSavedBill.template)
         || (document.getElementById('mainBillTemplateSelect')?.value)
         || ((typeof myAgency !== 'undefined' && myAgency && (myAgency.defaultTemplate || myAgency.template)))
         || localStorage.getItem('eb_default_template')
         || 'template4';
     const langSelect = document.getElementById('ssLanguageSelect');
     const selectedLang = langSelect ? langSelect.value : (localStorage.getItem('eb_bill_language') || 'en');
+    const thermalW = document.getElementById('ssThermalWidthSelect')?.value
+        || document.getElementById('mainThermalWidthSelect')?.value
+        || ((typeof myAgency !== 'undefined' && myAgency && (myAgency.thermalPaperWidth || myAgency.thermalWidth)))
+        || localStorage.getItem('eb_thermal_width')
+        || localStorage.getItem('nh_thermal_width')
+        || '80';
     return {
         template: selectedTemplate,
-        settings: { billLanguage: selectedLang }
+        settings: { billLanguage: selectedLang, thermalWidth: thermalW }
     };
 }
+
+function syncThermalWidthSelectors(newVal) {
+    const cleanW = String(newVal || '80').startsWith('58') ? '58' : '80';
+    try { localStorage.setItem('eb_thermal_width', cleanW); } catch (e) {}
+    const mainTw = document.getElementById('mainThermalWidthSelect');
+    const ssTw = document.getElementById('ssThermalWidthSelect');
+    if (mainTw && mainTw.value !== cleanW) mainTw.value = cleanW;
+    if (ssTw && ssTw.value !== cleanW) ssTw.value = cleanW;
+}
+
+document.getElementById('ssThermalWidthSelect')?.addEventListener('change', function() {
+    syncThermalWidthSelectors(this.value);
+});
+document.getElementById('mainThermalWidthSelect')?.addEventListener('change', function() {
+    syncThermalWidthSelectors(this.value);
+});
+(function initThermalWidthControls() {
+    const savedW = localStorage.getItem('eb_thermal_width') || localStorage.getItem('nh_thermal_width') || '80';
+    syncThermalWidthSelectors(savedW);
+})();
+
+// 🧾 1-CLICK THERMAL RECEIPT PRINT (80mm / 58mm)
+document.getElementById('outThermalPrintBtn')?.addEventListener('click', () => {
+    if (!lastSavedBill) return;
+    const ssTpl = document.getElementById('ssTemplateSelect');
+    if (ssTpl) ssTpl.value = 'template6';
+    printBillDirectly(lastSavedBill, 'template6');
+});
 
 // 🖨️ PRINT INVOICE & THERMAL RECEIPT
 document.getElementById('outPrintBtn').addEventListener('click', () => {
     if (!lastSavedBill) return;
-
     const cfg = getSelectedBillConfig();
-    let billHTML = '';
-    try {
-        billHTML = (window.buildBillHTML) 
-            ? window.buildBillHTML(lastSavedBill, cfg.template, cfg.settings)
-            : buildFallbackHTML(lastSavedBill);
-    } catch (e) {
-        billHTML = buildFallbackHTML(lastSavedBill);
-    }
-
-    const win = window.open('', '_blank', 'width=800,height=700');
-    win.document.write(billHTML);
-    win.document.close();
-    setTimeout(() => win.print(), 1200);
+    printBillDirectly(lastSavedBill, cfg.template);
 });
 
 // 📄 PDF EXPORT
@@ -4022,12 +5134,9 @@ function renderInteractiveProductList() {
         if (listFilterState.category !== 'all' && item.category !== listFilterState.category) {
             return false;
         }
-        // Search query filter
-        if (listFilterState.search) {
-            const nameMatch = String(item.name || '').toLowerCase().includes(listFilterState.search);
-            const barcodeMatch = String(item.barcode || '').toLowerCase().includes(listFilterState.search);
-            const catMatch = String(item.category || '').toLowerCase().includes(listFilterState.search);
-            if (!nameMatch && !barcodeMatch && !catMatch) return false;
+        // Search query + Book Depot Class/Publisher quick filters
+        if (!matchesPosSearchAndFilters(item, listFilterState.search || '')) {
+            return false;
         }
         // Quick filter pills
         if (listFilterState.filter === 'offers') {
@@ -4090,6 +5199,8 @@ function renderInteractiveProductList() {
             ? `<img src="${item.photoUrl}" alt="${item.name}" loading="lazy">` 
             : `<i class="fas fa-box" style="font-size:22px; color:#cbd5e1;"></i>`;
 
+        const bookSpecHtml = formatStockSuggestionMeta(item);
+
         html += `
         <div class="${cardClass}" id="listCard-${itemId}">
             <!-- Left: Thumbnail + Item Details -->
@@ -4101,6 +5212,7 @@ function renderInteractiveProductList() {
                     <div class="list-item-title" title="${item.name}">
                         <span>${item.name}</span> ${item.barcode ? `<span class="list-item-barcode">[${item.barcode}]</span>` : ''}
                     </div>
+                    ${bookSpecHtml}
                     <div class="list-item-meta">
                         <span class="list-item-rate">Rs ${Number(rate).toLocaleString()}</span>
                         <span class="list-item-unit">/ ${UNIT_LBL(item.unit)}</span>
@@ -4351,6 +5463,11 @@ function syncCatCartToTotals() {
         totalDiscount += entry.schemeDiscount;
         totalUnits += entry.qty;
     });
+
+    const agreedCustDiscPct = selectedCustomer ? (parseFloat(selectedCustomer.agreedDiscountPercent) || 0) : 0;
+    if (totalDiscount === 0 && agreedCustDiscPct > 0 && subTotal > 0) {
+        totalDiscount = (subTotal * agreedCustDiscPct) / 100;
+    }
 
     const sumSubEl = document.getElementById('sumSubTotal');
     if (sumSubEl) sumSubEl.innerText = subTotal.toFixed(2);
@@ -4630,7 +5747,9 @@ function setupCatalogueCustomerPicker() {
             (c.name || '').toLowerCase().includes(val) ||
             (c.mobile || '').includes(val) ||
             (c.shopName || '').toLowerCase().includes(val) ||
-            (c.route || '').toLowerCase().includes(val)
+            (c.route || '').toLowerCase().includes(val) ||
+            (c.subCategory || '').toLowerCase().includes(val) ||
+            (c.affiliatedBoard || '').toLowerCase().includes(val)
         );
 
         if (matches.length === 0) {
@@ -4643,12 +5762,20 @@ function setupCatalogueCustomerPicker() {
             const typeBadge = c.customerType === 'retail'
                 ? `<span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; margin-left:6px;">🏷️ RETAIL</span>`
                 : `<span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; margin-left:6px;">🏪 WHOLESALE</span>`;
+            const segLabel = getCustomerSegmentBadgeText(c);
+            const segBadge = segLabel
+                ? `<span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; background:#ede9fe; color:#5b21b6; border:1px solid #ddd6fe; margin-left:4px;">${segLabel}</span>`
+                : '';
+            const discBadge = (parseFloat(c.agreedDiscountPercent) > 0)
+                ? `<span style="font-size:10px; font-weight:800; padding:2px 6px; border-radius:10px; background:#fef3c7; color:#92400e; border:1px solid #fde68a; margin-left:4px;">🏷️ ${c.agreedDiscountPercent}% Disc</span>`
+                : '';
             html += `
             <div class="suggest-item" data-id="${c.id}" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f1f5f9;">
-                <b>👤 ${c.name}</b> ${c.shopName ? `(${c.shopName})` : ''} ${typeBadge}<br>
+                <b>👤 ${c.name}</b> ${c.shopName ? `(${c.shopName})` : ''} ${typeBadge}${segBadge}${discBadge}<br>
                 <span class="s-sub" style="font-size:11px; color:#64748b;">
                     ${c.mobile ? '📱 ' + c.mobile : ''} 
                     ${c.route ? '| 🛣️ ' + c.route : ''}
+                    ${c.affiliatedBoard ? '| 🏛️ ' + c.affiliatedBoard : ''}
                     | 💰 Balance: <b>Rs ${(c.balance || 0).toLocaleString()}</b>
                 </span>
             </div>`;
@@ -4703,6 +5830,16 @@ function syncCatalogueCustomer(c) {
         }
         if (c.customerType) {
             info += `<span class="c-chip ${c.customerType === 'retail' ? 'tier-retail' : 'tier-wholesale'}">${c.customerType === 'retail' ? '🏷️ Retail' : '🏪 Wholesale'}</span>`;
+        }
+        const segLabel = getCustomerSegmentBadgeText(c);
+        if (segLabel) {
+            info += `<span class="c-chip" style="background:#ede9fe; color:#5b21b6; border:1px solid #ddd6fe;">${segLabel}</span>`;
+        }
+        if (c.affiliatedBoard) {
+            info += `<span class="c-chip" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;">🏛️ ${c.affiliatedBoard}</span>`;
+        }
+        if (parseFloat(c.agreedDiscountPercent) > 0) {
+            info += `<span class="c-chip" style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0;">🏷️ Agreed Disc: <b>${c.agreedDiscountPercent}%</b></span>`;
         }
         if (prevBal > 0) {
             info += `<span class="c-chip c-chip-balance" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;" title="Previous Balance: Rs ${prevBal.toLocaleString()}">💰 Khata: <b>Rs ${prevBal.toLocaleString()}</b></span>`;
@@ -4774,13 +5911,16 @@ function showCataloguePhotoFullscreen(item) {
             🎁 ${item.schemeLabel || 'Trade Scheme Active'}
         </div>` : '';
 
+    const bookSpecHtml = formatStockSuggestionMeta(item);
+
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             html: `
                 <div style="position:relative; text-align:center;">
-                    <div style="font-size:18px; font-weight:900; color:#0f172a; margin-bottom:8px; line-height:1.3;">
+                    <div style="font-size:18px; font-weight:900; color:#0f172a; margin-bottom:4px; line-height:1.3;">
                         ${item.name}
                     </div>
+                    ${bookSpecHtml ? `<div style="margin-bottom:8px;">${bookSpecHtml}</div>` : ''}
                     <div style="display:inline-block; width:100%; max-width:340px; aspect-ratio:3/4; border-radius:18px; overflow:hidden; border:2px solid #cbd5e1; box-shadow:0 8px 28px rgba(0,0,0,0.2); background:#0f172a;">
                         <img src="${item.photoUrl}" alt="${item.name}" style="width:100%; height:100%; object-fit:cover; display:block;">
                     </div>
@@ -4912,12 +6052,9 @@ function filterAndRenderCatalogue() {
         if (catActiveCategory !== 'all' && item.category !== catActiveCategory) {
             return false;
         }
-        // Search filter
-        if (catSearchQuery) {
-            const nameMatch = String(item.name || '').toLowerCase().includes(catSearchQuery);
-            const barcodeMatch = String(item.barcode || '').toLowerCase().includes(catSearchQuery);
-            const catMatch = String(item.category || '').toLowerCase().includes(catSearchQuery);
-            if (!nameMatch && !barcodeMatch && !catMatch) return false;
+        // Search filter + Book Depot Class/Publisher quick filters
+        if (!matchesPosSearchAndFilters(item, catSearchQuery || '')) {
+            return false;
         }
         return true;
     });
@@ -4936,6 +6073,7 @@ function renderCatalogueItem() {
     const counterBadge = document.getElementById('catCounterBadge');
     const navIndex = document.getElementById('catNavIndex');
     const titleEl = document.getElementById('catItemTitle');
+    const bookSpecsRow = document.getElementById('catBookSpecsRow');
     const imgEl = document.getElementById('catItemImg');
     const phEl = document.getElementById('catPhotoPlaceholder');
     const rateEl = document.getElementById('catItemRate');
@@ -4952,6 +6090,7 @@ function renderCatalogueItem() {
 
     if (!catProducts || catProducts.length === 0) {
         if (titleEl) titleEl.innerText = 'No products found';
+        if (bookSpecsRow) { bookSpecsRow.style.display = 'none'; bookSpecsRow.innerHTML = ''; }
         if (catBadge) catBadge.innerText = '📂 0 Products';
         if (counterBadge) counterBadge.innerText = '0 of 0';
         if (navIndex) navIndex.innerText = '0 / 0';
@@ -4979,6 +6118,18 @@ function renderCatalogueItem() {
     // Title
     if (titleEl) {
         titleEl.innerHTML = `<span style="font-size:18px;">${item.name || 'Unnamed Product'}</span> ${item.barcode ? `<span style="font-size:11px; color:#64748b; font-weight:600; margin-left:6px;">[${item.barcode}]</span>` : ''}`;
+    }
+
+    // Book Depot & Stationery Metadata Badges on 3:4 Portrait Card
+    if (bookSpecsRow) {
+        const specHtml = formatStockSuggestionMeta(item);
+        if (specHtml) {
+            bookSpecsRow.innerHTML = specHtml;
+            bookSpecsRow.style.display = 'flex';
+        } else {
+            bookSpecsRow.innerHTML = '';
+            bookSpecsRow.style.display = 'none';
+        }
     }
 
     // Photo
@@ -5156,15 +6307,31 @@ function syncCatCartToTableRows() {
     }
 
     entries.forEach(entry => {
+        const it = entry.item || {};
+        const ind = it.industryFields || {};
+        const packSz = parseFloat(ind.packSize) || (it.unit === 'dozen' ? 12 : (it.unit === 'ream' ? 500 : (it.unit === 'maund' ? 40 : 0)));
         addRow({
-            name: entry.item.name,
-            stockId: entry.item.id,
+            name: it.name,
+            stockId: it.id,
             qty: entry.qty,
             rate: entry.rate,
-            unit: entry.item.unit,
-            availableQty: entry.item.qty || 0,
-            hasScheme: entry.item.hasScheme,
-            schemeLabel: entry.item.schemeLabel
+            tradePrice: ind.tradePriceTP || it.wholesaleRate || entry.rate,
+            retailPrice: it.retailRate || it.rate || entry.rate,
+            bonus: entry.freeQty || 0,
+            to: entry.schemeDiscount || 0,
+            unit: it.unit,
+            availableQty: it.qty || 0,
+            hasScheme: it.hasScheme,
+            schemeType: it.schemeType || '',
+            schemeMinQty: it.schemeMinQty || '',
+            schemeValue: it.schemeValue || '',
+            schemeLabel: it.schemeLabel,
+            promoDesc: it.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '',
+            sku: ind.imei1 || ind.isbnCode || ind.skuBatchCode || it.barcode || it.sku || '',
+            category: it.category || '',
+            ctnSize: it.ctnSize || (packSz > 1 ? packSz : undefined),
+            itemSubtitle: formatStockIndustrySubtitle(it),
+            industryFields: it.industryFields || null
         });
     });
 }
@@ -5228,9 +6395,13 @@ function openCatalogueReviewModal() {
 
     // Customer display
     if (selectedCustomer) {
-        if (custNameEl) custNameEl.innerHTML = `👤 <b>${selectedCustomer.name}</b> ${selectedCustomer.shopName ? `<span style="color:#0284c7;">(${selectedCustomer.shopName})</span>` : ''}`;
+        const segLabel = getCustomerSegmentBadgeText(selectedCustomer);
+        const segHtml = segLabel ? ` <span style="font-size:11px; background:#ede9fe; color:#5b21b6; padding:1px 7px; border-radius:6px; font-weight:800;">${segLabel}</span>` : '';
+        if (custNameEl) custNameEl.innerHTML = `👤 <b>${selectedCustomer.name}</b> ${selectedCustomer.shopName ? `<span style="color:#0284c7;">(${selectedCustomer.shopName})</span>` : ''}${segHtml}`;
         if (custDetailsEl) {
-            custDetailsEl.innerHTML = `📱 ${selectedCustomer.mobile || 'No Mobile'} | 🛣️ Route: <b>${selectedCustomer.route || 'General Route'}</b> | 🏷️ Rate: <b>${(activeRateTier || 'wholesale').toUpperCase()}</b>`;
+            const boardPart = selectedCustomer.affiliatedBoard ? ` | 🏛️ Board: <b>${selectedCustomer.affiliatedBoard}</b>` : '';
+            const discPart = (parseFloat(selectedCustomer.agreedDiscountPercent) > 0) ? ` | 🏷️ Agreed Disc: <b>${selectedCustomer.agreedDiscountPercent}%</b>` : '';
+            custDetailsEl.innerHTML = `📱 ${selectedCustomer.mobile || 'No Mobile'} | 🛣️ Route: <b>${selectedCustomer.route || 'General Route'}</b> | 🏷️ Rate: <b>${(activeRateTier || 'wholesale').toUpperCase()}</b>${boardPart}${discPart}`;
         }
     } else {
         const rawCust = (document.getElementById('custNameInput')?.value || '').trim();
@@ -5262,12 +6433,15 @@ function openCatalogueReviewModal() {
             schemeBadge = `<span style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:800;">🏷️ -Rs ${entry.schemeDiscount} OFF</span>`;
         }
 
+        const itemSub = formatStockIndustrySubtitle(item);
+
         html += `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 10px; border-bottom:1px solid #e2e8f0; background:#ffffff; border-radius:10px; margin-bottom:6px; gap:8px;">
             <div style="display:flex; align-items:center; gap:9px; flex:1; min-width:0;">
                 ${thumb}
                 <div style="min-width:0;">
                     <div style="font-weight:800; font-size:13px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${item.name}">${item.name}</div>
+                    ${itemSub ? `<div style="font-size:10.5px; color:#475569; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📚 ${itemSub}</div>` : ''}
                     <div style="font-size:11px; color:#64748b; display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:2px;">
                         <span>Rs ${Number(entry.rate).toLocaleString()} / ${UNIT_LBL(item.unit)}</span>
                         ${schemeBadge}
@@ -5291,6 +6465,11 @@ function openCatalogueReviewModal() {
 
     if (listEl) listEl.innerHTML = html;
     if (badgeEl) badgeEl.innerText = `${entries.length} items (${totalUnits} units)`;
+
+    const agreedCustDiscPct = selectedCustomer ? (parseFloat(selectedCustomer.agreedDiscountPercent) || 0) : 0;
+    if (totalDiscount === 0 && agreedCustDiscPct > 0 && subtotal > 0) {
+        totalDiscount = (subtotal * agreedCustDiscPct) / 100;
+    }
 
     const prevBal = selectedCustomer ? (selectedCustomer.balance || 0) : 0;
     const finalBill = Math.max(0, subtotal - totalDiscount);
@@ -5441,18 +6620,34 @@ async function submitCatalogueFieldOrder() {
         const bookerMobile = (myUser && myUser.mobile) || '';
         const notes = document.getElementById('catReviewNotes')?.value.trim() || '';
 
-        const items = entries.map(e => ({
-            name: e.item.name,
-            qty: e.qty,
-            rate: e.rate,
-            total: e.qty * e.rate,
-            stockId: e.item.id,
-            unit: e.item.unit || 'pcs',
-            hasScheme: !!e.item.hasScheme,
-            schemeLabel: e.item.schemeLabel || '',
-            freeQty: e.freeQty || 0,
-            discount: e.schemeDiscount || 0
-        }));
+        const items = entries.map(e => {
+            const it = e.item || {};
+            const ind = it.industryFields || {};
+            return {
+                name: it.name,
+                qty: e.qty,
+                rate: e.rate,
+                tradePrice: ind.tradePriceTP || it.wholesaleRate || e.rate,
+                tp: ind.tradePriceTP || it.wholesaleRate || e.rate,
+                retailPrice: it.retailRate || it.rate || e.rate,
+                total: e.qty * e.rate,
+                stockId: it.id,
+                unit: it.unit || 'pcs',
+                sku: ind.skuBatchCode || ind.imei1 || ind.isbnCode || it.barcode || it.sku || '',
+                skuCode: ind.skuBatchCode || ind.imei1 || ind.isbnCode || it.barcode || it.sku || '',
+                category: it.category || '',
+                ctnSize: parseFloat(ind.packSize || it.ctnSize) || 144,
+                hasScheme: !!it.hasScheme,
+                schemeLabel: it.schemeLabel || '',
+                promoDesc: it.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '',
+                bonus: e.freeQty || 0,
+                freeQty: e.freeQty || 0,
+                freeUnits: e.freeQty || 0,
+                discount: e.schemeDiscount || 0,
+                itemSubtitle: formatStockIndustrySubtitle(it),
+                industryFields: it.industryFields || null
+            };
+        });
 
         let subTotal = 0;
         let totalDiscount = 0;
@@ -5465,6 +6660,11 @@ async function submitCatalogueFieldOrder() {
             totalUnits += it.qty;
             totalFreeUnits += (it.freeQty || 0);
         });
+
+        const agreedCustDiscPct = selectedCustomer ? (parseFloat(selectedCustomer.agreedDiscountPercent) || 0) : 0;
+        if (totalDiscount === 0 && agreedCustDiscPct > 0 && subTotal > 0) {
+            totalDiscount = (subTotal * agreedCustDiscPct) / 100;
+        }
 
         const prevBal = selectedCustomer ? (selectedCustomer.balance || 0) : 0;
         const currentBillTotal = Math.max(0, subTotal - totalDiscount);
@@ -5485,12 +6685,16 @@ async function submitCatalogueFieldOrder() {
             customerMobile: selectedCustomer ? (selectedCustomer.mobile || '') : '',
             customerRoute: selectedCustomer ? (selectedCustomer.route || '') : '',
             customerType: selectedCustomer ? (selectedCustomer.customerType || activeRateTier) : activeRateTier,
+            customerSubCategory: selectedCustomer ? (selectedCustomer.subCategory || '') : '',
+            affiliatedBoard: selectedCustomer ? (selectedCustomer.affiliatedBoard || '') : '',
+            agreedDiscountPercent: agreedCustDiscPct,
             items: items,
             itemCount: items.length,
             totalUnits: totalUnits,
             totalFreeUnits: totalFreeUnits,
             subTotal: subTotal,
             discount: totalDiscount,
+            discountPercent: agreedCustDiscPct,
             billAmount: currentBillTotal,
             previousBalance: prevBal,
             grandTotal: grandTotal,
@@ -5783,6 +6987,14 @@ function printQuickRecoverySlip(doc) {
     const agencyTitle = myAgency?.name || 'Distribution Agency';
     const agencyAddress = myAgency?.address || '';
     const agencyMobile = myAgency?.mobile || '';
+    const rawW = document.getElementById('ssThermalWidthSelect')?.value
+        || document.getElementById('mainThermalWidthSelect')?.value
+        || myAgency?.thermalPaperWidth
+        || localStorage.getItem('eb_thermal_width')
+        || '80';
+    const is58 = String(rawW).trim().startsWith('58');
+    const pageW = is58 ? '58mm' : '80mm';
+    const printW = is58 ? '48mm' : '72mm';
 
     const html = `
     <!DOCTYPE html>
@@ -5790,11 +7002,11 @@ function printQuickRecoverySlip(doc) {
     <head>
         <title>Payment Receipt - ${doc.billNo}</title>
         <style>
-            @page { size: 80mm auto; margin: 4mm; }
-            body { font-family: monospace, sans-serif; font-size: 12px; margin: 0; color: #000; }
+            @page { size: ${pageW} auto; margin: ${is58 ? '2mm' : '4mm'}; }
+            body { width: ${printW}; max-width: ${printW}; margin: 0 auto; font-family: monospace, sans-serif; font-size: ${is58 ? '11px' : '12px'}; color: #000; }
             .text-center { text-align: center; }
             .line { border-top: 1px dashed #000; margin: 6px 0; }
-            .flex-between { display: flex; justify-content: space-between; }
+            .flex-between { display: flex; justify-content: space-between; gap: 4px; }
             .bold { font-weight: bold; }
         </style>
     </head>

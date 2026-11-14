@@ -43,6 +43,26 @@ let stockNameMap = {}; // name.toLowerCase() -> stockItem
 
 let activeTableData = []; // for CSV export
 
+function getProfitItemSubtitle(stockRef, billItem) {
+    const src = (billItem && billItem.itemSubtitle) ? billItem : (stockRef && Object.keys(stockRef).length ? stockRef : billItem);
+    if (!src) return '';
+    if (src.itemSubtitle) return String(src.itemSubtitle).trim();
+    if (window.BusinessCategories && typeof window.BusinessCategories.formatItemSubtitle === 'function') {
+        return window.BusinessCategories.formatItemSubtitle(src);
+    }
+    return '';
+}
+
+function getProfitActiveCategory() {
+    if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+        return window.BusinessCategories.resolveActiveCategory(myAgency, 'books');
+    }
+    return (myAgency && (myAgency.businessCategory || myAgency.category || myAgency.businessType))
+        || localStorage.getItem('eb_active_business_category')
+        || localStorage.getItem('eb_active_category')
+        || 'books';
+}
+
 // ============================================
 // 🛡️ AUTH GUARD & DATA INITIALIZATION
 // ============================================
@@ -290,6 +310,12 @@ function setupEventListeners() {
     if (btnPrint) {
         btnPrint.addEventListener('click', printProfitReport);
     }
+
+    // Thermal Profit Slip
+    const btnThermalSlip = document.getElementById('btnThermalProfitSlip');
+    if (btnThermalSlip) {
+        btnThermalSlip.addEventListener('click', () => printThermalProfitSlip());
+    }
 }
 
 // ============================================
@@ -410,10 +436,12 @@ function calculateAndRenderProfit() {
 
         let billTotalCost = 0;
         let billItemsCount = 0;
+        let billFreeUnits = 0;
         const billDetailedItems = [];
 
         (b.items || []).forEach(it => {
             const qty = parseFloat(it.qty) || 0;
+            const freeQty = parseFloat(it.freeQty || it.bonus || 0) || 0;
             const rate = parseFloat(it.rate) || 0;
             const saleTotal = it.total !== undefined ? parseFloat(it.total) : (qty * rate);
 
@@ -427,17 +455,24 @@ function calculateAndRenderProfit() {
                 costRate = parseFloat(stockNameMap[it.name.toLowerCase().trim()].purchaseRate);
             }
 
-            const itemCost = qty * costRate;
+            // Include free/bonus units cost in warehouse COGS (when freeQty === 0, identical to qty * costRate)
+            const itemCost = (qty + freeQty) * costRate;
             const itemProfit = saleTotal - itemCost;
             const itemMargin = saleTotal > 0 ? (itemProfit / saleTotal) * 100 : 0;
 
             billTotalCost += itemCost;
             billItemsCount += qty;
+            billFreeUnits += freeQty;
             totalItemsQty += qty;
+
+            const stockRef = (it.stockId && stockMap[it.stockId]) || stockNameMap[(it.name || '').toLowerCase().trim()] || {};
+            const itemSub = getProfitItemSubtitle(stockRef, it);
 
             billDetailedItems.push({
                 name: it.name || 'Unnamed',
+                subtitle: itemSub,
                 qty: qty,
+                freeQty: freeQty,
                 rate: rate,
                 costRate: costRate,
                 saleTotal: saleTotal,
@@ -449,19 +484,23 @@ function calculateAndRenderProfit() {
             // 📦 Group in Items Map
             const itemKey = (it.name || 'Unknown Item').trim();
             if (!itemsMap[itemKey]) {
-                const stockRef = (it.stockId && stockMap[it.stockId]) || stockNameMap[itemKey.toLowerCase()] || {};
                 itemsMap[itemKey] = {
                     name: itemKey,
+                    subtitle: itemSub,
                     category: stockRef.category || 'General',
-                    unit: stockRef.unit || 'pcs',
+                    unit: stockRef.unit || it.unit || 'pcs',
                     unitsSold: 0,
+                    freeUnitsGiven: 0,
                     totalSales: 0,
                     totalCost: 0,
                     costRate: costRate,
                     saleRate: rate
                 };
+            } else if (!itemsMap[itemKey].subtitle && itemSub) {
+                itemsMap[itemKey].subtitle = itemSub;
             }
             itemsMap[itemKey].unitsSold += qty;
+            itemsMap[itemKey].freeUnitsGiven += freeQty;
             itemsMap[itemKey].totalSales += saleTotal;
             itemsMap[itemKey].totalCost += itemCost;
             if (costRate > 0) itemsMap[itemKey].costRate = costRate;
@@ -553,10 +592,15 @@ function calculateAndRenderProfit() {
         const custKey = (b.customerId || b.customerName || 'Counter Sale').trim();
         if (!customersMap[custKey]) {
             const custObj = rawCustomers.find(c => c.id === b.customerId || c.name === b.customerName) || {};
+            const activeCat = getProfitActiveCategory();
+            const segLabel = (window.BusinessCategories && typeof window.BusinessCategories.getCustomerSegmentLabel === 'function' && (b.customerSegment || custObj.customerSegment))
+                ? window.BusinessCategories.getCustomerSegmentLabel(activeCat, b.customerSegment || custObj.customerSegment)
+                : '';
             customersMap[custKey] = {
                 id: b.customerId || '',
                 name: b.customerName || 'Counter Sale',
                 shopName: b.customerShopName || custObj.shopName || '',
+                segmentBoard: [segLabel, b.affiliatedBoard || custObj.affiliatedBoard].filter(Boolean).join(' • '),
                 mobile: b.customerMobile || custObj.mobile || '',
                 balance: custObj.balance || 0,
                 customerType: custObj.customerType || 'wholesale',
@@ -602,15 +646,24 @@ function calculateAndRenderProfit() {
     const kpiMarginEl = document.getElementById('kpiMarginPct');
     if (kpiMarginEl) kpiMarginEl.innerText = overallMarginPct.toFixed(1) + '%';
 
-    // Operating expenses in selected period
+    // Operating expenses in selected period (Split Staff Salaries vs Operations)
     let totalExpensesInPeriod = 0;
+    let salaryExpensesInPeriod = 0;
+    let opsExpensesInPeriod = 0;
     let expenseCountInPeriod = 0;
     if (Array.isArray(rawOperatingExpenses)) {
         rawOperatingExpenses.forEach(exp => {
             const d = (exp.date || '').slice(0, 10);
             if (dateStart && dateEnd && (d < dateStart || d > dateEnd)) return;
-            totalExpensesInPeriod += (Number(exp.amount) || 0);
+            const amt = Number(exp.amount) || 0;
+            totalExpensesInPeriod += amt;
             expenseCountInPeriod += 1;
+            const catId = String(exp.categoryId || '').toLowerCase();
+            if (exp.isSalaryPayroll || catId === 'cat_salary' || catId === 'cat_commission') {
+                salaryExpensesInPeriod += amt;
+            } else {
+                opsExpensesInPeriod += amt;
+            }
         });
     }
     const finalCleanNetProfit = totalNetProfit - totalExpensesInPeriod;
@@ -618,7 +671,11 @@ function calculateAndRenderProfit() {
     const kpiExpEl = document.getElementById('kpiOperatingExpenses');
     if (kpiExpEl) kpiExpEl.innerText = 'Rs ' + formatMoney(totalExpensesInPeriod);
     const kpiExpSubEl = document.getElementById('kpiExpenseSub');
-    if (kpiExpSubEl) kpiExpSubEl.innerText = `${expenseCountInPeriod} Expense Vouchers in Period`;
+    if (kpiExpSubEl) {
+        kpiExpSubEl.innerText = salaryExpensesInPeriod > 0
+            ? `Salaries: Rs ${formatMoney(salaryExpensesInPeriod)} • Ops: Rs ${formatMoney(opsExpensesInPeriod)} (${expenseCountInPeriod} Vouchers)`
+            : `${expenseCountInPeriod} Expense Vouchers in Period`;
+    }
 
     const kpiFinalEl = document.getElementById('kpiFinalNetProfit');
     if (kpiFinalEl) {
@@ -629,6 +686,22 @@ function calculateAndRenderProfit() {
     if (kpiFinalSub) {
         kpiFinalSub.innerText = finalCleanNetProfit >= 0 ? 'Rs ' + formatMoney(totalNetProfit) + ' Gross - Rs ' + formatMoney(totalExpensesInPeriod) + ' Exp' : 'Loss after Expenses';
     }
+
+    window.__profitSummary = {
+        dateStart,
+        dateEnd,
+        billsCount: filteredBills.length,
+        totalItemsQty,
+        totalRevenue,
+        totalCost,
+        totalNetProfit,
+        overallMarginPct,
+        totalExpensesInPeriod,
+        salaryExpensesInPeriod,
+        opsExpensesInPeriod,
+        expenseCountInPeriod,
+        finalCleanNetProfit
+    };
 
     // 4. Save processed lists in memory for current view rendering
     window.__profitData = {
@@ -738,7 +811,10 @@ function renderActiveTable() {
                     return `
                     <tr>
                         <td>${idx + 1}</td>
-                        <td><b>${it.name}</b></td>
+                        <td>
+                            <b>${it.name}</b>
+                            ${it.subtitle ? `<div style="font-size:11px; color:#0284c7; font-weight:600; margin-top:2px;">${it.subtitle}</div>` : ''}
+                        </td>
                         <td><span style="font-size:11px; background:#f1f5f9; padding:2px 8px; border-radius:6px; color:#475569;">${it.category}</span></td>
                         <td style="text-align:center; font-weight:bold;">${it.unitsSold} ${it.unit}</td>
                         <td style="text-align:right;">Rs ${formatMoney(it.costRate)}</td>
@@ -968,6 +1044,7 @@ function renderActiveTable() {
                     <td>
                         <b>${c.name}</b>
                         ${c.fbrStatus ? `<span style="font-size:10px; font-weight:800; padding:1px 6px; border-radius:4px; margin-left:4px; ${c.fbrStatus === 'filer' ? 'background:#dcfce7; color:#15803d;' : 'background:#fee2e2; color:#b91c1c;'}">${c.fbrStatus.toUpperCase()}</span>` : ''}
+                        ${c.segmentBoard ? `<div style="font-size:11px; color:#0284c7; font-weight:600; margin-top:2px;">${c.segmentBoard}</div>` : ''}
                     </td>
                     <td>${c.shopName ? `🏪 ${c.shopName}` : '—'}</td>
                     <td style="text-align:center; font-weight:bold;">${c.billsCount}</td>
@@ -996,6 +1073,7 @@ function openBillProfitModal(billId) {
     const b = window.__profitData.bills.find(x => x.id === billId);
     if (!b) return;
 
+    const billImeiSummary = (b.items || []).map(it => it.subtitle).filter(Boolean).slice(0, 2).join(' | ');
     document.getElementById('modalBillNo').innerText = b.billNo;
     document.getElementById('modalBillMeta').innerHTML = `
         <div><b>👤 Customer:</b> ${b.customerName} ${b.customerShop ? '(' + b.customerShop + ')' : ''}</div>
@@ -1006,14 +1084,20 @@ function openBillProfitModal(billId) {
         <div style="font-weight:900; color:${b.profit >= 0 ? '#15803d' : '#b91c1c'};">
             <b>📈 Net Profit:</b> Rs ${formatMoney(b.profit)} (${b.margin.toFixed(1)}%)
         </div>
+        ${billImeiSummary ? `<div style="grid-column:1/-1; font-size:11.5px; color:#0369a1; font-weight:700;"><b>📱 Specs/IMEI:</b> ${billImeiSummary}</div>` : ''}
     `;
 
     const tbody = document.getElementById('modalBillItemsTbody');
     tbody.innerHTML = (b.items || []).map((it, idx) => `
         <tr>
             <td>${idx + 1}</td>
-            <td><b>${it.name}</b></td>
-            <td style="text-align:center;">${it.qty}</td>
+            <td>
+                <b>${it.name}</b>
+                ${it.subtitle ? `<div style="font-size:10.5px; color:#64748b; margin-top:2px;">${it.subtitle}</div>` : ''}
+            </td>
+            <td style="text-align:center;">
+                ${it.qty}${it.freeQty > 0 ? ` <span style="display:inline-block; background:#fff7ed; color:#ea580c; border:1px solid #fdba74; font-size:10px; font-weight:800; padding:1px 5px; border-radius:4px;">+${it.freeQty} Free</span>` : ''}
+            </td>
             <td style="text-align:right;">Rs ${formatMoney(it.costRate)}</td>
             <td style="text-align:right;">Rs ${formatMoney(it.rate)}</td>
             <td style="text-align:right; color:#64748b;">Rs ${formatMoney(it.itemCost)}</td>
@@ -1096,11 +1180,89 @@ function escapeCsv(str) {
 }
 
 // ============================================
-// 🖨️ PRINT PROFIT REPORT
+// 🖨️ PRINT PROFIT REPORT & 🧾 80MM/58MM THERMAL PROFIT SLIP
 // ============================================
 function printProfitReport() {
     window.print();
 }
+
+window.printThermalProfitSlip = function(paperWidth = '') {
+    const sum = window.__profitSummary || {
+        dateStart, dateEnd, billsCount: 0, totalItemsQty: 0,
+        totalRevenue: 0, totalCost: 0, totalNetProfit: 0,
+        overallMarginPct: 0, totalExpensesInPeriod: 0, finalCleanNetProfit: 0
+    };
+    const resolvedWidth = paperWidth || ((window.BusinessCategories && typeof window.BusinessCategories.getThermalWidthPreference === 'function')
+        ? window.BusinessCategories.getThermalWidthPreference(myAgency)
+        : (String(localStorage.getItem('eb_thermal_width') || localStorage.getItem('nh_thermal_width') || '80mm').startsWith('58') ? '58mm' : '80mm'));
+    const is58 = String(resolvedWidth).startsWith('58');
+    const maxW = is58 ? '56mm' : '76mm';
+    const agencyName = (myAgency && (myAgency.businessName || myAgency.name)) || 'NH POS Agency';
+
+    const topItems = ((window.__profitData && window.__profitData.items) || []).slice(0, 12);
+    const itemsRows = topItems.map((it, idx) => `
+        <tr>
+            <td style="padding:3px 0; border-bottom:1px dashed #000; font-size:10px;">
+                <b>${idx + 1}. ${it.name}</b>
+                ${it.subtitle ? `<div style="font-size:9px;">[${it.subtitle}]</div>` : ''}
+                <div style="font-size:9px;">Qty: ${it.unitsSold} ${it.unit} | Margin: ${it.margin.toFixed(1)}%</div>
+            </td>
+            <td style="padding:3px 0; border-bottom:1px dashed #000; text-align:right; font-weight:900; font-size:10.5px; white-space:nowrap;">
+                Rs ${Math.round(it.profit).toLocaleString()}
+            </td>
+        </tr>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Thermal Profit Closing Slip</title>
+        <style>
+            @page { size: ${is58 ? '58mm' : '80mm'} auto; margin: 2mm; }
+            body { width: ${maxW}; margin: 0 auto; font-family: 'Courier New', monospace, sans-serif; color: #000; background: #fff; font-size: 11px; line-height: 1.35; }
+            .center { text-align: center; }
+            .hr { border-top: 1.5px dashed #000; margin: 6px 0; }
+            .row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
+            .netbox { border: 2px solid #000; padding: 5px; margin: 6px 0; text-align: center; font-weight: 900; font-size: 13px; }
+        </style>
+    </head>
+    <body onload="window.print();">
+        <div class="center">
+            <div style="font-size:15px; font-weight:900;">${agencyName}</div>
+            <div style="font-size:11px; font-weight:900; border:1.5px solid #000; padding:2px 6px; display:inline-block; margin-top:3px;">
+                💰 PROFIT CLOSING SLIP (منافع پرچی)
+            </div>
+            <div style="font-size:10px; font-weight:700; margin-top:3px;">Period: ${sum.dateStart} to ${sum.dateEnd}</div>
+        </div>
+        <div class="hr"></div>
+        <div class="row"><span>Total Bills:</span><b>${sum.billsCount}</b></div>
+        <div class="row"><span>Total Sales:</span><b>Rs ${Math.round(sum.totalRevenue).toLocaleString()}</b></div>
+        <div class="row"><span>Purchase Cost (COGS):</span><b>Rs ${Math.round(sum.totalCost).toLocaleString()}</b></div>
+        <div class="row" style="border-top:1px dotted #000; padding-top:2px;">
+            <span><b>Gross Profit (${sum.overallMarginPct.toFixed(1)}%):</b></span>
+            <b>Rs ${Math.round(sum.totalNetProfit).toLocaleString()}</b>
+        </div>
+        <div class="row"><span>Expenses (اخراجات):</span><b>- Rs ${Math.round(sum.totalExpensesInPeriod).toLocaleString()}</b></div>
+        <div class="netbox">
+            FINAL NET PROFIT: Rs ${Math.round(sum.finalCleanNetProfit).toLocaleString()} /-
+        </div>
+        <div class="hr"></div>
+        <div style="font-weight:900; font-size:10.5px; margin-bottom:3px;">TOP PROFITABLE ITEMS:</div>
+        <table style="width:100%; border-collapse:collapse;">
+            <tbody>${itemsRows || '<tr><td>No item sales in period</td></tr>'}</tbody>
+        </table>
+        <div class="hr"></div>
+        <div class="center" style="font-size:9.5px; font-weight:700;">Printed: ${new Date().toLocaleString()}</div>
+    </body>
+    </html>`;
+
+    const win = window.open('', '_blank', 'width=400,height=680');
+    if (win) {
+        win.document.write(html);
+        win.document.close();
+    }
+};
 
 // ============================================
 // 🛠️ UTILITIES & DATE HELPERS

@@ -10,13 +10,13 @@
     <meta property="og:type" content="website">
 
     <!-- 📱 PWA Meta -->
-    <link rel="manifest" href="manifest.json?v=5.3.0">
+    <link rel="manifest" href="manifest.json?v=5.4.0">
     <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.3.0">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.3.0">
-    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.3.0">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.4.0">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.4.0">
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.4.0">
 
     <!-- Google Fonts & FontAwesome -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -108,9 +108,10 @@
         .brand-link {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             text-decoration: none;
             color: var(--text-main);
+            flex-shrink: 0;
         }
         .brand-logo {
             width: 44px;
@@ -120,11 +121,19 @@
             object-fit: cover;
             box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
             background: #ffffff;
+            flex-shrink: 0;
+        }
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         .brand-text h1 {
             font-size: 19px;
             font-weight: 800;
             letter-spacing: -0.3px;
+            line-height: 1.15;
+            white-space: nowrap;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -134,7 +143,9 @@
             font-size: 11px;
             color: var(--primary);
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
+            line-height: 1.25;
+            white-space: nowrap;
             text-transform: uppercase;
         }
         .nav-links {
@@ -155,26 +166,58 @@
         .nav-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            flex-shrink: 0;
         }
         .lang-switch-btn {
             background: #ffffff;
-            border: 1px solid var(--border);
+            border: 1.5px solid #cbd5e1;
             color: var(--text-main);
-            padding: 7px 12px;
-            border-radius: 8px;
-            font-size: 12px;
+            height: 38px;
+            padding: 0 12px;
+            border-radius: 10px;
+            font-size: 12.5px;
             font-weight: 700;
             cursor: pointer;
-            display: flex;
+            display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
+            white-space: nowrap;
             box-shadow: var(--shadow-sm);
             transition: all 0.2s;
         }
         .lang-switch-btn:hover {
             background: #f1f5f9;
-            border-color: #cbd5e1;
+            border-color: #94a3b8;
+        }
+        .nav-actions .btn-outline,
+        .nav-actions .btn-primary {
+            height: 38px;
+            padding: 0 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            justify-content: center;
+            gap: 6px;
+        }
+        .nav-actions .btn-outline {
+            border: 1.5px solid var(--primary);
+            color: var(--primary);
+            background: #ffffff;
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-actions .btn-outline:hover {
+            background: var(--primary-light);
+            border-color: var(--primary-hover);
+            color: var(--primary-hover);
+        }
+        .nav-actions .btn-primary {
+            border: 1.5px solid var(--primary);
+            color: #ffffff;
+            background: var(--primary);
+            box-shadow: 0 3px 10px rgba(5, 150, 105, 0.25);
         }
         .btn-outline {
             background: #ffffff;
@@ -677,6 +720,7 @@
             display: flex;
             align-items: center;
             gap: 18px;
+            flex-wrap: nowrap;
         }
         .footer-links a {
             color: var(--text-muted);
@@ -684,12 +728,33 @@
             font-size: 13.5px;
             font-weight: 600;
             transition: color 0.2s;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .footer-links a:hover {
             color: var(--primary);
+        }
+        .footer-links a.footer-wa-link {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1px;
+            line-height: 1.2;
+        }
+        .footer-wa-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .footer-wa-num {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            white-space: nowrap;
         }
 
         /* 🟢 Floating WhatsApp Helpline (Real number 03346800959) */
@@ -747,6 +812,120 @@
                 display: none;
             }
         }
+        @media (max-width: 640px) {
+            .landing-nav {
+                padding: 10px 10px;
+            }
+            .nav-container {
+                gap: 6px;
+                flex-wrap: nowrap;
+            }
+            .brand-link {
+                gap: 7px;
+                min-width: 0;
+                flex-shrink: 1;
+            }
+            .brand-logo {
+                width: 34px;
+                height: 34px;
+                border-radius: 9px;
+            }
+            .brand-text h1 {
+                font-size: 14px;
+                line-height: 1.15;
+                white-space: nowrap;
+            }
+            .brand-text p {
+                font-size: 8.5px;
+                letter-spacing: 0.15px;
+                line-height: 1.2;
+                white-space: nowrap;
+            }
+            .nav-actions {
+                gap: 5px;
+            }
+            .nav-actions .lang-switch-btn {
+                height: 30px;
+                padding: 0 8px;
+                font-size: 11px;
+                border-radius: 8px;
+                gap: 4px;
+            }
+            .nav-actions .btn-outline,
+            .nav-actions .btn-primary {
+                height: 30px;
+                padding: 0 9px;
+                font-size: 11px;
+                border-radius: 8px;
+                box-shadow: none;
+            }
+            .nav-actions .btn-outline i,
+            .nav-actions .btn-primary i {
+                display: none;
+            }
+            .landing-footer {
+                padding: 28px 12px 86px;
+            }
+            .footer-inner {
+                gap: 14px;
+            }
+            .footer-links {
+                width: 100%;
+                justify-content: space-between;
+                gap: 8px;
+                flex-wrap: nowrap;
+            }
+            .footer-links a {
+                font-size: 12px;
+                gap: 4px;
+            }
+            .footer-wa-title {
+                font-size: 11.5px;
+                gap: 4px;
+            }
+            .footer-wa-num {
+                font-size: 10.5px;
+            }
+        }
+        @media (max-width: 375px) {
+            .landing-nav {
+                padding: 8px 8px;
+            }
+            .brand-logo {
+                width: 30px;
+                height: 30px;
+            }
+            .brand-text h1 {
+                font-size: 13px;
+            }
+            .brand-text p {
+                font-size: 7.8px;
+                letter-spacing: 0.1px;
+            }
+            .nav-actions {
+                gap: 4px;
+            }
+            .nav-actions .lang-switch-btn {
+                height: 28px;
+                padding: 0 6px;
+                font-size: 10.5px;
+            }
+            .nav-actions .btn-outline,
+            .nav-actions .btn-primary {
+                height: 28px;
+                padding: 0 8px;
+                font-size: 10.5px;
+            }
+            .footer-links a {
+                font-size: 11px;
+            }
+            .footer-wa-title {
+                font-size: 10.5px;
+            }
+            .footer-wa-num {
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -774,11 +953,11 @@
                 <button type="button" id="langToggleBtn" class="lang-switch-btn" onclick="toggleLanguage()">
                     <span>🇵🇰</span> <span id="langBtnText">اردو</span>
                 </button>
-                <a href="auth.html?mode=login" class="btn-outline" data-en="Login" data-ur="لاگ ان">
-                    <i class="fas fa-sign-in-alt"></i> <span>Login</span>
+                <a href="auth.html?mode=login" class="btn-outline">
+                    <i class="fas fa-sign-in-alt"></i> <span data-en="Login" data-ur="لاگ ان">Login</span>
                 </a>
-                <a href="auth.html?mode=signup" class="btn-primary" data-en="Sign Up" data-ur="سائن اپ">
-                    <i class="fas fa-user-plus"></i> <span>Sign Up</span>
+                <a href="auth.html?mode=signup" class="btn-primary">
+                    <i class="fas fa-user-plus"></i> <span data-en="Sign Up" data-ur="سائن اپ">Sign Up</span>
                 </a>
             </div>
         </div>
@@ -1092,7 +1271,10 @@
                 <a href="auth.html?mode=login" data-en="Login" data-ur="لاگ ان">Login</a>
                 <a href="auth.html?mode=signup" data-en="Sign Up" data-ur="سائن اپ">Sign Up</a>
                 <a href="#pricing" data-en="Pricing" data-ur="قیمتیں">Pricing</a>
-                <a href="https://wa.me/923346800959" target="_blank" rel="noopener"><i class="fab fa-whatsapp" style="color:#25d366; font-size:16px;"></i> WhatsApp: 0334-6800959</a>
+                <a href="https://wa.me/923346800959" target="_blank" rel="noopener" class="footer-wa-link">
+                    <span class="footer-wa-title"><i class="fab fa-whatsapp" style="color:#25d366; font-size:15px;"></i> <span data-en="WhatsApp" data-ur="واٹس ایپ">WhatsApp</span></span>
+                    <span class="footer-wa-num">0334-6800959</span>
+                </a>
             </div>
         </div>
     </footer>

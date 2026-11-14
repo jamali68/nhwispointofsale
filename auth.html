@@ -113,23 +113,27 @@
             </div>
             <div class="input-group">
                 <i class="fas fa-tags input-icon"></i>
-                <select id="bizType" class="select-input" required>
+                <button type="button" id="bizTypePickerBtn" class="biztype-trigger-btn" aria-haspopup="dialog" aria-expanded="false" aria-required="true">
+                    <span id="bizTypeTriggerLabel" data-i18n="selectType">Select Business Type *</span>
+                    <span id="bizTypeTriggerSub" class="biztype-trigger-subbadge" style="display:none;"></span>
+                </button>
+                <select id="bizType" class="select-input biztype-select-hidden" tabindex="-1" aria-hidden="true">
                     <option value="" data-i18n="selectType">Select Business Type *</option>
-                    <option value="books">📚 Book Depot &amp; Stationery</option>
-                    <option value="mobile">📱 Mobile Shop &amp; Accessories</option>
-                    <option value="medical">💊 Medical Store &amp; Pharmacy</option>
-                    <option value="shoes">👟 Shoe Store &amp; Footwear</option>
-                    <option value="garments">👕 Garments &amp; Clothing</option>
-                    <option value="general">🛒 General Store &amp; Kiryana</option>
-                    <option value="wholesaler">📦 Wholesaler &amp; Bulk Distribution</option>
-                    <option value="confectionery">🍪 Confectionery &amp; Biscuits</option>
-                    <option value="hardware">🔧 Hardware, Sanitary &amp; Paint</option>
-                    <option value="electronics">💻 Electronics &amp; Home Appliances</option>
-                    <option value="cosmetics">💄 Cosmetics &amp; Beauty</option>
-                    <option value="auto_parts">🚗 Auto Parts &amp; Spare Parts</option>
-                    <option value="bakery">🍞 Bakery, Sweets &amp; Cafe</option>
-                    <option value="furniture">🪑 Furniture &amp; Decor</option>
-                    <option value="other">💼 Other Business</option>
+                    <option value="books">📚 Book Depot &amp; Stationery — ✅ Complete</option>
+                    <option value="mobile">📱 Mobile Shop &amp; Accessories — ✅ Complete</option>
+                    <option value="medical">💊 Medical Store &amp; Pharmacy — 🚧 Under Development • Coming Soon</option>
+                    <option value="shoes">👟 Shoe Store &amp; Footwear — 🚧 Under Development • Coming Soon</option>
+                    <option value="garments">👕 Garments &amp; Clothing — 🚧 Under Development • Coming Soon</option>
+                    <option value="general">🛒 General Store &amp; Kiryana — 🚧 Under Development • Coming Soon</option>
+                    <option value="wholesaler">📦 Wholesaler &amp; Bulk Distribution — 🛠️ Working / Under Development • Coming Soon</option>
+                    <option value="confectionery">🍪 Confectionery &amp; Biscuits — 🚧 Under Development • Coming Soon</option>
+                    <option value="hardware">🔧 Hardware, Sanitary &amp; Paint — 🚧 Under Development • Coming Soon</option>
+                    <option value="electronics">💻 Electronics &amp; Home Appliances — 🚧 Under Development • Coming Soon</option>
+                    <option value="cosmetics">💄 Cosmetics &amp; Beauty — 🚧 Under Development • Coming Soon</option>
+                    <option value="auto_parts">🚗 Auto Parts &amp; Spare Parts — 🚧 Under Development • Coming Soon</option>
+                    <option value="bakery">🍞 Bakery, Sweets &amp; Cafe — 🚧 Under Development • Coming Soon</option>
+                    <option value="furniture">🪑 Furniture &amp; Decor — 🚧 Under Development • Coming Soon</option>
+                    <option value="other">💼 Other Business — 🚧 Under Development • Coming Soon</option>
                 </select>
             </div>
             <div class="input-group">
@@ -186,6 +190,25 @@
         <!-- Message Area -->
         <div id="authMessage" class="auth-message"></div>
 
+    </div>
+</div>
+
+<!-- 🏷️ CUSTOM BUSINESS CATEGORY PICKER MODAL -->
+<div id="bizTypeModal" class="biztype-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="bizTypeModalTitle">
+    <div class="biztype-modal-card">
+        <div class="biztype-modal-header">
+            <div class="biztype-modal-top">
+                <div class="biztype-modal-title" id="bizTypeModalTitle" data-i18n="selectType">Select Business Type *</div>
+                <button type="button" class="biztype-modal-close" id="bizTypeModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="biztype-legend-bar" id="bizTypeLegendBar">
+                <span class="biztype-legend-pill is-complete">✅ Complete</span>
+                <span class="biztype-legend-pill is-working">🛠️ Working / Under Development</span>
+                <span class="biztype-legend-pill is-soon">🚧 Coming Soon</span>
+            </div>
+            <input type="text" id="bizTypeSearchInput" class="biztype-search-input" placeholder="🔍 Search business category..." autocomplete="off">
+        </div>
+        <div id="bizTypeModalList" class="biztype-modal-list"></div>
     </div>
 </div>
 

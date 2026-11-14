@@ -486,11 +486,16 @@
                     </div>
                 </div>
 
-                <!-- REASON SECTION (USER'S EXACT 5 DEFAULTS + OTHER REASON) -->
+                <!-- REASON SECTION (USER'S EXACT DEFAULTS + CATEGORY REASONS + CUSTOM REASON BUTTON) -->
                 <div style="margin-bottom:14px;">
-                    <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                        📝 Return Reason (مال واپسی کی بنیادی وجہ) *
-                    </label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:6px;">
+                        <label style="font-size:12px; font-weight:700; color:#334155; margin:0;">
+                            📝 Return Reason (مال واپسی کی بنیادی وجہ) *
+                        </label>
+                        <button type="button" onclick="openAddCustomReturnReasonModal()" style="background:#f5f3ff; color:#6d28d9; border:1px solid #c4b5fd; border-radius:6px; padding:3px 9px; font-size:11px; font-weight:800; cursor:pointer;">
+                            ➕ Add Custom Reason (نئی وجہ شامل کریں)
+                        </button>
+                    </div>
                     <select id="retReasonSelect" required style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
                         <option value="">-- واپسی کی وجہ منتخب کریں --</option>
                         <option value="دکان بند تھی (Shop was Closed)">1. 🏬 دکان بند تھی (Shop was Closed)</option>
@@ -499,7 +504,14 @@
                         <option value="دکان دار کے پاس رقم کم تھی / ادھار نہیں دیا (Short of Cash / Credit Refused)">4. 💰 دکان دار کے پاس رقم کم تھی / ادھار نہیں دیا (Short of Cash / Credit Refused)</option>
                         <option value="غلط پروڈکٹ یا ورائٹی منگوائی تھی (Wrong Product / Variant Selected)">5. ❌ غلط پروڈکٹ یا ورائٹی منگوائی تھی (Wrong Product / Variant Selected)</option>
                         <option value="پیکنگ خراب یا ایکسپائری قریب تھی (Packaging Damaged / Near Expiry)">6. ⚠️ پیکنگ خراب یا ایکسپائری قریب تھی (Packaging Damaged / Near Expiry)</option>
-                        <option value="other">7. ✍️ دیگر وجہ (Other Reason)...</option>
+                        <option value="📱 PTA / SIM Working Issue (پی ٹی اے یا سم سگنل کا مسئلہ)">7. 📱 PTA / SIM Working Issue (پی ٹی اے یا سم سگنل کا مسئلہ)</option>
+                        <option value="🔋 Battery Drain / Charging Fault within Checking Warranty (چیکنگ وارنٹی میں بیٹری یا چارجنگ فالٹ)">8. 🔋 Battery Drain / Charging Fault within Checking Warranty (چیکنگ وارنٹی میں بیٹری یا چارجنگ فالٹ)</option>
+                        <option value="🔌 Defective Charger / Handsfree / Cable Replacement (خراب چارجر، کیبل یا ہینڈز فری واپسی)">9. 🔌 Defective Charger / Handsfree / Cable Replacement (خراب چارجر، کیبل یا ہینڈز فری واپسی)</option>
+                        <option value="🖥️ LCD Panel / Touch Folder Checking Return (ایل سی ڈی پینل یا ٹچ فولڈر چیکنگ واپسی)">10. 🖥️ LCD Panel / Touch Folder Checking Return (ایل سی ڈی پینل یا ٹچ فولڈر چیکنگ واپسی)</option>
+                        <option value="📚 پرانا ایڈیشن / سلیبس تبدیل ہو گیا (Old Edition / Syllabus Changed)">11. 📚 پرانا ایڈیشن / سلیبس تبدیل ہو گیا (Old Edition / Syllabus Changed)</option>
+                        <option value="🏫 اسکول / طالب علم سیشن واپسی (School / Session Unsold Return)">12. 🏫 اسکول / طالب علم سیشن واپسی (School / Session Unsold Return)</option>
+                        <option value="📖 مس پرنٹنگ یا بائنڈنگ خراب (Misprint / Binding Defect)">13. 📖 مس پرنٹنگ یا بائنڈنگ خراب (Misprint / Binding Defect)</option>
+                        <option value="other">✍️ دیگر وجہ (Other Reason)...</option>
                     </select>
                 </div>
 
@@ -625,12 +637,15 @@
         <div class="modal-body" id="voucherPrintArea">
             <!-- Dynamic Voucher Content -->
         </div>
-        <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+        <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <button class="btn-vyapar btn-vyapar-green" id="btnWhatsAppShareVoucher">
                 <i class="fab fa-whatsapp"></i> Share on WhatsApp
             </button>
-            <div>
-                <button class="btn" onclick="closeVoucherPreview()" style="background:#e2e8f0; color:#475569; padding:8px 14px; border-radius:8px; margin-right:6px;">Close</button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="btn" onclick="closeVoucherPreview()" style="background:#e2e8f0; color:#475569; padding:8px 14px; border-radius:8px;">Close</button>
+                <button class="btn-vyapar" onclick="printReturnVoucherThermal()" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; padding:8px 14px; border-radius:8px; font-weight:800;">
+                    🧾 Thermal Slip (80mm/58mm)
+                </button>
                 <button class="btn-vyapar btn-vyapar-blue" onclick="window.print()">
                     <i class="fas fa-print"></i> Print Voucher
                 </button>
@@ -653,10 +668,13 @@
         <div id="orderDetailsBody" style="padding:18px;">
             <!-- Filled dynamically -->
         </div>
-        <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px; border-radius:0 0 16px 16px;">
+        <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px; border-radius:0 0 16px 16px; flex-wrap:wrap;">
             <button type="button" class="btn" onclick="closeOrderDetailsModal()" style="background:#e2e8f0; color:#475569; padding:8px 16px; border-radius:8px;">Close</button>
             <button type="button" class="btn btn-sm" id="btnModalApproveOrder" style="background:#10b981; color:#fff; font-weight:bold; padding:8px 18px; border-radius:8px; display:none;">
                 <i class="fas fa-check-circle"></i> Accept &amp; Approve Order
+            </button>
+            <button type="button" class="btn btn-sm" id="btnModalThermalPrintBill" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; font-weight:bold; padding:8px 14px; border-radius:8px; display:none;">
+                🧾 Thermal Slip (پرچی)
             </button>
             <button type="button" class="btn btn-sm" id="btnModalPrintBill" style="background:#0284c7; color:#fff; font-weight:bold; padding:8px 18px; border-radius:8px; display:none;">
                 <i class="fas fa-print"></i> Print Bill
@@ -720,12 +738,26 @@
                     </label>
                     <div style="display:flex; gap:6px;">
                         <div style="position:relative; flex:1;">
-                            <input type="text" id="claimProductSearch" placeholder="پروڈکٹ کا نام یا بارکوڈ ٹائپ کریں..." autocomplete="off" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                            <input type="text" id="claimProductSearch" placeholder="پروڈکٹ کا نام، ماڈل یا بارکوڈ ٹائپ کریں..." autocomplete="off" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                             <div class="product-search-dropdown" id="claimProductDropdown"></div>
                         </div>
                         <input type="hidden" id="claimStockId" value="">
                     </div>
                     <div id="claimSelectedProductMeta" style="font-size:11.5px; color:#0284c7; margin-top:4px; font-weight:600; display:none;"></div>
+                </div>
+
+                <!-- 1B. 📱 IMEI / Serial # & Sold Bill Lookup for Mobile Shop Warranty Claims -->
+                <div id="claimImeiLookupBox" style="margin-bottom:14px; background:#f0f9ff; border:1px dashed #7dd3fc; border-radius:10px; padding:10px 12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                        <label style="font-size:12px; font-weight:800; color:#0369a1; margin:0;">
+                            📱 IMEI / Serial # (وارنٹی کلیم یا ریپلیسمنٹ کے لیے آئی ایم ای آئی نمبر - اختیاری)
+                        </label>
+                        <button type="button" onclick="lookupSoldItemByImeiForClaim()" style="background:#0284c7; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:800; cursor:pointer;">
+                            🔍 Lookup Sold Bill by IMEI (بل تلاش کریں)
+                        </button>
+                    </div>
+                    <input type="text" id="claimImeiInput" placeholder="15-digit IMEI یا سیریل نمبر درج کریں اور Lookup دبائیں..." style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #bae6fd; border-radius:8px; font-size:12.5px; font-family:monospace; outline:none; background:#fff;">
+                    <div id="claimImeiLookupResult" style="font-size:11px; color:#0f766e; font-weight:700; margin-top:5px; display:none;"></div>
                 </div>
 
                 <!-- 2. Category & Occurrence Date -->
@@ -782,11 +814,14 @@
                         <select id="claimUnit" style="width:100%; padding:9px 8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
                             <option value="pcs">Pcs (عدد / پیس)</option>
                             <option value="unit">Unit (یونٹ)</option>
-                            <option value="carton">Carton (کارٹن / پیٹی)</option>
-                            <option value="box">Box (ڈبہ)</option>
+                            <option value="set">Set (مکمل کورس سیٹ)</option>
                             <option value="packet">Packet (پیکٹ)</option>
-                            <option value="bag">Bag (بوری / تھیلا)</option>
+                            <option value="bundle">Bundle (بنڈل / گٹھا)</option>
+                            <option value="ream">Ream (رم - 500 Sheets)</option>
+                            <option value="box">Box (ڈبہ)</option>
                             <option value="dozen">Dozen (درجن)</option>
+                            <option value="carton">Carton (کارٹن / پیٹی)</option>
+                            <option value="bag">Bag (بوری / تھیلا)</option>
                             <option value="kg">kg (کلو)</option>
                         </select>
                     </div>
@@ -1016,12 +1051,15 @@
         <div class="modal-body" id="claimVoucherPrintArea" style="padding:20px; font-family:'Segoe UI', sans-serif;">
             <!-- Generated dynamically -->
         </div>
-        <div style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; border-radius:0 0 14px 14px;">
+        <div style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; border-radius:0 0 14px 14px; flex-wrap:wrap; gap:8px;">
             <button type="button" class="btn-vyapar btn-vyapar-green" id="btnShareClaimWA">
                 <i class="fab fa-whatsapp"></i> واٹس ایپ پر بھیجیں
             </button>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button type="button" class="btn" onclick="closeClaimVoucherModal()" style="background:#e2e8f0; color:#475569; padding:8px 16px; border-radius:8px;">Close</button>
+                <button type="button" class="btn-vyapar" onclick="printClaimVoucherThermal()" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; padding:8px 14px; border-radius:8px; font-weight:800;">
+                    🧾 Thermal Slip (80mm/58mm)
+                </button>
                 <button type="button" class="btn-vyapar btn-vyapar-blue" onclick="printClaimVoucherDoc()">
                     <i class="fas fa-print"></i> پرنٹ واؤچر
                 </button>
@@ -1036,6 +1074,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <!-- Scripts -->
+<script src="business-categories.js"></script>
 <script src="print-settings.js"></script>
 <script src="bill-templates.js"></script>
 <script src="delivery-returns.js"></script>

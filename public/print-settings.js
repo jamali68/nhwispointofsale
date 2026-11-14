@@ -125,9 +125,9 @@ const BILL_TEMPLATES_CATALOG = [
     },
     {
         id: 'template6',
-        name: '🧾 Thermal POS Slip (58mm / 80mm)',
-        desc: 'Compact POS receipt format designed for fast thermal receipt printers',
-        recommended: false
+        name: '🧾 Thermal POS Slip (58mm / 80mm — پرچی پرنٹر)',
+        desc: 'Compact POS receipt format designed for fast 80mm & 58mm thermal receipt printers with IMEI, Warranty & Category details',
+        recommended: true
     }
 ];
 
@@ -158,13 +158,13 @@ function getAllowedTemplatesForPackage(packageId, customAllowedTemplates) {
     }
     const pkg = String(packageId || 'free').toLowerCase();
     if (pkg === 'pro') {
-        return ['template4', 'template1', 'template2', 'template3', 'template5', 'template6', 'template7', 'template8', 'template9', 'template10', 'template11'];
+        return ['template4', 'template6', 'template1', 'template2', 'template3', 'template5', 'template7', 'template8', 'template9', 'template10', 'template11'];
     }
     if (pkg === 'basic') {
-        return ['template4', 'template1', 'template2', 'template6', 'template7', 'template8', 'template9', 'template10', 'template11'];
+        return ['template4', 'template6', 'template1', 'template2', 'template7', 'template8', 'template9', 'template10', 'template11'];
     }
-    // Free default allows standard modern minimal, Urdu classic & Wholesale templates
-    return ['template4', 'template1', 'template7', 'template8', 'template9', 'template10', 'template11'];
+    // Free default allows standard modern minimal, Thermal POS Slip (template6), Urdu classic & Wholesale templates
+    return ['template4', 'template6', 'template1', 'template7', 'template8', 'template9', 'template10', 'template11'];
 }
 
 window.ebPrintEngine = {

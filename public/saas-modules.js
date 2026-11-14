@@ -141,6 +141,16 @@
             minTier: 'starter_single',
             description: 'One-click full business backup snapshots and disaster recovery.'
         },
+        'session_security': {
+            id: 'session_security',
+            nameEn: 'Session Auto-Timeout & Lock',
+            nameUr: 'سیشن ٹائم آؤٹ اور سیکیورٹی لاک',
+            icon: 'fa-user-clock',
+            url: 'settings.html?tab=secSecurity',
+            isCore: false,
+            minTier: 'starter_single',
+            description: 'Editable inactivity auto-logout timer & agency security timeout controls.'
+        },
         'multi_agency': {
             id: 'multi_agency',
             nameEn: 'Multi-Agency Control Hub',
@@ -164,6 +174,9 @@
     };
 
     // 2️⃣ MASTER SAAS PACKAGES & DEFAULT PRICING
+    const BASE_CORE_MODULES = {
+        dashboard: true, bills: true, customers: true, stock: true, settings: true
+    };
     let SAAS_PACKAGES = {
         'free': {
             id: 'free',
@@ -173,6 +186,12 @@
             badgeColor: '#0284c7',
             tierRank: 0,
             limits: { maxBranches: 1, maxItems: 50, monthlyBills: 150, maxBookers: 1 },
+            allowedModules: {
+                ...BASE_CORE_MODULES,
+                booker_orders: false, delivery_returns: false, claims: false,
+                expenses: false, alerts: false, reports: false, profit: false,
+                owner: false, backup: false, session_security: false, multi_agency: false
+            },
             features: [
                 '1 Branch / Store',
                 'Up to 50 Stock Items',
@@ -188,6 +207,12 @@
             badgeColor: '#10b981',
             tierRank: 1,
             limits: { maxBranches: 1, maxItems: 500, monthlyBills: 99999, maxBookers: 3 },
+            allowedModules: {
+                ...BASE_CORE_MODULES,
+                booker_orders: true, delivery_returns: true, claims: true,
+                expenses: true, alerts: true, reports: true, profit: true,
+                owner: true, backup: true, session_security: true, multi_agency: false
+            },
             features: [
                 'Unlimited Monthly Invoices',
                 'Up to 500 Stock Items',
@@ -195,7 +220,7 @@
                 'Profit & Loss Analytics',
                 'Van Dispatch & Returns',
                 'Daily Expenses & Reports',
-                'Cloud Backup & Low Stock Alerts'
+                'Cloud Backup & Custom Timeout'
             ]
         },
         'wholesale_dist': {
@@ -206,6 +231,12 @@
             badgeColor: '#f59e0b',
             tierRank: 2,
             limits: { maxBranches: 1, maxItems: 1500, monthlyBills: 99999, maxBookers: 6 },
+            allowedModules: {
+                ...BASE_CORE_MODULES,
+                booker_orders: true, delivery_returns: true, claims: true,
+                expenses: true, alerts: true, reports: true, profit: true,
+                owner: true, backup: true, session_security: true, multi_agency: false
+            },
             features: [
                 'All Single Agency Pro Features',
                 'Up to 1,500 Stock Items',
@@ -222,6 +253,12 @@
             badgeColor: '#8b5cf6',
             tierRank: 3,
             limits: { maxBranches: 3, maxItems: 3000, monthlyBills: 99999, maxBookers: 12 },
+            allowedModules: {
+                ...BASE_CORE_MODULES,
+                booker_orders: true, delivery_returns: true, claims: true,
+                expenses: true, alerts: true, reports: true, profit: true,
+                owner: true, backup: true, session_security: true, multi_agency: true
+            },
             features: [
                 'Up to 3 Connected Branches / Depots',
                 'Multi-Agency Comparison & Transfer',
@@ -238,6 +275,12 @@
             badgeColor: '#db2777',
             tierRank: 4,
             limits: { maxBranches: 10, maxItems: 99999, monthlyBills: 99999, maxBookers: 50 },
+            allowedModules: {
+                ...BASE_CORE_MODULES,
+                booker_orders: true, delivery_returns: true, claims: true,
+                expenses: true, alerts: true, reports: true, profit: true,
+                owner: true, backup: true, session_security: true, multi_agency: true
+            },
             features: [
                 'Up to 10 Branches / Megastores',
                 'Unlimited Stock Items & Bills',
@@ -345,32 +388,24 @@
             };
         }
 
-        // A2. Master 1-Click Unlock for Agency or Super Admin Bypass
-        if (agencyData && (agencyData.allModulesUnlocked === true || agencyData.unlockAll === true || agencyData.packageId === 'enterprise_multi')) {
-            return {
-                allowed: true,
-                locked: false,
-                reason: 'master_unlocked',
-                badgeText: '',
-                module: mod
-            };
-        }
-
-        // B. Check Explicit Permissions Toggle (if admin unlocked or locked)
-        if (customPermissions && typeof customPermissions === 'object') {
-            const permKey = moduleId === 'delivery_returns' || moduleId === 'claims' ? 'delivery_returns' : moduleId;
-            if (customPermissions[permKey] === false) {
+        // A2. Check Explicit Permissions Toggle First (Super Admin per-agency Lock/Unlock overrides package defaults)
+        const permKey = (moduleId === 'delivery_returns' || moduleId === 'claims') ? 'delivery_returns' : moduleId;
+        const effectivePermissions = (customPermissions && typeof customPermissions === 'object')
+            ? customPermissions
+            : (agencyData && agencyData.permissions && typeof agencyData.permissions === 'object' ? agencyData.permissions : null);
+        if (effectivePermissions && typeof effectivePermissions === 'object') {
+            if (effectivePermissions[permKey] === false || effectivePermissions[moduleId] === false) {
                 return {
                     allowed: false,
                     locked: true,
                     reason: 'admin_locked',
                     badgeText: 'LOCKED',
-                    lockReasonUr: 'یہ ماڈیول ایڈمن کی طرف سے لاک کیا گیا ہے',
+                    lockReasonUr: 'یہ ماڈیول سپر ایڈمن کی طرف سے لاک کیا گیا ہے',
                     module: mod
                 };
             }
-            // If explicitly allowed in permissions, grant access immediately!
-            if (customPermissions[permKey] === true || customPermissions['all'] === true) {
+            // If explicitly unlocked in permissions, grant access immediately
+            if (effectivePermissions[permKey] === true || effectivePermissions[moduleId] === true || effectivePermissions['all'] === true) {
                 return {
                     allowed: true,
                     locked: false,
@@ -381,10 +416,19 @@
             }
         }
 
+        // B. Master 1-Click Unlock for Agency
+        if (agencyData && (agencyData.allModulesUnlocked === true || agencyData.unlockAll === true)) {
+            return {
+                allowed: true,
+                locked: false,
+                reason: 'master_unlocked',
+                badgeText: '',
+                module: mod
+            };
+        }
+
         // C. Check Expiry (Fee Unpaid / Package Ended)
         if (state.isExpired) {
-            // Core basic modules (Dashboard, Bills, Customers, basic stock, settings) remain accessible
-            // Non-core / Premium modules are LOCKED with prominent 🔒 Lock Badge!
             if (!mod.isCore) {
                 return {
                     allowed: false,
@@ -397,9 +441,37 @@
             }
         }
 
-        // D. Check Package Tier Requirement (e.g. Free Tier trying to access Pro / Multi)
-        const currentRank = (SAAS_PACKAGES[state.tier] && SAAS_PACKAGES[state.tier].tierRank !== undefined)
-            ? SAAS_PACKAGES[state.tier].tierRank
+        // D1. Check Super-Package Explicit Allowed Modules Configuration
+        const activePkg = SAAS_PACKAGES[state.tier];
+        if (!mod.isCore && activePkg && activePkg.allowedModules && typeof activePkg.allowedModules === 'object') {
+            const pkgAllowedVal = activePkg.allowedModules[moduleId] !== undefined
+                ? activePkg.allowedModules[moduleId]
+                : activePkg.allowedModules[permKey];
+            if (pkgAllowedVal === false) {
+                return {
+                    allowed: false,
+                    locked: true,
+                    reason: 'tier_required',
+                    badgeText: 'PRO',
+                    lockReasonUr: `موجودہ پیکیج (${activePkg.nameEn || state.tier}) میں یہ ماڈیول شامل نہیں ہے`,
+                    requiredTier: mod.minTier,
+                    module: mod
+                };
+            }
+            if (pkgAllowedVal === true) {
+                return {
+                    allowed: true,
+                    locked: false,
+                    reason: 'package_allowed',
+                    badgeText: '',
+                    module: mod
+                };
+            }
+        }
+
+        // D2. Fallback Package Tier Rank Requirement
+        const currentRank = (activePkg && activePkg.tierRank !== undefined)
+            ? activePkg.tierRank
             : (state.tier === 'free' ? 0 : 1);
 
         const requiredRank = (SAAS_PACKAGES[mod.minTier] && SAAS_PACKAGES[mod.minTier].tierRank !== undefined)
@@ -426,6 +498,14 @@
             badgeText: '',
             module: mod
         };
+    }
+
+    function getPackageAllowedModules(pkgId) {
+        const pkg = SAAS_PACKAGES[pkgId];
+        if (pkg && pkg.allowedModules && typeof pkg.allowedModules === 'object') {
+            return { ...pkg.allowedModules };
+        }
+        return { ...BASE_CORE_MODULES };
     }
 
     // 5️⃣ RICH INTERACTIVE UPGRADE / FEE PAYMENT MODAL
@@ -725,6 +805,7 @@
         SAAS_PACKAGES,
         evaluateAgency,
         checkModuleAccess,
+        getPackageAllowedModules,
         showUpgradeModal,
         submitUpgradeRequest,
         enforcePagePaywall,
