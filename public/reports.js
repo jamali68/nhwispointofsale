@@ -124,7 +124,7 @@ auth.onAuthStateChanged(async (user) => {
         // Check URL param for initial tab
         const urlParams = new URLSearchParams(window.location.search);
         const reqTab = urlParams.get('tab');
-        if (reqTab && ['sales', 'bestsellers', 'slow', 'claims', 'damage', 'bookers', 'khata', 'mobile_analytics', 'books_analytics', 'wholesaler_analytics'].includes(reqTab)) {
+        if (reqTab && ['sales', 'bestsellers', 'slow', 'claims', 'damage', 'bookers', 'khata', 'mobile_analytics', 'books_analytics', 'wholesaler_analytics', 'medical_analytics', 'restaurant_analytics'].includes(reqTab)) {
             currentTab = reqTab;
         }
 
@@ -153,6 +153,20 @@ auth.onAuthStateChanged(async (user) => {
             });
         }
 
+        const medModeSel = document.getElementById('medicalAnalyticsModeSelect');
+        if (medModeSel) {
+            medModeSel.addEventListener('change', () => {
+                if (currentTab === 'medical_analytics') renderMedicalAnalyticsReport();
+            });
+        }
+
+        const restModeSel = document.getElementById('restaurantAnalyticsModeSelect');
+        if (restModeSel) {
+            restModeSel.addEventListener('change', () => {
+                if (currentTab === 'restaurant_analytics') renderRestaurantAnalyticsReport();
+            });
+        }
+
         // Default: This Month
         setDatePreset('thismonth');
 
@@ -178,6 +192,8 @@ function setupTabs() {
     const mobBtn = document.getElementById('tabBtnMobileAnalytics');
     const booksBtn = document.getElementById('tabBtnBooksAnalytics');
     const whBtn = document.getElementById('tabBtnWholesalerAnalytics');
+    const medBtn = document.getElementById('tabBtnMedicalAnalytics');
+    const restBtn = document.getElementById('tabBtnRestaurantAnalytics');
     if (mobBtn && activeCat === 'mobile') {
         mobBtn.style.boxShadow = '0 0 0 2px #0284c7';
         if (!mobBtn.innerHTML.includes('Active')) {
@@ -196,6 +212,18 @@ function setupTabs() {
             whBtn.innerHTML += ' <span style="background:#ea580c; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
         }
     }
+    if (medBtn && activeCat === 'medical') {
+        medBtn.style.boxShadow = '0 0 0 2px #059669';
+        if (!medBtn.innerHTML.includes('Active')) {
+            medBtn.innerHTML += ' <span style="background:#059669; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
+        }
+    }
+    if (restBtn && activeCat === 'restaurant') {
+        restBtn.style.boxShadow = '0 0 0 2px #dc2626';
+        if (!restBtn.innerHTML.includes('Active')) {
+            restBtn.innerHTML += ' <span style="background:#dc2626; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
+        }
+    }
 
     const tabs = document.querySelectorAll('.report-tab-btn');
     tabs.forEach(btn => {
@@ -203,12 +231,23 @@ function setupTabs() {
         else btn.classList.remove('active');
 
         btn.addEventListener('click', () => {
+            if (!btn.dataset.tab) return;
             tabs.forEach(t => t.classList.remove('active'));
             btn.classList.add('active');
             currentTab = btn.dataset.tab;
+            try {
+                history.replaceState(null, '', 'reports.html?tab=' + encodeURIComponent(currentTab));
+            } catch (_) {}
+            if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
+                window.ebSidebar.setActive('reports.html?tab=' + currentTab);
+            }
             renderActiveReport();
         });
     });
+
+    if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
+        window.ebSidebar.setActive('reports.html?tab=' + (currentTab || 'sales'));
+    }
 }
 
 // ============================================
@@ -375,6 +414,16 @@ function renderActiveReport() {
         whModeSel.style.display = (currentTab === 'wholesaler_analytics') ? 'inline-block' : 'none';
     }
 
+    const medModeSel = document.getElementById('medicalAnalyticsModeSelect');
+    if (medModeSel) {
+        medModeSel.style.display = (currentTab === 'medical_analytics') ? 'inline-block' : 'none';
+    }
+
+    const restModeSel = document.getElementById('restaurantAnalyticsModeSelect');
+    if (restModeSel) {
+        restModeSel.style.display = (currentTab === 'restaurant_analytics') ? 'inline-block' : 'none';
+    }
+
     if (currentTab === 'sales') renderSalesReport();
     else if (currentTab === 'bestsellers') renderBestSellersReport();
     else if (currentTab === 'slow') renderSlowStockReport();
@@ -385,6 +434,8 @@ function renderActiveReport() {
     else if (currentTab === 'mobile_analytics') renderMobileAnalyticsReport();
     else if (currentTab === 'books_analytics') renderBooksAnalyticsReport();
     else if (currentTab === 'wholesaler_analytics') renderWholesalerAnalyticsReport();
+    else if (currentTab === 'medical_analytics') renderMedicalAnalyticsReport();
+    else if (currentTab === 'restaurant_analytics') renderRestaurantAnalyticsReport();
 }
 
 // ============================================
@@ -1910,6 +1961,1032 @@ function renderWholesalerAnalyticsReport() {
         { header: 'Bonus Cost Value', key: 'bonusCostVal', align: 'right', bold: true, color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() },
         { header: 'Trade Disc (Rs)', key: 'tradeDiscRs', align: 'right', color: '#d97706', format: v => 'Rs ' + Math.round(v).toLocaleString() },
         { header: 'Billed Sales (Rs)', key: 'billedSales', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+    ]);
+}
+
+// ============================================
+// 💊 DEDICATED MEDICAL STORE & PHARMACY ANALYTICS REPORT
+// ============================================
+function renderMedicalAnalyticsReport() {
+    const modeSel = document.getElementById('medicalAnalyticsModeSelect');
+    const mode = modeSel ? modeSel.value : 'pharma_company';
+
+    const stockById = {};
+    const stockByName = {};
+    rawStock.forEach(s => {
+        if (s.id) stockById[s.id] = s;
+        if (s.name) stockByName[String(s.name).toLowerCase().trim()] = s;
+    });
+
+    const findStock = (it) => {
+        if (!it) return null;
+        if (it.stockId && stockById[it.stockId]) return stockById[it.stockId];
+        if (it.name) return stockByName[String(it.name).toLowerCase().trim()] || null;
+        return null;
+    };
+
+    // -----------------------------------------
+    // MODE 1: Pharma Company / Brand Sales & Stock
+    // -----------------------------------------
+    if (mode === 'pharma_company') {
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hospital"></i> Pharma Company / Brand Sales &amp; Stock`;
+        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Pharma Companies ke hisaab se Medicine Sales, Free Bonus aur Maujooda Pharmacy Stock Value`;
+
+        const getPharmaName = (obj) => {
+            if (!obj) return 'Other / Unspecified Pharma';
+            const ind = obj.industryFields || {};
+            return String(
+                ind.brandCompany ||
+                obj.brandCompany ||
+                obj.supplierName ||
+                ind.supplierName ||
+                obj.category ||
+                'Other / Unspecified Pharma'
+            ).trim() || 'Other / Unspecified Pharma';
+        };
+
+        const map = new Map();
+        rawStock.forEach(s => {
+            const key = getPharmaName(s);
+            const cur = map.get(key) || {
+                companyName: key,
+                skuCount: 0,
+                soldQty: 0,
+                freeBonusQty: 0,
+                salesRevenue: 0,
+                stockInHand: 0,
+                stockCostValue: 0
+            };
+            cur.skuCount += 1;
+            const q = Number(s.qty || 0);
+            const c = Number(s.purchaseRate || 0);
+            cur.stockInHand += q;
+            cur.stockCostValue += (q * c);
+            map.set(key, cur);
+        });
+
+        let totalRevenue = 0, totalSoldUnits = 0, totalStockCost = 0, totalBonusUnits = 0;
+        rawStock.forEach(s => {
+            totalStockCost += (Number(s.qty || 0) * Number(s.purchaseRate || 0));
+        });
+
+        rawBills.forEach(b => {
+            (b.items || []).forEach(it => {
+                const matched = findStock(it);
+                const key = getPharmaName(matched || it);
+                const cur = map.get(key) || {
+                    companyName: key,
+                    skuCount: 0,
+                    soldQty: 0,
+                    freeBonusQty: 0,
+                    salesRevenue: 0,
+                    stockInHand: 0,
+                    stockCostValue: 0
+                };
+                const q = Number(it.qty || 0);
+                const bonusQ = Number(it.freeQty || it.bonus || 0);
+                const rev = it.total !== undefined ? Number(it.total || 0) : (q * Number(it.rate || 0));
+                cur.soldQty += q;
+                cur.freeBonusQty += bonusQ;
+                cur.salesRevenue += rev;
+                totalSoldUnits += q;
+                totalBonusUnits += bonusQ;
+                totalRevenue += rev;
+                map.set(key, cur);
+            });
+        });
+
+        const list = Array.from(map.values()).sort((a, b) => (b.salesRevenue - a.salesRevenue) || (b.stockCostValue - a.stockCostValue));
+
+        document.getElementById('kpiGrid').innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#059669;">🏥</div>
+                <div class="kpi-value">${list.length}</div>
+                <div class="kpi-label">Pharma Companies / Brands</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#0284c7;">💊</div>
+                <div class="kpi-value">Rs ${Math.round(totalRevenue).toLocaleString()}</div>
+                <div class="kpi-label">Medicine Sales Revenue</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#f59e0b;">📦</div>
+                <div class="kpi-value">${Math.round(totalSoldUnits).toLocaleString()} + ${Math.round(totalBonusUnits)} Free</div>
+                <div class="kpi-label">Sold &amp; Bonus Units</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#6366f1;">🏦</div>
+                <div class="kpi-value">Rs ${Math.round(totalStockCost).toLocaleString()}</div>
+                <div class="kpi-label">Pharmacy Stock Value (TP/Cost)</div>
+            </div>
+        `;
+
+        activeTableData = list.map((r, idx) => ({
+            rank: `#${idx + 1}`,
+            companyName: r.companyName,
+            skuCount: r.skuCount,
+            soldQty: Math.round(r.soldQty * 100) / 100,
+            freeBonusQty: Math.round(r.freeBonusQty * 100) / 100,
+            salesRevenue: r.salesRevenue,
+            stockInHand: Math.round(r.stockInHand * 100) / 100,
+            stockCostValue: r.stockCostValue
+        }));
+
+        renderTable([
+            { header: '#', key: 'rank', bold: true },
+            { header: 'Pharma Company / Brand', key: 'companyName', bold: true, color: '#047857' },
+            { header: 'SKUs', key: 'skuCount', align: 'center' },
+            { header: 'Sold Qty', key: 'soldQty', align: 'center', bold: true },
+            { header: 'Free Bonus', key: 'freeBonusQty', align: 'center', color: '#ea580c' },
+            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'In-Stock Qty', key: 'stockInHand', align: 'center' },
+            { header: 'Stock Value (TP)', key: 'stockCostValue', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+        ]);
+        return;
+    }
+
+    // -----------------------------------------
+    // MODE 2: Generic Salt / Formula Demand & Stock
+    // -----------------------------------------
+    if (mode === 'generic_formula') {
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-dna"></i> Generic Salt / Formula Demand &amp; Stock`;
+        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Generic Salt / Formula ke hisaab se Sales aur Alternate Brands Availability`;
+
+        const getGenericFormula = (obj) => {
+            if (!obj) return 'Unspecified Formula / OTC';
+            const ind = obj.industryFields || {};
+            return String(ind.genericFormula || obj.genericFormula || '').trim() || 'Unspecified Formula / OTC';
+        };
+
+        const map = new Map();
+        rawStock.forEach(s => {
+            const key = getGenericFormula(s);
+            const ind = s.industryFields || {};
+            const cur = map.get(key) || {
+                formula: key,
+                brandSet: new Set(),
+                skuCount: 0,
+                soldQty: 0,
+                salesRevenue: 0,
+                stockInHand: 0
+            };
+            cur.skuCount += 1;
+            const br = String(ind.brandCompany || s.supplierName || '').trim();
+            if (br) cur.brandSet.add(br);
+            cur.stockInHand += Number(s.qty || 0);
+            map.set(key, cur);
+        });
+
+        let totalFormulaRev = 0, totalFormulasSold = 0;
+        rawBills.forEach(b => {
+            (b.items || []).forEach(it => {
+                const matched = findStock(it);
+                const key = getGenericFormula(matched || it);
+                const cur = map.get(key) || {
+                    formula: key,
+                    brandSet: new Set(),
+                    skuCount: 0,
+                    soldQty: 0,
+                    salesRevenue: 0,
+                    stockInHand: 0
+                };
+                const q = Number(it.qty || 0);
+                const rev = it.total !== undefined ? Number(it.total || 0) : (q * Number(it.rate || 0));
+                cur.soldQty += q;
+                cur.salesRevenue += rev;
+                totalFormulasSold += q;
+                totalFormulaRev += rev;
+                map.set(key, cur);
+            });
+        });
+
+        const list = Array.from(map.values()).sort((a, b) => (b.salesRevenue - a.salesRevenue) || (b.stockInHand - a.stockInHand));
+        const lowStockFormulas = list.filter(x => x.stockInHand <= 5).length;
+
+        document.getElementById('kpiGrid').innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#059669;">🧬</div>
+                <div class="kpi-value">${list.length}</div>
+                <div class="kpi-label">Active Generic Formulas / Salts</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#0284c7;">💰</div>
+                <div class="kpi-value">Rs ${Math.round(totalFormulaRev).toLocaleString()}</div>
+                <div class="kpi-label">Total Dispensed Sales</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#10b981;">💊</div>
+                <div class="kpi-value">${Math.round(totalFormulasSold).toLocaleString()}</div>
+                <div class="kpi-label">Units Dispensed</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#ef4444;">⚠️</div>
+                <div class="kpi-value">${lowStockFormulas}</div>
+                <div class="kpi-label">Low / Zero Stock Formulas (≤5)</div>
+            </div>
+        `;
+
+        activeTableData = list.map((r, idx) => ({
+            rank: `#${idx + 1}`,
+            formula: r.formula,
+            brands: Array.from(r.brandSet).slice(0, 3).join(', ') || '—',
+            skuCount: r.skuCount,
+            soldQty: Math.round(r.soldQty * 100) / 100,
+            salesRevenue: r.salesRevenue,
+            stockInHand: Math.round(r.stockInHand * 100) / 100
+        }));
+
+        renderTable([
+            { header: '#', key: 'rank', bold: true },
+            { header: 'Generic Salt / Formula', key: 'formula', bold: true, color: '#047857' },
+            { header: 'Available Brands / Companies', key: 'brands' },
+            { header: 'SKUs', key: 'skuCount', align: 'center' },
+            { header: 'Sold Qty', key: 'soldQty', align: 'center', bold: true },
+            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'In-Stock Qty', key: 'stockInHand', align: 'center', bold: true }
+        ]);
+        return;
+    }
+
+    // -----------------------------------------
+    // MODE 3: FEFO Batch Expiry Radar & Pharma Claims
+    // -----------------------------------------
+    if (mode === 'expiry_fefo') {
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hourglass-end"></i> FEFO Batch Expiry Radar &amp; Pharma Claims`;
+        document.getElementById('reportSubTitle').innerText = `First-Expired-First-Out (FEFO): Expired, 30-Day Critical aur 90-Day Near-Expiry Medicines + Distributor Return Claims`;
+
+        const rows = [];
+        let expiredCount = 0, criticalCount = 0, warningCount = 0, atRiskValue = 0;
+
+        rawStock.forEach(s => {
+            const ind = s.industryFields || {};
+            const expStr = ind.expiryDate || s.expiryDate || '';
+            const batchNo = ind.batchNo || ind.skuBatchCode || s.sku || '—';
+            const cls = classifyExpiryBatchStatus(expStr);
+            const qty = Number(s.qty || 0);
+            const costVal = qty * Number(s.purchaseRate || 0);
+
+            if (!expStr && cls.status === 'no_expiry') return;
+
+            if (cls.status === 'expired') {
+                expiredCount += 1;
+                atRiskValue += costVal;
+            } else if (cls.status === 'critical') {
+                criticalCount += 1;
+                atRiskValue += costVal;
+            } else if (cls.status === 'warning') {
+                warningCount += 1;
+                atRiskValue += costVal;
+            }
+
+            rows.push({
+                sortOrder: cls.daysLeft !== null ? cls.daysLeft : 99999,
+                source: '💊 Batch Stock',
+                itemName: s.name || 'Unnamed Medicine',
+                pharmaFormula: [ind.brandCompany || s.supplierName || '', ind.genericFormula || ''].filter(Boolean).join(' • ') || '—',
+                batchOrClaim: `Batch: ${batchNo}`,
+                expiryDate: String(expStr).slice(0, 10),
+                statusLabel: cls.status === 'expired' ? `🔴 ${cls.label}` : (cls.status === 'critical' ? `🟠 ${cls.label}` : (cls.status === 'warning' ? `🟡 ${cls.label}` : `🟢 ${cls.label}`)),
+                qtyUnits: qty,
+                grossCost: costVal,
+                recoveredVal: 0
+            });
+        });
+
+        let claimsGross = 0, claimsRecovered = 0;
+        rawDamageClaims.forEach(c => {
+            const gross = Number(c.lossAmount || c.totalCost || c.amount || 0);
+            const rec = Number(c.recoveredAmount || c.settledAmount || 0);
+            claimsGross += gross;
+            claimsRecovered += rec;
+            rows.push({
+                sortOrder: -99999,
+                source: '📝 Expiry/Damage Claim',
+                itemName: c.itemName || c.productName || c.supplierName || 'Pharma Claim',
+                pharmaFormula: c.supplierName || c.categoryName || 'Distributor Claim',
+                batchOrClaim: c.claimNo || c.reason || c.claimType || 'Claim',
+                expiryDate: c.incidentDate || (c.createdAt || '').slice(0, 10) || '—',
+                statusLabel: rec >= gross && gross > 0 ? '🟢 Credit Settled' : (rec > 0 ? '🟡 Partial Recovery' : '🔴 Pending Distributor Credit'),
+                qtyUnits: Number(c.qty || 0),
+                grossCost: gross,
+                recoveredVal: rec
+            });
+        });
+
+        rows.sort((a, b) => a.sortOrder - b.sortOrder);
+
+        document.getElementById('kpiGrid').innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#ef4444;">🚨</div>
+                <div class="kpi-value">${expiredCount} Expired / ${criticalCount} ≤30d</div>
+                <div class="kpi-label">FEFO Critical Alert (${warningCount} ≤90d)</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#f59e0b;">💸</div>
+                <div class="kpi-value">Rs ${Math.round(atRiskValue).toLocaleString()}</div>
+                <div class="kpi-label">Near-Expiry &amp; Expired Stock Value</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#0284c7;">📝</div>
+                <div class="kpi-value">Rs ${Math.round(claimsGross).toLocaleString()}</div>
+                <div class="kpi-label">Pharma Expiry Claims (${rawDamageClaims.length})</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#10b981;">✅</div>
+                <div class="kpi-value">Rs ${Math.round(claimsRecovered).toLocaleString()}</div>
+                <div class="kpi-label">Distributor Credit Recovered</div>
+            </div>
+        `;
+
+        activeTableData = rows.map(r => ({
+            source: r.source,
+            itemName: r.itemName,
+            pharmaFormula: r.pharmaFormula,
+            batchOrClaim: r.batchOrClaim,
+            expiryDate: r.expiryDate,
+            statusLabel: r.statusLabel,
+            qtyUnits: r.qtyUnits,
+            grossCost: r.grossCost,
+            recoveredVal: r.recoveredVal
+        }));
+
+        renderTable([
+            { header: 'Type', key: 'source', bold: true },
+            { header: 'Medicine / Product', key: 'itemName', bold: true },
+            { header: 'Company & Formula', key: 'pharmaFormula' },
+            { header: 'Batch # / Reason', key: 'batchOrClaim' },
+            { header: 'Expiry / Date', key: 'expiryDate', align: 'center' },
+            { header: 'FEFO Status', key: 'statusLabel', bold: true },
+            { header: 'Qty', key: 'qtyUnits', align: 'center' },
+            { header: 'Stock / Claim (Rs)', key: 'grossCost', align: 'right', color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'Recovered (Rs)', key: 'recoveredVal', align: 'right', color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+        ]);
+        return;
+    }
+
+    // -----------------------------------------
+    // MODE 4: Rack Location, Cold-Chain (2-8°C) & Rx Audit
+    // -----------------------------------------
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-temperature-low"></i> Rack Location, Cold-Chain (2-8°C) &amp; Schedule Rx Audit`;
+    document.getElementById('reportSubTitle').innerText = `Pharmacy Rack/Shelf Breakdown, Cold-Chain Fridge Items aur Schedule-G / Prescription Only Stock Audit`;
+
+    const rackMap = new Map();
+    let totalColdChain = 0, totalControlledRx = 0, totalShelfStockVal = 0;
+
+    rawStock.forEach(s => {
+        const ind = s.industryFields || {};
+        const rack = String(ind.storageRack || 'Unassigned Shelf / Counter').trim() || 'Unassigned Shelf / Counter';
+        const rackLower = rack.toLowerCase();
+        const isCold = rackLower.includes('fridge') || rackLower.includes('cold') || rackLower.includes('2-8') || rackLower.includes('insulin');
+        const isRx = rackLower.includes('rx') || rackLower.includes('schedule') || rackLower.includes('narcotic') || rackLower.includes('controlled');
+
+        if (isCold) totalColdChain += 1;
+        if (isRx) totalControlledRx += 1;
+
+        const qty = Number(s.qty || 0);
+        const costVal = qty * Number(s.purchaseRate || 0);
+        totalShelfStockVal += costVal;
+
+        const cur = rackMap.get(rack) || {
+            rackName: rack,
+            storageType: isCold ? '❄️ Cold Chain (2-8°C)' : (isRx ? '🔐 Schedule-G / Rx Only' : '🗄️ Ambient Shelf / OTC'),
+            skuCount: 0,
+            totalUnits: 0,
+            stockValue: 0,
+            sampleMedicines: []
+        };
+        cur.skuCount += 1;
+        cur.totalUnits += qty;
+        cur.stockValue += costVal;
+        if (s.name && cur.sampleMedicines.length < 4) cur.sampleMedicines.push(s.name);
+        rackMap.set(rack, cur);
+    });
+
+    const rackList = Array.from(rackMap.values()).sort((a, b) => b.stockValue - a.stockValue);
+
+    document.getElementById('kpiGrid').innerHTML = `
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#059669;">🗄️</div>
+            <div class="kpi-value">${rackList.length}</div>
+            <div class="kpi-label">Active Pharmacy Racks / Zones</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#0284c7;">❄️</div>
+            <div class="kpi-value">${totalColdChain} SKUs</div>
+            <div class="kpi-label">Cold-Chain Fridge Items (2-8°C)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#dc2626;">🔐</div>
+            <div class="kpi-value">${totalControlledRx} SKUs</div>
+            <div class="kpi-label">Schedule-G / Rx Controlled Items</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#6366f1;">💰</div>
+            <div class="kpi-value">Rs ${Math.round(totalShelfStockVal).toLocaleString()}</div>
+            <div class="kpi-label">Total Audited Shelf Stock</div>
+        </div>
+    `;
+
+    activeTableData = rackList.map((r, idx) => ({
+        rank: `#${idx + 1}`,
+        rackName: r.rackName,
+        storageType: r.storageType,
+        skuCount: r.skuCount,
+        totalUnits: Math.round(r.totalUnits * 100) / 100,
+        stockValue: r.stockValue,
+        sampleMedicines: r.sampleMedicines.join(', ') || '—'
+    }));
+
+    renderTable([
+        { header: '#', key: 'rank', bold: true },
+        { header: 'Rack / Zone Location', key: 'rackName', bold: true, color: '#047857' },
+        { header: 'Storage Class', key: 'storageType', bold: true },
+        { header: 'SKUs', key: 'skuCount', align: 'center' },
+        { header: 'Total Stock Qty', key: 'totalUnits', align: 'center', bold: true },
+        { header: 'Stock Value (TP)', key: 'stockValue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: 'Sample Medicines', key: 'sampleMedicines' }
+    ]);
+}
+
+// ============================================
+// 🍔 DEDICATED RESTAURANT, FAST FOOD & KITCHEN ANALYTICS REPORT
+// ============================================
+function renderRestaurantAnalyticsReport() {
+    const modeSel = document.getElementById('restaurantAnalyticsModeSelect');
+    const mode = modeSel ? modeSel.value : 'kitchen_station';
+
+    const stockById = {};
+    const stockByName = {};
+    rawStock.forEach(s => {
+        if (s.id) stockById[s.id] = s;
+        if (s.name) stockByName[String(s.name).toLowerCase().trim()] = s;
+    });
+
+    const findStock = (it) => {
+        if (!it) return null;
+        if (it.stockId && stockById[it.stockId]) return stockById[it.stockId];
+        if (it.name) return stockByName[String(it.name).toLowerCase().trim()] || null;
+        return null;
+    };
+
+    // -----------------------------------------
+    // MODE 1: Kitchen Station / Signature Brand Sales & Pantry Stock
+    // -----------------------------------------
+    if (mode === 'kitchen_station') {
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-utensils"></i> Kitchen Station / Brand Sales &amp; Pantry Stock`;
+        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Kitchen KOT Stations (Fryer, Pizza Oven, Drinks) ke hisaab se Sales, Food Cost Margin aur Maujooda Pantry Stock`;
+
+        const getKitchenStation = (obj) => {
+            if (!obj) return 'Main Kitchen / Unassigned';
+            const ind = obj.industryFields || {};
+            return String(
+                ind.kitchenKOTZone ||
+                obj.kitchenKOTZone ||
+                ind.brandCompany ||
+                obj.brandCompany ||
+                obj.category ||
+                obj.supplierName ||
+                'Main Kitchen / Unassigned'
+            ).trim() || 'Main Kitchen / Unassigned';
+        };
+
+        const map = new Map();
+        let totalPantryValue = 0;
+
+        rawStock.forEach(s => {
+            const key = getKitchenStation(s);
+            const cur = map.get(key) || {
+                stationName: key,
+                skuCount: 0,
+                soldQty: 0,
+                salesRevenue: 0,
+                foodCost: 0,
+                stockInHand: 0,
+                pantryValue: 0
+            };
+            cur.skuCount += 1;
+            const q = Number(s.qty || 0);
+            const c = Number(s.purchaseRate || 0);
+            cur.stockInHand += q;
+            cur.pantryValue += (q * c);
+            totalPantryValue += (q * c);
+            map.set(key, cur);
+        });
+
+        let totalRevenue = 0, totalSoldUnits = 0, totalFoodCost = 0;
+        rawBills.forEach(b => {
+            (b.items || []).forEach(it => {
+                const matched = findStock(it);
+                const key = getKitchenStation(matched || it);
+                const cur = map.get(key) || {
+                    stationName: key,
+                    skuCount: 0,
+                    soldQty: 0,
+                    salesRevenue: 0,
+                    foodCost: 0,
+                    stockInHand: 0,
+                    pantryValue: 0
+                };
+                const q = Number(it.qty || 0);
+                const rev = it.total !== undefined ? Number(it.total || 0) : (q * Number(it.rate || 0));
+                const unitCost = it.purchaseRate !== undefined
+                    ? Number(it.purchaseRate || 0)
+                    : Number(matched ? (matched.purchaseRate || 0) : 0);
+                const costAmt = q * unitCost;
+                cur.soldQty += q;
+                cur.salesRevenue += rev;
+                cur.foodCost += costAmt;
+                totalSoldUnits += q;
+                totalRevenue += rev;
+                totalFoodCost += costAmt;
+                map.set(key, cur);
+            });
+        });
+
+        const list = Array.from(map.values()).sort((a, b) => (b.salesRevenue - a.salesRevenue) || (b.pantryValue - a.pantryValue));
+        const overallMarginPct = totalRevenue > 0 ? Math.round(((totalRevenue - totalFoodCost) / totalRevenue) * 1000) / 10 : 0;
+
+        document.getElementById('kpiGrid').innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#dc2626;">👨‍🍳</div>
+                <div class="kpi-value">${list.length}</div>
+                <div class="kpi-label">Active Kitchen KOT Stations / Brands</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#0284c7;">🍔</div>
+                <div class="kpi-value">Rs ${Math.round(totalRevenue).toLocaleString()}</div>
+                <div class="kpi-label">Fast Food &amp; Cafe Revenue (${overallMarginPct}% Margin)</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#f59e0b;">🍽️</div>
+                <div class="kpi-value">${Math.round(totalSoldUnits).toLocaleString()}</div>
+                <div class="kpi-label">Menu Portions &amp; Deals Sold</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#10b981;">🧊</div>
+                <div class="kpi-value">Rs ${Math.round(totalPantryValue).toLocaleString()}</div>
+                <div class="kpi-label">Pantry &amp; Freezer Stock Value</div>
+            </div>
+        `;
+
+        activeTableData = list.map((r, idx) => {
+            const marginPct = r.salesRevenue > 0
+                ? Math.round(((r.salesRevenue - r.foodCost) / r.salesRevenue) * 1000) / 10
+                : 0;
+            return {
+                rank: `#${idx + 1}`,
+                stationName: r.stationName,
+                skuCount: r.skuCount,
+                soldQty: Math.round(r.soldQty * 100) / 100,
+                foodCost: r.foodCost,
+                marginPct: `${marginPct}%`,
+                salesRevenue: r.salesRevenue,
+                stockInHand: Math.round(r.stockInHand * 100) / 100,
+                pantryValue: r.pantryValue
+            };
+        });
+
+        renderTable([
+            { header: '#', key: 'rank', bold: true },
+            { header: 'Kitchen KOT Station / Brand', key: 'stationName', bold: true, color: '#b91c1c' },
+            { header: 'Menu SKUs', key: 'skuCount', align: 'center' },
+            { header: 'Sold Orders/Qty', key: 'soldQty', align: 'center', bold: true },
+            { header: 'Food Cost (Rs)', key: 'foodCost', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'Margin %', key: 'marginPct', align: 'center', bold: true, color: '#059669' },
+            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'Pantry Qty', key: 'stockInHand', align: 'center' },
+            { header: 'Pantry Value (Rs)', key: 'pantryValue', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+        ]);
+        return;
+    }
+
+    // -----------------------------------------
+    // MODE 2: Service Mode, Table / Delivery & Rider Performance
+    // -----------------------------------------
+    if (mode === 'service_channel') {
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-motorcycle"></i> Service Mode, Table / Delivery &amp; Rider Sales`;
+        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Dine-in, Takeaway, Home Delivery aur Foodpanda/Online App Orders, Avg Ticket aur Rider/Waiter Recovery`;
+
+        const normalizeChannelLabel = (b) => {
+            const rawLbl = String(b.serviceModeLabel || '').trim();
+            if (rawLbl) return rawLbl;
+            const code = String(b.serviceMode || b.channel || '').trim().toLowerCase();
+            if (code === 'dine_in' || code === 'dinein') return '🍽️ Dine-in (Table)';
+            if (code === 'takeaway' || code === 'parcel') return '🛍️ Takeaway / Parcel';
+            if (code === 'delivery' || code === 'home_delivery') return '🛵 Home Delivery';
+            if (code === 'online_app' || code === 'foodpanda') return '📱 Foodpanda / Online App';
+            return b.channel ? String(b.channel).trim() : '🍽️ Dine-in / Counter';
+        };
+
+        const map = new Map();
+        let totalOrders = 0, totalRev = 0, deliveryOnlineRev = 0, dineTakeawayRev = 0;
+
+        rawBills.forEach(b => {
+            const chLabel = normalizeChannelLabel(b);
+            const cur = map.get(chLabel) || {
+                channelName: chLabel,
+                billCount: 0,
+                riderSet: new Set(),
+                tableSamples: new Set(),
+                totalRevenue: 0,
+                cashReceived: 0,
+                creditDue: 0
+            };
+            const amt = Number(b.billAmount || b.grandTotal || 0);
+            const rec = Number(b.received || 0);
+            const due = Math.max(0, amt - rec);
+
+            cur.billCount += 1;
+            cur.totalRevenue += amt;
+            cur.cashReceived += rec;
+            cur.creditDue += due;
+
+            const rider = String(b.riderWaiterName || b.deliveredBy || b.deliveryMan || '').trim();
+            if (rider) cur.riderSet.add(rider);
+
+            const tbl = String(b.tableTokenNo || b.loadFormNo || '').trim();
+            if (tbl && cur.tableSamples.size < 4) cur.tableSamples.add(tbl);
+
+            const lowerLbl = chLabel.toLowerCase();
+            if (lowerLbl.includes('delivery') || lowerLbl.includes('online') || lowerLbl.includes('foodpanda') || lowerLbl.includes('app')) {
+                deliveryOnlineRev += amt;
+            } else {
+                dineTakeawayRev += amt;
+            }
+
+            totalOrders += 1;
+            totalRev += amt;
+            map.set(chLabel, cur);
+        });
+
+        // Also count pending/dispatched rawOrders not yet billed if needed for visibility
+        const orderStatsByChannel = new Map();
+        rawOrders.forEach(o => {
+            const chLabel = normalizeChannelLabel(o);
+            orderStatsByChannel.set(chLabel, (orderStatsByChannel.get(chLabel) || 0) + 1);
+            if (!map.has(chLabel)) {
+                const rider = String(o.riderWaiterName || '').trim();
+                const tbl = String(o.tableTokenNo || '').trim();
+                const entry = {
+                    channelName: chLabel,
+                    billCount: 0,
+                    riderSet: new Set(rider ? [rider] : []),
+                    tableSamples: new Set(tbl ? [tbl] : []),
+                    totalRevenue: 0,
+                    cashReceived: 0,
+                    creditDue: 0
+                };
+                map.set(chLabel, entry);
+            }
+        });
+
+        const list = Array.from(map.values()).sort((a, b) => (b.totalRevenue - a.totalRevenue) || (b.billCount - a.billCount));
+        const avgTicket = totalOrders > 0 ? (totalRev / totalOrders) : 0;
+
+        document.getElementById('kpiGrid').innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#dc2626;">🧾</div>
+                <div class="kpi-value">${totalOrders} Bills</div>
+                <div class="kpi-label">Total Served Kitchen Bills</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#0284c7;">🍽️</div>
+                <div class="kpi-value">Rs ${Math.round(dineTakeawayRev).toLocaleString()}</div>
+                <div class="kpi-label">Dine-in &amp; Takeaway Sales</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#ea580c;">🛵</div>
+                <div class="kpi-value">Rs ${Math.round(deliveryOnlineRev).toLocaleString()}</div>
+                <div class="kpi-label">Home Delivery &amp; Online Apps</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#10b981;">🎯</div>
+                <div class="kpi-value">Rs ${Math.round(avgTicket).toLocaleString()}</div>
+                <div class="kpi-label">Average Order Ticket Size</div>
+            </div>
+        `;
+
+        activeTableData = list.map((r, idx) => {
+            const avg = r.billCount > 0 ? (r.totalRevenue / r.billCount) : 0;
+            const ridersTxt = Array.from(r.riderSet).slice(0, 4).join(', ');
+            const tablesTxt = Array.from(r.tableSamples).slice(0, 3).join(', ');
+            const queuedOrders = orderStatsByChannel.get(r.channelName) || 0;
+            return {
+                rank: `#${idx + 1}`,
+                channelName: r.channelName,
+                billCount: r.billCount + (queuedOrders > 0 ? ` (+${queuedOrders} Orders)` : ''),
+                ridersWaiters: ridersTxt || (tablesTxt ? `Tables/Tokens: ${tablesTxt}` : 'Counter / Direct'),
+                avgTicket: avg,
+                cashReceived: r.cashReceived,
+                creditDue: r.creditDue,
+                totalRevenue: r.totalRevenue
+            };
+        });
+
+        renderTable([
+            { header: '#', key: 'rank', bold: true },
+            { header: 'Service Mode / Channel', key: 'channelName', bold: true, color: '#b91c1c' },
+            { header: 'Bills / Orders', key: 'billCount', align: 'center', bold: true },
+            { header: 'Riders / Waiters / Tables', key: 'ridersWaiters' },
+            { header: 'Avg Ticket (Rs)', key: 'avgTicket', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'Cash Received (Rs)', key: 'cashReceived', align: 'right', color: '#059669', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'Due / Khata (Rs)', key: 'creditDue', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'Total Revenue (Rs)', key: 'totalRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+        ]);
+        return;
+    }
+
+    // -----------------------------------------
+    // MODE 3: Combo Deals, Sizes & Food-Cost Margin
+    // -----------------------------------------
+    if (mode === 'deals_combos') {
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-burger"></i> Combo Deals, Sizes &amp; Food-Cost Margin`;
+        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Fast Food Combo Deals vs Single Menu Items, Portion Sizes, Prep Time aur Gross Food Margin %`;
+
+        const map = new Map();
+        const detectIsDeal = (item, matchedStock) => {
+            const ind = (matchedStock && matchedStock.industryFields) || (item && item.industryFields) || {};
+            const dealStr = String((item && item.dealContents) || ind.dealContents || '').trim();
+            const unitStr = String((item && item.unit) || (matchedStock && matchedStock.unit) || '').toLowerCase();
+            const subStr = String((item && item.itemSubtitle) || '').toLowerCase();
+            const nameStr = String((item && item.name) || (matchedStock && matchedStock.name) || '').toLowerCase();
+            return Boolean(dealStr || unitStr === 'deal' || subStr.includes('deal:') || subStr.includes('combo') || nameStr.includes('deal') || nameStr.includes('combo'));
+        };
+
+        rawStock.forEach(s => {
+            const ind = s.industryFields || {};
+            const portion = String(ind.portionSize || '').trim();
+            const spice = String(ind.spiceVariant || '').trim();
+            const variantKey = [s.name || 'Unnamed Item', portion, spice].filter(Boolean).join(' • ');
+            const isDeal = detectIsDeal(s, s);
+            const cur = map.get(variantKey) || {
+                itemName: s.name || 'Unnamed Item',
+                menuType: isDeal ? '🎁 Combo Deal' : '🍔 Single / Portion',
+                portionSpice: [portion, spice].filter(Boolean).join(' / ') || 'Standard',
+                dealContents: String(ind.dealContents || '').trim() || '—',
+                prepMins: ind.prepTimeMins ? `${ind.prepTimeMins}m` : '—',
+                soldQty: 0,
+                salesRevenue: 0,
+                foodCost: 0,
+                inStockQty: Number(s.qty || 0)
+            };
+            map.set(variantKey, cur);
+        });
+
+        let dealsRev = 0, singleRev = 0, totalRev = 0, totalCost = 0;
+        rawBills.forEach(b => {
+            (b.items || []).forEach(it => {
+                const matched = findStock(it);
+                const ind = (matched && matched.industryFields) || it.industryFields || {};
+                const portion = String(it.portionSize || ind.portionSize || '').trim();
+                const spice = String(it.spiceVariant || ind.spiceVariant || '').trim();
+                const baseName = it.name || (matched && matched.name) || 'Menu Item';
+                const variantKey = [baseName, portion, spice].filter(Boolean).join(' • ');
+                const isDeal = detectIsDeal(it, matched);
+
+                const cur = map.get(variantKey) || {
+                    itemName: baseName,
+                    menuType: isDeal ? '🎁 Combo Deal' : '🍔 Single / Portion',
+                    portionSpice: [portion, spice].filter(Boolean).join(' / ') || 'Standard',
+                    dealContents: String(it.dealContents || ind.dealContents || '').trim() || '—',
+                    prepMins: ind.prepTimeMins ? `${ind.prepTimeMins}m` : '—',
+                    soldQty: 0,
+                    salesRevenue: 0,
+                    foodCost: 0,
+                    inStockQty: matched ? Number(matched.qty || 0) : 0
+                };
+
+                const q = Number(it.qty || 0);
+                const rev = it.total !== undefined ? Number(it.total || 0) : (q * Number(it.rate || 0));
+                const unitCost = it.purchaseRate !== undefined
+                    ? Number(it.purchaseRate || 0)
+                    : Number(matched ? (matched.purchaseRate || 0) : 0);
+                const cost = q * unitCost;
+
+                cur.soldQty += q;
+                cur.salesRevenue += rev;
+                cur.foodCost += cost;
+                if (isDeal) dealsRev += rev;
+                else singleRev += rev;
+                totalRev += rev;
+                totalCost += cost;
+                map.set(variantKey, cur);
+            });
+        });
+
+        const list = Array.from(map.values()).sort((a, b) => (b.salesRevenue - a.salesRevenue) || (b.soldQty - a.soldQty));
+        const dealSkuCount = list.filter(x => x.menuType.includes('Combo Deal')).length;
+        const avgMarginPct = totalRev > 0 ? Math.round(((totalRev - totalCost) / totalRev) * 1000) / 10 : 0;
+
+        document.getElementById('kpiGrid').innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#ea580c;">🎁</div>
+                <div class="kpi-value">Rs ${Math.round(dealsRev).toLocaleString()}</div>
+                <div class="kpi-label">Combo Deals Revenue (${dealSkuCount} Deals)</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#0284c7;">🍔</div>
+                <div class="kpi-value">Rs ${Math.round(singleRev).toLocaleString()}</div>
+                <div class="kpi-label">Single Items &amp; Sides Revenue</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#10b981;">📈</div>
+                <div class="kpi-value">${avgMarginPct}%</div>
+                <div class="kpi-label">Overall Kitchen Food Margin</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#6366f1;">📋</div>
+                <div class="kpi-value">${list.length}</div>
+                <div class="kpi-label">Active Menu Variants / Portions</div>
+            </div>
+        `;
+
+        activeTableData = list.map((r, idx) => {
+            const marginPct = r.salesRevenue > 0
+                ? Math.round(((r.salesRevenue - r.foodCost) / r.salesRevenue) * 1000) / 10
+                : 0;
+            return {
+                rank: `#${idx + 1}`,
+                itemName: r.itemName,
+                menuType: r.menuType,
+                portionSpice: r.portionSpice,
+                dealContents: r.dealContents,
+                prepMins: r.prepMins,
+                soldQty: Math.round(r.soldQty * 100) / 100,
+                marginPct: `${marginPct}%`,
+                salesRevenue: r.salesRevenue,
+                inStockQty: Math.round(r.inStockQty * 100) / 100
+            };
+        });
+
+        renderTable([
+            { header: '#', key: 'rank', bold: true },
+            { header: 'Menu Item / Deal', key: 'itemName', bold: true, color: '#b91c1c' },
+            { header: 'Class', key: 'menuType', bold: true },
+            { header: 'Portion / Spice', key: 'portionSpice' },
+            { header: 'Deal Contents', key: 'dealContents' },
+            { header: 'Prep', key: 'prepMins', align: 'center' },
+            { header: 'Sold Qty', key: 'soldQty', align: 'center', bold: true },
+            { header: 'Margin %', key: 'marginPct', align: 'center', bold: true, color: '#059669' },
+            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: 'Stock', key: 'inStockQty', align: 'center' }
+        ]);
+        return;
+    }
+
+    // -----------------------------------------
+    // MODE 4: Kitchen Wastage, Freezer Spoilage & Cancelled Orders Audit
+    // -----------------------------------------
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-fire"></i> Kitchen Wastage, Freezer Spoilage &amp; Cancelled Orders`;
+    document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Kitchen Wastage, Staff Meals, Freezer Spoilage Claims aur Cancelled Delivery Orders ka Mukammal Audit`;
+
+    const rows = [];
+    let wastageLoss = 0, claimGrossTotal = 0, claimRecoveredTotal = 0, cancelledOrderCount = 0;
+
+    // 1) Kitchen Wastage, Staff Meal & Damage Stock Movements
+    const wastageReasons = new Set(['kitchen_wastage', 'staff_meal_out', 'damage', 'expired', 'lost']);
+    const loggedClaimVouchers = new Set();
+
+    rawMovements.forEach(m => {
+        if (!wastageReasons.has(m.reason)) return;
+        const match = (m.note || '').match(/#(CLM-\d+)/);
+        if (match) loggedClaimVouchers.add(match[1]);
+
+        const q = Number(m.qty || 0);
+        const matched = findStock({ stockId: m.stockId, name: m.itemName });
+        const unitCost = m.purchaseRate !== undefined
+            ? Number(m.purchaseRate || 0)
+            : Number(matched ? (matched.purchaseRate || 0) : 0);
+        const lossAmt = m.totalCost !== undefined ? Number(m.totalCost || 0) : (q * unitCost);
+        wastageLoss += lossAmt;
+
+        let typeLabel = '🔥 Kitchen Wastage';
+        if (m.reason === 'staff_meal_out') typeLabel = '👨‍🍳 Staff Meal / Tasting';
+        else if (m.reason === 'expired') typeLabel = '🧊 Freezer / Cold Spoilage';
+        else if (m.reason === 'damage') typeLabel = '💥 Packaging / Item Damage';
+        else if (m.reason === 'lost') typeLabel = '❓ Missing / Lost Pantry';
+
+        rows.push({
+            date: (m.createdAt || '').slice(0, 10) || dateStart,
+            sourceType: typeLabel,
+            itemName: m.itemName || 'Kitchen Item',
+            stationOrParty: (matched && matched.industryFields && matched.industryFields.kitchenKOTZone) || m.supplierName || 'Kitchen / Pantry',
+            reasonNote: m.reasonLabel || m.note || m.reason,
+            qty: q,
+            grossLoss: lossAmt,
+            recoveredAmt: 0,
+            netLoss: lossAmt
+        });
+    });
+
+    // 2) Damage & Spoilage Claims (Raw/Frozen Vendor Claims & Cancelled Order Claims)
+    rawDamageClaims.forEach(c => {
+        if (c.voucherNo && loggedClaimVouchers.has(c.voucherNo)) return;
+        const q = Number(c.qty || 0);
+        const gross = Number(
+            c.totalLoss !== undefined ? c.totalLoss :
+            (c.lossAmount !== undefined ? c.lossAmount :
+            (c.totalCost !== undefined ? c.totalCost :
+            (c.amount !== undefined ? c.amount : (q * Number(c.purchaseRate || 0)))))
+        );
+        const rec = Number(c.recoveredAmount || c.settledAmount || 0);
+        claimGrossTotal += gross;
+        claimRecoveredTotal += rec;
+
+        rows.push({
+            date: c.incidentDate || (c.createdAt || '').slice(0, 10) || dateStart,
+            sourceType: '📝 Spoilage / Vendor Claim',
+            itemName: c.itemName || c.productName || 'Kitchen Claim',
+            stationOrParty: c.supplierName || c.category || c.categoryName || 'Vendor / Freezer',
+            reasonNote: [c.voucherNo || c.claimNo, c.category || c.reason, c.notes].filter(Boolean).join(' — ') || 'Kitchen Claim',
+            qty: q,
+            grossLoss: gross,
+            recoveredAmt: rec,
+            netLoss: Math.max(0, gross - rec)
+        });
+    });
+
+    // 3) Stock Returns & Cancelled / Rejected Delivery Orders
+    rawStockReturns.forEach(sr => {
+        const srDate = (sr.createdAt || '').slice(0, 10) || sr.date || dateStart;
+        const items = Array.isArray(sr.items) && sr.items.length > 0 ? sr.items : [{ name: sr.itemName || 'Cancelled Order', qty: sr.qty || 1, rate: sr.totalAmount || 0 }];
+        cancelledOrderCount += 1;
+        items.forEach(it => {
+            const q = Number(it.qty || 0);
+            const matched = findStock(it);
+            const costRate = it.purchaseRate !== undefined ? Number(it.purchaseRate || 0) : Number(matched ? (matched.purchaseRate || 0) : (it.rate || 0));
+            const lossAmt = it.total !== undefined ? Number(it.total || 0) : (q * costRate);
+            rows.push({
+                date: srDate,
+                sourceType: '🛵 Order Return / Cancel',
+                itemName: it.name || 'Returned Menu Item',
+                stationOrParty: sr.shopName || sr.customerName || sr.riderWaiterName || 'Delivery Order',
+                reasonNote: sr.reasonDetails || sr.reasonCategory || sr.voucherNo || 'Order Cancelled',
+                qty: q,
+                grossLoss: lossAmt,
+                recoveredAmt: 0,
+                netLoss: lossAmt
+            });
+        });
+    });
+
+    rawOrders.forEach(o => {
+        const st = String(o.status || '').toLowerCase();
+        if (st !== 'cancelled' && st !== 'rejected' && st !== 'returned') return;
+        cancelledOrderCount += 1;
+        const ordAmt = Number(o.grandTotal || o.billAmount || o.totalAmount || 0);
+        rows.push({
+            date: o.date || (o.createdAt || '').slice(0, 10) || dateStart,
+            sourceType: '❌ Cancelled Delivery Order',
+            itemName: o.orderNo || o.customerName || 'Food Order',
+            stationOrParty: [o.serviceModeLabel || o.serviceMode, o.riderWaiterName].filter(Boolean).join(' • ') || 'Delivery',
+            reasonNote: o.cancelReason || o.kitchenOrderNote || 'Cancelled before settlement',
+            qty: Array.isArray(o.items) ? o.items.reduce((s, x) => s + Number(x.qty || 0), 0) : 1,
+            grossLoss: ordAmt,
+            recoveredAmt: 0,
+            netLoss: ordAmt
+        });
+    });
+
+    rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const totalGross = rows.reduce((s, r) => s + Number(r.grossLoss || 0), 0);
+    const netUnrecovered = Math.max(0, totalGross - claimRecoveredTotal);
+
+    document.getElementById('kpiGrid').innerHTML = `
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#dc2626;">🔥</div>
+            <div class="kpi-value">Rs ${Math.round(wastageLoss).toLocaleString()}</div>
+            <div class="kpi-label">Kitchen Wastage &amp; Staff Meals</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#f59e0b;">🧊</div>
+            <div class="kpi-value">Rs ${Math.round(claimGrossTotal).toLocaleString()}</div>
+            <div class="kpi-label">Freezer &amp; Vendor Claims (${rawDamageClaims.length})</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#0284c7;">❌</div>
+            <div class="kpi-value">${cancelledOrderCount}</div>
+            <div class="kpi-label">Cancelled / Returned Orders</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#10b981;">💸</div>
+            <div class="kpi-value">Rs ${Math.round(netUnrecovered).toLocaleString()}</div>
+            <div class="kpi-label">Net Unrecovered Loss (Recovered Rs ${Math.round(claimRecoveredTotal).toLocaleString()})</div>
+        </div>
+    `;
+
+    activeTableData = rows;
+
+    renderTable([
+        { header: 'Date', key: 'date', align: 'center' },
+        { header: 'Audit Category', key: 'sourceType', bold: true },
+        { header: 'Menu Item / Order', key: 'itemName', bold: true, color: '#b91c1c' },
+        { header: 'Station / Vendor / Rider', key: 'stationOrParty' },
+        { header: 'Reason / KOT / Claim #', key: 'reasonNote' },
+        { header: 'Qty', key: 'qty', align: 'center', bold: true },
+        { header: 'Gross Loss (Rs)', key: 'grossLoss', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: 'Recovered (Rs)', key: 'recoveredAmt', align: 'right', color: '#059669', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: 'Net Loss (Rs)', key: 'netLoss', align: 'right', bold: true, color: '#b91c1c', format: v => 'Rs ' + Math.round(v).toLocaleString() }
     ]);
 }
 

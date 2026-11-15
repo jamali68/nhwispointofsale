@@ -7,7 +7,7 @@
 // ✅ Role-aware menu (Booker ko limited)
 // ============================================
 
-window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
+window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.5.3';
 
 (function initSidebar() {
     // Inject dark-theme.css link dynamically if not present
@@ -74,23 +74,32 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
     document.documentElement.setAttribute('data-lang', savedLang);
     if (document.body) document.body.setAttribute('data-lang', savedLang);
 
-    // Apply saved theme
-    const savedTheme = localStorage.getItem('eb_theme_mode') || 'dark';
-    if (savedTheme === 'dark' || savedTheme === 'night') {
-        document.documentElement.classList.add('dark-theme');
+    // Apply saved theme (Light Mode is the default)
+    const savedThemeRaw = localStorage.getItem('eb_theme_mode') || 'light';
+    const savedTheme = savedThemeRaw === 'night' ? 'dark' : savedThemeRaw;
+    const ALL_THEME_CLASSES = ['dark', 'dark-theme', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange'];
+    document.documentElement.classList.remove(...ALL_THEME_CLASSES);
+    if (document.body) document.body.classList.remove(...ALL_THEME_CLASSES);
+
+    if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark', 'dark-theme');
         document.documentElement.setAttribute('data-theme', 'dark');
-        document.body.classList.add('dark-theme');
-        document.body.setAttribute('data-theme', 'dark');
+        if (document.body) {
+            document.body.classList.add('dark', 'dark-theme');
+            document.body.setAttribute('data-theme', 'dark');
+        }
     } else if (savedTheme === 'light') {
-        document.documentElement.classList.remove('dark-theme');
         document.documentElement.setAttribute('data-theme', 'light');
-        document.body.classList.remove('dark-theme');
-        document.body.setAttribute('data-theme', 'light');
+        if (document.body) {
+            document.body.setAttribute('data-theme', 'light');
+        }
     } else {
         document.documentElement.classList.add(savedTheme);
         document.documentElement.setAttribute('data-theme', savedTheme);
-        document.body.classList.add(savedTheme);
-        document.body.setAttribute('data-theme', savedTheme);
+        if (document.body) {
+            document.body.classList.add(savedTheme);
+            document.body.setAttribute('data-theme', savedTheme);
+        }
     }
 
     // Global toggle & close functions
@@ -139,6 +148,8 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
             items: [
                 { icon: 'fa-sack-dollar', text: 'Profit Analytics <span class="ur-sub">(منافع کا تجزیہ)</span>', url: 'profit.html', roles: ['super-admin', 'owner'], phase: 'PROFIT' },
                 { icon: 'fa-boxes-stacked', text: 'Wholesale & PJP Reports <span class="ur-sub">(ہول سیل و ڈسٹری بیوشن)</span>', url: 'reports.html?tab=wholesaler_analytics', roles: ['super-admin', 'owner'] },
+                { icon: 'fa-pills', text: 'Pharmacy & Expiry Reports <span class="ur-sub">(میڈیکل و ایکسپائری رپورٹ)</span>', url: 'reports.html?tab=medical_analytics', roles: ['super-admin', 'owner'] },
+                { icon: 'fa-utensils', text: 'Restaurant & Fast Food Reports <span class="ur-sub">(ریسٹورنٹ و کچن رپورٹ)</span>', url: 'reports.html?tab=restaurant_analytics', roles: ['super-admin', 'owner'] },
                 { icon: 'fa-chart-column', text: 'Sales Reports <span class="ur-sub">(سیلز رپورٹس)</span>', url: 'reports.html?tab=sales', roles: ['super-admin', 'owner', 'booker'] },
                 { icon: 'fa-trophy', text: 'Best Sellers <span class="ur-sub">(زیادہ بکنے والا سامان)</span>', url: 'reports.html?tab=bestsellers', roles: ['super-admin', 'owner'] },
                 { icon: 'fa-hourglass-half', text: 'Slow & Dead Stock <span class="ur-sub">(سست و رکا ہوا مال)</span>', url: 'reports.html?tab=slow', roles: ['super-admin', 'owner'] },
@@ -259,12 +270,13 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
             border-left: 3px solid transparent;
             min-height: 40px;
         }
-        .eb-menu-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .eb-menu-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
         .eb-menu-item.active {
-            background: rgba(16, 185, 129, 0.15);
-            border-left-color: #10b981;
-            color: #fff;
-            font-weight: bold;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.28) 0%, rgba(16, 185, 129, 0.09) 100%) !important;
+            border-left: 4px solid #10b981 !important;
+            color: #ffffff !important;
+            font-weight: 800;
+            box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.28);
         }
         .eb-menu-item > i:first-child {
             width: 18px;
@@ -276,7 +288,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
         }
         .eb-menu-item:hover > i:first-child,
         .eb-menu-item.active > i:first-child {
-            color: #10b981;
+            color: #34d399 !important;
         }
         .eb-menu-item.locked > i:first-child {
             color: #ef4444;
@@ -427,7 +439,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
             padding: 6px;
             box-shadow: 0 -10px 25px rgba(0,0,0,0.6);
             z-index: 10005;
-            max-height: 290px;
+            max-height: 360px;
             overflow-y: auto;
         }
         .eb-theme-dropup-menu.show {
@@ -524,11 +536,26 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
             display: flex; align-items: center; gap: 12px;
             color: #cbd5e1; text-decoration: none;
             font-size: 14px;
-            padding: 8px;
+            padding: 8px 10px;
             border-radius: 8px;
+            border-left: 3px solid transparent;
             transition: all 0.15s;
         }
         .eb-profile-link:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .eb-profile-link.active {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.28) 0%, rgba(16, 185, 129, 0.09) 100%) !important;
+            border-left: 4px solid #10b981 !important;
+            color: #ffffff !important;
+            font-weight: 800;
+            box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.28);
+        }
+        .eb-profile-link.active i,
+        .eb-profile-link.active .eb-item-en {
+            color: #ffffff !important;
+        }
+        .eb-profile-link.active > i:first-child {
+            color: #34d399 !important;
+        }
 
         /* ========== OVERLAY (mobile) ========== */
         .eb-sidebar-overlay {
@@ -943,6 +970,124 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
         renderSidebar();
     }
 
+    // 🎯 SIDEBAR ACTIVE URL MATCHING ENGINE (Supports full paths, clean URLs, query params & hashes)
+    function normalizeSidebarFile(pathname) {
+        let seg = String(pathname || '').split('?')[0].split('#')[0].split('/').filter(Boolean).pop() || 'dashboard';
+        seg = seg.toLowerCase();
+        if (seg.endsWith('.html')) seg = seg.slice(0, -5);
+        if (!seg || seg === 'index' || seg === 'nhsm') return 'dashboard';
+        return seg;
+    }
+
+    function parseSidebarHref(rawUrl) {
+        try {
+            const u = new URL(String(rawUrl || ''), 'https://local.nhpos/');
+            return {
+                raw: String(rawUrl || ''),
+                file: normalizeSidebarFile(u.pathname),
+                params: u.searchParams,
+                hasParams: Array.from(u.searchParams.keys()).length > 0,
+                hash: (u.hash || '').toLowerCase()
+            };
+        } catch (_) {
+            const noHash = String(rawUrl || '').split('#');
+            const noQuery = noHash[0].split('?');
+            return {
+                raw: String(rawUrl || ''),
+                file: normalizeSidebarFile(noQuery[0]),
+                params: new URLSearchParams(noQuery[1] || ''),
+                hasParams: Boolean(noQuery[1]),
+                hash: noHash[1] ? ('#' + noHash[1].toLowerCase()) : ''
+            };
+        }
+    }
+
+    function scoreSidebarCandidate(candidateUrl, currentHrefOrOverride, preferredExactUrl) {
+        if (!candidateUrl || candidateUrl === '#install-pwa' || candidateUrl.startsWith('javascript:')) return -1;
+        const cand = parseSidebarHref(candidateUrl);
+        const cur = parseSidebarHref(currentHrefOrOverride || (window.location.pathname + window.location.search + window.location.hash));
+        if (cand.file !== cur.file) return -1;
+
+        let score = 10;
+
+        // Check query params on candidate
+        if (cand.hasParams) {
+            for (const [k, v] of cand.params.entries()) {
+                if ((cur.params.get(k) || '') !== v) {
+                    return -1; // Query parameter mismatch -> must not highlight
+                }
+                score += 100;
+            }
+        }
+
+        // Check hash on candidate
+        if (cand.hash) {
+            if (cur.hash !== cand.hash) {
+                return -1; // Hash mismatch
+            }
+            score += 100;
+        } else {
+            // Candidate has NO hash; if current has no hash or is #tabOverview (overview tab), keep eligible
+            if (!cur.hash) score += 20;
+        }
+
+        // Exact preferred URL tie-breaker (e.g. admin.html vs admin.html#tabOverview)
+        if (preferredExactUrl && candidateUrl === preferredExactUrl) {
+            score += 30;
+        }
+
+        return score;
+    }
+
+    function resolveBestActiveUrl(candidateUrls, currentHrefOrOverride, preferredExactUrl) {
+        let bestUrl = null;
+        let bestScore = -1;
+        candidateUrls.forEach(u => {
+            const s = scoreSidebarCandidate(u, currentHrefOrOverride, preferredExactUrl);
+            if (s > bestScore) {
+                bestScore = s;
+                bestUrl = u;
+            }
+        });
+        return bestUrl;
+    }
+
+    function refreshActiveSidebarItem(explicitTargetUrl) {
+        const sidebarEl = document.getElementById('ebSidebar');
+        if (!sidebarEl) return null;
+
+        const links = Array.from(sidebarEl.querySelectorAll('a.eb-menu-item[data-url], a.eb-profile-link[data-url]'));
+        const unlockedLinks = links.filter(l => !l.classList.contains('locked'));
+        const candidateUrls = unlockedLinks.map(l => l.getAttribute('data-url')).filter(Boolean);
+
+        let preferredExact = explicitTargetUrl || '';
+        try {
+            if (!preferredExact) preferredExact = sessionStorage.getItem('eb_sidebar_last_active') || '';
+        } catch (_) {}
+
+        const targetHref = explicitTargetUrl || (window.location.pathname + window.location.search + window.location.hash);
+        const matchedUrl = resolveBestActiveUrl(candidateUrls, targetHref, preferredExact);
+
+        links.forEach(l => {
+            const url = l.getAttribute('data-url');
+            const isMatch = Boolean(matchedUrl && url === matchedUrl && !l.classList.contains('locked'));
+            l.classList.toggle('active', isMatch);
+            if (isMatch) l.setAttribute('aria-current', 'page');
+            else l.removeAttribute('aria-current');
+        });
+
+        if (matchedUrl) {
+            try { sessionStorage.setItem('eb_sidebar_last_active', matchedUrl); } catch (_) {}
+            const activeNode = unlockedLinks.find(l => l.getAttribute('data-url') === matchedUrl);
+            if (activeNode && typeof activeNode.scrollIntoView === 'function') {
+                setTimeout(() => {
+                    try { activeNode.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (_) {}
+                }, 40);
+            }
+        }
+        return matchedUrl;
+    }
+
     // 4️⃣ SIDEBAR RENDER
     function renderSidebar() {
         const existingSidebar = document.getElementById('ebSidebar');
@@ -958,6 +1103,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
         const isSuperAdmin = myProfile.role === 'super-admin' || currentUserEmail === 'aliimtiaz1126@gmail.com';
         const role = isSuperAdmin ? 'super-admin' : (myProfile.role || 'owner');
         const currentPath = window.location.pathname.split('/').pop() || 'dashboard.html';
+        const currentFullHref = window.location.pathname + window.location.search + window.location.hash;
 
         const sidebar = document.createElement('div');
         sidebar.className = 'eb-sidebar';
@@ -976,7 +1122,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
                         ${isSuperAdmin ? '<span style="font-size:12px;">👑</span>' : ''}
                     </div>
                     <div class="eb-sidebar-agency" style="padding-left:0; font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agencyTitleText}</div>
-                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.4.0'}</div>
+                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.5.3'}</div>
                 </div>
             </div>
         </div>`;
@@ -1009,7 +1155,6 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
             </div>`;
             
             allowedItems.forEach(item => {
-                const isActive = currentPath === item.url ? 'active' : '';
                 const modId = getModuleIdFromUrl(item.url);
 
                 // 🛡️ Evaluate SaaS Lock Status
@@ -1052,7 +1197,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
 
                 if (isLocked) {
                     menuHtml += `
-                    <a class="eb-menu-item locked" data-locked="true" data-mod-id="${modId}" title="Locked Feature: Click to view packages & unlock" onclick="event.preventDefault(); window.SaaSModules && window.SaaSModules.showUpgradeModal('${modId}', window.__myAgencyData, window.__myProfile);">
+                    <a class="eb-menu-item locked" data-locked="true" data-mod-id="${modId}" data-url="${item.url}" title="Locked Feature: Click to view packages & unlock" onclick="event.preventDefault(); window.SaaSModules && window.SaaSModules.showUpgradeModal('${modId}', window.__myAgencyData, window.__myProfile);">
                         <i class="fas ${itemIcon}"></i>
                         <div class="eb-item-content">
                             <div class="eb-item-topline">
@@ -1064,7 +1209,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
                     </a>`;
                 } else {
                     menuHtml += `
-                    <a class="eb-menu-item ${isActive}" href="${item.url === '#install-pwa' ? 'javascript:void(0)' : item.url}" ${item.url === '#install-pwa' ? 'onclick="(window.installNHPOSApp || window.installEasyBillPWA) && (window.installNHPOSApp || window.installEasyBillPWA)(); return false;"' : ''}>
+                    <a class="eb-menu-item" data-url="${item.url}" href="${item.url === '#install-pwa' ? 'javascript:void(0)' : item.url}" ${item.url === '#install-pwa' ? 'onclick="(window.installNHPOSApp || window.installEasyBillPWA) && (window.installNHPOSApp || window.installEasyBillPWA)(); return false;"' : ''}>
                         <i class="fas ${itemIcon}"></i>
                         <div class="eb-item-content">
                             <div class="eb-item-topline">
@@ -1096,10 +1241,32 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
 
 
         // Theme toggle dropup row + Profile + Logout
-        const currentThemeNow = localStorage.getItem('eb_theme_mode') || 'dark';
-        const isDark = currentThemeNow === 'dark' || currentThemeNow === 'night';
+        const rawThemeNow = localStorage.getItem('eb_theme_mode') || 'light';
+        const currentThemeNow = rawThemeNow === 'night' ? 'dark' : rawThemeNow;
+        const SIDEBAR_THEMES = [
+            { val: 'light', icon: '☀️', btnIcon: 'fas fa-sun', label: 'Light Mode', ur: '(لائٹ موڈ)', btnLabel: 'Light Mode' },
+            { val: 'dark', icon: '🌙', btnIcon: 'fas fa-moon', label: 'Dark / Night Mode', ur: '(ڈارک موڈ)', btnLabel: 'Dark / Night' },
+            { val: 'theme-green', icon: '🟢', btnIcon: 'fas fa-leaf', label: 'Emerald Green', ur: '(سبز تھیم)', btnLabel: 'Emerald Green' },
+            { val: 'theme-red', icon: '🔴', btnIcon: 'fas fa-fire', label: 'Ruby Red', ur: '(سرخ تھیم)', btnLabel: 'Ruby Red' },
+            { val: 'theme-blue', icon: '🔵', btnIcon: 'fas fa-gem', label: 'Royal Blue', ur: '(نیلا تھیم)', btnLabel: 'Royal Blue' },
+            { val: 'theme-purple', icon: '🟣', btnIcon: 'fas fa-crown', label: 'Amethyst Purple', ur: '(جامنی تھیم)', btnLabel: 'Amethyst Purple' },
+            { val: 'theme-yellow', icon: '🟡', btnIcon: 'fas fa-coins', label: 'Amber Gold', ur: '(سنہری پیلا)', btnLabel: 'Amber Gold' },
+            { val: 'theme-orange', icon: '🟠', btnIcon: 'fas fa-sun', label: 'Sunset Orange', ur: '(نارنجی تھیم)', btnLabel: 'Sunset Orange' }
+        ];
+        const activeThemeObj = SIDEBAR_THEMES.find(t => t.val === currentThemeNow) || SIDEBAR_THEMES[0];
         const currentLangNow = localStorage.getItem('eb_app_language') || 'en';
         const isUrduMix = currentLangNow === 'en-ur';
+
+        const themeOptionsHtml = SIDEBAR_THEMES.map(t => {
+            const isOptActive = t.val === activeThemeObj.val;
+            return `
+                <div class="eb-theme-option ${isOptActive ? 'active' : ''}" data-theme-val="${t.val}" data-theme-name="${t.label}" data-btn-icon="${t.btnIcon}" data-btn-label="${t.btnLabel}">
+                    <span>${t.icon} ${t.label} <span class="ur-sub">${t.ur}</span></span>
+                    ${isOptActive
+                        ? '<i class="fas fa-check" style="color:#38bdf8;"></i>'
+                        : '<span class="eb-theme-dot" style="font-size:10px; color:#94a3b8; font-weight:700;">Select</span>'}
+                </div>`;
+        }).join('');
 
         menuHtml += `
         <div class="eb-lang-toggle-row">
@@ -1114,51 +1281,20 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
                 <div style="font-size:10px; font-weight:800; color:#94a3b8; text-transform:uppercase; padding:4px 8px 6px; letter-spacing:0.5px;">
                     Select Theme <span class="ur-sub">(تھیم منتخب کریں)</span>
                 </div>
-                <div class="eb-theme-option ${isDark ? 'active' : ''}" data-theme-val="dark">
-                    <span>🌙 Dark / Night Mode <span class="ur-sub">(ڈارک موڈ)</span></span>
-                    ${isDark ? '<i class="fas fa-check" style="color:#38bdf8;"></i>' : '<span style="font-size:10px; color:#10b981; font-weight:800;">Active</span>'}
-                </div>
-                <div class="eb-theme-option ${!isDark ? 'active' : ''}" data-theme-val="light">
-                    <span>☀️ Light Mode <span class="ur-sub">(لائٹ موڈ)</span></span>
-                    ${!isDark ? '<i class="fas fa-check" style="color:#38bdf8;"></i>' : '<span style="font-size:10px; color:#10b981; font-weight:800;">Active</span>'}
-                </div>
-                <div class="eb-theme-option" data-theme-val="theme-green" data-theme-name="Emerald Green" data-soon="true">
-                    <span>🟢 Emerald Green <span class="ur-sub">(سبز تھیم)</span></span>
-                    <span class="eb-theme-soon-badge">Coming Soon <span class="ur-sub">(جلد)</span></span>
-                </div>
-                <div class="eb-theme-option" data-theme-val="theme-red" data-theme-name="Ruby Red" data-soon="true">
-                    <span>🔴 Ruby Red <span class="ur-sub">(سرخ تھیم)</span></span>
-                    <span class="eb-theme-soon-badge">Coming Soon <span class="ur-sub">(جلد)</span></span>
-                </div>
-                <div class="eb-theme-option" data-theme-val="theme-blue" data-theme-name="Royal Blue" data-soon="true">
-                    <span>🔵 Royal Blue <span class="ur-sub">(نیلا تھیم)</span></span>
-                    <span class="eb-theme-soon-badge">Coming Soon <span class="ur-sub">(جلد)</span></span>
-                </div>
-                <div class="eb-theme-option" data-theme-val="theme-purple" data-theme-name="Amethyst Purple" data-soon="true">
-                    <span>🟣 Amethyst Purple <span class="ur-sub">(جامنی تھیم)</span></span>
-                    <span class="eb-theme-soon-badge">Coming Soon <span class="ur-sub">(جلد)</span></span>
-                </div>
-                <div class="eb-theme-option" data-theme-val="theme-yellow" data-theme-name="Amber Gold" data-soon="true">
-                    <span>🟡 Amber Gold <span class="ur-sub">(سنہری پیلا)</span></span>
-                    <span class="eb-theme-soon-badge">Coming Soon <span class="ur-sub">(جلد)</span></span>
-                </div>
-                <div class="eb-theme-option" data-theme-val="theme-orange" data-theme-name="Sunset Orange" data-soon="true">
-                    <span>🟠 Sunset Orange <span class="ur-sub">(نارنجی تھیم)</span></span>
-                    <span class="eb-theme-soon-badge">Coming Soon <span class="ur-sub">(جلد)</span></span>
-                </div>
+                ${themeOptionsHtml}
             </div>
 
             <div class="eb-theme-toggle-row">
                 <span><span>🎨 Theme <span class="ur-sub">(تھیم)</span></span></span>
                 <button class="eb-theme-btn" id="ebSidebarThemeToggle" type="button" title="Select Theme / تھیم منتخب کریں">
-                    <i class="fas ${isDark ? 'fa-moon' : 'fa-sun'}"></i>
-                    <span id="ebSidebarThemeText">${isDark ? 'Dark / Night' : 'Light Mode'}</span>
+                    <i class="${activeThemeObj.btnIcon}"></i>
+                    <span id="ebSidebarThemeText">${activeThemeObj.btnLabel}</span>
                     <i class="fas fa-chevron-up" style="font-size:9px; margin-left:3px; opacity:0.8;"></i>
                 </button>
             </div>
         </div>
         <div class="eb-sidebar-profile">
-            <a class="eb-profile-link" href="profile.html">
+            <a class="eb-profile-link" data-url="profile.html" href="profile.html">
                 <i class="fas fa-user-circle" style="font-size:20px;"></i>
                 <div class="eb-item-content">
                     <div class="eb-item-topline">
@@ -1182,15 +1318,61 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
         sidebar.innerHTML = menuHtml;
         document.body.appendChild(sidebar);
 
-        // 🌟 Trigger Branded NH POS Loader Instantly on Any Module Selection
+        // 🎯 Immediately mark whichever sidebar item matches the active route/query/hash/profile
+        refreshActiveSidebarItem();
+
+        // 🌟 Trigger Branded NH POS Loader & Instant Active Highlight on Any Module Selection
         try {
-            sidebar.querySelectorAll('a.eb-menu-item:not(.locked)').forEach(itemLink => {
-                itemLink.addEventListener('click', () => {
+            sidebar.querySelectorAll('a.eb-menu-item:not(.locked), a.eb-profile-link[data-url]').forEach(itemLink => {
+                itemLink.addEventListener('click', (e) => {
                     const href = itemLink.getAttribute('href');
-                    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-                    const currentClean = (window.location.pathname.split('/').pop() || 'dashboard.html').split('?')[0];
-                    const targetClean = href.split('?')[0];
-                    if (targetClean === currentClean) return;
+                    const dataUrl = itemLink.getAttribute('data-url') || href;
+                    if (!href || href === '#install-pwa' || href.startsWith('javascript:')) return;
+
+                    // Instantly highlight clicked sidebar option & remember choice
+                    if (dataUrl) {
+                        try { sessionStorage.setItem('eb_sidebar_last_active', dataUrl); } catch (_) {}
+                        sidebar.querySelectorAll('a.eb-menu-item, a.eb-profile-link').forEach(el => {
+                            el.classList.remove('active');
+                            el.removeAttribute('aria-current');
+                        });
+                        itemLink.classList.add('active');
+                        itemLink.setAttribute('aria-current', 'page');
+                    }
+
+                    const curParsed = parseSidebarHref(window.location.href);
+                    const tgtParsed = parseSidebarHref(href);
+
+                    // Same page + hash change (e.g. admin.html#tabPackages -> admin.html#tabRequests)
+                    if (curParsed.file === tgtParsed.file && tgtParsed.hash) {
+                        e.preventDefault();
+                        const tabId = href.split('#')[1];
+                        if (window.location.hash !== '#' + tabId) {
+                            history.replaceState(null, null, '#' + tabId);
+                        }
+                        if (typeof window.switchAdminTab === 'function' && tabId) {
+                            window.switchAdminTab(tabId);
+                        }
+                        refreshActiveSidebarItem(dataUrl);
+                        closeSidebar();
+                        return;
+                    }
+
+                    // Exact same page without query/hash difference -> just close drawer & keep active
+                    if (href === 'admin.html' && curParsed.file === 'admin' && typeof window.switchAdminTab === 'function') {
+                        e.preventDefault();
+                        history.replaceState(null, null, 'admin.html');
+                        window.switchAdminTab('tabOverview');
+                        refreshActiveSidebarItem('admin.html');
+                        closeSidebar();
+                        return;
+                    }
+
+                    if (tgtParsed.file === curParsed.file && !tgtParsed.hasParams && !curParsed.hasParams && !tgtParsed.hash) {
+                        closeSidebar();
+                        return;
+                    }
+
                     const nameEl = itemLink.querySelector('.eb-item-en');
                     const modTitle = nameEl ? nameEl.innerText.trim() : 'Module';
                     if (window.showNHLoader) {
@@ -1424,56 +1606,59 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
                 themeDropup.classList.toggle('show');
             });
 
-            // Handle clicking theme options
+            // Handle clicking any of the 8 live themes
             themeDropup.querySelectorAll('.eb-theme-option').forEach(option => {
                 option.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const isSoon = option.dataset.soon === 'true';
-                    const themeVal = option.dataset.themeVal;
-                    const themeName = option.dataset.themeName || themeVal;
+                    const themeVal = option.dataset.themeVal || 'light';
+                    const btnLabel = option.dataset.btnLabel || option.dataset.themeName || 'Light Mode';
+                    const btnIconClass = option.dataset.btnIcon || 'fas fa-sun';
 
-                    if (isSoon) {
-                        themeDropup.classList.remove('show');
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                title: `🎨 ${themeName}`,
-                                html: `<b>Coming Soon!</b><br><span style="font-size:13px; color:#64748b;">یہ تھیم اگلی اپ ڈیٹ میں مکمل طور پر دستیاب ہو جائے گی۔</span>`,
-                                icon: 'info',
-                                confirmButtonColor: '#0284c7',
-                                confirmButtonText: 'ٹھیک ہے (OK)'
-                            });
-                        }
-                        return;
-                    }
-
-                    // Apply active theme
+                    // Apply active theme cleanly
                     localStorage.setItem('eb_theme_mode', themeVal);
                     if (window.ebTheme && typeof window.ebTheme.setTheme === 'function') {
                         window.ebTheme.setTheme(themeVal);
                     } else {
+                        const ALL_THEME_CLASSES = ['dark', 'dark-theme', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange'];
+                        document.documentElement.classList.remove(...ALL_THEME_CLASSES);
+                        if (document.body) document.body.classList.remove(...ALL_THEME_CLASSES);
+
                         if (themeVal === 'dark' || themeVal === 'night') {
-                            document.documentElement.classList.add('dark-theme');
+                            document.documentElement.classList.add('dark', 'dark-theme');
                             document.documentElement.setAttribute('data-theme', 'dark');
-                            document.body.classList.add('dark-theme');
-                            document.body.setAttribute('data-theme', 'dark');
-                        } else {
-                            document.documentElement.classList.remove('dark-theme');
+                            if (document.body) {
+                                document.body.classList.add('dark', 'dark-theme');
+                                document.body.setAttribute('data-theme', 'dark');
+                            }
+                        } else if (themeVal === 'light') {
                             document.documentElement.setAttribute('data-theme', 'light');
-                            document.body.classList.remove('dark-theme');
-                            document.body.setAttribute('data-theme', 'light');
+                            if (document.body) document.body.setAttribute('data-theme', 'light');
+                        } else {
+                            document.documentElement.classList.add(themeVal);
+                            document.documentElement.setAttribute('data-theme', themeVal);
+                            if (document.body) {
+                                document.body.classList.add(themeVal);
+                                document.body.setAttribute('data-theme', themeVal);
+                            }
                         }
                     }
 
-                    // Update button UI
+                    // Update sidebar theme button UI
                     const btnText = document.getElementById('ebSidebarThemeText');
                     const btnIcon = themeBtn.querySelector('i:first-child');
-                    const isNowDark = themeVal === 'dark' || themeVal === 'night';
-                    if (btnText) btnText.innerText = isNowDark ? 'Dark / Night' : 'Light Mode';
-                    if (btnIcon) btnIcon.className = isNowDark ? 'fas fa-moon' : 'fas fa-sun';
+                    if (btnText) btnText.innerText = btnLabel;
+                    if (btnIcon) btnIcon.className = btnIconClass;
 
-                    // Update active checkmarks in dropup
+                    // Update active checkmarks & Select indicators in dropup
                     themeDropup.querySelectorAll('.eb-theme-option').forEach(opt => {
-                        opt.classList.toggle('active', opt.dataset.themeVal === themeVal);
+                        const isMatch = opt.dataset.themeVal === themeVal;
+                        opt.classList.toggle('active', isMatch);
+                        const lastChild = opt.lastElementChild;
+                        if (lastChild) {
+                            lastChild.outerHTML = isMatch
+                                ? '<i class="fas fa-check" style="color:#38bdf8;"></i>'
+                                : '<span class="eb-theme-dot" style="font-size:10px; color:#94a3b8; font-weight:700;">Select</span>';
+                        }
                     });
 
                     themeDropup.classList.remove('show');
@@ -1700,9 +1885,16 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.4.0';
         return false;
     }
 
+    // Sync active sidebar option when URL hash or browser history changes
+    window.addEventListener('hashchange', () => refreshActiveSidebarItem());
+    window.addEventListener('popstate', () => refreshActiveSidebarItem());
+
     window.ebSidebar = {
         toggle: toggleSidebar,
         refresh: renderSidebar,
+        setActive: (targetUrl) => refreshActiveSidebarItem(targetUrl),
+        matchUrl: (itemUrl, currentHref, preferredExact) => scoreSidebarCandidate(itemUrl, currentHref, preferredExact),
+        resolveBestActiveUrl: resolveBestActiveUrl,
         syncBadge: syncLowStockBadge,
         syncSessionConfig: syncSessionTimeoutConfig,
         notifyToast: notifyGlobalToast

@@ -677,6 +677,18 @@ body {
 }
 
 @media (max-width: 768px) {
+    .search-filter-bar,
+    .search-filter-bar > div,
+    .search-box,
+    #custRouteFilter {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    #custRouteFilter {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
     .modal-kpi-grid { grid-template-columns: repeat(2, 1fr); }
     .history-modal-content { max-height: 95vh; }
     .history-modal-header { flex-direction: column; align-items: flex-start; gap: 10px; }

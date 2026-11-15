@@ -244,8 +244,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.BusinessCategories && typeof window.BusinessCategories.getCategoryStatusMeta === 'function') {
             return window.BusinessCategories.getCategoryStatusMeta(catId, authLang);
         }
-        const isDone = (catId === 'books' || catId === 'mobile' || catId === 'wholesaler');
-        const isWorking = false;
+        const isDone = (catId === 'books' || catId === 'mobile' || catId === 'wholesaler' || catId === 'medical');
+        const isWorking = (catId === 'restaurant' || catId === 'fast_food' || catId === 'cafe' || catId === 'hotel' || catId === 'burger_pizza' || catId === 'kitchen');
         if (isDone) {
             return { code: 'complete', badgeText: '✅ Complete • Active & Ready', optionTag: '✅ Complete', color: '#15803d', bg: '#dcfce7', border: '#86efac' };
         }

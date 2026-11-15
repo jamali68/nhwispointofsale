@@ -583,29 +583,288 @@ const BUSINESS_CATEGORIES = [
     },
     {
         id: 'medical',
-        aliasIds: ['pharmacy', 'medical_store'],
+        aliasIds: ['pharmacy', 'medical_store', 'chemist', 'pharma'],
         nameEn: 'Medical Store & Pharmacy',
         nameUr: 'میڈیکل اسٹور و فارمیسی',
         icon: '💊',
         status: 'active',
-        description: 'Medicines, syrups, tablets, injections, surgical items, baby food',
+        description: 'Tablets, capsules, syrups, injections, surgical disposables, baby nutrition, medical devices & FEFO expiry management',
         subcategories: [
             'ٹیبلٹس و کیپسولز (Tablets & Capsules)',
-            'سیرپس و سسپنشنز (Syrups & Suspensions)',
-            'انجیکشنز و ڈرپس (Injections & IV Fluids)',
-            'مرہم و کریمیں (Ointments & Creams)',
-            'سرجیکل و ڈسپوزیبل آئٹمز (Surgical & Gloves)',
-            'بے بی کیئر و ڈائپرز (Baby Care & Diapers)',
-            'میڈیکل آلات (BP Apparatus, Glucometers)',
-            'فوڈ سپلیمنٹس و وٹامنز (Vitamins & Supplements)'
+            'سیرپس، سسپنشنز و ڈراپس (Syrups, Suspensions & Drops)',
+            'انجیکشنز، وائلز و ڈرپس (Injections, Vials & IV Fluids)',
+            'مرہم، کریمیں و جیل (Ointments, Creams & Gels)',
+            'سرجیکل و ڈسپوزیبل آئٹمز (Surgical, Syringes & Gloves)',
+            'بے بی ملک، سیریلز و ڈائپرز (Baby Milk, Formula & Diapers)',
+            'میڈیکل آلات و ڈیوائسز (BP Apparatus, Glucometer & Nebulizer)',
+            'وٹامنز، سپلیمنٹس و او ٹی سی (Vitamins, Nutraceuticals & OTC)'
         ],
-        units: ['box', 'packet', 'pcs', 'bottle', 'carton', 'unit'],
+        units: ['box', 'strip', 'bottle', 'pack', 'pcs', 'vial', 'ampoule', 'tube', 'sachet', 'carton', 'unit'],
+        unitRulesByGroup: {
+            medicine_solid: ['box', 'strip', 'pack', 'pcs', 'sachet', 'carton', 'unit'],
+            medicine_liquid: ['bottle', 'vial', 'ampoule', 'box', 'pack', 'carton', 'pcs'],
+            topical_surgical: ['tube', 'pcs', 'box', 'pack', 'carton', 'unit'],
+            baby_nutrition: ['pack', 'box', 'pcs', 'bottle', 'carton', 'unit'],
+            general: ['box', 'strip', 'bottle', 'pack', 'pcs', 'vial', 'ampoule', 'tube', 'sachet', 'carton', 'unit']
+        },
         customFields: [
-            { id: 'batchNo', label: 'بیچ نمبر (Batch No)', placeholder: 'e.g. B-94821', type: 'text' },
-            { id: 'expiryDate', label: 'ایکسپائری تاریخ (Expiry Date)', placeholder: 'YYYY-MM-DD', type: 'date' },
-            { id: 'genericFormula', label: 'فارمولا / جنیرک (Formula / Generic)', placeholder: 'e.g. Paracetamol 500mg', type: 'text' }
+            {
+                id: 'itemSubType',
+                label: 'ادویات / آئٹم کی قسم (Medicine / Product Group)',
+                type: 'select',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general'],
+                options: [
+                    '',
+                    'Tablet / Capsule / Sachet (گولی / کیپسول / ساشے)',
+                    'Syrup / Suspension / Drops (شربت / سسپنشن / قطرے)',
+                    'Injection / IV Fluid / Vial (ٹیکہ / ڈرپ / وائل)',
+                    'Cream / Ointment / Eye-Ear Drops (مرہم / کریم / آئی ڈراپس)',
+                    'Surgical & Disposable (سرجیکل، سرنج، ڈرپ سیٹ و دستانے)',
+                    'Baby Milk, Formula & Diapers (بچوں کا دودھ و پیمپرز)',
+                    'Medical Equipment & Device (بی پی اپریٹس، شوگر مشین و نیبولائزر)',
+                    'Vitamins, Supplement & OTC (وٹامنز و جنرل میڈیسن)'
+                ]
+            },
+            {
+                id: 'brandCompany',
+                label: '🏥 فارما کمپنی / برانڈ (Pharma Company / Brand)',
+                placeholder: 'مثلاً: GSK, Getz Pharma, Sami, Abbott, Searle, Martin Dow',
+                type: 'text',
+                hasBrandActionButtons: true,
+                brandButtonsConfig: {
+                    primaryBtnLabel: '🏥 + New Pharma Company',
+                    primaryModalTitle: '🏥 نئی فارما کمپنی / میڈیسن برانڈ شامل کریں',
+                    primaryModalDesc: 'کسی بھی نئی فارماسیوٹیکل کمپنی، ملٹی نیشنل یا لوکل میڈیسن برانڈ کا نام درج کریں:',
+                    primaryPlaceholder: 'مثلاً: Getz Pharma, Sami Pharma, Bosch, Ferozsons...',
+                    secondaryBtnLabel: '💊 + Generic / Own Formula Brand',
+                    secondaryModalTitle: '💊 اپنا ذاتی برانڈ / ہربل / یونانی یا کسٹم فارما شامل کریں',
+                    secondaryModalDesc: 'اگر آپ کوئی ہربل، سپلیمنٹ، سرجیکل یا کسٹم میڈیکل برانڈ شامل کرنا چاہتے ہیں تو نام لکھیں:',
+                    secondaryPlaceholder: 'مثلاً: Hamdard, Qarshi, Al-Shifa Herbal, Surgical Plus...',
+                    otherBtnLabel: '🔖 Other Pharma / Brand (دیگر)',
+                    otherPrimaryDefault: 'Other Pharma Company (دیگر فارما کمپنی)',
+                    otherSecondaryDefault: 'Other Medical / Surgical Brand (دیگر برانڈ)'
+                },
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general'],
+                suggestions: [
+                    'GSK (GlaxoSmithKline Pakistan)',
+                    'Getz Pharma',
+                    'Sami Pharmaceuticals',
+                    'Abbott Laboratories',
+                    'The Searle Company',
+                    'Martin Dow',
+                    'Hilton Pharma',
+                    'Highnoon Laboratories',
+                    'Sanofi / Aventis',
+                    'Novartis Pharma',
+                    'Pfizer Pakistan',
+                    'Bosch Pharmaceuticals',
+                    'Barrett Hodgson',
+                    'Ferozsons Laboratories',
+                    'Chiesi Pharmaceuticals',
+                    'CCL Pharmaceuticals',
+                    'Brook’s Pharma',
+                    'PharmEvo',
+                    'Herbion / Hamdard / Qarshi',
+                    'Nestlé Nutrition (Lactogen / NAN)',
+                    'Mead Johnson / Morinaga / Pampers',
+                    'Accu-Chek / Rossmax / Beurer (Devices)'
+                ]
+            },
+            {
+                id: 'genericFormula',
+                label: '🧬 جنیرک فارمولا / سالٹ (Generic Salt / Composition)',
+                placeholder: 'مثلاً: Paracetamol 500mg, Amoxicillin + Clavulanic Acid, Omeprazole',
+                type: 'text',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general'],
+                suggestions: [
+                    'Paracetamol 500mg (Panadol / Calpol)',
+                    'Amoxicillin + Clavulanate 625mg / 1g (Augmentin)',
+                    'Omeprazole 20mg / 40mg (Risek / Losec)',
+                    'Esomeprazole 20mg / 40mg (Nexum)',
+                    'Azithromycin 250mg / 500mg (Azomax)',
+                    'Cefixime 400mg (Cefiget / Cefim)',
+                    'Ciprofloxacin 500mg (Ciproxin / Novidat)',
+                    'Levofloxacin 500mg (Leflox / Tavanic)',
+                    'Metronidazole 400mg (Flagyl)',
+                    'Ibuprofen 400mg (Brufen)',
+                    'Diclofenac Sodium 50mg / 75mg (Voren / Dicloran)',
+                    'Cetirizine 10mg / Loratadine 10mg (Rigix / Softin)',
+                    'Montelukast 10mg (Myteka / Singulair)',
+                    'Metformin 500mg / 850mg (Glucophage)',
+                    'Atorvastatin 10mg / 20mg / Rosuvastatin (Lipiget / Rovista)',
+                    'Amlodipine 5mg / Losartan 50mg (Norvasc / Cozaar)',
+                    'ORS Low Osmolarity / Zinc Sulphate',
+                    'Vitamin D3 / Calcium / Multivitamin'
+                ]
+            },
+            {
+                id: 'dosageStrength',
+                label: '⚖️ پوٹینسی / پیک سائز تفصیل (Potency / Pack Form)',
+                placeholder: 'مثلاً: 500mg (1x10 Strip), 120ml Syrup, 1g IV Vial, 10x10 Box',
+                type: 'text',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general'],
+                suggestions: [
+                    '1x10 Strip (10 Tablets)',
+                    '1x14 Strip / 2x7 Blister',
+                    '10x10 Box (100 Tablets)',
+                    '20x10 Jumbo Box (200 Tablets)',
+                    '60ml Syrup / Suspension',
+                    '120ml Bottle',
+                    '1000ml IV Infusion Bag',
+                    '500mg / 1g IV-IM Vial',
+                    '15g / 30g Tube (Cream/Gel)',
+                    '400g / 900g Milk Tin'
+                ]
+            },
+            {
+                id: 'batchNo',
+                label: '🔖 بیچ / لاٹ نمبر (Batch / Lot No)',
+                placeholder: 'مثلاً: B-94821 یا LOT-26M',
+                type: 'text',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general']
+            },
+            {
+                id: 'expiryDate',
+                label: '⏳ ایکسپائری تاریخ (Expiry Date - FEFO Alert)',
+                placeholder: 'YYYY-MM-DD',
+                type: 'date',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general']
+            },
+            {
+                id: 'packSize',
+                label: '🔢 پتے / گولیاں فی ڈبہ (Strips or Tabs per Box)',
+                placeholder: 'مثلاً: 10 (Strips per Box) یا 100 (Tablets per Box)',
+                type: 'number',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general']
+            },
+            {
+                id: 'storageRack',
+                label: '🗄️ ریک / فریج / اسٹیٹس (Rack Location / Cold Chain / Schedule)',
+                placeholder: 'مثلاً: Rack A-2, Fridge 2-8°C (Cold Chain), Narcotics / Rx Only',
+                type: 'text',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general'],
+                suggestions: [
+                    'Rack A-1 (Tablets / Antibiotics)',
+                    'Rack B-2 (Syrups & Drops)',
+                    'Rack C-1 (Surgical & Bandages)',
+                    'Cold Chain / Fridge (2°C - 8°C Insulin & Vaccines)',
+                    'Controlled / Schedule-G / Rx Only (ڈاکٹر کے نسخے پر)',
+                    'OTC Front Counter (عام کاؤنٹر)',
+                    'Baby Care & Nutrition Shelf'
+                ]
+            },
+            {
+                id: 'tradePriceTP',
+                label: '💰 ٹریڈ پرائس TP (Distributor TP Rate)',
+                placeholder: 'Distributor TP Rate (e.g. Rs 382.50)',
+                type: 'number',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general']
+            },
+            {
+                id: 'bonusSchemeRule',
+                label: '🎁 کمپنی بونس / ٹریڈ ڈسکاؤنٹ (Trade Discount / Bonus Rule)',
+                placeholder: 'مثلاً: 15% Pharmacy Trade Discount, 10+1 Bonus, 12+2 Bonus',
+                type: 'text',
+                appliesToGroup: ['medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general'],
+                suggestions: [
+                    'No Scheme (Net TP Rate)',
+                    '14.5% - 15% Standard Pharma Margin',
+                    '10 + 1 Free Bonus',
+                    '12 + 1 Free Bonus',
+                    '20 + 2 Free Bonus',
+                    '5% Additional Distributor Rebate'
+                ]
+            }
         ],
-        quickTags: ['Tablets', 'Syrups', 'Surgical', 'Baby Care']
+        purchaseConfig: {
+            enableMrpDiscountCalc: true,
+            enableCartonPieceCalc: true,
+            allowEditionUpdateOnRestock: false,
+            helperTitle: 'فارما ڈسٹری بیوٹر بل، ٹریڈ ڈسکاؤنٹ % (MRP - 15%) اور ڈبہ/پتہ قیمت کیلکولیٹر (Pharma Purchase & Margin)',
+            supplierLabel: '🏥 فارما ڈسٹری بیوٹر / ہول سیل میڈیسن مارکیٹ (Pharma Distributor / Wholesaler)',
+            supplierPlaceholder: 'مثلاً: Muller & Phipps (M&P), UDL, IBL HealthCare, Premier Sales, Local Medicine Market',
+            invoiceLabel: '🧾 فارما انوائس / وارنٹی بل # (Distributor Invoice / Warranty #)',
+            invoicePlaceholder: 'مثلاً: Inv #PH-9021 یا Warranty #445',
+            mrpLabel: '🏷️ ڈبہ / پرچون ریٹ MRP (Printed Retail Price)',
+            discountLabel: '📉 فارما ٹریڈ مارجن / ڈسکاؤنٹ % (Trade Discount % e.g. 15%)',
+            wholesaleDiscountLabel: '🏪 سب فارمیسی / ڈاکٹر ڈسکاؤنٹ % (Sub-Chemist / Clinic Disc %)',
+            distributorSuggestions: [
+                'Muller & Phipps Pakistan (M&P Pharma)',
+                'UDL Distribution (United Distributors)',
+                'IBL HealthCare / Searle Distribution',
+                'Premier Sales / Getz Distribution',
+                'Fazal Din Pharma Plus Wholesale',
+                'Lohari Gate / Medicine Market Lahore Wholesaler',
+                'Denso Hall / Katchi Gali Karachi Medicine Market',
+                'Bohra Bazar Rawalpindi Pharma Wholesaler',
+                'Hospital & Surgical Direct Supply Depot'
+            ]
+        },
+        stockReasons: {
+            in: [
+                { value: 'purchase', label: '📥 Pharma Distributor / Wholesaler Purchase (ڈسٹری بیوٹر سے ادویات آئیں)' },
+                { value: 'bonus_scheme_in', label: '🎁 Company Bonus / Free Scheme Stock (کمپنی کی طرف سے فری بونس مال)' },
+                { value: 'return', label: '↩️ Patient / Clinic Unopened Strip Return (مریض یا کلینک سے واپسی)' },
+                { value: 'expiry_replaced_in', label: '🔄 Near-Expiry Replacement Received from Distributor (ایکسپائری کے بدلے نیا بیچ آیا)' },
+                { value: 'adjustment_in', label: '✏️ Pharmacy Shelf Count Adjustment (گنتی درستگی)' },
+                { value: 'other_in', label: '📝 Other Restock (دیگر)' }
+            ],
+            out: [
+                { value: 'sale', label: '🛒 Counter Sale / Prescription Dispense (کاؤنٹر فروخت)' },
+                { value: 'expiry_return_out', label: '⏳ Near-Expiry / Expired Sent to Distributor for Claim (ایکسپائری کلیم کے لیے کمپنی بھیجا)' },
+                { value: 'clinic_supply_out', label: '🏥 Hospital / Doctor Clinic Bulk Dispatch (کلینک / اسپتال سپلائی)' },
+                { value: 'damage', label: '💥 Broken Vial / Leaked Syrup / Spoiled Strip (ٹوٹ پھوٹ / خراب دوا)' },
+                { value: 'expired', label: '🚨 Expired Batch Quarantine / Write-off (زائد المیعاد دوا تلف کی)' },
+                { value: 'lost', label: '❓ Shortage / Missing Stock (شارٹیج / گمشدہ)' },
+                { value: 'adjustment_out', label: '✏️ Shelf Count Reduction (گنتی کٹوتی)' },
+                { value: 'other_out', label: '📝 Other (دیگر)' }
+            ]
+        },
+        customerConfig: {
+            panelTitle: '💊 Clinic, Doctor, Sub-Pharmacy & Regular Patient Profile (Optional)',
+            panelSub: 'ڈاکٹر/کلینک ڈسکاؤنٹ، سب فارمیسی کھاتہ اور مستقل مریض کی ماہانہ دوائی ریکارڈ کے لیے',
+            segmentLabel: '🏥 Customer / Party Segment (مریض / کلینک / پارٹی کی قسم)',
+            boardLabel: '🩺 Department / Specialty / Regular Prescription (اسپیشلٹی / مستقل نسخہ)',
+            boardPlaceholder: 'e.g. General Physician Clinic, Dental, Diabetes/BP Monthly Meds, Sub-Pharmacy',
+            discountLabel: '📉 Agreed Clinic / Patient / Chemist Discount % (طے شدہ ڈسکاؤنٹ %)',
+            focalLabel: '👨‍⚕️ Doctor / Dispenser / Attendant Reference (ڈاکٹر یا ذمہ دار کا نام و نمبر)',
+            focalPlaceholder: 'e.g. Dr. Kamran / Dispenser Bilal (0300-1234567)',
+            filterTabLabel: '🏥 Clinics & Panel',
+            segments: [
+                { value: '', label: '— کسٹمر کیٹیگری منتخب کریں (Optional) —', defaultTier: '' },
+                { value: 'clinic_hospital', label: '🏥 کلینک / نجی اسپتال / لیبارٹری (Clinic / Hospital / Lab)', shortLabel: '🏥 Clinic / Hospital', defaultTier: 'wholesale' },
+                { value: 'doctor_prescriber', label: '👨‍⚕️ ڈاکٹر / میڈیکل پریکٹیشنر (Doctor / Prescriber)', shortLabel: '👨‍⚕️ Doctor', defaultTier: 'wholesale' },
+                { value: 'sub_chemist', label: '💊 سب میڈیکل اسٹور / کیمسٹ (Sub-Pharmacy / Chemist)', shortLabel: '💊 Sub-Chemist', defaultTier: 'wholesale' },
+                { value: 'panel_inst', label: '🏢 پینل / کارپوریٹ / سرکاری ادارہ (Panel / Institutional Buyer)', shortLabel: '🏢 Panel Account', defaultTier: 'wholesale' },
+                { value: 'chronic_patient', label: '📋 مستقل ماہانہ مریض — شوگر/بلڈ پریشر (Regular Monthly Patient)', shortLabel: '📋 Monthly Patient', defaultTier: 'retail' },
+                { value: 'general_cust', label: '👤 عام مریض / کاؤنٹر گاہک (Walk-in Patient / Counter)', shortLabel: '👤 Walk-in Patient', defaultTier: 'retail' }
+            ],
+            boardSuggestions: [
+                'General OPD & Family Clinic Supply',
+                'Gynae, Dental & Surgical Supplies Clinic',
+                'Monthly Chronic Patient (BP / Diabetes / Cardiac)',
+                'Child Specialist & Pediatrics (Syrups & Drops)',
+                'Sub-Pharmacy / Rural Medical Store Account',
+                'Hospital / Maternity Home Ward Supply'
+            ]
+        },
+        returnReasons: [
+            { value: '⏳ Near-Expiry / Expired Medicine Claim (ایکسپائری یا قریب المیعاد دوا واپسی)', label: '⏳ Near-Expiry / Expired Medicine Claim (ایکسپائری یا قریب المیعاد دوا واپسی)' },
+            { value: '💊 Patient Prescription Changed — Unopened Full Strip (نسخہ تبدیلی — بند پتہ واپسی)', label: '💊 Patient Prescription Changed — Unopened Full Strip (نسخہ تبدیلی — بند پتہ واپسی)' },
+            { value: '💥 Broken Vial / Leaked Syrup Bottle in Transit (ٹوٹا ہوا ٹیکہ یا بہتا ہوا شربت)', label: '💥 Broken Vial / Leaked Syrup Bottle in Transit (ٹوٹا ہوا ٹیکہ یا بہتا ہوا شربت)' },
+            { value: '🛑 Wrong Strength / Wrong Formulation Delivered (غلط ایم جی یا غلط دوا ڈلیور ہوئی)', label: '🛑 Wrong Strength / Wrong Formulation Delivered (غلط ایم جی یا غلط دوا ڈلیور ہوئی)' },
+            { value: '🏥 Clinic / Sub-Pharmacy Unsold Return (کلینک یا سب فارمیسی سے فالتو مال واپسی)', label: '🏥 Clinic / Sub-Pharmacy Unsold Return (کلینک یا سب فارمیسی سے فالتو مال واپسی)' }
+        ],
+        claimCategories: [
+            { id: 'cat_med_expiry_claim', name: '⏳ Near-Expiry / Expired Medicine Distributor Claim (ایکسپائری ادویات کمپنی کلیم)', type: 'expired', icon: 'fa-calendar-xmark', color: '#d97706', desc: 'Expired or near-expiry medicine batches submitted under distributor expiry policy' },
+            { id: 'cat_med_breakage', name: '💥 Broken Glass Syrup / Damaged Ampoule Claim (ٹوٹا ہوا شربت / انجیکشن کلیم)', type: 'broken', icon: 'fa-prescription-bottle-medical', color: '#dc2626', desc: 'Glass syrups, vials or ampoules broken during distributor transit' },
+            { id: 'cat_med_batch_recall', name: '🛑 DRAP / Company Batch Recall Claim (کمپنی بیچ واپسی / کوالٹی کلیم)', type: 'defect', icon: 'fa-triangle-exclamation', color: '#7c3aed', desc: 'Manufacturer batch recall, short-fill strip or seal defect claim' },
+            { id: 'cat_med_cold_chain', name: '❄️ Cold-Chain / Insulin Spoilage Claim (کولڈ چین / فریج آئٹم خراب کلیم)', type: 'defect', icon: 'fa-snowflake', color: '#0284c7', desc: 'Temperature-sensitive insulin/vaccine transit spoilage claim' },
+            { id: 'cat_med_bonus_rebate', name: '🎁 Pharma Bonus / Credit Note Settlement (فارما بونس و کریڈٹ نوٹ کلیم)', type: 'shortage', icon: 'fa-gift', color: '#059669', desc: 'Pending distributor bonus strips or expiry credit note settlement' }
+        ],
+        thermalTermsEn: 'Check medicine name, strength, batch & expiry at counter. Sealed full strips/boxes only may be exchanged within 3 days with original receipt. No return or exchange on Fridge (Cold-Chain) items, open syrups, cut strips or surgical disposables.',
+        thermalTermsUr: 'کاؤنٹر پر دوا کا نام، طاقت (mg)، بیچ اور ایکسپائری چیک کر کے وصول کریں۔ سیل بند پورا پتہ یا ڈبہ اصل بل کے ساتھ 3 دن میں تبدیل ہو سکتا ہے۔ فریج والی ادویات، کٹے ہوئے پتے، کھلے شربت اور سرجیکل آئٹمز واپس یا تبدیل نہیں ہوں گے۔',
+        quickTags: ['ٹیبلٹس', 'سیرپس', 'انجیکشنز', 'سرجیکل', 'بے بی کیئر', 'ایکسپائری الرٹ']
     },
     {
         id: 'shoes',
@@ -1241,23 +1500,270 @@ const BUSINESS_CATEGORIES = [
     },
     {
         id: 'restaurant',
-        aliasIds: ['cafe', 'fast_food', 'hotel'],
+        aliasIds: ['cafe', 'fast_food', 'hotel', 'burger_pizza', 'kitchen'],
         nameEn: 'Restaurant, Fast Food & Cafe',
         nameUr: 'ریسٹورنٹ، فاسٹ فوڈ و کیفے',
-        icon: '🍽️',
+        icon: '🍔',
         status: 'active',
-        description: 'Dine-in, takeaway, fast food, biryani, barbecue, tea & beverages',
+        description: 'Fast food burgers, pizzas, broast, shawarma, biryani, BBQ, dine-in, takeaway & home delivery',
         subcategories: [
-            'برگرز، پیزا و فاسٹ فوڈ (Burgers, Pizza & Shawarma)',
-            'بریانی، پلاؤ و روایتی کھانے (Biryani & Karahi)',
-            'باربی کیو و کباب (BBQ & Tikka)',
-            'چائے، کافی و مشروبات (Tea, Coffee & Shakes)'
+            'برگرز، زنگر و شوارما (Burgers, Zinger & Shawarma)',
+            'پیزا، پاستا و لوڈڈ فرائز (Pizza, Pasta & Loaded Fries)',
+            'بروسٹ، کرسپی چکن و ونگز (Broast, Fried Chicken & Wings)',
+            'بریانی، پلاؤ و کڑاہی (Biryani, Pulao & Desi Karahi)',
+            'باربی کیو، تکہ، کباب و رول پراٹھا (BBQ, Tikka, Kebabs & Roll Paratha)',
+            'کولڈ ڈرنکس، شیکس و تازہ جوس (Cold Drinks, Shakes & Juices)',
+            'چائے، کافی، آئس کریم و ڈیزرٹس (Tea, Coffee, Ice Cream & Desserts)',
+            'فیملی کومبوز و پارٹی ڈیلز (Family Combos & Party Deals)'
         ],
-        units: ['order', 'plate', 'pcs', 'cup', 'glass'],
+        units: ['order', 'plate', 'pcs', 'deal', 'cup', 'glass', 'bottle', 'serving', 'box', 'kg', 'unit'],
+        unitRulesByGroup: {
+            fast_food_item: ['order', 'pcs', 'deal', 'serving', 'box', 'unit'],
+            pizza_combo: ['order', 'deal', 'pcs', 'box', 'serving'],
+            desi_bbq: ['plate', 'kg', 'serving', 'order', 'pcs'],
+            beverage_cafe: ['cup', 'glass', 'bottle', 'serving', 'order', 'pcs'],
+            general: ['order', 'plate', 'pcs', 'deal', 'cup', 'glass', 'bottle', 'serving', 'box', 'kg', 'unit']
+        },
         customFields: [
-            { id: 'tableNo', label: 'ٹیبل نمبر / ٹائپ (Table No / Takeaway)', placeholder: 'Table 5, Parcel, Delivery', type: 'text' }
+            {
+                id: 'itemSubType',
+                label: '🍔 مینو آئٹم کی قسم (Menu / Kitchen Group)',
+                type: 'select',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general'],
+                options: [
+                    '',
+                    'Burger / Zinger / Shawarma (برگر / زنگر / شوارما)',
+                    'Pizza / Pasta / Fries (پیزا / پاستا / فرائز)',
+                    'Broast / Crispy Wings (بروسٹ / ونگز)',
+                    'Combo / Family Deal (فیملی ڈیل / کومبو)',
+                    'Desi Karahi / Biryani / BBQ (کڑاہی / بریانی / باربی کیو)',
+                    'Cold Drink / Shake / Chai Cafe (کولڈ ڈرنک / شیک / چائے)'
+                ]
+            },
+            {
+                id: 'brandCompany',
+                label: '👨‍🍳 کچن اسٹیشن / سگنیچر لائن (Kitchen Station / House Line)',
+                placeholder: 'مثلاً: Zinger & Burger Bar, Woodfire Pizza Oven, Broast Station',
+                type: 'text',
+                hasBrandActionButtons: true,
+                brandButtonsConfig: {
+                    primaryBtnLabel: '👨‍🍳 + New Kitchen Station',
+                    primaryModalTitle: '👨‍🍳 نیا کچن اسٹیشن / برانڈ لائن شامل کریں',
+                    primaryModalDesc: 'ریسٹورنٹ کے مختلف کاؤنٹرز یا کچن اسٹیشنز شامل کریں (مثلاً Burger Bar, Pizza Oven, BBQ Grill):',
+                    primaryPlaceholder: 'مثلاً: Zinger & Burger Bar, Woodfire Oven, Broast Station...',
+                    secondaryBtnLabel: '🎁 + Own Signature Deal Line',
+                    secondaryModalTitle: '🎁 اپنا ذاتی سگنیچر ڈیل / فاسٹ فوڈ برانڈ شامل کریں',
+                    secondaryModalDesc: 'اگر آپ کی اپنی خاص فیملی ڈیل یا کچن سگنیچر لائن ہے تو نام درج کریں:',
+                    secondaryPlaceholder: 'مثلاً: Chef Special Combo, Midnight Value Deals, House Signature...',
+                    otherBtnLabel: '🔖 Other Kitchen Station (دیگر)',
+                    otherPrimaryDefault: 'Main Fast Food Kitchen (مین کچن)',
+                    otherSecondaryDefault: 'House Special Menu (ہاؤس اسپیشل)'
+                },
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general'],
+                suggestions: [
+                    'Zinger & Burger Bar',
+                    'Woodfire / Pizza Oven',
+                    'Broast & Fryer Station',
+                    'Desi Karahi & Biryani Kitchen',
+                    'Charcoal BBQ Grill',
+                    'Chai, Coffee & Shake Bar',
+                    'Value & Family Deals',
+                    'Bakery & Dessert Counter'
+                ]
+            },
+            {
+                id: 'portionSize',
+                label: '📏 سائز / پورشن (Size / Portion)',
+                placeholder: 'مثلاً: Small, Medium, Large, Jumbo, Half, Full, 6 Pcs, 12 Pcs',
+                type: 'text',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general'],
+                suggestions: [
+                    'Single / Regular',
+                    'Small (7")',
+                    'Medium (10")',
+                    'Large (13")',
+                    'Jumbo / XL (16")',
+                    'Half Plate / Half Kg',
+                    'Full Plate / Full Kg',
+                    'Quarter (Qtr) Broast',
+                    'Half (4 Pcs) Broast',
+                    'Full (8 Pcs) Family Bucket',
+                    '250ml / Regular Glass',
+                    '500ml / 1.5 Liter'
+                ]
+            },
+            {
+                id: 'spiceVariant',
+                label: '🌶️ فلیور / مصالحہ لیول (Flavor / Spice Profile)',
+                placeholder: 'مثلاً: Crispy Mild, Spicy Peri-Peri, Garlic Mayo, Creamy Malai, Smoky BBQ',
+                type: 'text',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general'],
+                suggestions: [
+                    'Classic / Crispy Mild',
+                    'Spicy Zinger / Hot',
+                    'Peri-Peri / Jalapeno',
+                    'Garlic Mayo & Cheese',
+                    'Fajita / Tikka Flavor',
+                    'Malai / Creamy Mild',
+                    'Smoky Charcoal BBQ',
+                    'Mango / Chocolate / Oreo',
+                    'Sugar-Free / Chilled'
+                ]
+            },
+            {
+                id: 'prepTimeMins',
+                label: '⏱️ تیاری کا وقت منٹوں میں (Prep Time Mins)',
+                placeholder: 'مثلاً: 12 (منٹس میں تیاری کا وقت)',
+                type: 'number',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general']
+            },
+            {
+                id: 'addonsNote',
+                label: '🧀 ایکسٹرا ٹاپنگز / ایڈ آنز (Add-ons / Cheese / Sauces)',
+                placeholder: 'مثلاً: Extra Cheese Slice, Fries + 345ml Drink, Garlic Sauce Dip',
+                type: 'text',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general'],
+                suggestions: [
+                    'Served with Fries & Dip',
+                    'Extra Mozzarella Cheese Slice',
+                    'With 345ml Cold Drink',
+                    'With 1.5L Family Drink & Raita',
+                    'Double Patty Option',
+                    'No Onions / Custom Sauce'
+                ]
+            },
+            {
+                id: 'dealContents',
+                label: '🎁 ڈیل میں شامل آئٹمز (Combo / Deal Breakdown)',
+                placeholder: 'مثلاً: 2 Zinger Burgers + 1 Med Fries + 2 Regular Drinks',
+                type: 'text',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'general']
+            },
+            {
+                id: 'kitchenKOTZone',
+                label: '🔔 کچن پرنٹر / کاؤنٹر زون (KOT Printer / Prep Counter)',
+                placeholder: 'مثلاً: Fryer Counter, Grill Counter, Pizza Oven, Beverage Bar',
+                type: 'text',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general'],
+                suggestions: [
+                    'Fryer & Burger Counter',
+                    'Pizza Oven Section',
+                    'Charcoal BBQ Grill',
+                    'Desi Handi & Biryani Range',
+                    'Cold Bar & Shakes Counter',
+                    'Parcel & Delivery Packing Desk'
+                ]
+            },
+            {
+                id: 'packSize',
+                label: '🔢 فی ڈیل / باکس سرونگ پیسز (Pieces per Order / Serving)',
+                placeholder: 'مثلاً: 6 (وِنگز یا نگٹس کی تعداد)',
+                type: 'number',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'general']
+            },
+            {
+                id: 'tableNo',
+                label: '🍽️ سروس موڈ / ٹیبل ریفرنس (Dine-in Table / Takeaway / Delivery)',
+                placeholder: 'مثلاً: Dine-in Table, Takeaway Parcel, Home Delivery',
+                type: 'text',
+                appliesToGroup: ['fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general'],
+                suggestions: [
+                    'Dine-in & Takeaway Both',
+                    'Takeaway / Parcel Only',
+                    'Home Delivery Special',
+                    'Dine-in Family Hall'
+                ]
+            }
         ],
-        quickTags: ['Burgers', 'Biryani', 'BBQ', 'Pizza', 'Tea']
+        purchaseConfig: {
+            enableMrpDiscountCalc: true,
+            enableCartonPieceCalc: true,
+            allowEditionUpdateOnRestock: false,
+            helperTitle: '🍔 کچن خام مال، فروزن آئٹمز و مینو فوڈ کاسٹ کیلکولیٹر (Menu Price vs Food Cost %)',
+            supplierLabel: '🥩 فروزن سپلائر / کچن ہول سیل وینڈر (Frozen / Kitchen Supplier)',
+            supplierPlaceholder: 'مثلاً: K&Ns, Sabroso, Dawn Foods, Metro Cash & Carry, Pepsi Agency',
+            invoiceLabel: '🧾 سپلائر انوائس / پرچیز سلپ # (Vendor Invoice / Slip #)',
+            invoicePlaceholder: 'مثلاً: KNS-8412 یا Mandi Slip #44',
+            mrpLabel: '🏷️ مینو سیلنگ پرائس (Menu Price / MRP)',
+            discountLabel: '📉 فوڈ کاسٹ مارجن % (Gross Kitchen Margin / Disc %)',
+            wholesaleDiscountLabel: '🎉 کومبو / کارپوریٹ بلک ڈسکاؤنٹ % (Deal / Bulk Margin %)',
+            distributorSuggestions: [
+                "K&N's Pakistan — Frozen Chicken & Patties",
+                'Sabroso / Menu Foods — Crispy Nuggets & Wings',
+                'Dawn Foods / Bake Parlor — Burger Buns & Tortilla',
+                'Metro Cash & Carry — Sauces, Cheese & Fries',
+                'PepsiCo / Coca-Cola Agency — Cold Drinks & Cans',
+                'Adams / Prema / Milkpak — Mozzarella & Cream',
+                'Gourmet / Nurpur Dairy & Bakery Depot',
+                'Local Poultry, Meat & Sabzi Mandi Vendor'
+            ]
+        },
+        stockReasons: {
+            in: [
+                { value: 'purchase', label: '📥 Frozen / Raw Kitchen Supply Received (فروزن / کچن مال سپلائر سے آیا)' },
+                { value: 'prep_batch_in', label: '🍳 Fresh Kitchen Batch Prepped / Ready Stock (تازہ کچن بیچ تیار ہوا)' },
+                { value: 'branch_transfer_in', label: '🏢 Central Kitchen / Branch Stock Transfer IN (سینٹرل کچن / برانچ سے آیا)' },
+                { value: 'return', label: '↩️ Unopened Cold Drink / Parcel Return to Stock (بند ڈرنک / پارسل اسٹاک میں واپس)' },
+                { value: 'adjustment_in', label: '✏️ Freezer & Pantry Count Adjustment (فریزر گنتی درستگی)' },
+                { value: 'other_in', label: '📝 Other Kitchen Restock (دیگر)' }
+            ],
+            out: [
+                { value: 'sale', label: '🍔 Dine-in / Takeaway / Delivery POS Order (آرڈر فروخت)' },
+                { value: 'deal_bundle_out', label: '🎁 Combo Deal Consumption Deduction (کومبو ڈیل اسٹاک کٹوتی)' },
+                { value: 'kitchen_wastage', label: '🔥 Kitchen Wastage / Burnt / Spoiled Food (خراب / جلا ہوا / ضائع کھانا)' },
+                { value: 'staff_meal_out', label: '👨‍🍳 Staff Meal / Complimentary Tasting (اسٹاف میل / ضیافت)' },
+                { value: 'branch_transfer_out', label: '🏢 Central Kitchen / Branch Transfer OUT (دوسری برانچ کو بھیجا)' },
+                { value: 'damage', label: '💥 Freezer Spoilage / Dropped Parcel (فریزر خرابی / گرا ہوا پارسل)' },
+                { value: 'lost', label: '❓ Missing / Unaccounted Portion (شارٹیج / کم پورشن)' },
+                { value: 'adjustment_out', label: '✏️ Pantry Count Reduction (گنتی کٹوتی)' },
+                { value: 'other_out', label: '📝 Other (دیگر)' }
+            ]
+        },
+        customerConfig: {
+            panelTitle: '🍔 Dine-in, Takeaway, Delivery & Corporate Catering Profile (Optional)',
+            panelSub: 'ڈائن ان گاہک، ہوم ڈلیوری ایڈریس، کارپوریٹ لنچ اکاؤنٹ اور لائلٹی ڈسکاؤنٹ کے لیے',
+            segmentLabel: '🍽️ Order / Customer Segment (آرڈر / گاہک کی قسم)',
+            boardLabel: '📍 Delivery Zone / Sector / Office Block (ڈلیوری زون / سیکٹر / آفس)',
+            boardPlaceholder: 'e.g. Model Town Block C, Main Market, Hostel #2, Tech Office',
+            discountLabel: '🏷️ Regular / Corporate Deal Discount % (ریگولر / کارپوریٹ ڈسکاؤنٹ %)',
+            focalLabel: '🛵 Rider / Table Contact / Reception Ref (رائیڈر / استقبالیہ / رابطہ نمبر)',
+            focalPlaceholder: 'e.g. Rider Bilal / Desk Manager Usman (0300-1234567)',
+            filterTabLabel: '🍔 Dine-in & Delivery',
+            segments: [
+                { value: '', label: '— کسٹمر / آرڈر کیٹیگری منتخب کریں (Optional) —', defaultTier: '' },
+                { value: 'dinein_regular', label: '🍽️ ڈائن ان فیملی و ریگولر گاہک (Dine-in Regular / VIP)', shortLabel: '🍽️ Dine-in Guest', defaultTier: 'retail' },
+                { value: 'takeaway_cust', label: '🛍️ ٹیک اوے / پارسل کسٹمر (Takeaway / Counter Pickup)', shortLabel: '🛍️ Takeaway', defaultTier: 'retail' },
+                { value: 'home_delivery', label: '🛵 ہوم ڈلیوری گاہک (Direct Home Delivery Customer)', shortLabel: '🛵 Home Delivery', defaultTier: 'retail' },
+                { value: 'foodpanda_online', label: '📱 آن لائن ایپ / فوڈ پانڈا آرڈر (Online App / Aggregator)', shortLabel: '📱 Online App', defaultTier: 'retail' },
+                { value: 'corporate_office', label: '🏢 آفس لنچ / بینک / ہاسٹل اکاؤنٹ (Corporate / Monthly Tiffin)', shortLabel: '🏢 Corporate / Office', defaultTier: 'wholesale' },
+                { value: 'catering_event', label: '🎉 پارٹی / ایونٹ / کیٹرنگ بلک آرڈر (Party & Bulk Catering)', shortLabel: '🎉 Catering / Bulk', defaultTier: 'wholesale' }
+            ],
+            boardSuggestions: [
+                'Dine-in Family Hall & VIP Tables',
+                'Counter Takeaway / Car Service',
+                'Near Market & Hostel Delivery (Under 2 km)',
+                'Town / Housing Society Delivery Zone (3-5 km)',
+                'Banks, Schools & Corporate Lunch Contracts',
+                'Party Deals, Birthdays & Event Catering'
+            ]
+        },
+        returnReasons: [
+            { value: '❌ Wrong Item / Wrong Spice Level Served (غلط آئٹم یا غلط فلیور آنے پر واپسی)', label: '❌ Wrong Item / Wrong Spice Level Served (غلط آئٹم یا غلط فلیور آنے پر واپسی)' },
+            { value: '⏱️ Late Delivery / Cold Food Refund (تاخیر یا ٹھنڈا کھانا پہنچنے پر ریفنڈ)', label: '⏱️ Late Delivery / Cold Food Refund (تاخیر یا ٹھنڈا کھانا پہنچنے پر ریفنڈ)' },
+            { value: '🍔 Missing Deal Item / Fries / Drink (ڈیل میں آئٹم کم ہونے پر ایڈجسٹمنٹ)', label: '🍔 Missing Deal Item / Fries / Drink (ڈیل میں آئٹم کم ہونے پر ایڈجسٹمنٹ)' },
+            { value: '🛑 Customer Cancelled Before Kitchen Prep (تیاری سے پہلے آرڈر منسوخی)', label: '🛑 Customer Cancelled Before Kitchen Prep (تیاری سے پہلے آرڈر منسوخی)' },
+            { value: '⚠️ Quality / Taste Complaint Replacement (معیار یا ذائقہ شکایت تبدیلی)', label: '⚠️ Quality / Taste Complaint Replacement (معیار یا ذائقہ شکایت تبدیلی)' }
+        ],
+        claimCategories: [
+            { id: 'cat_rest_frozen_spoiled', name: '🧊 Frozen Patties / Chicken Expiry & Freezer Spoilage (فروزن آئٹم خرابی کلیم)', type: 'expired', icon: 'fa-snowflake', color: '#0284c7', desc: 'Expired or thawed frozen patties, cheese, or sauces claimed from vendor' },
+            { id: 'cat_rest_kitchen_waste', name: '🔥 Kitchen Wastage / Burnt / Remake Order Loss (کچن ضیاع و ری میک آرڈر)', type: 'broken', icon: 'fa-fire', color: '#dc2626', desc: 'Food burnt, dropped, or remade due to kitchen error' },
+            { id: 'cat_rest_delivery_cancel', name: '🛵 Rider Delivery Refusal / Cancelled Parcel (ڈلیوری منسوخ یا پارسل واپسی)', type: 'defect', icon: 'fa-motorcycle', color: '#ea580c', desc: 'Home delivery order refused by customer or wrong drop' },
+            { id: 'cat_rest_vendor_short', name: '📉 Raw Material / Cold Drink Vendor Shortage (سپلائر مال شارٹیج کلیم)', type: 'shortage', icon: 'fa-scale-unbalanced', color: '#7c3aed', desc: 'Short weight chicken, missing buns, or damaged beverage cans from supplier' },
+            { id: 'cat_rest_packaging_damage', name: '📦 Pizza Box / Packaging & Sauce Leak Claim (پیکنگ ڈیمج و لیکیج)', type: 'broken', icon: 'fa-box-open', color: '#d97706', desc: 'Crushed pizza boxes or spilled sauce containers during transit' }
+        ],
+        thermalTermsEn: 'Freshly prepared to order. Please verify your takeaway/delivery items & drinks at handover. Order cancellations are only accepted before kitchen prep starts. Thank you for dining with us!',
+        thermalTermsUr: 'آپ کا آرڈر تازہ تیار کیا گیا ہے۔ پارسل یا ڈلیوری وصول کرتے وقت تمام آئٹمز اور کولڈ ڈرنکس چیک کر لیں۔ کچن میں تیاری شروع ہونے کے بعد آرڈر کینسل نہیں ہوگا۔ تشریف آوری کا شکریہ!',
+        quickTags: ['زنگر برگر', 'پیزا ڈیلز', 'بروسٹ و ونگز', 'فیملی کومبو', 'بریانی / BBQ', 'شیکس و چائے']
     },
     {
         id: 'meat_chicken',
@@ -1351,7 +1857,7 @@ const BusinessCategories = {
     },
 
     // Completed vs In-Progress vs Coming Soon category status registry
-    COMPLETED_CATEGORY_IDS: ['books', 'mobile', 'wholesaler'],
+    COMPLETED_CATEGORY_IDS: ['books', 'mobile', 'wholesaler', 'medical', 'restaurant'],
     IN_PROGRESS_CATEGORY_IDS: [],
 
     getCategoryDevStatus(id) {
@@ -1502,9 +2008,17 @@ const BusinessCategories = {
         hour: { id: 'hour', label: 'Hour (گھنٹہ)', short: 'Hr', defaultPack: 1 },
         order: { id: 'order', label: 'Order (آرڈر)', short: 'Order', defaultPack: 1 },
         plate: { id: 'plate', label: 'Plate (پلیٹ)', short: 'Plate', defaultPack: 1 },
+        deal: { id: 'deal', label: 'Deal / Combo (ڈیل / کومبو)', short: 'Deal', defaultPack: 1 },
+        serving: { id: 'serving', label: 'Serving / Bowl (سرونگ / باؤل)', short: 'Srv', defaultPack: 1 },
         cup: { id: 'cup', label: 'Cup (کپ)', short: 'Cup', defaultPack: 1 },
         glass: { id: 'glass', label: 'Glass (گلاس)', short: 'Glass', defaultPack: 1 },
-        master_ctn: { id: 'master_ctn', label: 'Master Carton (ماسٹر کارٹن)', short: 'M.Ctn', defaultPack: 0 }
+        master_ctn: { id: 'master_ctn', label: 'Master Carton (ماسٹر کارٹن)', short: 'M.Ctn', defaultPack: 0 },
+        strip: { id: 'strip', label: 'Strip / Blister (پتہ)', short: 'Strip', defaultPack: 10 },
+        pack: { id: 'pack', label: 'Pack (پیک)', short: 'Pack', defaultPack: 1 },
+        vial: { id: 'vial', label: 'Vial (وائل)', short: 'Vial', defaultPack: 1 },
+        ampoule: { id: 'ampoule', label: 'Ampoule (ایمپیول)', short: 'Amp', defaultPack: 1 },
+        tube: { id: 'tube', label: 'Tube (ٹیوب / مرہم)', short: 'Tube', defaultPack: 1 },
+        sachet: { id: 'sachet', label: 'Sachet (ساشے)', short: 'Sachet', defaultPack: 1 }
     },
 
     // Get allowed unit IDs for a business category and optional product group
@@ -1696,18 +2210,43 @@ const BusinessCategories = {
         if (imeiList.length > 0) parts.push(`IMEI: ${imeiList.join(' / ')}`);
         if (warr) parts.push(`Warranty: ${warr}`);
 
-        // Wholesaler & Bulk Distribution fields
+        // Wholesaler & Pharmacy / Medical fields
         const cartonPack = itemObj.cartonPacking || ind.cartonPacking || '';
         const tradeTP = Number(itemObj.tradePriceTP || ind.tradePriceTP || 0);
         const bonusRule = itemObj.bonusSchemeRule || ind.bonusSchemeRule || '';
         const skuCode = itemObj.skuBatchCode || ind.skuBatchCode || '';
+        const genericSalt = itemObj.genericFormula || ind.genericFormula || '';
+        const dosageStr = itemObj.dosageStrength || ind.dosageStrength || '';
+        const batchStr = itemObj.batchNo || ind.batchNo || '';
+        const rackStr = itemObj.storageRack || ind.storageRack || '';
         const expDate = itemObj.expiryDate || ind.expiryDate || '';
 
+        if (genericSalt) parts.push(`Formula: ${genericSalt}`);
+        if (dosageStr) parts.push(dosageStr);
         if (cartonPack) parts.push(`Ctn: ${cartonPack}`);
         if (tradeTP > 0) parts.push(`TP: Rs ${tradeTP}`);
         if (bonusRule && !bonusRule.startsWith('No Scheme')) parts.push(`Scheme: ${bonusRule}`);
+        if (batchStr) parts.push(`Batch: ${batchStr}`);
         if (skuCode) parts.push(`SKU: ${skuCode}`);
         if (expDate) parts.push(`Exp: ${expDate}`);
+        if (rackStr) parts.push(`Rack: ${rackStr}`);
+
+        // Restaurant, Fast Food & Cafe fields
+        const portion = itemObj.portionSize || ind.portionSize || '';
+        const spice = itemObj.spiceVariant || ind.spiceVariant || '';
+        const prepMins = itemObj.prepTimeMins || ind.prepTimeMins || '';
+        const kotZone = itemObj.kitchenKOTZone || ind.kitchenKOTZone || '';
+        const dealCont = itemObj.dealContents || ind.dealContents || '';
+        const addons = itemObj.addonsNote || ind.addonsNote || '';
+        const tblNote = itemObj.tableNo || ind.tableNo || '';
+
+        if (portion) parts.push(portion);
+        if (spice) parts.push(spice);
+        if (prepMins) parts.push(`Prep: ${prepMins}m`);
+        if (kotZone) parts.push(`KOT: ${kotZone}`);
+        if (dealCont) parts.push(`Deal: ${dealCont}`);
+        if (addons) parts.push(`Add-ons: ${addons}`);
+        if (tblNote) parts.push(`Service: ${tblNote}`);
 
         if (pSize > 1) parts.push(`Pack: ${pSize}`);
         if (isbn) parts.push(`ISBN: ${isbn}`);
@@ -1726,6 +2265,69 @@ const BusinessCategories = {
         if (found) return found.id;
         const fb = this.getById(fallbackId);
         return fb ? fb.id : String(raw || 'books').toLowerCase();
+    },
+
+    // Infer or resolve the canonical category ID of a stored record (stock, bill, customer, claim, expense)
+    resolveRecordCategory(record = null, agencyObj = null, defaultCategoryId = '') {
+        if (!record || typeof record !== 'object') return defaultCategoryId || '';
+
+        // 1. Explicit category tag on the record itself
+        const explicitRaw = record.businessCategory || record.categoryWorkspace || record.agencyCategory || record.businessType || '';
+        if (explicitRaw) {
+            const found = this.getById(explicitRaw);
+            return found ? found.id : String(explicitRaw).toLowerCase().trim();
+        }
+
+        // 2. Infer from distinct industryFields on stock or bill items
+        const ind = (record.industryFields && typeof record.industryFields === 'object') ? record.industryFields : {};
+        if (ind.imei1 || ind.imei2 || ind.imei3 || ind.imei4 || ind.imeiSerial || ind.ptaStatus || ind.conditionGrade || record.imeiTrackingMode) {
+            return 'mobile';
+        }
+        if (ind.genericFormula || ind.dosageStrength || ind.storageRack || record.genericFormula) {
+            return 'medical';
+        }
+        if (ind.portionSize || ind.spiceVariant || ind.kitchenKOTZone || ind.dealContents || record.portionSize || (record.restaurantMeta && record.restaurantMeta.serviceMode)) {
+            return 'restaurant';
+        }
+        if (ind.classGrade || ind.publisherBoard || ind.isbnCode || ind.subjectAuthor || ind.pagesRuling) {
+            return 'books';
+        }
+        if (ind.cartonPacking || ind.tradePriceTP || ind.bonusSchemeRule || ind.skuBatchCode || record.cartonPacking || record.tradePriceTP) {
+            // Check if agency primaryCategory is distributor vs wholesaler
+            const agPri = agencyObj && (agencyObj.primaryCategory || agencyObj.originalCategory);
+            if (agPri && this.getById(agPri)?.id === 'distributor') return 'distributor';
+            return 'wholesaler';
+        }
+
+        // 3. Infer from distinct customer segment if it is a customer record
+        const seg = String(record.custSubCategory || '').toLowerCase().trim();
+        if (['school_college', 'library_inst', 'teacher_tutor', 'student_parent'].includes(seg)) return 'books';
+        if (['repair_tech', 'installment_cust', 'used_buyer_seller'].includes(seg)) return 'mobile';
+        if (['clinic_hospital', 'doctor_prescriber', 'sub_chemist', 'panel_inst', 'chronic_patient'].includes(seg)) return 'medical';
+        if (['dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'catering_event'].includes(seg)) return 'restaurant';
+        if (['mandi_party'].includes(seg)) return 'wholesaler';
+
+        // 4. Fallback to agency's original primaryCategory if the agency previously switched categories
+        if (agencyObj && (agencyObj.primaryCategory || agencyObj.originalCategory)) {
+            const pri = this.getById(agencyObj.primaryCategory || agencyObj.originalCategory);
+            if (pri) return pri.id;
+        }
+
+        return defaultCategoryId || '';
+    },
+
+    // Check whether a record belongs to the currently active category workspace ("1 Category = 1 Database")
+    matchesActiveCategoryRecord(record = null, activeCategoryId = '', agencyObj = null) {
+        if (!record || typeof record !== 'object') return false;
+        const targetCatObj = this.getById(activeCategoryId || this.resolveActiveCategory(agencyObj, 'books'));
+        const targetCat = targetCatObj ? targetCatObj.id : String(activeCategoryId || 'books').toLowerCase().trim();
+
+        const recCat = this.resolveRecordCategory(record, agencyObj, '');
+        if (!recCat) {
+            // Legacy untagged record with no category switch history belongs to current active category
+            return true;
+        }
+        return recCat === targetCat;
     },
 
     // Unified thermal paper width resolver ('58mm' or '80mm')

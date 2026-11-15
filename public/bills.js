@@ -162,6 +162,9 @@ function applyBookerModeUI() {
 
         if (brandSub) brandSub.innerText = `🏢 Counter POS Billing: ${(myAgency && myAgency.name) || (myUser && myUser.name) || 'Admin'}`;
     }
+    if (typeof setupRestaurantOrderBar === 'function') {
+        setupRestaurantOrderBar();
+    }
 }
 window.applyBookerModeUI = applyBookerModeUI;
 
@@ -585,8 +588,10 @@ window.handleBookFieldOrderClick = function() {
 function UNIT_LBL(u) {
     const m = {
         'kg': 'kg', 'g': 'g', 'pound': 'lb', 'maund': 'Maund', 'liter': 'L',
-        'pcs': 'pcs', 'dozen': 'Dozen', 'packet': 'Pkt', 'bag': 'Bag',
-        'box': 'Box', 'carton': 'Ctn', 'master_ctn': 'M.Ctn', 'crate': 'Crate',
+        'pcs': 'pcs', 'dozen': 'Dozen', 'packet': 'Pkt', 'pack': 'Pack', 'bag': 'Bag',
+        'box': 'Box', 'strip': 'Strip', 'vial': 'Vial', 'ampoule': 'Amp', 'tube': 'Tube', 'sachet': 'Sachet',
+        'order': 'Order', 'plate': 'Plate', 'deal': 'Deal', 'serving': 'Srv', 'cup': 'Cup', 'glass': 'Glass',
+        'carton': 'Ctn', 'master_ctn': 'M.Ctn', 'crate': 'Crate',
         'bottle': 'Btl', 'can': 'Can', 'set': 'Set', 'bundle': 'Bndl', 'ream': 'Ream',
         'pair': 'Pair', 'suit': 'Suit', 'meter': 'm', 'feet': 'ft', 'gallon': 'Gal', 'unit': 'Unit'
     };
@@ -604,10 +609,16 @@ let posActiveClassFilter = 'all';
 let posActivePublisherFilter = 'all';
 
 function getActiveAgencyBusinessType() {
-    if (myAgency && myAgency.businessType) return String(myAgency.businessType).toLowerCase().trim();
+    if (myAgency && (myAgency.businessType || myAgency.businessCategory || myAgency.category)) {
+        return String(myAgency.businessType || myAgency.businessCategory || myAgency.category).toLowerCase().trim();
+    }
     try {
         const cachedAg = JSON.parse(localStorage.getItem('eb_user_agency') || '{}');
-        if (cachedAg && cachedAg.businessType) return String(cachedAg.businessType).toLowerCase().trim();
+        if (cachedAg && (cachedAg.businessType || cachedAg.businessCategory || cachedAg.category)) {
+            return String(cachedAg.businessType || cachedAg.businessCategory || cachedAg.category).toLowerCase().trim();
+        }
+        const directCat = localStorage.getItem('eb_active_business_category') || localStorage.getItem('eb_active_category') || localStorage.getItem('businessType');
+        if (directCat) return String(directCat).toLowerCase().trim();
     } catch (_) {}
     return 'books';
 }
@@ -639,7 +650,39 @@ function isWholesalerAgency() {
     return bt === 'wholesaler' || bt === 'distributor' || bt === 'wholesale' || bt === 'agency' || bt === 'fmcg_distributor';
 }
 
-// Concise subtitle for POS rows & Printed Invoices (supports Book Depot, Mobile Shop IMEI 1..4, Wholesaler Carton/TP/Bonus, etc.)
+function isMedicalAgency() {
+    const bt = getActiveAgencyBusinessType();
+    if (window.BusinessCategories) {
+        const cat = window.BusinessCategories.getById(bt);
+        if (cat) return cat.id === 'medical';
+    }
+    return bt === 'medical' || bt === 'pharmacy' || bt === 'medical_store' || bt === 'chemist' || bt === 'pharma';
+}
+
+function isRestaurantAgency() {
+    const bt = getActiveAgencyBusinessType();
+    if (window.BusinessCategories) {
+        const cat = window.BusinessCategories.getById(bt);
+        if (cat) return cat.id === 'restaurant';
+    }
+    return bt === 'restaurant' || bt === 'cafe' || bt === 'fast_food' || bt === 'hotel' || bt === 'burger_pizza' || bt === 'kitchen';
+}
+
+function classifyPosExpiryStatus(expStr) {
+    const clean = String(expStr || '').trim();
+    if (!clean) return { status: 'none', daysLeft: null, label: '' };
+    const expDate = new Date(`${clean.slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(expDate.getTime())) return { status: 'none', daysLeft: null, label: '' };
+    const now = new Date();
+    const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffDays = Math.ceil((expDate.getTime() - base.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return { status: 'expired', daysLeft: diffDays, label: `EXPIRED (${Math.abs(diffDays)}d ago)` };
+    if (diffDays <= 30) return { status: 'critical', daysLeft: diffDays, label: `Exp ≤${diffDays}d` };
+    if (diffDays <= 90) return { status: 'warning', daysLeft: diffDays, label: `Exp ${diffDays}d` };
+    return { status: 'safe', daysLeft: diffDays, label: `Exp: ${clean.slice(0, 10)}` };
+}
+
+// Concise subtitle for POS rows & Printed Invoices (supports Book Depot, Mobile Shop IMEI 1..4, Wholesaler Carton/TP/Bonus, Pharmacy, Fast Food)
 function formatStockIndustrySubtitle(s) {
     if (!s) return '';
     if (window.BusinessCategories && typeof window.BusinessCategories.formatItemSubtitle === 'function') {
@@ -656,6 +699,15 @@ function formatStockIndustrySubtitle(s) {
     if (ind.pagesRuling) parts.push(ind.pagesRuling);
     if (ind.bindingVariant) parts.push(ind.bindingVariant);
     if (ind.brandCompany) parts.push(ind.brandCompany);
+    if (ind.portionSize) parts.push(ind.portionSize);
+    if (ind.spiceVariant) parts.push(ind.spiceVariant);
+    if (ind.prepTimeMins) parts.push(`Prep: ${ind.prepTimeMins}m`);
+    if (ind.addonsNote) parts.push(ind.addonsNote);
+    if (ind.dealContents) parts.push(`Deal: ${ind.dealContents}`);
+    if (ind.kitchenKOTZone) parts.push(`KOT: ${ind.kitchenKOTZone}`);
+    if (ind.tableNo) parts.push(ind.tableNo);
+    if (ind.genericFormula) parts.push(`Formula: ${ind.genericFormula}`);
+    if (ind.dosageStrength) parts.push(ind.dosageStrength);
     if (ind.modelVariant) parts.push(`Model: ${ind.modelVariant}`);
     if (ind.ramStorage) parts.push(ind.ramStorage);
     if (ind.colorFinish) parts.push(ind.colorFinish);
@@ -672,7 +724,9 @@ function formatStockIndustrySubtitle(s) {
     if (Number(ind.tradePriceTP) > 0) parts.push(`TP: Rs ${ind.tradePriceTP}`);
     if (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme')) parts.push(`Scheme: ${ind.bonusSchemeRule}`);
     if (ind.skuBatchCode) parts.push(`SKU: ${ind.skuBatchCode}`);
+    if (ind.batchNo) parts.push(`Batch: ${ind.batchNo}`);
     if (ind.expiryDate) parts.push(`Exp: ${ind.expiryDate}`);
+    if (ind.storageRack) parts.push(`Rack: ${ind.storageRack}`);
     const packSz = parseFloat(ind.packSize) || (s.unit === 'maund' ? 40 : 0);
     if (packSz > 1) {
         const uLbl = s.unit === 'set' ? (isMobileShopAgency() ? 'Items/Set' : 'Books/Set') : (s.unit === 'ream' ? 'Sheets' : (s.unit === 'maund' ? 'kg/Maund' : `Pcs/${UNIT_LBL(s.unit)}`));
@@ -687,11 +741,22 @@ function formatStockSuggestionMeta(s) {
     if (!s) return '';
     const ind = (s.industryFields && typeof s.industryFields === 'object') ? s.industryFields : {};
     const isWholesaleMode = isWholesalerAgency();
+    const isMedMode = isMedicalAgency();
+    const isRestMode = isRestaurantAgency();
     const badges = [];
     if (ind.classGrade) badges.push(`🎓 ${ind.classGrade}`);
     if (ind.publisherBoard) badges.push(`🏛️ ${ind.publisherBoard}`);
-    if (ind.brandCompany) badges.push(`${isWholesaleMode ? '🏭' : '📱'} ${ind.brandCompany}`);
+    if (ind.brandCompany) badges.push(`${isMedMode ? '🏥' : (isRestMode ? '👨‍🍳' : (isWholesaleMode ? '🏭' : '📱'))} ${ind.brandCompany}`);
     if (!ind.publisherBoard && !ind.brandCompany && s.supplierName) badges.push(`🏢 ${s.supplierName}`);
+    if (ind.portionSize) badges.push(`📏 ${ind.portionSize}`);
+    if (ind.spiceVariant) badges.push(`🌶️ ${ind.spiceVariant}`);
+    if (ind.prepTimeMins) badges.push(`⏱️ ${ind.prepTimeMins}m`);
+    if (ind.kitchenKOTZone) badges.push(`🔔 KOT: ${ind.kitchenKOTZone}`);
+    if (ind.dealContents) badges.push(`🎁 Deal: ${ind.dealContents}`);
+    if (ind.addonsNote) badges.push(`🧀 ${ind.addonsNote}`);
+    if (ind.tableNo) badges.push(`🍽️ ${ind.tableNo}`);
+    if (ind.genericFormula) badges.push(`🧬 ${ind.genericFormula}`);
+    if (ind.dosageStrength) badges.push(`⚖️ ${ind.dosageStrength}`);
     if (ind.modelVariant) badges.push(`📲 ${ind.modelVariant}`);
     if (ind.ramStorage) badges.push(`💾 ${ind.ramStorage}`);
     if (ind.subjectAuthor) badges.push(`✍️ ${ind.subjectAuthor}`);
@@ -713,7 +778,20 @@ function formatStockSuggestionMeta(s) {
     if (Number(ind.tradePriceTP) > 0) badges.push(`💰 TP: Rs ${Number(ind.tradePriceTP).toLocaleString()}`);
     if (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme')) badges.push(`🎁 ${ind.bonusSchemeRule}`);
     if (ind.skuBatchCode) badges.push(`🔖 ${ind.skuBatchCode}`);
-    if (ind.expiryDate) badges.push(`⏳ Exp: ${ind.expiryDate}`);
+    if (ind.batchNo) badges.push(`💊 Batch: ${ind.batchNo}`);
+    if (ind.storageRack) badges.push(`🗄️ ${ind.storageRack}`);
+    if (ind.expiryDate) {
+        const expInfo = classifyPosExpiryStatus(ind.expiryDate);
+        if (expInfo.status === 'expired') {
+            badges.push(`<span style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:0 4px; border-radius:4px; font-weight:800;">🚨 EXPIRED (${ind.expiryDate})</span>`);
+        } else if (expInfo.status === 'critical') {
+            badges.push(`<span style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; padding:0 4px; border-radius:4px; font-weight:800;">🟠 ${expInfo.label}</span>`);
+        } else if (expInfo.status === 'warning') {
+            badges.push(`<span style="background:#fef9c3; color:#a16207; border:1px solid #fde047; padding:0 4px; border-radius:4px; font-weight:700;">🟡 ${expInfo.label}</span>`);
+        } else {
+            badges.push(`⏳ Exp: ${ind.expiryDate}`);
+        }
+    }
     const packSz = parseFloat(ind.packSize) || (s.unit === 'dozen' ? 12 : (s.unit === 'ream' ? 500 : (s.unit === 'maund' ? 40 : 0)));
     if (packSz > 1) {
         const subWord = s.unit === 'set' ? (isMobileShopAgency() ? 'Items/Set' : 'Books/Set') : (s.unit === 'ream' ? 'Sheets/Ream' : (s.unit === 'maund' ? 'kg/Maund' : `Pcs/${UNIT_LBL(s.unit)}`));
@@ -724,17 +802,19 @@ function formatStockSuggestionMeta(s) {
     return `<div style="font-size:10.5px; color:#0369a1; background:#f0f9ff; border:1px solid #bae6fd; border-radius:5px; padding:2px 6px; margin-top:2px; display:inline-block;">${badges.join(' &nbsp;•&nbsp; ')}</div>`;
 }
 
-// Match stock item against POS search query AND active Class/Brand/Company & Publisher/PTA/Group filters
+// Match stock item against POS search query AND active Class/Brand/Company/Kitchen & Publisher/PTA/Group/Formula/Size filters
 function matchesPosSearchAndFilters(s, rawQuery = '') {
     if (!s) return false;
     const ind = (s.industryFields && typeof s.industryFields === 'object') ? s.industryFields : {};
     const isMobMode = isMobileShopAgency();
     const isBookMode = isBookDepotAgency();
-    const isWhlMode = isWholesalerAgency() && !isBookMode && !isMobMode;
+    const isMedMode = isMedicalAgency() && !isBookMode && !isMobMode;
+    const isWhlMode = isWholesalerAgency() && !isBookMode && !isMobMode && !isMedMode;
+    const isRestMode = (isRestaurantAgency() || Boolean(ind.portionSize || ind.spiceVariant || ind.kitchenKOTZone || ind.dealContents)) && !isBookMode && !isMobMode && !isMedMode && !isWhlMode;
 
     if (posActiveClassFilter !== 'all') {
         const targetPri = posActiveClassFilter.toLowerCase();
-        if (isMobMode || isWhlMode) {
+        if (isMobMode || isWhlMode || isMedMode || isRestMode) {
             const br = String(ind.brandCompany || s.supplierName || s.lastSupplier || '').trim().toLowerCase();
             if (br !== targetPri) return false;
         } else {
@@ -751,6 +831,29 @@ function matchesPosSearchAndFilters(s, rawQuery = '') {
             const warr = String(ind.warrantyInfo || '').trim().toLowerCase();
             if (pta !== targetSec && cond !== targetSec && warr !== targetSec) {
                 return false;
+            }
+        } else if (isMedMode) {
+            if (targetSec === '__near_expiry__') {
+                const expInfo = classifyPosExpiryStatus(ind.expiryDate || s.expiryDate);
+                if (expInfo.status !== 'expired' && expInfo.status !== 'critical' && expInfo.status !== 'warning') return false;
+            } else if (targetSec === '__expired_only__') {
+                const expInfo = classifyPosExpiryStatus(ind.expiryDate || s.expiryDate);
+                if (expInfo.status !== 'expired') return false;
+            } else {
+                const gen = String(ind.genericFormula || '').trim().toLowerCase();
+                const rack = String(ind.storageRack || '').trim().toLowerCase();
+                if (gen !== targetSec && rack !== targetSec) return false;
+            }
+        } else if (isRestMode) {
+            if (targetSec === '__deals_combos__') {
+                const subStr = String(ind.itemSubType || s.category || '').toLowerCase();
+                const isDeal = Boolean(ind.dealContents || s.unit === 'deal' || subStr.includes('combo') || subStr.includes('deal'));
+                if (!isDeal) return false;
+            } else {
+                const pSize = String(ind.portionSize || '').trim().toLowerCase();
+                const sVar = String(ind.spiceVariant || '').trim().toLowerCase();
+                const kot = String(ind.kitchenKOTZone || '').trim().toLowerCase();
+                if (pSize !== targetSec && sVar !== targetSec && kot !== targetSec) return false;
             }
         } else if (isWhlMode) {
             const schemeRule = String(ind.bonusSchemeRule || '').trim();
@@ -778,7 +881,7 @@ function matchesPosSearchAndFilters(s, rawQuery = '') {
 
     const qCleanCode = q.replace(/[-\s\/]/g, '');
     const itemIsbnClean = String(ind.isbnCode || '').toLowerCase().replace(/[-\s]/g, '');
-    const itemSkuClean = String(ind.skuBatchCode || s.sku || '').toLowerCase().replace(/[-\s]/g, '');
+    const itemSkuClean = String(ind.skuBatchCode || ind.batchNo || s.sku || '').toLowerCase().replace(/[-\s]/g, '');
     const itemImeisClean = [ind.imei1, ind.imei2, ind.imei3, ind.imei4, ind.imeiSerial]
         .map(x => String(x || '').toLowerCase().replace(/[-\s\/]/g, ''))
         .filter(Boolean);
@@ -820,14 +923,31 @@ function setupBookPosQuickFilterBar() {
         { btn: document.getElementById('btnCatAddClassSet'), txt: document.getElementById('btnCatAddClassSetText') }
     ].filter(x => x.btn);
 
+    if (typeof setupRestaurantOrderBar === 'function') {
+        setupRestaurantOrderBar();
+    }
+
     if (clsSelects.length === 0) return;
 
-    const isMobMode = isMobileShopAgency() || allMyStock.some(s => s.industryFields && (s.industryFields.imei1 || s.industryFields.brandCompany || s.industryFields.ptaStatus || s.industryFields.modelVariant));
-    const hasBookItems = allMyStock.some(s => s.industryFields && (s.industryFields.classGrade || s.industryFields.publisherBoard || s.industryFields.isbnCode));
-    const hasWholesaleItems = allMyStock.some(s => s.industryFields && (s.industryFields.cartonPacking || s.industryFields.tradePriceTP || s.industryFields.bonusSchemeRule || s.industryFields.skuBatchCode));
-    const isWholesaleMode = isWholesalerAgency() || (!isBookDepotAgency() && !isMobileShopAgency() && hasWholesaleItems);
+    const explicitBook = isBookDepotAgency();
+    const explicitMob = isMobileShopAgency();
+    const explicitWhl = isWholesalerAgency();
+    const explicitMed = isMedicalAgency();
+    const explicitRest = isRestaurantAgency();
+    const hasExplicitCat = explicitBook || explicitMob || explicitWhl || explicitMed || explicitRest;
 
-    if (!isBookDepotAgency() && !hasBookItems && !isMobMode && !isWholesaleMode) {
+    const hasBookItems = allMyStock.some(s => s.industryFields && (s.industryFields.classGrade || s.industryFields.publisherBoard || s.industryFields.isbnCode));
+    const hasMobItems = allMyStock.some(s => s.industryFields && (s.industryFields.imei1 || (s.industryFields.brandCompany && s.industryFields.ptaStatus) || s.industryFields.ptaStatus || s.industryFields.modelVariant));
+    const hasMedItems = allMyStock.some(s => s.industryFields && (s.industryFields.genericFormula || s.industryFields.batchNo || s.industryFields.dosageStrength));
+    const hasWholesaleItems = allMyStock.some(s => s.industryFields && (s.industryFields.cartonPacking || s.industryFields.tradePriceTP || s.industryFields.bonusSchemeRule || s.industryFields.skuBatchCode));
+    const hasRestaurantItems = allMyStock.some(s => s.industryFields && (s.industryFields.portionSize || s.industryFields.spiceVariant || s.industryFields.kitchenKOTZone || s.industryFields.dealContents));
+
+    const isMobMode = hasExplicitCat ? explicitMob : hasMobItems;
+    const isMedMode = hasExplicitCat ? explicitMed : (!isMobMode && hasMedItems);
+    const isWholesaleMode = hasExplicitCat ? explicitWhl : (!isMobMode && !isMedMode && hasWholesaleItems);
+    const isRestMode = hasExplicitCat ? explicitRest : (!isMobMode && !isMedMode && !isWholesaleMode && hasRestaurantItems);
+
+    if (!explicitBook && !hasBookItems && !isMobMode && !isWholesaleMode && !isMedMode && !isRestMode) {
         if (bar) bar.style.display = 'none';
         if (bookerBar) bookerBar.style.display = 'none';
         if (catBar) catBar.style.display = 'none';
@@ -840,7 +960,114 @@ function setupBookPosQuickFilterBar() {
     if (bookerBar) bookerBar.style.display = 'flex';
     if (catBar) catBar.style.display = 'flex';
 
-    if (isWholesaleMode && !isBookDepotAgency() && !isMobileShopAgency()) {
+    if (isMedMode && !isBookDepotAgency() && !isMobileShopAgency()) {
+        if (filterLbl) filterLbl.innerHTML = '💊 Pharmacy Filter:';
+        if (btnRepairJob) btnRepairJob.style.display = 'none';
+        if (btnTradeIn) btnTradeIn.style.display = 'none';
+
+        const scanInp = document.getElementById('barcodeScanInput');
+        if (scanInp) scanInp.placeholder = 'Scan Barcode or search medicine, generic salt/formula, batch #, pharma company...';
+        const listInp = document.getElementById('listSearchInput');
+        if (listInp) listInp.placeholder = '🔍 Search medicine, generic salt/formula, batch #, pharma company or rack...';
+
+        const companies = new Set();
+        const formulasAndRacks = new Set();
+
+        allMyStock.forEach(s => {
+            const ind = s.industryFields || {};
+            const comp = String(ind.brandCompany || s.supplierName || s.lastSupplier || '').trim();
+            const gen = String(ind.genericFormula || '').trim();
+            const rack = String(ind.storageRack || '').trim();
+            if (comp) companies.add(comp);
+            if (gen) formulasAndRacks.add(gen);
+            if (rack) formulasAndRacks.add(rack);
+        });
+
+        if (!companies.has(posActiveClassFilter)) posActiveClassFilter = 'all';
+        if (posActivePublisherFilter !== '__near_expiry__' && posActivePublisherFilter !== '__expired_only__' && !formulasAndRacks.has(posActivePublisherFilter)) {
+            posActivePublisherFilter = 'all';
+        }
+
+        clsSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">🏥 All Pharma Companies / تمام کمپنیاں</option>';
+            companies.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c;
+                o.textContent = `🏥 ${c}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActiveClassFilter;
+        });
+
+        pubSelects.forEach(sel => {
+            sel.innerHTML = `<option value="all">🧬 All Formulas &amp; Expiry Status</option>
+                <option value="__near_expiry__">⏳ Near-Expiry (≤90d) &amp; Expired</option>
+                <option value="__expired_only__">🔴 Expired Medicines Only</option>`;
+            formulasAndRacks.forEach(fr => {
+                const o = document.createElement('option');
+                o.value = fr;
+                o.textContent = `🧬 ${fr}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActivePublisherFilter;
+        });
+
+        addSetBtns.forEach(({ btn }) => { btn.style.display = 'none'; });
+    } else if (isRestMode && !isBookDepotAgency() && !isMobileShopAgency()) {
+        if (filterLbl) filterLbl.innerHTML = '🍔 Fast Food POS:';
+        if (btnRepairJob) btnRepairJob.style.display = 'none';
+        if (btnTradeIn) btnTradeIn.style.display = 'none';
+
+        const scanInp = document.getElementById('barcodeScanInput');
+        if (scanInp) scanInp.placeholder = 'Search burger, pizza, broast, combo deal, flavor, kitchen station or KOT zone...';
+        const listInp = document.getElementById('listSearchInput');
+        if (listInp) listInp.placeholder = '🔍 Search menu item, combo deal contents, flavor, size or kitchen station...';
+
+        const stations = new Set();
+        const sizesFlavorsKot = new Set();
+
+        allMyStock.forEach(s => {
+            const ind = s.industryFields || {};
+            const st = String(ind.brandCompany || s.supplierName || s.lastSupplier || '').trim();
+            const pSize = String(ind.portionSize || '').trim();
+            const sVar = String(ind.spiceVariant || '').trim();
+            const kot = String(ind.kitchenKOTZone || '').trim();
+            if (st) stations.add(st);
+            if (pSize) sizesFlavorsKot.add(pSize);
+            if (sVar) sizesFlavorsKot.add(sVar);
+            if (kot) sizesFlavorsKot.add(kot);
+        });
+
+        if (!stations.has(posActiveClassFilter)) posActiveClassFilter = 'all';
+        if (posActivePublisherFilter !== '__deals_combos__' && !sizesFlavorsKot.has(posActivePublisherFilter)) {
+            posActivePublisherFilter = 'all';
+        }
+
+        clsSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">👨‍🍳 All Kitchen Stations / تمام کاؤنٹرز</option>';
+            stations.forEach(st => {
+                const o = document.createElement('option');
+                o.value = st;
+                o.textContent = `👨‍🍳 ${st}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActiveClassFilter;
+        });
+
+        pubSelects.forEach(sel => {
+            sel.innerHTML = `<option value="all">📏 All Sizes, Flavors &amp; Deals</option>
+                <option value="__deals_combos__">🎁 Combo &amp; Family Deals Only</option>`;
+            sizesFlavorsKot.forEach(sf => {
+                const o = document.createElement('option');
+                o.value = sf;
+                o.textContent = `🌶️ ${sf}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActivePublisherFilter;
+        });
+
+        addSetBtns.forEach(({ btn }) => { btn.style.display = 'none'; });
+    } else if (isWholesaleMode && !isBookDepotAgency() && !isMobileShopAgency()) {
         if (filterLbl) filterLbl.innerHTML = '📦 Wholesale Filter:';
         if (btnRepairJob) btnRepairJob.style.display = 'none';
         if (btnTradeIn) btnTradeIn.style.display = 'none';
@@ -978,7 +1205,7 @@ function setupBookPosQuickFilterBar() {
     }
 
     const syncAddSetBtnVisibility = () => {
-        if ((isMobMode || isWholesaleMode) && !isBookDepotAgency()) {
+        if ((isMobMode || isWholesaleMode || isMedMode || isRestMode) && !isBookDepotAgency()) {
             addSetBtns.forEach(({ btn }) => { btn.style.display = 'none'; });
             return;
         }
@@ -1070,6 +1297,178 @@ function setupBookPosQuickFilterBar() {
 
     syncAddSetBtnVisibility();
 }
+
+// 🍔 Restaurant / Fast Food POS Order Service Mode Bar Helpers
+function syncRestaurantServiceModePlaceholders() {
+    const modeSel = document.getElementById('posRestServiceMode');
+    const badge = document.getElementById('posRestModeStatusBadge');
+    const tblLabel = document.getElementById('posRestTableTokenLabel');
+    const tblInp = document.getElementById('posRestTableToken');
+    const riderLabel = document.getElementById('posRestRiderWaiterLabel');
+    const riderInp = document.getElementById('posRestRiderWaiter');
+    if (!modeSel) return;
+
+    const mode = modeSel.value || 'dine_in';
+    const metaByMode = {
+        dine_in: {
+            badge: '🍽️ Dine-in Mode',
+            tblLabel: '🪑 ٹیبل نمبر / ہال (Table # / Hall)',
+            tblPh: 'e.g. Table 04 / Family Hall',
+            riderLabel: '👨‍🍳 ویٹر / مہمان (Waiter / Guests)',
+            riderPh: 'e.g. Waiter Ali / 4 Guests'
+        },
+        takeaway: {
+            badge: '🛍️ Takeaway / Parcel',
+            tblLabel: '🏷️ پارسل ٹوکن نمبر (Parcel Token #)',
+            tblPh: 'e.g. Token #12 / Car Pickup',
+            riderLabel: '📦 پیکنگ / کاؤنٹر نام (Packed By)',
+            riderPh: 'e.g. Counter Staff / Urgent Parcel'
+        },
+        delivery: {
+            badge: '🛵 Home Delivery',
+            tblLabel: '📍 ڈلیوری پتہ / سیکٹر (Delivery Address)',
+            tblPh: 'e.g. House 14, St 2, Model Town',
+            riderLabel: '🛵 ڈلیوری رائیڈر و فون (Delivery Rider)',
+            riderPh: 'e.g. Rider Bilal (0300-1234567)'
+        },
+        online_app: {
+            badge: '📱 Online / Foodpanda',
+            tblLabel: '📲 آن لائن آرڈر ریفرنس # (Platform Order #)',
+            tblPh: 'e.g. FP-8492 / Cheetay / WhatsApp',
+            riderLabel: '🛵 ایپ رائیڈر (App Rider)',
+            riderPh: 'e.g. Foodpanda Rider / Pickup Time'
+        }
+    };
+    const cfg = metaByMode[mode] || metaByMode.dine_in;
+    if (badge) badge.textContent = cfg.badge;
+    if (tblLabel) tblLabel.textContent = cfg.tblLabel;
+    if (tblInp) tblInp.placeholder = cfg.tblPh;
+    if (riderLabel) riderLabel.textContent = cfg.riderLabel;
+    if (riderInp) riderInp.placeholder = cfg.riderPh;
+}
+
+function setupRestaurantOrderBar() {
+    const bar = document.getElementById('posRestaurantOrderBar');
+    if (!bar) return;
+    if (!isRestaurantAgency()) {
+        bar.style.display = 'none';
+        return;
+    }
+    bar.style.display = 'block';
+    const modeSel = document.getElementById('posRestServiceMode');
+    if (modeSel && !modeSel.dataset.boundRestMode) {
+        modeSel.dataset.boundRestMode = 'true';
+        modeSel.addEventListener('change', syncRestaurantServiceModePlaceholders);
+    }
+    syncRestaurantServiceModePlaceholders();
+}
+
+function getRestaurantOrderMeta() {
+    if (!isRestaurantAgency()) return null;
+    const modeSel = document.getElementById('posRestServiceMode');
+    const tblInp = document.getElementById('posRestTableToken');
+    const riderInp = document.getElementById('posRestRiderWaiter');
+    const noteInp = document.getElementById('posRestKitchenNote');
+    const mode = modeSel ? (modeSel.value || 'dine_in') : 'dine_in';
+    const modeLabels = {
+        dine_in: 'Dine-in',
+        takeaway: 'Takeaway',
+        delivery: 'Home Delivery',
+        online_app: 'Online App'
+    };
+    return {
+        serviceMode: mode,
+        serviceModeLabel: modeLabels[mode] || 'Dine-in',
+        tableTokenNo: tblInp ? tblInp.value.trim() : '',
+        riderWaiterName: riderInp ? riderInp.value.trim() : '',
+        kitchenOrderNote: noteInp ? noteInp.value.trim() : ''
+    };
+}
+
+function resetRestaurantOrderBar() {
+    const modeSel = document.getElementById('posRestServiceMode');
+    const tblInp = document.getElementById('posRestTableToken');
+    const riderInp = document.getElementById('posRestRiderWaiter');
+    const noteInp = document.getElementById('posRestKitchenNote');
+    if (modeSel) modeSel.value = 'dine_in';
+    if (tblInp) tblInp.value = '';
+    if (riderInp) riderInp.value = '';
+    if (noteInp) noteInp.value = '';
+    syncRestaurantServiceModePlaceholders();
+}
+
+// 🍔 Restaurant POS Row Customization Modal (Flavor, Size, Add-ons & Kitchen KOT Note)
+window.openRowKitchenNoteModal = async function(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    const nameInput = row.querySelector('.ir-name');
+    let curInd = {};
+    try { curInd = row.dataset.industryFieldsJson ? JSON.parse(row.dataset.industryFieldsJson) : {}; } catch (_) {}
+    const stockId = nameInput ? nameInput.dataset.stockId : null;
+    const stockItem = (stockId && Array.isArray(allMyStock)) ? allMyStock.find(x => x.id === stockId) : null;
+    const curSub = row.dataset.itemSubtitle || '';
+
+    const { value: updated } = await Swal.fire({
+        title: '🍔 آئٹم فلیور، سائز اور کچن KOT نوٹ تبدیل کریں',
+        width: 500,
+        html: `
+            <div style="text-align:right; direction:rtl; font-size:12.5px; color:#1e293b;">
+                <div style="font-weight:bold; color:#b45309; margin-bottom:8px;">🍔 مینو آئٹم: ${nameInput ? nameInput.value : ''}</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">📏 سائز / پورشن (Size / Portion)</label>
+                        <input id="rowRestPortion" class="swal2-input" value="${curInd.portionSize || ''}" placeholder="e.g. Large, Half, 6 Pcs" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">🌶️ فلیور / مصالحہ (Spice / Flavor)</label>
+                        <input id="rowRestSpice" class="swal2-input" value="${curInd.spiceVariant || ''}" placeholder="e.g. Spicy Peri-Peri, Mild" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px;">
+                    </div>
+                </div>
+                <div style="margin-bottom:8px;">
+                    <label style="font-weight:bold; display:block; margin-bottom:2px;">🧀 ایکسٹرا ٹاپنگز / کچن کسٹمائزیشن (Add-ons / KOT Note)</label>
+                    <input id="rowRestAddons" class="swal2-input" value="${curInd.addonsNote || ''}" placeholder="e.g. Extra Cheese, No Mayo, Packing Alag" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px;">
+                </div>
+                <div>
+                    <label style="font-weight:bold; display:block; margin-bottom:2px;">🔔 کچن پرنٹر زون (KOT Counter / Zone)</label>
+                    <input id="rowRestKot" class="swal2-input" value="${curInd.kitchenKOTZone || ''}" placeholder="e.g. Fryer Counter, Pizza Oven" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px;">
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '✅ Update KOT Item',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#d97706',
+        preConfirm: () => ({
+            portionSize: (document.getElementById('rowRestPortion')?.value || '').trim(),
+            spiceVariant: (document.getElementById('rowRestSpice')?.value || '').trim(),
+            addonsNote: (document.getElementById('rowRestAddons')?.value || '').trim(),
+            kitchenKOTZone: (document.getElementById('rowRestKot')?.value || '').trim()
+        })
+    });
+
+    if (updated) {
+        const newInd = { ...curInd };
+        if (updated.portionSize !== undefined) newInd.portionSize = updated.portionSize;
+        if (updated.spiceVariant !== undefined) newInd.spiceVariant = updated.spiceVariant;
+        if (updated.addonsNote !== undefined) newInd.addonsNote = updated.addonsNote;
+        if (updated.kitchenKOTZone !== undefined) newInd.kitchenKOTZone = updated.kitchenKOTZone;
+
+        row.dataset.industryFieldsJson = JSON.stringify(newInd);
+        const rebuiltSub = formatStockIndustrySubtitle({ ...(stockItem || { unit: row.dataset.unit || 'order' }), industryFields: newInd });
+        row.dataset.itemSubtitle = rebuiltSub || curSub;
+
+        const hint = row.querySelector('.stock-hint');
+        if (hint) {
+            hint.style.display = 'inline-block';
+            hint.innerHTML = buildRowStockHintHtml({
+                ...(stockItem || { unit: row.dataset.unit || 'order', qty: 1 }),
+                itemSubtitle: row.dataset.itemSubtitle,
+                industryFields: newInd
+            }, rowId);
+        }
+    }
+};
 
 // 🛠️ Mobile Shop POS: Quick Repairing / Service Job Billing Modal
 window.openMobileRepairJobPosModal = async function() {
@@ -2092,6 +2491,21 @@ function getCustomerSegmentBadgeText(c) {
         library_inst: '🏛️ Library / Office',
         teacher_tutor: '👨‍🏫 Teacher / Tutor',
         student_parent: '🎒 Student / Parent',
+        kiryana_retailer: '🏪 Kiryana / General Store',
+        superstore_mart: '🛒 Superstore / Cash & Carry',
+        mandi_party: '🌾 Mandi / Bulk Arhti',
+        corporate_canteen: '🏢 Hotel / Canteen / Inst.',
+        clinic_hospital: '🏥 Hospital / Clinic / Ward',
+        doctor_prescriber: '👨‍⚕️ Doctor / Private Practice',
+        sub_chemist: '💊 Sub-Chemist / Medical Store',
+        chronic_patient: '🩺 Regular / Monthly Patient',
+        panel_inst: '🏢 Corporate / Panel Account',
+        dinein_regular: '🍽️ Dine-in Regular / VIP',
+        takeaway_cust: '🛍️ Takeaway / Parcel',
+        home_delivery: '🛵 Home Delivery Customer',
+        foodpanda_online: '📱 Online App / Aggregator',
+        corporate_office: '🏢 Corporate / Office Account',
+        catering_event: '🎉 Catering / Party Bulk',
         general_cust: '👤 General Customer'
     };
     return map[c.subCategory] || c.subCategory;
@@ -2113,9 +2527,9 @@ function selectCustomerObject(c) {
     if (catSuggest) catSuggest.classList.remove('show');
 
     // 🎯 AUTO-SELECT WHOLESALE vs RETAIL BASED ON CUSTOMER TYPE OR SEGMENT!
-    if (c.customerType === 'wholesale' || c.subCategory === 'school_college' || c.subCategory === 'sub_dealer' || c.subCategory === 'library_inst' || c.subCategory === 'repair_tech' || c.subCategory === 'corporate_inst') {
+    if (c.customerType === 'wholesale' || c.subCategory === 'school_college' || c.subCategory === 'sub_dealer' || c.subCategory === 'library_inst' || c.subCategory === 'repair_tech' || c.subCategory === 'corporate_inst' || c.subCategory === 'kiryana_retailer' || c.subCategory === 'superstore_mart' || c.subCategory === 'mandi_party' || c.subCategory === 'corporate_canteen' || c.subCategory === 'corporate_office' || c.subCategory === 'catering_event' || c.subCategory === 'clinic_hospital' || c.subCategory === 'doctor_prescriber' || c.subCategory === 'sub_chemist' || c.subCategory === 'panel_inst') {
         setRateTier('wholesale', true);
-    } else if (c.customerType === 'retail' || c.subCategory === 'student_parent' || c.subCategory === 'installment_cust' || c.subCategory === 'used_buyer_seller') {
+    } else if (c.customerType === 'retail' || c.subCategory === 'student_parent' || c.subCategory === 'installment_cust' || c.subCategory === 'used_buyer_seller' || c.subCategory === 'dinein_regular' || c.subCategory === 'takeaway_cust' || c.subCategory === 'home_delivery' || c.subCategory === 'foodpanda_online' || c.subCategory === 'chronic_patient' || c.subCategory === 'general_cust') {
         setRateTier('retail', true);
     }
 
@@ -2137,6 +2551,33 @@ function selectCustomerObject(c) {
     const prevBal = parseFloat(c.balance || 0);
     const segLabel = getCustomerSegmentBadgeText(c);
     const isMobMode = isMobileShopAgency();
+    const isMedMode = isMedicalAgency();
+    const isWhMode = isWholesalerAgency();
+    const isRestMode = typeof isRestaurantAgency === 'function' ? isRestaurantAgency() : false;
+
+    // 🍔 If Restaurant mode & Fast Food Order Bar is present, gently auto-fill empty delivery/rider fields
+    if (isRestMode) {
+        const modeSel = document.getElementById('posRestServiceMode');
+        const tblInp = document.getElementById('posRestTableToken');
+        const riderInp = document.getElementById('posRestRiderWaiter');
+        if (modeSel && (!tblInp || !tblInp.value.trim())) {
+            if (c.subCategory === 'home_delivery') modeSel.value = 'delivery';
+            else if (c.subCategory === 'foodpanda_online') modeSel.value = 'online_app';
+            else if (c.subCategory === 'takeaway_cust') modeSel.value = 'takeaway';
+            if (typeof syncRestaurantServiceModePlaceholders === 'function') {
+                syncRestaurantServiceModePlaceholders();
+            }
+        }
+        if (tblInp && !tblInp.value.trim() && (c.subCategory === 'home_delivery' || c.subCategory === 'foodpanda_online' || c.address || c.affiliatedBoard)) {
+            const addrHint = [c.address, c.affiliatedBoard].filter(Boolean).join(' • ');
+            if (addrHint && (c.subCategory === 'home_delivery' || c.subCategory === 'foodpanda_online')) {
+                tblInp.value = addrHint;
+            }
+        }
+        if (riderInp && !riderInp.value.trim() && c.focalPerson) {
+            riderInp.value = c.focalPerson;
+        }
+    }
 
     let info = '<div class="cust-chips-wrap">';
     const displayName = c.name || c.shopName || 'Customer';
@@ -2147,10 +2588,10 @@ function selectCustomerObject(c) {
         info += `<span class="c-chip" style="background:#ede9fe; color:#6d28d9; border:1px solid #ddd6fe; font-weight:800;">${segLabel}</span>`;
     }
     if (c.affiliatedBoard) {
-        info += `<span class="c-chip" style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd;">${isMobMode ? '📱' : '🏛️'} ${c.affiliatedBoard}</span>`;
+        info += `<span class="c-chip" style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd;">${isRestMode ? '📍' : (isMedMode ? '🩺' : (isWhMode ? '🛣️' : (isMobMode ? '📱' : '🏛️')))} ${c.affiliatedBoard}</span>`;
     }
     if (c.focalPerson) {
-        info += `<span class="c-chip" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">${isMobMode ? '🤝' : '👔'} ${c.focalPerson}</span>`;
+        info += `<span class="c-chip" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">${isRestMode ? '🛵' : (isMedMode ? '👨‍⚕️' : (isWhMode || isMobMode ? '🤝' : '👔'))} ${c.focalPerson}</span>`;
     }
     if (agreedPct > 0) {
         info += `<span class="c-chip" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:800;">🏷️ Agreed Disc: ${agreedPct}%</span>`;
@@ -2296,18 +2737,30 @@ const DEFAULT_AGENCY_CUSTOMERS = [
     }
 ];
 
-function handlePopulatedCustomers(custList) {
-    if (!Array.isArray(custList) || custList.length === 0) {
+function filterRecordsForActiveCategory(list) {
+    if (!Array.isArray(list)) return [];
+    if (!window.BusinessCategories || typeof window.BusinessCategories.matchesActiveCategoryRecord !== 'function') {
+        return list;
+    }
+    const activeCat = getActiveAgencyBusinessType();
+    return list.filter(rec => window.BusinessCategories.matchesActiveCategoryRecord(rec, activeCat, myAgency));
+}
+
+function handlePopulatedCustomers(custList, rawTotalCount = 0) {
+    const filteredList = filterRecordsForActiveCategory(custList);
+    if (filteredList.length === 0 && rawTotalCount === 0 && (!myAgency || !myAgency.primaryCategory)) {
         allMyCustomers = DEFAULT_AGENCY_CUSTOMERS.map((c, i) => ({
             ...c,
             id: 'cust_seed_' + i,
+            businessCategory: getActiveAgencyBusinessType(),
             agencyId: myAgencyId || 'default'
         }));
     } else {
-        allMyCustomers = custList;
+        allMyCustomers = filteredList;
     }
     if (myAgencyId) {
-        localStorage.setItem(`eb_cust_cache_${myAgencyId}`, JSON.stringify(allMyCustomers));
+        const activeCat = getActiveAgencyBusinessType();
+        localStorage.setItem(`eb_cust_cache_${myAgencyId}_${activeCat}`, JSON.stringify(allMyCustomers));
         if (window.BillsDB) {
             window.BillsDB.cacheCustomers(myAgencyId, allMyCustomers);
         }
@@ -2315,13 +2768,15 @@ function handlePopulatedCustomers(custList) {
 }
 
 function loadCustomers() {
+    const activeCat = getActiveAgencyBusinessType();
     // 1. Try local cache first
     try {
-        const cached = localStorage.getItem(`eb_cust_cache_${myAgencyId}`);
+        const cached = localStorage.getItem(`eb_cust_cache_${myAgencyId}_${activeCat}`) || localStorage.getItem(`eb_cust_cache_${myAgencyId}`);
         if (cached) {
             const parsed = JSON.parse(cached);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                allMyCustomers = parsed;
+            const rawArr = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.customers) ? parsed.customers : []);
+            if (rawArr.length > 0) {
+                allMyCustomers = filterRecordsForActiveCategory(rawArr);
             }
         }
     } catch (e) {}
@@ -2364,7 +2819,7 @@ function loadCustomers() {
             const list = [];
             snap.forEach(d => list.push({ id: d.id, ...d.data() }));
             if (list.length > 0) {
-                handlePopulatedCustomers(list);
+                handlePopulatedCustomers(list, list.length);
             } else {
                 db.collection('customers').limit(50).get().then(snap2 => {
                     const list2 = [];
@@ -2767,12 +3222,15 @@ const DEFAULT_AGENCY_ITEMS = [
     }
 ];
 
-function handlePopulatedStock(itemsList) {
-    if (!Array.isArray(itemsList) || itemsList.length === 0) {
-        // Auto-seed standard store catalog so user never sees '0 products' error!
+function handlePopulatedStock(itemsList, rawTotalCount = 0) {
+    const activeCat = getActiveAgencyBusinessType();
+    const filteredList = filterRecordsForActiveCategory(itemsList);
+    if (filteredList.length === 0 && rawTotalCount === 0 && (!myAgency || !myAgency.primaryCategory)) {
+        // Auto-seed standard store catalog so user never sees '0 products' error on a brand-new empty agency!
         allMyStock = DEFAULT_AGENCY_ITEMS.map((it, idx) => ({
             ...it,
             id: 'stk_seed_' + idx,
+            businessCategory: activeCat,
             agencyId: myAgencyId || 'default'
         }));
         if (myAgencyId && db) {
@@ -2780,20 +3238,20 @@ function handlePopulatedStock(itemsList) {
                 const batch = db.batch();
                 DEFAULT_AGENCY_ITEMS.forEach(it => {
                     const docRef = db.collection('stock').doc();
-                    batch.set(docRef, { ...it, id: docRef.id, agencyId: myAgencyId, createdAt: new Date().toISOString() });
+                    batch.set(docRef, { ...it, id: docRef.id, businessCategory: activeCat, agencyId: myAgencyId, createdAt: new Date().toISOString() });
                 });
                 batch.commit().catch(e => console.warn('Auto-seed save:', e));
             } catch (e) {}
         }
     } else {
-        allMyStock = itemsList.map((it, idx) => ({
+        allMyStock = filteredList.map((it, idx) => ({
             ...it,
             id: String(it.id || it._id || it.stockId || ('stk_' + idx))
         }));
     }
     allMyStock.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     if (myAgencyId) {
-        localStorage.setItem(`eb_stock_cache_${myAgencyId}`, JSON.stringify({ items: allMyStock, timestamp: new Date().toISOString() }));
+        localStorage.setItem(`eb_stock_cache_${myAgencyId}_${activeCat}`, JSON.stringify({ items: allMyStock, timestamp: new Date().toISOString() }));
         if (window.BillsDB) {
             window.BillsDB.cacheStock(myAgencyId, allMyStock);
         }
@@ -2807,13 +3265,14 @@ function handlePopulatedStock(itemsList) {
 }
 
 function loadStock() {
+    const activeCat = getActiveAgencyBusinessType();
     // 1. Try local stock cache (Quota shield)
     try {
-        const cached = localStorage.getItem(`eb_stock_cache_${myAgencyId}`);
+        const cached = localStorage.getItem(`eb_stock_cache_${myAgencyId}_${activeCat}`) || localStorage.getItem(`eb_stock_cache_${myAgencyId}`);
         if (cached) {
             const parsed = JSON.parse(cached);
             if (Array.isArray(parsed.items) && parsed.items.length > 0) {
-                allMyStock = parsed.items.map((it, idx) => ({
+                allMyStock = filterRecordsForActiveCategory(parsed.items).map((it, idx) => ({
                     ...it,
                     id: String(it.id || it._id || it.stockId || ('stk_' + idx))
                 }));
@@ -2825,7 +3284,7 @@ function loadStock() {
     if (allMyStock.length === 0 && window.BillsDB) {
         window.BillsDB.getCachedStock(myAgencyId).then(items => {
             if (Array.isArray(items) && items.length > 0 && allMyStock.length === 0) {
-                allMyStock = items;
+                allMyStock = filterRecordsForActiveCategory(items);
                 if (typeof refreshCatalogueData === 'function') refreshCatalogueData();
                 if (typeof setupBookPosQuickFilterBar === 'function') setupBookPosQuickFilterBar();
             }
@@ -2839,7 +3298,7 @@ function loadStock() {
 
     // 2. Fetch fresh stock from Firestore (Smart with fallback)
     if (!myAgencyId) {
-        if (allMyStock.length === 0) handlePopulatedStock([]);
+        if (allMyStock.length === 0) handlePopulatedStock([], 0);
         return;
     }
 
@@ -2856,7 +3315,7 @@ function loadStock() {
             });
 
             if (items.length > 0) {
-                handlePopulatedStock(items);
+                handlePopulatedStock(items, items.length);
             } else {
                 // Check if stock exists without agencyId filter or under general
                 db.collection('stock').limit(100).get().then(snap2 => {
@@ -2870,16 +3329,16 @@ function loadStock() {
                         }
                     });
                     if (items2.length > 0) {
-                        handlePopulatedStock(items2);
+                        handlePopulatedStock(items2, items2.length);
                     } else {
-                        handlePopulatedStock([]); // Auto-seed standard items!
+                        handlePopulatedStock([], 0); // Auto-seed standard items!
                     }
-                }).catch(() => handlePopulatedStock([]));
+                }).catch(() => handlePopulatedStock([], 0));
             }
         })
         .catch((e) => {
             console.warn('Stock load error:', e);
-            if (allMyStock.length === 0) handlePopulatedStock([]);
+            if (allMyStock.length === 0) handlePopulatedStock([], 0);
         });
 }
 
@@ -2887,12 +3346,12 @@ function loadStock() {
 window.addEventListener('eb-data-synced', (e) => {
     if (e.detail && e.detail.agencyId === myAgencyId) {
         if (Array.isArray(e.detail.stock) && e.detail.stock.length > 0) {
-            allMyStock = e.detail.stock;
+            allMyStock = filterRecordsForActiveCategory(e.detail.stock);
             if (typeof refreshCatalogueData === 'function') refreshCatalogueData();
             if (typeof setupBookPosQuickFilterBar === 'function') setupBookPosQuickFilterBar();
         }
         if (Array.isArray(e.detail.customers) && e.detail.customers.length > 0) {
-            allMyCustomers = e.detail.customers;
+            allMyCustomers = filterRecordsForActiveCategory(e.detail.customers);
         }
     }
 });
@@ -3120,12 +3579,29 @@ function buildRowStockHintHtml(stockItem, rowId = '') {
     const colorClass = qtyVal <= 0 ? 'stock-out' : (qtyVal <= 10 ? 'stock-low' : 'stock-ok');
     let hintContent = `Available: <span class="stock-badge ${colorClass}"><b>${qtyVal} ${UNIT_LBL(stockItem.unit)}</b></span>`;
     const sub = stockItem.itemSubtitle !== undefined ? stockItem.itemSubtitle : formatStockIndustrySubtitle(stockItem);
-    const iconPrefix = isMobileShopAgency() ? '📱' : (isWholesalerAgency() ? '📦' : '📚');
+    const iconPrefix = isMobileShopAgency() ? '📱' : (isMedicalAgency() ? '💊' : (isRestaurantAgency() ? '🍔' : (isWholesalerAgency() ? '📦' : '📚')));
     if (sub) {
         hintContent += ` <span style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:700;">${iconPrefix} ${sub}</span>`;
     }
+    const indS = stockItem.industryFields || {};
+    if (indS.dealContents) {
+        hintContent += ` <span style="background:#fffbeb; color:#92400e; border:1px solid #fcd34d; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:700;">🎁 Deal: ${indS.dealContents}</span>`;
+    }
+    if (indS.expiryDate) {
+        const expInfo = classifyPosExpiryStatus(indS.expiryDate);
+        if (expInfo.status === 'expired') {
+            hintContent += ` <span style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:800;">🚨 EXPIRED BATCH!</span>`;
+        } else if (expInfo.status === 'critical') {
+            hintContent += ` <span style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:800;">🟠 ${expInfo.label}</span>`;
+        } else if (expInfo.status === 'warning') {
+            hintContent += ` <span style="background:#fef9c3; color:#a16207; border:1px solid #fde047; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:700;">🟡 ${expInfo.label}</span>`;
+        }
+    }
     if (rowId && isMobileShopAgency()) {
         hintContent += ` <button type="button" onclick="openRowImeiWarrantyModal('${rowId}')" style="background:#e0f2fe; color:#0284c7; border:1px solid #7dd3fc; border-radius:5px; padding:1px 6px; font-size:9.5px; font-weight:800; cursor:pointer;" title="Edit or Scan IMEI 1-4 & Warranty on this Bill Row">✏️ IMEI / Warranty</button>`;
+    }
+    if (rowId && isRestaurantAgency()) {
+        hintContent += ` <button type="button" onclick="openRowKitchenNoteModal('${rowId}')" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:5px; padding:1px 6px; font-size:9.5px; font-weight:800; cursor:pointer;" title="Customize Size, Spice Flavor, Add-ons & Kitchen KOT Note">✏️ Flavor / KOT Note</button>`;
     }
     if (stockItem.hasScheme) {
         hintContent += ` <span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 ${stockItem.schemeLabel || 'Scheme'}</span>`;
@@ -3134,6 +3610,16 @@ function buildRowStockHintHtml(stockItem, rowId = '') {
 }
 
 function addItemToRows(stockItem) {
+    // Expiry safety alert if user adds an expired batch
+    const medExp = stockItem && stockItem.industryFields ? classifyPosExpiryStatus(stockItem.industryFields.expiryDate) : { status: 'none' };
+    if (medExp.status === 'expired') {
+        Swal.fire({
+            toast: true, position: 'top-end', icon: 'error',
+            title: `🚨 Expired Medicine Warning: ${stockItem.name} (${stockItem.industryFields.expiryDate})`,
+            showConfirmButton: false, timer: 3200
+        });
+    }
+
     // Check if item is already in rows, if so, just increase Qty!
     let existingRow = null;
     let emptyRow = null;
@@ -3169,7 +3655,7 @@ function addItemToRows(stockItem) {
     const tpVal = ind.tradePriceTP || stockItem.wholesaleRate || stockItem.rate || rate;
     const itemSubtitle = stockItem.itemSubtitle !== undefined ? stockItem.itemSubtitle : formatStockIndustrySubtitle(stockItem);
     const packSz = parseFloat(ind.packSize) || (stockItem.unit === 'dozen' ? 12 : (stockItem.unit === 'ream' ? 500 : (stockItem.unit === 'maund' ? 40 : 0)));
-    const skuVal = ind.imei1 || ind.isbnCode || ind.skuBatchCode || stockItem.barcode || stockItem.sku || '';
+    const skuVal = ind.imei1 || ind.isbnCode || ind.skuBatchCode || ind.batchNo || stockItem.barcode || stockItem.sku || '';
     const promoText = stockItem.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '';
 
     if (emptyRow) {
@@ -3759,7 +4245,7 @@ function addRow(data = {}) {
                 // Auto-fill FMCG / Wholesale / Book Depot / Mobile Shop inputs
                 if (tpInput) tpInput.value = ind.tradePriceTP || s.wholesaleRate || s.rate || chosenRate;
                 if (retailPriceInput) retailPriceInput.value = s.retailRate || s.rate || chosenRate;
-                if (skuInput) skuInput.value = ind.imei1 || ind.isbnCode || ind.skuBatchCode || s.barcode || s.sku || (s.id ? s.id.slice(-6) : '');
+                if (skuInput) skuInput.value = ind.imei1 || ind.isbnCode || ind.skuBatchCode || ind.batchNo || s.barcode || s.sku || (s.id ? s.id.slice(-6) : '');
                 if (catInput && s.category) catInput.value = s.category;
                 if (ctnSizeInput && (s.ctnSize || packSz > 1)) ctnSizeInpOrSize(ctnSizeInput, s.ctnSize || packSz);
                 if (boxInput) boxInput.value = 1;
@@ -3772,6 +4258,15 @@ function addRow(data = {}) {
 
                 hint.style.display = 'inline-block';
                 hint.innerHTML = buildRowStockHintHtml(s, rowId);
+
+                const expWarn = ind.expiryDate ? classifyPosExpiryStatus(ind.expiryDate) : { status: 'none' };
+                if (expWarn.status === 'expired') {
+                    Swal.fire({
+                        toast: true, position: 'top-end', icon: 'error',
+                        title: `🚨 Expired Medicine Warning: ${s.name} (${ind.expiryDate})`,
+                        showConfirmButton: false, timer: 3200
+                    });
+                }
 
                 updateRowCalc();
             });
@@ -4104,6 +4599,7 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
     const bookerMobile = (myUser && myUser.mobile) || '';
     const orderStatus = isBookerMode ? 'pending_approval' : 'approved';
     const orderType = isBookerMode ? 'field_order' : 'direct_bill';
+    const restMeta = (typeof getRestaurantOrderMeta === 'function') ? getRestaurantOrderMeta() : null;
 
     const billData = {
         agencyId: myAgencyId,
@@ -4115,19 +4611,19 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
         salesmanMobile: bookerMobile,
         deliveryDate: document.getElementById('billDeliveryDate')?.value || '',
         pjpName: document.getElementById('billPjpName')?.value || '',
-        deliveredBy: document.getElementById('billDeliveredBy')?.value || '',
-        deliveryMan: document.getElementById('billDeliveredBy')?.value || '',
+        deliveredBy: document.getElementById('billDeliveredBy')?.value || (restMeta && restMeta.riderWaiterName) || '',
+        deliveryMan: document.getElementById('billDeliveredBy')?.value || (restMeta && restMeta.riderWaiterName) || '',
         specialTO: parseFloat(document.getElementById('billSpecialTo')?.value) || 0,
         storeCode: document.getElementById('billCustStoreCode')?.value || (selectedCustomer?.code || ''),
         obUserTag: document.getElementById('billObUserTag')?.value || 'Full Range',
         route: document.getElementById('billRoute')?.value || (selectedCustomer?.route || ''),
-        channel: document.getElementById('billChannel')?.value || 'RETAIL',
-        subChannel: document.getElementById('billSubChannel')?.value || 'KIRYANA STORE',
+        channel: (restMeta ? restMeta.serviceModeLabel : '') || document.getElementById('billChannel')?.value || 'RETAIL',
+        subChannel: (restMeta && restMeta.tableTokenNo) || document.getElementById('billSubChannel')?.value || 'KIRYANA STORE',
         custNic: document.getElementById('billCustNic')?.value || (selectedCustomer?.cnic || ''),
         itStatus: document.getElementById('billItStatus')?.value || (selectedCustomer?.isFiler ? 'Filer-0%' : 'Non-Filer-2.5%'),
         lastMonthSales: parseFloat(document.getElementById('billLastMonthSales')?.value) || 0,
         mtdSales: parseFloat(document.getElementById('billMtdSales')?.value) || 0,
-        loadFormNo: document.getElementById('billLoadFormNo')?.value || '',
+        loadFormNo: (restMeta && restMeta.tableTokenNo) || document.getElementById('billLoadFormNo')?.value || '',
         sdrAmount: parseFloat(document.getElementById('billSdrAmount')?.value) || 0,
         storeCreditBalance: parseFloat(document.getElementById('billStoreCreditBalance')?.value) || (selectedCustomer?.balance || 0),
         lastBillDate: lastBillDate,
@@ -4136,11 +4632,16 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
         orderStatus: orderStatus,
         deliveryStatus: 'pending',
         orderType: orderType,
+        serviceMode: restMeta ? restMeta.serviceMode : '',
+        serviceModeLabel: restMeta ? restMeta.serviceModeLabel : '',
+        tableTokenNo: restMeta ? restMeta.tableTokenNo : '',
+        riderWaiterName: restMeta ? restMeta.riderWaiterName : '',
+        kitchenOrderNote: restMeta ? restMeta.kitchenOrderNote : '',
         customerName: customerName,
         customerId: selectedCustomer ? selectedCustomer.id : null,
         customerShopName: selectedCustomer ? (selectedCustomer.shopName || '') : '',
         customerMobile: selectedCustomer ? (selectedCustomer.mobile || '') : '',
-        customerAddress: selectedCustomer ? (selectedCustomer.address || '') : '',
+        customerAddress: (selectedCustomer ? (selectedCustomer.address || '') : '') || ((restMeta && restMeta.serviceMode === 'delivery') ? restMeta.tableTokenNo : ''),
         customerRoute: document.getElementById('billRoute')?.value || (selectedCustomer ? (selectedCustomer.route || '') : ''),
         customerCity: selectedCustomer ? (selectedCustomer.city || '') : '',
         customerNtn: selectedCustomer ? (selectedCustomer.ntn || selectedCustomer.custNTN || '') : '',
@@ -4167,6 +4668,7 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
         received: received,
         balance: balance,
         rateTier: activeRateTier,
+        businessCategory: getActiveAgencyBusinessType(),
         date: new Date().toISOString().slice(0, 10),
         time: new Date().toLocaleTimeString('en-PK', {hour:'2-digit', minute:'2-digit'}),
         template: forceTemplate || getActiveBillTemplate(),
@@ -4473,6 +4975,7 @@ document.getElementById('adminNewBillBtn')?.addEventListener('click', () => {
     if (taxCheck) taxCheck.checked = false;
     const taxRate = document.getElementById('taxRate');
     if (taxRate) taxRate.value = '0';
+    if (typeof resetRestaurantOrderBar === 'function') resetRestaurantOrderBar();
     calcTotals();
     previewBillNo();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -6580,6 +7083,7 @@ window.resetForNextOrder = function() {
         recInput.value = '0';
         delete recInput.dataset.touched;
     }
+    if (typeof resetRestaurantOrderBar === 'function') resetRestaurantOrderBar();
 
     // Scroll to top shopkeeper search so booker is immediately ready
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -6672,6 +7176,7 @@ async function submitCatalogueFieldOrder() {
         const receivedAmt = parseFloat(document.getElementById('catReviewReceived')?.value) || 0;
         const netBalance = Math.max(0, grandTotal - receivedAmt);
 
+        const restMeta = (typeof getRestaurantOrderMeta === 'function') ? getRestaurantOrderMeta() : null;
         const orderData = {
             agencyId: myAgencyId,
             billNo: orderNo,
@@ -6679,6 +7184,11 @@ async function submitCatalogueFieldOrder() {
             orderStatus: 'pending_approval', // ⏳ Admin approval required!
             orderType: 'field_order',
             deliveryStatus: 'pending',
+            serviceMode: restMeta ? restMeta.serviceMode : '',
+            serviceModeLabel: restMeta ? restMeta.serviceModeLabel : '',
+            tableTokenNo: restMeta ? restMeta.tableTokenNo : '',
+            riderWaiterName: restMeta ? restMeta.riderWaiterName : '',
+            kitchenOrderNote: restMeta ? restMeta.kitchenOrderNote : '',
             customerId: selectedCustomer ? selectedCustomer.id : null,
             customerName: selectedCustomer ? (selectedCustomer.name || 'Counter Sale') : 'Counter Sale',
             customerShop: selectedCustomer ? (selectedCustomer.shopName || '') : '',

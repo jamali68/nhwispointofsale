@@ -58,12 +58,25 @@ const CUST_SUBCATEGORY_LABELS = {
     'superstore_mart': '🏬 Super Store / Mini Mart',
     'mandi_party': '🌾 Mandi / Bulk Sub-Wholesaler',
     'corporate_canteen': '🏢 Canteen / Hotel / Institution',
+    'clinic_hospital': '🏥 Clinic / Hospital / Nursing Home',
+    'doctor_prescriber': '🩺 Doctor / Prescriber / Dispensary',
+    'sub_chemist': '💊 Sub-Chemist / Rural Medical Store',
+    'panel_inst': '🏛️ Panel / Corporate Health Account',
+    'chronic_patient': '❤️ Regular / Monthly Medicine Patient',
+    'dinein_regular': '🍽️ Dine-in Regular / VIP',
+    'takeaway_cust': '🛍️ Takeaway / Parcel',
+    'home_delivery': '🛵 Home Delivery Customer',
+    'foodpanda_online': '📱 Online App / Aggregator',
+    'corporate_office': '🏢 Corporate / Office Account',
+    'catering_event': '🎉 Catering / Party Bulk',
     'general_cust': '👤 General Customer'
 };
 const INSTITUTIONAL_SEGMENTS = [
     'school_college', 'sub_dealer', 'library_inst', 'teacher_tutor',
     'repair_tech', 'installment_cust', 'used_buyer_seller', 'corporate_inst',
-    'kiryana_retailer', 'superstore_mart', 'mandi_party', 'corporate_canteen'
+    'kiryana_retailer', 'superstore_mart', 'mandi_party', 'corporate_canteen',
+    'clinic_hospital', 'doctor_prescriber', 'sub_chemist', 'panel_inst', 'chronic_patient',
+    'dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'corporate_office', 'catering_event'
 ];
 function getActiveCategoryId() {
     if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
@@ -247,7 +260,7 @@ auth.onAuthStateChanged(async (user) => {
 // 💾 SMART CACHING SYSTEM (QUOTA SHIELD & 0 MS INSTANT LOAD)
 // ============================================
 function getCacheKey() {
-    return `eb_cust_cache_${myAgencyId}`;
+    return `eb_cust_cache_${myAgencyId}_${getActiveCategoryId()}`;
 }
 
 function loadFromCache() {
@@ -256,7 +269,12 @@ function loadFromCache() {
         if (cachedStr) {
             const parsed = JSON.parse(cachedStr);
             if (Array.isArray(parsed.customers) && parsed.customers.length > 0) {
-                allCustomers = parsed.customers;
+                const activeCatId = getActiveCategoryId();
+                allCustomers = parsed.customers.filter(c =>
+                    !window.BusinessCategories || typeof window.BusinessCategories.matchesActiveCategoryRecord !== 'function'
+                        ? true
+                        : window.BusinessCategories.matchesActiveCategoryRecord(c, activeCatId, myAgency)
+                );
                 populateCustomerRouteFilter();
                 renderStats();
                 renderCustomers();
@@ -361,11 +379,13 @@ async function loadAgencyBookers() {
 function populateCustomerRouteFilter() {
     const sel = document.getElementById('custRouteFilter');
     if (!sel) return;
-    const isWholesale = getActiveCategoryId() === 'wholesaler';
+    const activeCat = getActiveCategoryId();
+    const isWholesale = activeCat === 'wholesaler';
+    const isRestaurant = activeCat === 'restaurant';
     const routeSet = new Set();
     allCustomers.forEach(c => {
         if (c.route && String(c.route).trim()) routeSet.add(String(c.route).trim());
-        if (isWholesale && c.affiliatedBoard && String(c.affiliatedBoard).trim()) {
+        if ((isWholesale || isRestaurant) && c.affiliatedBoard && String(c.affiliatedBoard).trim()) {
             routeSet.add(String(c.affiliatedBoard).trim());
         }
     });
@@ -437,9 +457,16 @@ function listenCustomers() {
     custUnsubscribe = db.collection('customers')
         .where('agencyId', '==', myAgencyId)
         .onSnapshot((snap) => {
+            const activeCatId = getActiveCategoryId();
             allCustomers = [];
             snap.forEach(d => {
-                allCustomers.push({ id: d.id, ...d.data() });
+                const rec = { id: d.id, ...d.data() };
+                if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                    if (!window.BusinessCategories.matchesActiveCategoryRecord(rec, activeCatId, myAgency)) {
+                        return;
+                    }
+                }
+                allCustomers.push(rec);
             });
             allCustomers.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
             saveToCache(allCustomers);
@@ -469,9 +496,16 @@ function listenBills() {
     billsUnsubscribe = db.collection('bills')
         .where('agencyId', '==', myAgencyId)
         .onSnapshot((snap) => {
+            const activeCatId = getActiveCategoryId();
             allAgencyBills = [];
             snap.forEach(d => {
-                allAgencyBills.push({ id: d.id, ...d.data() });
+                const b = { id: d.id, ...d.data() };
+                if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                    if (!window.BusinessCategories.matchesActiveCategoryRecord(b, activeCatId, myAgency)) {
+                        return;
+                    }
+                }
+                allAgencyBills.push(b);
             });
             // Newest bills first
             allAgencyBills.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
@@ -554,6 +588,8 @@ function renderCustomers() {
 
     const activeCatId = getActiveCategoryId();
     const isWholesale = activeCatId === 'wholesaler';
+    const isRest = activeCatId === 'restaurant';
+    const isMedical = activeCatId === 'medical';
 
     let filtered = allCustomers.filter(c => {
         // Tab Filter
@@ -566,11 +602,11 @@ function renderCustomers() {
             if (!isInst) return false;
         }
 
-        // Route / PJP Beat Filter
+        // Route / PJP Beat / Delivery Zone Filter
         if (currentRouteFilter && currentRouteFilter !== 'all') {
             const targetRoute = currentRouteFilter.toLowerCase().trim();
             const cRoute = (c.route || '').toLowerCase().trim();
-            const cBeat = isWholesale ? (c.affiliatedBoard || '').toLowerCase().trim() : '';
+            const cBeat = (isWholesale || isRest) ? (c.affiliatedBoard || '').toLowerCase().trim() : '';
             if (cRoute !== targetRoute && cBeat !== targetRoute) return false;
         }
 
@@ -675,8 +711,8 @@ function renderCustomers() {
                 </div>
                 <div class="customer-details">
                     ${c.mobile ? `<span>📱 ${c.mobile}</span>` : ''}
-                    ${c.focalPerson ? `<span style="color:#4f46e5; font-weight:600;">${activeCatId === 'mobile' ? '🤝 Guarantor/Ref:' : (isWholesale ? '🤝 Owner/Munshi:' : '👔 Focal:')} ${c.focalPerson}</span>` : ''}
-                    ${c.affiliatedBoard ? `<span style="background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:6px; font-weight:700;">${activeCatId === 'mobile' ? '📱 Specialty:' : (isWholesale ? '🛣️ PJP Beat:' : '🏛️ Board:')} ${c.affiliatedBoard}</span>` : ''}
+                    ${c.focalPerson ? `<span style="color:#4f46e5; font-weight:600;">${activeCatId === 'mobile' ? '🤝 Guarantor/Ref:' : (isWholesale ? '🤝 Owner/Munshi:' : (isRest ? '🛵 Rider/Contact:' : (isMedical ? '👨‍⚕️ Doctor/Ref:' : '👔 Focal:')))} ${c.focalPerson}</span>` : ''}
+                    ${c.affiliatedBoard ? `<span style="background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:6px; font-weight:700;">${activeCatId === 'mobile' ? '📱 Specialty:' : (isWholesale ? '🛣️ PJP Beat:' : (isRest ? '📍 Delivery Zone:' : (isMedical ? '🩺 Specialty/Rx:' : '🏛️ Board:')))} ${c.affiliatedBoard}</span>` : ''}
                     ${c.address ? `<span>📍 ${c.address}</span>` : ''}
                     ${c.route ? `<span>🛣️ ${c.route}</span>` : ''}
                     ${c.city ? `<span>🏙️ ${c.city}</span>` : ''}
@@ -702,7 +738,7 @@ function renderCustomers() {
                 <button class="btn-card-pay" onclick="recordQuickPayment('${c.id}')" title="Receive Money / Payment Recovery">
                     <i class="fas fa-hand-holding-usd"></i> 💵 Pay
                 </button>
-                ${!isWholesale ? `<button class="btn-icon" style="background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; font-size:12px; padding:4px 8px; border-radius:8px; font-weight:800; cursor:pointer;" onclick="openCustomerDeviceImeiModal('${c.id}')" title="View Sold / Repaired Phones, IMEIs &amp; Warranties">📱 IMEIs</button>` : ''}
+                ${activeCatId === 'mobile' ? `<button class="btn-icon" style="background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; font-size:12px; padding:4px 8px; border-radius:8px; font-weight:800; cursor:pointer;" onclick="openCustomerDeviceImeiModal('${c.id}')" title="View Sold / Repaired Phones, IMEIs &amp; Warranties">📱 IMEIs</button>` : ''}
                 <button class="btn-icon btn-edit" onclick="editCustomer('${c.id}')" title="Edit Customer Details">✏️</button>
                 <button class="btn-icon btn-del" onclick="deleteCustomer('${c.id}', '${safeName}')" title="Delete Customer">🗑️</button>
             </div>
@@ -809,9 +845,9 @@ if (custSubCatEl) {
         const val = this.value;
         const typeEl = document.getElementById('custType');
         if (typeEl && val) {
-            if (['school_college', 'sub_dealer', 'library_inst', 'teacher_tutor', 'repair_tech', 'corporate_inst', 'kiryana_retailer', 'superstore_mart', 'mandi_party', 'corporate_canteen'].includes(val)) {
+            if (['school_college', 'sub_dealer', 'library_inst', 'teacher_tutor', 'repair_tech', 'corporate_inst', 'kiryana_retailer', 'superstore_mart', 'mandi_party', 'corporate_canteen', 'corporate_office', 'catering_event', 'clinic_hospital', 'doctor_prescriber', 'sub_chemist', 'panel_inst'].includes(val)) {
                 typeEl.value = 'wholesale';
-            } else if (['student_parent', 'installment_cust', 'used_buyer_seller', 'general_cust'].includes(val)) {
+            } else if (['student_parent', 'installment_cust', 'used_buyer_seller', 'general_cust', 'dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'chronic_patient'].includes(val)) {
                 typeEl.value = 'retail';
             }
         }
@@ -943,6 +979,7 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
             assignedBookerName: assignedBookerName,
             ntn: ntn,
             fbrStatus: fbrStatus,
+            businessCategory: getActiveCategoryId(),
             agencyId: myAgencyId,
             updatedAt: new Date().toISOString()
         };
@@ -1091,12 +1128,16 @@ function openCustomerHistory(custId, targetTab = 'ledger') {
     const activeCat = getActiveCategoryId();
     const isWholesale = activeCat === 'wholesaler';
     const isMobile = activeCat === 'mobile';
+    const isRest = activeCat === 'restaurant';
+    const isMedical = activeCat === 'medical';
+    const btnModalImei = document.getElementById('btnModalCustImeiDevices');
+    if (btnModalImei) btnModalImei.style.display = isMobile ? 'inline-flex' : 'none';
     const subParts = [
         c.shopName ? `🏪 <b>${c.shopName}</b>` : '',
         c.subCategory ? `<span style="color:#5b21b6; font-weight:700;">${getCustSubCategoryLabel(c.subCategory)}</span>` : '',
-        c.affiliatedBoard ? `${isMobile ? '📱' : (isWholesale ? '🛣️ PJP Beat:' : '🏛️')} ${c.affiliatedBoard}` : '',
+        c.affiliatedBoard ? `${isMobile ? '📱' : (isWholesale ? '🛣️ PJP Beat:' : (isRest ? '📍 Zone:' : (isMedical ? '🩺' : '🏛️')))} ${c.affiliatedBoard}` : '',
         (parseFloat(c.agreedDiscountPercent) > 0) ? `🏷️ Disc: <b>${c.agreedDiscountPercent}%</b>` : '',
-        c.focalPerson ? `${isMobile || isWholesale ? '🤝' : '👔'} ${c.focalPerson}` : '',
+        c.focalPerson ? `${isRest ? '🛵' : (isMedical ? '👨‍⚕️' : (isMobile || isWholesale ? '🤝' : '👔'))} ${c.focalPerson}` : '',
         c.mobile ? `📱 ${c.mobile}` : '',
         c.route ? `🛣️ ${c.route}` : '',
         c.city ? `🏙️ ${c.city}` : '',
@@ -2445,13 +2486,41 @@ window.printCustomerLedgerThermal = printCustomerLedgerThermal;
 window.openAddCustomCustomerSpecialtyModal = async function() {
     const catId = getActiveCategoryId();
     const isMobile = catId === 'mobile';
+    const isWholesale = catId === 'wholesaler';
+    const isMedical = catId === 'medical';
+    const isRest = catId === 'restaurant';
+    const modalTitle = isMobile
+        ? '➕ Add Custom Dealership / Brand Specialty'
+        : isWholesale
+        ? '➕ Add Custom PJP Route / Market Beat'
+        : isMedical
+        ? '➕ Add Custom Clinic Specialty / Regular Prescription'
+        : isRest
+        ? '➕ Add Custom Delivery Zone / Sector / Table Area'
+        : '➕ Add Custom Board / Syllabus / Specialty';
+    const modalLabel = isMobile
+        ? 'Apna Brand, Accessories Line ya Repairing Specialty likhein (e.g. Own Brand Accessories, iPhone Specialist, Used Phones):'
+        : isWholesale
+        ? 'Naya PJP Route / Market Beat ya Wholesale Zone likhein:'
+        : isMedical
+        ? 'Clinic Specialty, Hospital Ward ya Regular Prescription Group likhein:'
+        : isRest
+        ? 'Naya Delivery Zone, Colony, Sector ya Corporate Floor likhein:'
+        : 'Naya Board / Publisher / Specialty likhein:';
+    const modalPh = isMobile
+        ? 'e.g. Own Brand Fast Chargers & Handsfree'
+        : isWholesale
+        ? 'e.g. Thursday Beat - Grain Market & Ring Road'
+        : isMedical
+        ? 'e.g. Cardiac & Diabetic Monthly Care'
+        : isRest
+        ? 'e.g. Zone D - Gulberg & MM Alam Road'
+        : 'e.g. Kinnaird / Private Syllabus';
     const { value: newVal } = await Swal.fire({
-        title: isMobile ? '➕ Add Custom Dealership / Brand Specialty' : '➕ Add Custom Board / Syllabus / Specialty',
+        title: modalTitle,
         input: 'text',
-        inputLabel: isMobile
-            ? 'Apna Brand, Accessories Line ya Repairing Specialty likhein (e.g. Own Brand Accessories, iPhone Specialist, Used Phones):'
-            : 'Naya Board / Publisher / Specialty likhein:',
-        inputPlaceholder: isMobile ? 'e.g. Own Brand Fast Chargers & Handsfree' : 'e.g. Kinnaird / Private Syllabus',
+        inputLabel: modalLabel,
+        inputPlaceholder: modalPh,
         showCancelButton: true,
         confirmButtonColor: '#5b21b6',
         confirmButtonText: '💾 Save & Select'

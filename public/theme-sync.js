@@ -1,5 +1,5 @@
 // 🏷️ Central Application Version (Single source of truth)
-window.EASYBILL_VERSION = '5.4.0';
+window.EASYBILL_VERSION = '5.5.3';
 
 // 🔄 Live Version Synchronization with manifest.json
 (function syncManifestVersion() {
@@ -124,47 +124,104 @@ window.EASYBILL_VERSION = '5.4.0';
 
     const STORAGE_KEY = 'eb_theme_mode';
     
-    // Read saved theme preference (default to dark as established by app shell, or light if specified)
+    // Read saved theme preference (Light Mode is the default)
     function getSavedTheme() {
-        return localStorage.getItem(STORAGE_KEY) || 'dark';
+        return localStorage.getItem(STORAGE_KEY) || 'light';
     }
+
+    const THEME_META = {
+        light: { label: 'Light Mode', iconClass: 'fas fa-sun', metaColor: '#f4f7f6', isDark: false },
+        dark: { label: 'Dark / Night', iconClass: 'fas fa-moon', metaColor: '#0b1120', isDark: true },
+        night: { label: 'Dark / Night', iconClass: 'fas fa-moon', metaColor: '#0b1120', isDark: true },
+        'theme-green': { label: 'Emerald Green', iconClass: 'fas fa-leaf', metaColor: '#064e3b', isDark: false },
+        'theme-red': { label: 'Ruby Red', iconClass: 'fas fa-fire', metaColor: '#7f1d1d', isDark: false },
+        'theme-blue': { label: 'Royal Blue', iconClass: 'fas fa-gem', metaColor: '#1e3a8a', isDark: false },
+        'theme-purple': { label: 'Amethyst Purple', iconClass: 'fas fa-crown', metaColor: '#4c1d95', isDark: false },
+        'theme-yellow': { label: 'Amber Gold', iconClass: 'fas fa-coins', metaColor: '#451a03', isDark: false },
+        'theme-orange': { label: 'Sunset Orange', iconClass: 'fas fa-sun', metaColor: '#7c2d12', isDark: false }
+    };
 
     function applyLanguage(lang) {
         const activeLang = lang || localStorage.getItem('eb_app_language') || 'en';
         document.documentElement.setAttribute('data-lang', activeLang);
     }
 
+    function syncThemeDropupUI(activeTheme) {
+        try {
+            const normalized = activeTheme === 'night' ? 'dark' : (activeTheme || 'light');
+            const meta = THEME_META[normalized] || THEME_META.light;
+            const themeBtn = document.getElementById('ebSidebarThemeToggle');
+            const themeDropup = document.getElementById('ebThemeDropupMenu');
+            if (themeBtn) {
+                const btnText = document.getElementById('ebSidebarThemeText');
+                const btnIcon = themeBtn.querySelector('i:first-child');
+                if (btnText) btnText.innerText = meta.label;
+                if (btnIcon) btnIcon.className = meta.iconClass;
+            }
+            if (themeDropup) {
+                themeDropup.querySelectorAll('.eb-theme-option').forEach(opt => {
+                    const v = opt.dataset.themeVal;
+                    const shouldActive = (v === normalized);
+                    opt.classList.toggle('active', shouldActive);
+                    const lastChild = opt.lastElementChild;
+                    if (lastChild) {
+                        if (shouldActive) {
+                            lastChild.outerHTML = '<i class="fas fa-check" style="color:#38bdf8;"></i>';
+                        } else {
+                            lastChild.outerHTML = '<span class="eb-theme-dot" style="font-size:10px; color:#94a3b8; font-weight:700;">Select</span>';
+                        }
+                    }
+                });
+            }
+        } catch (_) {}
+    }
+
     function applyTheme(theme) {
-        const validThemes = ['dark', 'night', 'light', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange'];
-        const activeTheme = theme || 'dark';
-        
+        const activeTheme = theme || 'light';
+        const isDarkTheme = (activeTheme === 'dark' || activeTheme === 'night');
+        const meta = THEME_META[activeTheme] || THEME_META.light;
+
         // Remove all previous theme classes
-        document.documentElement.classList.remove('dark-theme', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange');
+        document.documentElement.classList.remove('dark', 'dark-theme', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange');
         if (document.body) {
-            document.body.classList.remove('dark-theme', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange');
+            document.body.classList.remove('dark', 'dark-theme', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange');
         }
 
-        if (activeTheme === 'dark' || activeTheme === 'night') {
-            document.documentElement.classList.add('dark-theme');
+        if (isDarkTheme) {
+            document.documentElement.classList.add('dark', 'dark-theme');
             document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
             if (document.body) {
-                document.body.classList.add('dark-theme');
+                document.body.classList.add('dark', 'dark-theme');
                 document.body.setAttribute('data-theme', 'dark');
             }
         } else if (activeTheme === 'light') {
             document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.style.colorScheme = 'light';
             if (document.body) {
                 document.body.setAttribute('data-theme', 'light');
             }
         } else {
-            // Preset for future themes
+            // Apply selected signature color theme
             document.documentElement.classList.add(activeTheme);
             document.documentElement.setAttribute('data-theme', activeTheme);
+            document.documentElement.style.colorScheme = 'light';
             if (document.body) {
                 document.body.classList.add(activeTheme);
                 document.body.setAttribute('data-theme', activeTheme);
             }
         }
+
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) {
+            metaTheme.setAttribute('content', meta.metaColor);
+        }
+
+        syncThemeDropupUI(activeTheme);
+
+        try {
+            window.dispatchEvent(new CustomEvent('eb-theme-changed', { detail: { theme: isDarkTheme ? 'dark' : activeTheme } }));
+        } catch (_) {}
     }
 
     // Apply immediately to prevent flash
@@ -203,6 +260,9 @@ window.EASYBILL_VERSION = '5.4.0';
     // Listen for theme change message from parent window / iframe
     window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'THEME_CHANGED') {
+            if (event.data.theme) {
+                localStorage.setItem(STORAGE_KEY, event.data.theme);
+            }
             applyTheme(event.data.theme);
         } else if (event.data && event.data.type === 'PING_MODULE') {
             notifyParentModuleReady();
@@ -245,7 +305,8 @@ window.EASYBILL_VERSION = '5.4.0';
             applyTheme(newTheme);
         },
         toggleTheme: () => {
-            const next = getSavedTheme() === 'dark' ? 'light' : 'dark';
+            const cur = getSavedTheme();
+            const next = (cur === 'dark' || cur === 'night') ? 'light' : 'dark';
             localStorage.setItem(STORAGE_KEY, next);
             applyTheme(next);
             return next;

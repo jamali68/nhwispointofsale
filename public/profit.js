@@ -147,12 +147,16 @@ auth.onAuthStateChanged(async (user) => {
 // ============================================
 async function loadStock() {
     try {
+        const activeCat = getProfitActiveCategory();
         const snap = await db.collection('stock').where('agencyId', '==', myAgencyId).get();
         rawStock = [];
         stockMap = {};
         stockNameMap = {};
         snap.forEach(d => {
             const item = { id: d.id, ...d.data() };
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                if (!window.BusinessCategories.matchesActiveCategoryRecord(item, activeCat, myAgency)) return;
+            }
             rawStock.push(item);
             stockMap[item.id] = item;
             if (item.name) {
@@ -166,10 +170,15 @@ async function loadStock() {
 
 async function loadCustomers() {
     try {
+        const activeCat = getProfitActiveCategory();
         const snap = await db.collection('customers').where('agencyId', '==', myAgencyId).get();
         rawCustomers = [];
         snap.forEach(d => {
-            rawCustomers.push({ id: d.id, ...d.data() });
+            const cust = { id: d.id, ...d.data() };
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                if (!window.BusinessCategories.matchesActiveCategoryRecord(cust, activeCat, myAgency)) return;
+            }
+            rawCustomers.push(cust);
         });
     } catch (e) {
         console.warn('Customers load warning:', e);
@@ -178,16 +187,22 @@ async function loadCustomers() {
 
 async function loadOperatingExpenses() {
     try {
+        const activeCat = getProfitActiveCategory();
         const snap = await db.collection('expenses').where('agencyId', '==', myAgencyId).get();
         rawOperatingExpenses = [];
         snap.forEach(d => {
-            rawOperatingExpenses.push({ id: d.id, ...d.data() });
+            const exp = { id: d.id, ...d.data() };
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                if (!window.BusinessCategories.matchesActiveCategoryRecord(exp, activeCat, myAgency)) return;
+            }
+            rawOperatingExpenses.push(exp);
         });
-        localStorage.setItem(`eb_expenses_${myAgencyId}`, JSON.stringify(rawOperatingExpenses));
+        localStorage.setItem(`eb_expenses_${myAgencyId}_${activeCat}`, JSON.stringify(rawOperatingExpenses));
     } catch (e) {
         console.warn('Expenses load for profit warning:', e);
         try {
-            const cached = localStorage.getItem(`eb_expenses_${myAgencyId}`);
+            const activeCat = getProfitActiveCategory();
+            const cached = localStorage.getItem(`eb_expenses_${myAgencyId}_${activeCat}`) || localStorage.getItem(`eb_expenses_${myAgencyId}`);
             if (cached) rawOperatingExpenses = JSON.parse(cached);
         } catch (err) {}
     }
@@ -200,6 +215,7 @@ async function loadBills() {
     }
 
     try {
+        const activeCat = getProfitActiveCategory();
         const [billsSnap] = await Promise.all([
             db.collection('bills').where('agencyId', '==', myAgencyId).get(),
             loadOperatingExpenses()
@@ -209,6 +225,9 @@ async function loadBills() {
         billsSnap.forEach(d => {
             const b = { id: d.id, ...d.data() };
             if (b.orderStatus !== 'cancelled') {
+                if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                    if (!window.BusinessCategories.matchesActiveCategoryRecord(b, activeCat, myAgency)) return;
+                }
                 rawBills.push(b);
             }
         });
@@ -392,6 +411,9 @@ function updateViewHeader() {
     } else if (currentView === 'customer') {
         titleEl.innerHTML = '<i class="fas fa-users" style="color:#14b8a6;"></i> 6. Customer-wise Profitability (گاہک وار منافع)';
         subEl.innerText = 'کس کسٹمر سے سب سے زیادہ منافع حاصل ہوا اور ان کا ادھار کھاتہ بیلنس';
+    } else if (currentView === 'agency_company') {
+        titleEl.innerHTML = '<i class="fas fa-building" style="color:#0284c7;"></i> 7. Multi-Agency / Principal Company Profit Comparison (10+ ایجنسیز کا منافع مقابلہ)';
+        subEl.innerText = 'ایک ہی کیٹیگری ڈیٹابیس کے اندر آپ کی تمام ڈسٹری بیوشن ایجنسیز / کمپنیز کی فروخت، لاگت، مارجن اور منافع کا مکمل موازنہ';
     }
 }
 
@@ -421,6 +443,34 @@ function calculateAndRenderProfit() {
     const monthsMap = {};
     // Customer-level map
     const customersMap = {};
+    // Reset Agency/Company-level map & seed with all active stock companies so even 0-sale agencies appear in comparison
+    window.__tempAgenciesMap = {};
+    (rawStock || []).forEach(st => {
+        const stInd = st.industryFields || {};
+        const compName = String(
+            st.brandCompany || st.supplierName || st.companyName ||
+            stInd.brandCompany || stInd.company || stInd.publisher || ''
+        ).trim();
+        if (!compName) return;
+        if (!window.__tempAgenciesMap[compName]) {
+            window.__tempAgenciesMap[compName] = {
+                agencyName: compName,
+                skuSet: new Set(),
+                billSet: new Set(),
+                unitsSold: 0,
+                freeUnitsGiven: 0,
+                totalSales: 0,
+                totalCost: 0,
+                stockItemsCount: 0,
+                stockValue: 0
+            };
+        }
+        window.__tempAgenciesMap[compName].stockItemsCount += 1;
+        if (st.name) window.__tempAgenciesMap[compName].skuSet.add(st.name.trim());
+        const q = parseFloat(st.qty) || 0;
+        const pRate = parseFloat(st.purchaseRate || st.retailRate || 0) || 0;
+        window.__tempAgenciesMap[compName].stockValue += (q * pRate);
+    });
     // Processed bills list
     const processedBills = [];
 
@@ -504,6 +554,38 @@ function calculateAndRenderProfit() {
             itemsMap[itemKey].totalSales += saleTotal;
             itemsMap[itemKey].totalCost += itemCost;
             if (costRate > 0) itemsMap[itemKey].costRate = costRate;
+
+            // 🏭 Group in Agency / Principal Company Map (Supports 5, 10, 20+ Agencies within active category)
+            const stkInd = stockRef.industryFields || {};
+            const itInd = it.industryFields || {};
+            const rawAgencyName = (
+                it.brandCompany || it.companyName || it.supplierName ||
+                itInd.brandCompany || itInd.company || itInd.publisher ||
+                stockRef.brandCompany || stockRef.supplierName || stockRef.companyName ||
+                stkInd.brandCompany || stkInd.company || stkInd.publisher ||
+                stockRef.category || 'General Agency / Line'
+            );
+            const agencyCompanyKey = String(rawAgencyName || 'General Agency / Line').trim();
+            if (!window.__tempAgenciesMap) window.__tempAgenciesMap = {};
+            if (!window.__tempAgenciesMap[agencyCompanyKey]) {
+                window.__tempAgenciesMap[agencyCompanyKey] = {
+                    agencyName: agencyCompanyKey,
+                    skuSet: new Set(),
+                    billSet: new Set(),
+                    unitsSold: 0,
+                    freeUnitsGiven: 0,
+                    totalSales: 0,
+                    totalCost: 0,
+                    stockItemsCount: 0,
+                    stockValue: 0
+                };
+            }
+            window.__tempAgenciesMap[agencyCompanyKey].skuSet.add(itemKey);
+            window.__tempAgenciesMap[agencyCompanyKey].billSet.add(b.id || b.billNo || bDate);
+            window.__tempAgenciesMap[agencyCompanyKey].unitsSold += qty;
+            window.__tempAgenciesMap[agencyCompanyKey].freeUnitsGiven += freeQty;
+            window.__tempAgenciesMap[agencyCompanyKey].totalSales += saleTotal;
+            window.__tempAgenciesMap[agencyCompanyKey].totalCost += itemCost;
         });
 
         totalCost += billTotalCost;
@@ -730,6 +812,24 @@ function calculateAndRenderProfit() {
         customer: Object.values(customersMap).map(c => {
             const margin = c.purchased > 0 ? (c.profit / c.purchased) * 100 : 0;
             return { ...c, margin };
+        }),
+        agency_company: Object.values(window.__tempAgenciesMap || {}).map(ag => {
+            const profit = ag.totalSales - ag.totalCost;
+            const margin = ag.totalSales > 0 ? (profit / ag.totalSales) * 100 : 0;
+            const profitSharePct = totalNetProfit > 0 ? Math.max(0, (profit / totalNetProfit) * 100) : 0;
+            return {
+                agencyName: ag.agencyName,
+                skusCount: Math.max(ag.stockItemsCount || 0, ag.skuSet ? ag.skuSet.size : 0),
+                billsCount: ag.billSet ? ag.billSet.size : 0,
+                unitsSold: ag.unitsSold,
+                freeUnitsGiven: ag.freeUnitsGiven,
+                stockValue: ag.stockValue || 0,
+                totalSales: ag.totalSales,
+                totalCost: ag.totalCost,
+                profit: profit,
+                margin: margin,
+                profitSharePct: profitSharePct
+            };
         })
     };
 
@@ -1062,6 +1162,64 @@ function renderActiveTable() {
         </table>`;
     }
 
+    // =====================================
+    // 7️⃣ MULTI-AGENCY / PRINCIPAL COMPANY PROFIT COMPARISON TABLE (10+ Agencies)
+    // =====================================
+    else if (currentView === 'agency_company') {
+        html = `
+        <table class="report-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th style="width:55px;">Rank</th>
+                    <th>Agency / Principal Company</th>
+                    <th style="text-align:center;">SKUs / Items</th>
+                    <th style="text-align:right;">Stock Value</th>
+                    <th style="text-align:center;">Bills</th>
+                    <th style="text-align:center;">Units Sold (+Free)</th>
+                    <th style="text-align:right;">Total Sales (فروخت)</th>
+                    <th style="text-align:right;">COGS (لاگت)</th>
+                    <th style="text-align:right;">Gross Profit (منافع)</th>
+                    <th style="text-align:center;">Margin %</th>
+                    <th style="text-align:center;">Profit Share %</th>
+                    <th style="text-align:center;">Performance</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map((ag, idx) => {
+                    const rankBadge = idx === 0 ? '🏆 #1' : (idx === 1 ? '🥈 #2' : (idx === 2 ? '🥉 #3' : `#${idx + 1}`));
+                    const statusText = ag.profit < 0 ? '🔴 Loss' : (idx === 0 && ag.profit > 0 ? '🏆 Top Agency' : (ag.margin >= 15 ? '🟢 High Margin' : (ag.totalSales > 0 ? '🔵 Active' : '⚪ Stock Only')));
+                    const badgeClass = ag.profit < 0 ? 'profit-badge-loss' : (ag.margin >= 15 ? 'profit-badge-high' : 'profit-badge-med');
+                    return `
+                    <tr>
+                        <td style="font-weight:900; color:${idx === 0 ? '#b45309' : '#334155'};">${rankBadge}</td>
+                        <td>
+                            <b style="font-size:13.5px; color:#0f172a;">🏭 ${ag.agencyName}</b>
+                        </td>
+                        <td style="text-align:center; font-weight:700;">${ag.skusCount}</td>
+                        <td style="text-align:right; color:#0369a1; font-weight:600;">Rs ${formatMoney(ag.stockValue)}</td>
+                        <td style="text-align:center; font-weight:700;">${ag.billsCount}</td>
+                        <td style="text-align:center; font-weight:700;">
+                            ${ag.unitsSold}${ag.freeUnitsGiven > 0 ? ` <span style="font-size:11px; color:#0284c7;">(+${ag.freeUnitsGiven} Free)</span>` : ''}
+                        </td>
+                        <td style="text-align:right; font-weight:bold;">Rs ${formatMoney(ag.totalSales)}</td>
+                        <td style="text-align:right; color:#64748b;">Rs ${formatMoney(ag.totalCost)}</td>
+                        <td style="text-align:right; font-weight:900; font-size:13.5px; color:${ag.profit >= 0 ? '#15803d' : '#b91c1c'};">
+                            Rs ${formatMoney(ag.profit)}
+                        </td>
+                        <td style="text-align:center; font-weight:bold;">${ag.margin.toFixed(1)}%</td>
+                        <td style="text-align:center; font-weight:bold; color:#0284c7;">
+                            <div class="margin-bar-container">
+                                <div class="margin-bar-fill" style="width:${Math.min(100, Math.max(0, ag.profitSharePct))}%; background:#0284c7;"></div>
+                            </div>
+                            ${ag.profitSharePct.toFixed(1)}%
+                        </td>
+                        <td style="text-align:center;"><span class="${badgeClass}">${statusText}</span></td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>`;
+    }
+
     container.innerHTML = html;
 }
 
@@ -1162,6 +1320,11 @@ function exportActiveViewCSV() {
         csv += 'SNo,Customer Name,Shop Name,Bills Count,Total Purchased,Total Cost,Profit Generated,Margin Pct,Khata Balance\n';
         activeTableData.forEach((c, idx) => {
             csv += `"${idx + 1}","${escapeCsv(c.name)}","${escapeCsv(c.shopName)}",${c.billsCount},${c.purchased},${c.cost},${c.profit},"${c.margin.toFixed(2)}%",${c.balance}\n`;
+        });
+    } else if (currentView === 'agency_company') {
+        csv += 'Rank,Agency / Company Name,SKUs Count,Stock Value,Bills Count,Units Sold,Free Units,Total Sales,Total Cost,Gross Profit,Margin Pct,Profit Share Pct\n';
+        activeTableData.forEach((ag, idx) => {
+            csv += `"#${idx + 1}","${escapeCsv(ag.agencyName)}",${ag.skusCount},${ag.stockValue || 0},${ag.billsCount},${ag.unitsSold},${ag.freeUnitsGiven || 0},${ag.totalSales},${ag.totalCost},${ag.profit},"${ag.margin.toFixed(2)}%","${(ag.profitSharePct || 0).toFixed(2)}%"\n`;
         });
     }
 

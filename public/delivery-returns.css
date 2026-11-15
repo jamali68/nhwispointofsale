@@ -388,14 +388,37 @@ body {
     .kpi-box { padding: 10px 12px; gap: 8px; }
     .kpi-icon { width: 36px; height: 36px; font-size: 18px; }
     .kpi-val { font-size: 18px; }
-    .vyapar-table { display: block; overflow-x: auto; }
-    .filter-bar { flex-direction: column; align-items: stretch; }
+    .vyapar-table { display: block; overflow-x: auto; max-width: 100%; }
+    .filter-bar { flex-direction: column; align-items: stretch; max-width: 100%; min-width: 0; box-sizing: border-box; }
+    .filter-bar > div,
+    .search-box,
+    #claimCategoryFilter,
+    #bulkOrdersBar,
+    #bulkSupplierSelect {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .search-box {
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    #claimCategoryFilter,
+    #bulkSupplierSelect {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
 }
 
 /* ============================================
    💥 DAMAGED, EXPIRED & CLAIMS RECOVERY CSS
    ============================================ */
 .badge-claim-pending {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
     background: #fef3c7;
     color: #b45309;
     border: 1px solid #fde68a;
@@ -405,6 +428,10 @@ body {
     font-weight: 800;
 }
 .badge-claim-recovered {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
     background: #dcfce7;
     color: #15803d;
     border: 1px solid #bbf7d0;
@@ -414,6 +441,10 @@ body {
     font-weight: 800;
 }
 .badge-claim-partial {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
     background: #ffedd5;
     color: #c2410c;
     border: 1px solid #fed7aa;
@@ -423,6 +454,10 @@ body {
     font-weight: 800;
 }
 .badge-claim-loss {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
     background: #fee2e2;
     color: #b91c1c;
     border: 1px solid #fecaca;

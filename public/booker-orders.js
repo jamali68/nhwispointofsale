@@ -1224,6 +1224,7 @@ function renderOrdersTable() {
             const board = (ord.affiliatedBoard || '').toLowerCase();
             const repDevice = (ord.repairDeviceModel || '').toLowerCase();
             const repImei = (ord.repairImei || '').toLowerCase();
+            const restMetaStr = [ord.serviceModeLabel, ord.serviceMode, ord.tableTokenNo, ord.riderWaiterName, ord.kitchenOrderNote].filter(Boolean).join(' ').toLowerCase();
             const itemMatch = Array.isArray(ord.items) && ord.items.some(it => {
                 const iName = (it.name || '').toLowerCase();
                 const iSub = getOrderItemSubtitle(it).toLowerCase();
@@ -1234,7 +1235,7 @@ function renderOrdersTable() {
                 const brandMod = [it.brandCompany, it.modelVariant, ind.brandCompany, ind.modelVariant].filter(Boolean).join(' ').toLowerCase();
                 return iName.includes(query) || iSub.includes(query) || iIsbn.includes(query) || iSku.includes(query) || imeis.includes(query) || brandMod.includes(query);
             });
-            if (!billNo.includes(query) && !loadNo.includes(query) && !cust.includes(query) && !shop.includes(query) && !booker.includes(query) && !route.includes(query) && !mobile.includes(query) && !subCat.includes(query) && !board.includes(query) && !repDevice.includes(query) && !repImei.includes(query) && !itemMatch) {
+            if (!billNo.includes(query) && !loadNo.includes(query) && !cust.includes(query) && !shop.includes(query) && !booker.includes(query) && !route.includes(query) && !mobile.includes(query) && !subCat.includes(query) && !board.includes(query) && !repDevice.includes(query) && !repImei.includes(query) && !restMetaStr.includes(query) && !itemMatch) {
                 return false;
             }
         }
@@ -1328,8 +1329,8 @@ function renderOrdersTable() {
                 </td>
                 <td>
                     <b style="font-size:14px; color:${isRepairJob ? '#0f766e' : '#0284c7'}; cursor:pointer;" onclick="viewOrderDetails('${ord.id}')">${billDisplay}</b><br>
-                    <small style="color:#64748b;">${isRepairJob ? '🛠️ Repairing Token' : (ord.orderType === 'field_order' ? '📱 Field Booker' : '🧾 Counter Sale')}</small>
-                    ${ord.loadFormNo ? `<div style="margin-top:2px;"><span style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🚚 ${ord.loadFormNo}</span></div>` : ''}
+                    <small style="color:#64748b;">${isRepairJob ? '🛠️ Repairing Token' : (ord.serviceModeLabel ? `🍔 ${ord.serviceModeLabel}` : (ord.orderType === 'field_order' ? '📱 Field Booker' : '🧾 Counter Sale'))}</small>
+                    ${ord.tableTokenNo ? `<div style="margin-top:2px;"><span style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🍽️ ${ord.tableTokenNo}</span></div>` : (ord.loadFormNo ? `<div style="margin-top:2px;"><span style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🚚 ${ord.loadFormNo}</span></div>` : '')}
                 </td>
                 <td>
                     <b>${ord.date || ord.createdAt?.slice(0,10) || 'Today'}</b><br>
@@ -1338,7 +1339,8 @@ function renderOrdersTable() {
                 <td>
                     <b>${ord.customerName || 'Counter Sale'}</b> ${ord.customerShop ? `<span style="color:#64748b;">(${ord.customerShop})</span>` : ''}
                     ${ord.customerSubCategory && window.BusinessCategories ? `<span style="font-size:10px; background:#ede9fe; color:#5b21b6; padding:1px 6px; border-radius:6px; font-weight:700;">${window.BusinessCategories.getCustomerSegmentLabel(activeCat, ord.customerSubCategory)}</span>` : ''}<br>
-                    <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}${ord.affiliatedBoard ? ` | ${isWholesaleCat ? '🛣️ PJP:' : '🏷️'} ${ord.affiliatedBoard}` : ''}</small>
+                    <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}${ord.affiliatedBoard ? ` | ${isWholesaleCat ? '🛣️ PJP:' : (activeCat === 'restaurant' ? '📍 Zone:' : '🏷️')} ${ord.affiliatedBoard}` : ''}</small>
+                    ${ord.kitchenOrderNote ? `<div style="font-size:11px; color:#9a3412; font-weight:700; margin-top:2px;">👨‍🍳 KOT: ${ord.kitchenOrderNote}</div>` : ''}
                     ${isRepairJob && ord.repairDeviceModel ? `<div style="font-size:11px; color:#0f766e; font-weight:700; margin-top:2px;">📱 ${ord.repairDeviceModel} ${ord.repairImei ? `(IMEI: ${ord.repairImei})` : ''}</div>` : ''}
                 </td>
                 <td>
@@ -1923,7 +1925,7 @@ function viewOrderDetails(orderId) {
 
     const activeCat = getActiveBookerCategory();
     const isWholesaleCat = activeCat === 'wholesaler';
-    const subIcon = isWholesaleCat ? '📦' : (activeCat === 'mobile' ? '📱' : '📚');
+    const subIcon = isWholesaleCat ? '📦' : (activeCat === 'mobile' ? '📱' : (activeCat === 'medical' ? '💊' : (activeCat === 'restaurant' ? '🍔' : '📚')));
 
     (ord.items || []).forEach((it, idx) => {
         const freeQtyVal = parseFloat(it.freeQty || it.bonus) || 0;
@@ -1954,7 +1956,7 @@ function viewOrderDetails(orderId) {
     itemsTable += `</tbody></table>`;
 
     const segBadge = (ord.customerSubCategory && window.BusinessCategories)
-        ? `<div style="margin-top:2px;">🏷️ <b>Segment:</b> <span style="color:#5b21b6; font-weight:700;">${window.BusinessCategories.getCustomerSegmentLabel(activeCat, ord.customerSubCategory)}</span>${ord.affiliatedBoard ? ` | ${isWholesaleCat ? '🛣️ <b>PJP Beat:</b>' : '🏛️ <b>Board:</b>'} ${ord.affiliatedBoard}` : ''}</div>`
+        ? `<div style="margin-top:2px;">🏷️ <b>Segment:</b> <span style="color:#5b21b6; font-weight:700;">${window.BusinessCategories.getCustomerSegmentLabel(activeCat, ord.customerSubCategory)}</span>${ord.affiliatedBoard ? ` | ${isWholesaleCat ? '🛣️ <b>PJP Beat:</b>' : (activeCat === 'restaurant' ? '📍 <b>Delivery Zone:</b>' : '🏛️ <b>Board:</b>')} ${ord.affiliatedBoard}` : ''}</div>`
         : '';
 
     body.innerHTML = `
@@ -1969,11 +1971,19 @@ function viewOrderDetails(orderId) {
             <div style="background:#f8fafc; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0;">
                 <div>📕 <b>Order Booker:</b> <span style="color:#0284c7; font-weight:bold;">${ord.bookerName || 'Staff'}</span></div>
                 <div>📅 <b>Date:</b> ${ord.date || ord.createdAt?.slice(0,10)} (${ord.time || ''})</div>
-                <div>🏷️ <b>Order Type:</b> ${ord.orderType || 'Field Booking'}${ord.agreedDiscountPercent ? ` (Disc: ${ord.agreedDiscountPercent}%)` : ''}</div>
+                <div>🏷️ <b>Order Type:</b> ${ord.serviceModeLabel ? `🍔 ${ord.serviceModeLabel}` : (ord.orderType || 'Field Booking')}${ord.agreedDiscountPercent ? ` (Disc: ${ord.agreedDiscountPercent}%)` : ''}</div>
+                ${ord.tableTokenNo ? `<div>🍽️ <b>Table / Token / Addr:</b> <span style="color:#c2410c; font-weight:800;">${ord.tableTokenNo}</span></div>` : ''}
+                ${ord.riderWaiterName ? `<div>🛵 <b>Rider / Waiter:</b> <span style="color:#0369a1; font-weight:700;">${ord.riderWaiterName}</span></div>` : ''}
                 <div>🚚 <b>Assigned Supplier:</b> ${ord.supplierName || 'Not Assigned'}</div>
-                ${ord.loadFormNo ? `<div>📋 <b>Load Form #:</b> <span style="color:#6d28d9; font-weight:800;">${ord.loadFormNo}</span></div>` : ''}
+                ${ord.loadFormNo && ord.loadFormNo !== ord.tableTokenNo ? `<div>📋 <b>Load Form #:</b> <span style="color:#6d28d9; font-weight:800;">${ord.loadFormNo}</span></div>` : ''}
             </div>
         </div>
+
+        ${ord.kitchenOrderNote ? `
+            <div style="background:#fff7ed; border:1px dashed #ea580c; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:#9a3412;">
+                👨‍🍳 <b>Kitchen / KOT Note:</b> ${ord.kitchenOrderNote}
+            </div>
+        ` : ''}
 
         ${ord.bookerNotes ? `
             <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:#92400e;">
@@ -2668,7 +2678,7 @@ window.printVanLoadingChallan = function() {
     const routesSet = new Set();
     const suppliersSet = new Set();
     const activeCat = getActiveBookerCategory();
-    const subIcon = activeCat === 'wholesaler' ? '📦' : (activeCat === 'mobile' ? '📱' : '📚');
+    const subIcon = activeCat === 'wholesaler' ? '📦' : (activeCat === 'mobile' ? '📱' : (activeCat === 'medical' ? '💊' : (activeCat === 'restaurant' ? '🍔' : '📚')));
 
     targetOrders.forEach(ord => {
         totalGrossAmount += (parseFloat(ord.billAmount || ord.grandTotal) || 0);

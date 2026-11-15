@@ -760,10 +760,15 @@
             pane.classList.toggle('active', pane.id === targetTabId);
         });
         // Update URL hash without reload
-        if (window.location.hash !== '#' + targetTabId) {
-            history.replaceState(null, null, '#' + targetTabId);
+        const nextHash = '#' + targetTabId;
+        if (window.location.hash !== nextHash) {
+            history.replaceState(null, null, nextHash);
+        }
+        if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
+            window.ebSidebar.setActive(targetTabId === 'tabOverview' ? 'admin.html#tabOverview' : ('admin.html#' + targetTabId));
         }
     }
+    window.switchAdminTab = switchAdminTab;
 
     document.querySelectorAll('.admin-nav-btn').forEach(btn => {
         btn.addEventListener('click', function() {

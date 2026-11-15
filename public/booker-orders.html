@@ -325,31 +325,31 @@
 
     <!-- ===== 🔍 ADVANCE FILTER & DATE BAR ===== -->
     <div class="vyapar-card" style="margin-bottom:16px; padding:14px 16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:12px; max-width:100%; min-width:0;">
             <!-- Search Input -->
-            <div class="search-box" style="flex:1; min-width:240px;">
+            <div class="search-box" style="flex:1 1 220px; min-width:0; max-width:100%;">
                 <i class="fas fa-search"></i>
                 <input type="text" id="orderSearchInput" placeholder="Search by Order #, Customer, Shop, IMEI 1-4, Brand, Model, Repair Token #...">
             </div>
 
             <!-- Booker Dropdown Filter -->
-            <div style="display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; max-width:100%;">
                 <label style="font-size:12px; font-weight:700; color:#475569; white-space:nowrap;">Booker:</label>
-                <select id="filterBookerSelect" style="padding:7px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:700; background:#fff; outline:none;">
+                <select id="filterBookerSelect" style="padding:7px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:700; background:#fff; outline:none; max-width:100%; min-width:0; box-sizing:border-box;">
                     <option value="all">👥 All Order Bookers</option>
                 </select>
             </div>
 
             <!-- PJP Route / Beat Filter -->
-            <div style="display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; max-width:100%;">
                 <label style="font-size:12px; font-weight:700; color:#475569; white-space:nowrap;">Route:</label>
-                <select id="filterRouteSelect" style="padding:7px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:700; background:#fff; outline:none;">
+                <select id="filterRouteSelect" style="padding:7px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:700; background:#fff; outline:none; max-width:100%; min-width:0; box-sizing:border-box;">
                     <option value="all">🛣️ All PJP Routes</option>
                 </select>
             </div>
 
             <!-- Date Presets -->
-            <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
+            <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap; max-width:100%; min-width:0;">
                 <button type="button" class="filter-date-btn active" data-date="all">All Dates</button>
                 <button type="button" class="filter-date-btn" data-date="today">Today</button>
                 <button type="button" class="filter-date-btn" data-date="yesterday">Yesterday</button>
@@ -358,12 +358,12 @@
             </div>
 
             <!-- Custom Date Range -->
-            <div style="display:flex; align-items:center; gap:5px; background:#f8fafc; padding:4px 8px; border-radius:8px; border:1px solid #cbd5e1;">
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:5px; background:#f8fafc; padding:6px 8px; border-radius:8px; border:1px solid #cbd5e1; max-width:100%; min-width:0; box-sizing:border-box;">
                 <span style="font-size:11px; font-weight:700; color:#64748b;">Custom:</span>
-                <input type="date" id="filterFromDate" style="border:1px solid #cbd5e1; border-radius:6px; padding:3px 6px; font-size:11px; outline:none; background:#fff;">
+                <input type="date" id="filterFromDate" style="border:1px solid #cbd5e1; border-radius:6px; padding:3px 6px; font-size:11px; outline:none; background:#fff; max-width:100%; min-width:0;">
                 <span style="font-size:11px; color:#94a3b8;">to</span>
-                <input type="date" id="filterToDate" style="border:1px solid #cbd5e1; border-radius:6px; padding:3px 6px; font-size:11px; outline:none; background:#fff;">
-                <button type="button" class="btn btn-sm" id="btnApplyCustomDate" style="background:#0284c7; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">Filter</button>
+                <input type="date" id="filterToDate" style="border:1px solid #cbd5e1; border-radius:6px; padding:3px 6px; font-size:11px; outline:none; background:#fff; max-width:100%; min-width:0;">
+                <button type="button" class="btn btn-sm" id="btnApplyCustomDate" style="background:#0284c7; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; flex-shrink:0;">Filter</button>
             </div>
         </div>
 
@@ -394,13 +394,13 @@
     </div>
 
     <!-- ===== ⚡ BULK ACTIONS TOOLBAR ===== -->
-    <div id="bulkOrdersBar" style="display:none; background:#eff6ff; border:1.5px solid #93c5fd; border-radius:12px; padding:12px 16px; margin-bottom:16px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div id="bulkOrdersBar" style="display:none; background:#eff6ff; border:1.5px solid #93c5fd; border-radius:12px; padding:12px 16px; margin-bottom:16px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; max-width:100%; min-width:0; box-sizing:border-box;">
         <div style="font-size:14px; font-weight:800; color:#1e40af; display:flex; align-items:center; gap:8px;">
             <i class="fas fa-check-circle" style="color:#3b82f6; font-size:18px;"></i>
             <span id="selectedOrdersCount">0</span> آرڈرز منتخب ہیں
         </div>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <select id="bulkSupplierSelect" style="padding:8px 12px; border-radius:8px; border:1px solid #93c5fd; font-size:13px; font-weight:700; background:#fff; outline:none;">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; max-width:100%; min-width:0;">
+            <select id="bulkSupplierSelect" style="padding:8px 12px; border-radius:8px; border:1px solid #93c5fd; font-size:13px; font-weight:700; background:#fff; outline:none; max-width:100%; min-width:0; box-sizing:border-box;">
                 <option value="">— Select Delivery Supplier —</option>
             </select>
             <button type="button" class="btn" id="btnBulkApprove" style="background:#10b981; color:#fff; font-weight:800; padding:8px 16px; border-radius:8px; border:none; cursor:pointer; display:flex; align-items:center; gap:6px;">
@@ -427,11 +427,11 @@
             <div style="font-size:14px; font-weight:800; color:#0f172a;" id="tableSummaryLabel">
                 📦 Showing All Field Orders
             </div>
-            <div style="display:flex; gap:6px; align-items:center;">
-                <button type="button" class="btn btn-sm" onclick="printPendingOrdersList()" style="background:#fef3c7; border:1px solid #fde68a; color:#b45309; font-weight:800; padding:5px 12px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; max-width:100%;">
+                <button type="button" class="btn btn-sm" onclick="printPendingOrdersList()" style="background:#fef3c7; border:1px solid #fde68a; color:#b45309; font-weight:800; padding:5px 12px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;">
                     <i class="fas fa-print"></i> Print Pending Orders (<span id="btnPendingPrintCount">0</span>)
                 </button>
-                <button type="button" class="btn btn-sm" id="btnRefreshOrders" style="background:#fff; border:1px solid #cbd5e1; color:#475569; font-weight:700; padding:5px 10px; border-radius:6px; cursor:pointer;">
+                <button type="button" class="btn btn-sm" id="btnRefreshOrders" style="background:#fff; border:1px solid #cbd5e1; color:#475569; font-weight:700; padding:5px 10px; border-radius:6px; cursor:pointer; white-space:nowrap;">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>

@@ -143,8 +143,11 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [lastConnectedTime, setLastConnectedTime] = useState<string | null>(null);
   const [statusTooltip, setStatusTooltip] = useState<string>('Connecting to module...');
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem(THEME_STORAGE_KEY) as 'light' | 'dark') || 'dark';
+  const [theme, setTheme] = useState<'light' | 'dark' | 'theme-green' | 'theme-red' | 'theme-blue' | 'theme-purple' | 'theme-yellow' | 'theme-orange'>(() => {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    const validThemes = ['light', 'dark', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange'];
+    if (saved === 'night') return 'dark';
+    return (saved && validThemes.includes(saved) ? saved : 'light') as 'light' | 'dark' | 'theme-green' | 'theme-red' | 'theme-blue' | 'theme-purple' | 'theme-yellow' | 'theme-orange';
   });
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [sessionTimeoutMinutes, setSessionTimeoutMinutes] = useState<number>(() => {
@@ -170,12 +173,16 @@ export default function App() {
 
   // Apply theme change
   useEffect(() => {
+    const ALL_THEME_CLASSES = ['dark', 'dark-theme', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange'];
+    document.documentElement.classList.remove(...ALL_THEME_CLASSES);
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.add('dark-theme');
+      document.documentElement.classList.add('dark', 'dark-theme');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
     } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.remove('dark-theme');
+      document.documentElement.classList.add(theme);
+      document.documentElement.setAttribute('data-theme', theme);
     }
     localStorage.setItem(THEME_STORAGE_KEY, theme);
 
@@ -234,7 +241,7 @@ export default function App() {
         const swPath = isSubpath ? '/nhsm/sw.js' : 'sw.js';
         const swScope = isSubpath ? '/nhsm/' : './';
         navigator.serviceWorker.register(swPath, { scope: swScope }).then((reg) => {
-          console.log('[PWA v5.2.0] NH POS Service Worker active:', reg.scope);
+          console.log('[PWA v5.5.3] NH POS Service Worker active:', reg.scope);
         }).catch((err) => {
           console.warn('[PWA] SW registration info:', err);
         });
@@ -276,7 +283,11 @@ export default function App() {
       if (data.type === 'PWA_TRIGGER_INSTALL') {
         handleInstallPWA();
       } else if (data.type === 'THEME_CHANGED') {
-        setTheme(data.theme);
+        const validThemes = ['light', 'dark', 'theme-green', 'theme-red', 'theme-blue', 'theme-purple', 'theme-yellow', 'theme-orange'];
+        const next = data.theme === 'night' ? 'dark' : data.theme;
+        if (next && validThemes.includes(next)) {
+          setTheme(next as typeof theme);
+        }
       } else if (data.type === 'MODULE_STATUS') {
         if (data.status === 'connected') {
           if (timeoutRef.current) clearTimeout(timeoutRef.current);

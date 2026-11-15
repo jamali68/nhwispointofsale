@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *, .dark-theme, .dark-theme *));
 
 /* 🚫 Permanently Hide Netlify Drawer, Badges, and Feedback Overlays */
 netlify-drawer-root,

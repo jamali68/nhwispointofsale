@@ -149,6 +149,9 @@ function setupTabNav() {
                 target.classList.add('active');
                 target.style.display = 'block';
             }
+            if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
+                window.ebSidebar.setActive(btn.dataset.target === 'secSyncSchedule' ? 'settings.html?tab=secSyncSchedule' : 'settings.html');
+            }
         });
     });
 
@@ -470,6 +473,46 @@ if (fbrToggleSwitch) {
 }
 
 // ============================================
+// 🔒 PER-CATEGORY DATA WORKSPACE LOCK (1 Category = 1 Separate Database)
+// ============================================
+async function lockExistingCategoryRecordsOnSwitch(agencyId, previousCategoryId) {
+    if (!agencyId || !previousCategoryId) return 0;
+    const prevCat = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+        ? (window.BusinessCategories.getById(previousCategoryId)?.id || previousCategoryId)
+        : String(previousCategoryId).toLowerCase().trim();
+
+    const collectionsToLock = ['stock', 'customers', 'bills', 'orders', 'damage_claims', 'expenses'];
+    let lockedCount = 0;
+
+    for (const colName of collectionsToLock) {
+        try {
+            const snap = await db.collection(colName).where('agencyId', '==', agencyId).get();
+            const docsToTag = [];
+            snap.forEach(d => {
+                const data = d.data() || {};
+                if (!data.businessCategory && !data.categoryWorkspace) {
+                    docsToTag.push(d.ref);
+                }
+            });
+
+            // Commit in safe batches of 400
+            for (let i = 0; i < docsToTag.length; i += 400) {
+                const batch = db.batch();
+                const chunk = docsToTag.slice(i, i + 400);
+                chunk.forEach(ref => {
+                    batch.update(ref, { businessCategory: prevCat });
+                });
+                await batch.commit();
+                lockedCount += chunk.length;
+            }
+        } catch (err) {
+            console.warn(`Category lock warning on ${colName}:`, err);
+        }
+    }
+    return lockedCount;
+}
+
+// ============================================
 // 💾 SAVE PROFILE & BRANDING
 // ============================================
 document.getElementById('profileForm').addEventListener('submit', async (e) => {
@@ -492,11 +535,25 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
     }
 
     try {
-        await db.collection('agencies').doc(myAgencyId).update({
+        const prevCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+            ? window.BusinessCategories.resolveActiveCategory(myAgency, 'books')
+            : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'books');
+        const nextCat = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+            ? (window.BusinessCategories.getById(bizType)?.id || bizType)
+            : bizType;
+        const isSwitchingCategory = prevCat && nextCat && prevCat !== nextCat;
+        const preservedPrimaryCategory = (myAgency && myAgency.primaryCategory) ? myAgency.primaryCategory : prevCat;
+
+        if (isSwitchingCategory) {
+            await lockExistingCategoryRecordsOnSwitch(myAgencyId, prevCat);
+        }
+
+        const updatePayload = {
             name: name,
             tagline: tagline,
-            businessType: bizType,
-            businessCategory: bizType,
+            businessType: nextCat,
+            businessCategory: nextCat,
+            primaryCategory: preservedPrimaryCategory,
             city: city,
             mobile: mobile,
             phone: phone,
@@ -505,22 +562,40 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
             showNTN: showNTN,
             languageMode: langMode,
             updatedAt: new Date().toISOString()
-        });
+        };
+
+        await db.collection('agencies').doc(myAgencyId).update(updatePayload);
+        myAgency = { ...(myAgency || {}), ...updatePayload };
 
         // Update local storage cache
         localStorage.setItem(`eb_agency_name_${myAgencyId}`, name);
-        localStorage.setItem('eb_active_business_category', bizType);
-        localStorage.setItem('eb_active_category', bizType);
+        localStorage.setItem('eb_active_business_category', nextCat);
+        localStorage.setItem('eb_active_category', nextCat);
+        localStorage.setItem('eb_user_agency', JSON.stringify({ id: myAgencyId, ...myAgency }));
         localStorage.setItem('eb_app_language', langMode);
         document.documentElement.setAttribute('data-lang', langMode);
 
         const h = document.getElementById('agencyNameHeader');
         if (h) h.innerText = `🏢 ${name}`;
 
-        Swal.fire({
-            toast: true, position: 'top-end', showConfirmButton: false,
-            timer: 1800, icon: 'success', title: '✅ Agency Profile & Language Saved!'
-        });
+        if (isSwitchingCategory) {
+            const prevLabel = window.BusinessCategories?.getById(prevCat)?.nameEn || prevCat;
+            const nextLabel = window.BusinessCategories?.getById(nextCat)?.nameEn || nextCat;
+            Swal.fire({
+                icon: 'success',
+                title: '🔄 Business Category Switched Safely!',
+                html: `<div style="font-size:13px; color:#334155; line-height:1.6; text-align:left;">
+                    ✅ <b>${prevLabel}</b> ka tamam purana data (Stock, Bills, Customers, Khata &amp; Profit) 100% mehfooz aur lock kar diya gaya hai.<br>
+                    🚀 Ab aap <b>${nextLabel}</b> ke alag workspace/database mein hain. Jab bhi wapas switch karein ge, purana data waisa hi milega!
+                </div>`,
+                confirmButtonColor: '#10b981'
+            });
+        } else {
+            Swal.fire({
+                toast: true, position: 'top-end', showConfirmButton: false,
+                timer: 1800, icon: 'success', title: '✅ Agency Profile & Language Saved!'
+            });
+        }
 
     } catch (err) {
         Swal.fire('Error', 'Save failed: ' + err.message, 'error');

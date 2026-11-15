@@ -848,6 +848,31 @@
     }
 }
 
+@media (max-width: 768px) {
+    .template-selector-banner,
+    .template-selector-banner > div,
+    .shopkeeper-box-card,
+    #bookerListFilterBar {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    #mainBillTemplateSelect,
+    #mainThermalWidthSelect,
+    #bookerFilterClass,
+    #bookerFilterPublisher,
+    #posFilterClass,
+    #posFilterPublisher {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        text-overflow: ellipsis;
+    }
+    #mainBillTemplateSelect {
+        width: 100%;
+    }
+}
+
 /* ============================================================
    🏢 ADMIN POS BILLING vs 📕 ORDER BOOKER VIEW MODE RULES
    ============================================================ */

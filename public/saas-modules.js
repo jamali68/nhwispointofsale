@@ -744,29 +744,25 @@
         const mod = access.module;
         const state = evaluateAgency(agencyData);
 
+        const isDark = document.documentElement.classList.contains('dark-theme') ||
+                       document.documentElement.classList.contains('dark') ||
+                       (localStorage.getItem('eb_theme_mode') || 'light') === 'dark';
+
         const overlay = document.createElement('div');
         overlay.id = 'ebPageLockOverlay';
-        overlay.style.cssText = `
-            background: #fff;
-            border: 2px solid #f59e0b;
-            border-radius: 16px;
-            padding: 35px 25px;
-            max-width: 680px;
-            margin: 30px auto;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-        `;
+        overlay.style.cssText = isDark
+            ? `background: #1e293b; border: 2px solid #f59e0b; border-radius: 16px; padding: 35px 25px; max-width: 680px; margin: 30px auto; text-align: center; box-shadow: 0 12px 35px rgba(0,0,0,0.45); font-family: 'Segoe UI', Tahoma, sans-serif; color: #f8fafc;`
+            : `background: #fff; border: 2px solid #f59e0b; border-radius: 16px; padding: 35px 25px; max-width: 680px; margin: 30px auto; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.08); font-family: 'Segoe UI', Tahoma, sans-serif; color: #0f172a;`;
 
         overlay.innerHTML = `
             <div style="font-size: 55px; margin-bottom: 12px;">🔒</div>
-            <h2 style="color: #0f172a; margin: 0 0 6px 0; font-size: 24px; font-weight: 900;">
+            <h2 style="color: ${isDark ? '#ffffff' : '#0f172a'}; margin: 0 0 6px 0; font-size: 24px; font-weight: 900;">
                 ${mod.nameEn} Locked
             </h2>
-            <h4 style="color: #d97706; margin: 0 0 12px 0; font-size: 16px;">
+            <h4 style="color: ${isDark ? '#fbbf24' : '#d97706'}; margin: 0 0 12px 0; font-size: 16px;">
                 ${access.lockReasonUr || 'یہ ماڈیول لاک ہے'}
             </h4>
-            <p style="color: #64748b; font-size: 13.5px; line-height: 1.6; max-width: 520px; margin: 0 auto 20px;">
+            <p style="color: ${isDark ? '#cbd5e1' : '#64748b'}; font-size: 13.5px; line-height: 1.6; max-width: 520px; margin: 0 auto 20px;">
                 اس ماڈیول (<b>${mod.nameUr}</b>) کو استعمال کرنے کے لیے آپ کا پیکیج فعال ہونا ضروری ہے۔ 
                 اگر آپ کا پیکیج ختم ہو چکا ہے تو ماہانہ فیس ادا کر کے یا سپر ایڈمن سے رابطہ کر کے فوری ان لاک کروائیں۔
             </p>
@@ -778,13 +774,13 @@
                 <a href="https://wa.me/923346800959?text=${encodeURIComponent(`Assalam-o-Alaikum! Please unlock ${mod.nameEn} for agency: ${state.name}`)}" target="_blank" style="background: #25D366; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; display:inline-flex; align-items:center; gap:8px; text-decoration:none;">
                     <i class="fab fa-whatsapp"></i> WhatsApp (+923346800959)
                 </a>
-                <button type="button" onclick="window.location.href='dashboard.html'" style="background: #0f172a; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; display:inline-flex; align-items:center; gap:8px;">
+                <button type="button" onclick="window.location.href='dashboard.html'" style="background: ${isDark ? '#334155' : '#0f172a'}; color: #fff; border: 1px solid ${isDark ? '#475569' : '#0f172a'}; padding: 12px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; display:inline-flex; align-items:center; gap:8px;">
                     <i class="fas fa-home"></i> Dashboard
                 </button>
             </div>
 
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 12px; color: #64748b; max-width: 480px; margin: 0 auto;">
-                Agency: <b>${state.name}</b> &nbsp;|&nbsp; Current Status: <b style="color:${state.isExpired ? '#ef4444' : '#0284c7'};">${state.isExpired ? 'EXPIRED' : state.tier.toUpperCase()}</b>
+            <div class="eb-lock-footer-box" style="background: ${isDark ? '#0f172a' : '#f8fafc'}; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'}; border-radius: 10px; padding: 12px; font-size: 12px; color: ${isDark ? '#cbd5e1' : '#64748b'}; max-width: 480px; margin: 0 auto;">
+                Agency: <b style="color:${isDark ? '#ffffff' : '#0f172a'};">${state.name}</b> &nbsp;|&nbsp; Current Status: <b style="color:${state.isExpired ? '#ef4444' : '#38bdf8'};">${state.isExpired ? 'EXPIRED' : state.tier.toUpperCase()}</b>
                 &nbsp;|&nbsp; Developer: <b style="color:#16a34a;">+923346800959</b>
             </div>
         `;

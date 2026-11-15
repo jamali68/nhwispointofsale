@@ -1,98 +1,363 @@
 /* ==========================================================================
-   🌙 EASY BILL GENERATOR — GLOBAL THEME & NIGHT MODE ENGINE
-   ✅ Dark / Night Mode: Deep Gray (#0f172a / #111827 / #1e293b) + Pure White (#ffffff) text
-   ✅ Future Theme Architecture: Ready for Green, Red, Blue, Purple, Yellow, Orange
+   🌙 NH POS — GLOBAL THEME & HIGH-CONTRAST READABILITY ENGINE
+   ✅ Dark / Night Mode: Deep Slate (#0b1120 / #111827 / #1e293b) + Crisp White (#f8fafc) Text
+   ✅ Light Mode: Clean Bright Surfaces (#f8fafc / #ffffff) + Crisp Dark (#0f172a) Text
+   ✅ Native Controls (select/option/date), SweetAlert2, Inline Cards, Print & Receipt Isolation
    ✅ Universal Dual-Language (English / English+Urdu) Compatibility
    ========================================================================== */
 
-/* 🎨 THEME CSS VARIABLES ARCHITECTURE (Ready for Light, Dark, and Future Themes) */
-:root {
+/* 🎨 THEME CSS VARIABLES ARCHITECTURE */
+:root,
+:root[data-theme="light"],
+body[data-theme="light"] {
+    color-scheme: light;
     --theme-primary: #10b981;
     --theme-primary-hover: #059669;
-    --theme-accent: #38bdf8;
-    --theme-bg: #f8fafc;
+    --theme-accent: #0284c7;
+    --theme-bg: #f4f7f6;
     --theme-surface: #ffffff;
+    --theme-surface-alt: #f8fafc;
     --theme-surface-card: #ffffff;
-    --theme-border: #e2e8f0;
+    --theme-border: #cbd5e1;
     --theme-text: #0f172a;
-    --theme-text-secondary: #64748b;
-    --theme-text-muted: #94a3b8;
+    --theme-text-secondary: #475569;
+    --theme-text-muted: #64748b;
 }
 
-/* 🌙 NIGHT / DARK MODE TOKENS (Deep Gray & Pure White Text) */
+/* 🌙 NIGHT / DARK MODE TOKENS */
 :root[data-theme="dark"],
 :root[data-theme="night"],
 body.dark-theme,
 html.dark-theme {
+    color-scheme: dark;
     --theme-primary: #38bdf8;
     --theme-primary-hover: #0284c7;
     --theme-accent: #10b981;
     --theme-bg: #0b1120;
     --theme-surface: #1e293b;
+    --theme-surface-alt: #0f172a;
     --theme-surface-card: #1e293b;
     --theme-border: #334155;
-    --theme-text: #ffffff;
+    --theme-text: #f8fafc;
     --theme-text-secondary: #cbd5e1;
     --theme-text-muted: #94a3b8;
+    --primary: #38bdf8;
+    --bg: #0b1120;
 }
 
-/* 🟢 FUTURE THEME: GREEN (Emerald / Forest) */
-:root[data-theme="theme-green"],
-body.theme-green {
-    --theme-primary: #10b981;
-    --theme-primary-hover: #059669;
-    --theme-accent: #34d399;
-    --theme-border: #065f46;
+/* ==========================================================================
+   🎨 6 SIGNATURE COLOR THEMES (Emerald Green, Ruby Red, Royal Blue,
+      Amethyst Purple, Amber Gold, Sunset Orange)
+   ✅ Each theme styles page canvas, cards, sidebar, topbar, active tabs,
+      buttons, table headers, focus rings, and badges with high-contrast ink.
+   ========================================================================== */
+
+:root[data-theme="theme-green"], html.theme-green, body.theme-green {
+    color-scheme: light;
+    --theme-primary: #059669;
+    --theme-primary-hover: #047857;
+    --theme-accent: #10b981;
+    --theme-bg: #ecfdf5;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #f0fdf4;
+    --theme-surface-card: #ffffff;
+    --theme-border: #a7f3d0;
+    --theme-text: #064e3b;
+    --theme-text-secondary: #334155;
+    --theme-text-muted: #475569;
+    --theme-sidebar-bg: linear-gradient(180deg, #064e3b 0%, #065f46 100%);
+    --theme-topbar-bg: #064e3b;
+    --theme-sidebar-active-bg: linear-gradient(90deg, rgba(52, 211, 153, 0.28) 0%, rgba(16, 185, 129, 0.1) 100%);
+    --theme-sidebar-active-border: #34d399;
+    --theme-sidebar-active-icon: #6ee7b7;
+    --theme-table-head-bg: #ecfdf5;
+    --theme-table-head-text: #064e3b;
+    --theme-focus-ring: rgba(16, 185, 129, 0.25);
+    --primary: #065f46;
+    --accent: #059669;
+    --share: #047857;
+    --bg: #ecfdf5;
 }
 
-/* 🔴 FUTURE THEME: RED (Crimson / Ruby) */
-:root[data-theme="theme-red"],
-body.theme-red {
-    --theme-primary: #ef4444;
-    --theme-primary-hover: #dc2626;
-    --theme-accent: #f87171;
-    --theme-border: #991b1b;
+:root[data-theme="theme-red"], html.theme-red, body.theme-red {
+    color-scheme: light;
+    --theme-primary: #dc2626;
+    --theme-primary-hover: #b91c1c;
+    --theme-accent: #ef4444;
+    --theme-bg: #fef2f2;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #fff1f2;
+    --theme-surface-card: #ffffff;
+    --theme-border: #fecaca;
+    --theme-text: #7f1d1d;
+    --theme-text-secondary: #334155;
+    --theme-text-muted: #475569;
+    --theme-sidebar-bg: linear-gradient(180deg, #450a0a 0%, #7f1d1d 100%);
+    --theme-topbar-bg: #7f1d1d;
+    --theme-sidebar-active-bg: linear-gradient(90deg, rgba(248, 113, 113, 0.28) 0%, rgba(239, 68, 68, 0.1) 100%);
+    --theme-sidebar-active-border: #f87171;
+    --theme-sidebar-active-icon: #fca5a5;
+    --theme-table-head-bg: #fef2f2;
+    --theme-table-head-text: #7f1d1d;
+    --theme-focus-ring: rgba(220, 38, 38, 0.22);
+    --primary: #991b1b;
+    --accent: #dc2626;
+    --share: #b91c1c;
+    --bg: #fef2f2;
 }
 
-/* 🔵 FUTURE THEME: BLUE (Royal / Ocean) */
-:root[data-theme="theme-blue"],
-body.theme-blue {
-    --theme-primary: #3b82f6;
-    --theme-primary-hover: #2563eb;
-    --theme-accent: #60a5fa;
-    --theme-border: #1e40af;
+:root[data-theme="theme-blue"], html.theme-blue, body.theme-blue {
+    color-scheme: light;
+    --theme-primary: #2563eb;
+    --theme-primary-hover: #1d4ed8;
+    --theme-accent: #3b82f6;
+    --theme-bg: #eff6ff;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #f0f9ff;
+    --theme-surface-card: #ffffff;
+    --theme-border: #bfdbfe;
+    --theme-text: #1e3a8a;
+    --theme-text-secondary: #334155;
+    --theme-text-muted: #475569;
+    --theme-sidebar-bg: linear-gradient(180deg, #0f172a 0%, #1e3a8a 100%);
+    --theme-topbar-bg: #1e3a8a;
+    --theme-sidebar-active-bg: linear-gradient(90deg, rgba(96, 165, 250, 0.28) 0%, rgba(59, 130, 246, 0.1) 100%);
+    --theme-sidebar-active-border: #60a5fa;
+    --theme-sidebar-active-icon: #93c5fd;
+    --theme-table-head-bg: #eff6ff;
+    --theme-table-head-text: #1e3a8a;
+    --theme-focus-ring: rgba(37, 99, 235, 0.24);
+    --primary: #1e40af;
+    --accent: #2563eb;
+    --share: #1d4ed8;
+    --bg: #eff6ff;
 }
 
-/* 🟣 FUTURE THEME: PURPLE (Amethyst / Violet) */
-:root[data-theme="theme-purple"],
-body.theme-purple {
-    --theme-primary: #8b5cf6;
-    --theme-primary-hover: #7c3aed;
-    --theme-accent: #a78bfa;
-    --theme-border: #5b21b6;
+:root[data-theme="theme-purple"], html.theme-purple, body.theme-purple {
+    color-scheme: light;
+    --theme-primary: #7c3aed;
+    --theme-primary-hover: #6d28d9;
+    --theme-accent: #8b5cf6;
+    --theme-bg: #f5f3ff;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #faf5ff;
+    --theme-surface-card: #ffffff;
+    --theme-border: #ddd6fe;
+    --theme-text: #4c1d95;
+    --theme-text-secondary: #334155;
+    --theme-text-muted: #475569;
+    --theme-sidebar-bg: linear-gradient(180deg, #2e1065 0%, #4c1d95 100%);
+    --theme-topbar-bg: #4c1d95;
+    --theme-sidebar-active-bg: linear-gradient(90deg, rgba(192, 132, 252, 0.28) 0%, rgba(139, 92, 246, 0.1) 100%);
+    --theme-sidebar-active-border: #c084fc;
+    --theme-sidebar-active-icon: #d8b4fe;
+    --theme-table-head-bg: #f5f3ff;
+    --theme-table-head-text: #4c1d95;
+    --theme-focus-ring: rgba(124, 58, 237, 0.24);
+    --primary: #5b21b6;
+    --accent: #7c3aed;
+    --share: #6d28d9;
+    --bg: #f5f3ff;
 }
 
-/* 🟡 FUTURE THEME: YELLOW (Amber / Gold) */
-:root[data-theme="theme-yellow"],
-body.theme-yellow {
-    --theme-primary: #f59e0b;
-    --theme-primary-hover: #d97706;
-    --theme-accent: #fbbf24;
-    --theme-border: #92400e;
+:root[data-theme="theme-yellow"], html.theme-yellow, body.theme-yellow {
+    color-scheme: light;
+    --theme-primary: #b45309;
+    --theme-primary-hover: #92400e;
+    --theme-accent: #d97706;
+    --theme-bg: #fffbeb;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #fefce8;
+    --theme-surface-card: #ffffff;
+    --theme-border: #fde68a;
+    --theme-text: #78350f;
+    --theme-text-secondary: #292524;
+    --theme-text-muted: #57534e;
+    --theme-sidebar-bg: linear-gradient(180deg, #292524 0%, #451a03 100%);
+    --theme-topbar-bg: #451a03;
+    --theme-sidebar-active-bg: linear-gradient(90deg, rgba(251, 191, 36, 0.28) 0%, rgba(245, 158, 11, 0.1) 100%);
+    --theme-sidebar-active-border: #fbbf24;
+    --theme-sidebar-active-icon: #fde68a;
+    --theme-table-head-bg: #fef3c7;
+    --theme-table-head-text: #78350f;
+    --theme-focus-ring: rgba(217, 119, 6, 0.25);
+    --primary: #92400e;
+    --accent: #b45309;
+    --share: #d97706;
+    --bg: #fffbeb;
 }
 
-/* 🟠 FUTURE THEME: ORANGE (Sunset / Tangerine) */
-:root[data-theme="theme-orange"],
-body.theme-orange {
-    --theme-primary: #f97316;
-    --theme-primary-hover: #ea580c;
-    --theme-accent: #fb923c;
-    --theme-border: #9a3412;
+:root[data-theme="theme-orange"], html.theme-orange, body.theme-orange {
+    color-scheme: light;
+    --theme-primary: #ea580c;
+    --theme-primary-hover: #c2410c;
+    --theme-accent: #f97316;
+    --theme-bg: #fff7ed;
+    --theme-surface: #ffffff;
+    --theme-surface-alt: #ffedd5;
+    --theme-surface-card: #ffffff;
+    --theme-border: #fed7aa;
+    --theme-text: #7c2d12;
+    --theme-text-secondary: #292524;
+    --theme-text-muted: #57534e;
+    --theme-sidebar-bg: linear-gradient(180deg, #431407 0%, #7c2d12 100%);
+    --theme-topbar-bg: #7c2d12;
+    --theme-sidebar-active-bg: linear-gradient(90deg, rgba(251, 146, 60, 0.28) 0%, rgba(249, 115, 22, 0.1) 100%);
+    --theme-sidebar-active-border: #fb923c;
+    --theme-sidebar-active-icon: #fdba74;
+    --theme-table-head-bg: #fff7ed;
+    --theme-table-head-text: #7c2d12;
+    --theme-focus-ring: rgba(234, 88, 12, 0.25);
+    --primary: #9a3412;
+    --accent: #ea580c;
+    --share: #c2410c;
+    --bg: #fff7ed;
+}
+
+/* Shared Application Rules for the 6 Signature Color Themes */
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) body {
+    background-color: var(--theme-bg) !important;
+    color: #0f172a;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-sidebar {
+    background: var(--theme-sidebar-bg) !important;
+    border-right-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-universal-topbar {
+    background: var(--theme-topbar-bg) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-menu-item.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-profile-link.active {
+    background: var(--theme-sidebar-active-bg) !important;
+    border-left: 4px solid var(--theme-sidebar-active-border) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-menu-item:hover > i:first-child,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-menu-item.active > i:first-child,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-profile-link.active > i:first-child {
+    color: var(--theme-sidebar-active-icon) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-theme-dropup-menu {
+    background: var(--theme-topbar-bg) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-theme-option.active {
+    background: rgba(255, 255, 255, 0.16) !important;
+    color: #ffffff !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-lang-btn:hover,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-theme-btn:hover {
+    background: var(--theme-primary) !important;
+    border-color: var(--theme-sidebar-active-border) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .panel-card,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .vyapar-card,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .kpi-card,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .erp-kpi-card,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .stat-card,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .customer-card,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .item-card,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .list-item-card,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .dashboard-container,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .date-filter-bar,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .vyapar-header-bar {
+    border-color: var(--theme-border) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .panel-card {
+    border-top-color: var(--theme-primary) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .card-header h2,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .erp-title-group h1 {
+    color: var(--theme-text) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .report-tab-btn.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .vyapar-tab-btn.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .settings-tab-btn.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .admin-nav-btn.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .date-preset-btn.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .filter-tab.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .filter-chip.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .mode-tab.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .chart-tab-btn.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .period-chip.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .ledger-tab-btn.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .view-tab-btn.active,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .booker-card.active {
+    background: var(--theme-primary) !important;
+    border-color: var(--theme-primary-hover) !important;
+    color: #ffffff !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .btn-primary,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .eb-avatar-btn {
+    background: var(--theme-primary) !important;
+    border-color: var(--theme-primary-hover) !important;
+    color: #ffffff !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) .btn-primary:hover {
+    background: var(--theme-primary-hover) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) table:not([data-invoice-paper="true"] table):not(#claimVoucherPrintArea table):not(.voucher-paper table) th {
+    background: var(--theme-table-head-bg) !important;
+    color: var(--theme-table-head-text) !important;
+    border-bottom-color: var(--theme-border) !important;
+}
+
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) input:focus,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) select:focus,
+:is(html.theme-green, html.theme-red, html.theme-blue, html.theme-purple, html.theme-yellow, html.theme-orange) textarea:focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: 0 0 0 2px var(--theme-focus-ring) !important;
+}
+
+/* ==========================================================================
+   ☀️ LIGHT MODE EXPLICIT CONTRAST SAFEGUARD
+   ========================================================================== */
+html[data-theme="light"] body,
+body[data-theme="light"] {
+    background-color: #f4f7f6;
+    color: #0f172a;
+}
+
+html[data-theme="light"] select,
+html[data-theme="light"] select option {
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+html[data-theme="light"] .panel-card,
+html[data-theme="light"] .erp-kpi-card,
+html[data-theme="light"] .kpi-card,
+html[data-theme="light"] .admin-nav-btn,
+html[data-theme="light"] .settings-tab-btn,
+html[data-theme="light"] .vyapar-tab-btn,
+html[data-theme="light"] .report-tab-btn {
+    color: #0f172a;
+}
+html[data-theme="light"] .admin-nav-btn.active,
+html[data-theme="light"] .settings-tab-btn.active,
+html[data-theme="light"] .vyapar-tab-btn.active,
+html[data-theme="light"] .report-tab-btn.active {
+    color: #ffffff;
 }
 
 /* ==========================================================================
    🌙 COMPREHENSIVE DARK / NIGHT MODE OVERRIDES
-   Ensures ALL pages background is deep gray and ALL text is crystal clear pure white
+   High-specificity selectors ensure victory even when page <style> loads after dark-theme.css
    ========================================================================== */
 
 /* 1. Global Page Background & Root Typography */
@@ -102,354 +367,1082 @@ body.dark-theme,
 [data-theme="dark"] body,
 [data-theme="night"] body {
     background-color: #0b1120 !important;
-    color: #ffffff !important;
+    color: #f8fafc !important;
 }
 
 /* 2. Top bars & Legacy elements cleanup */
+html.dark-theme body .panel-topbar,
+html.dark-theme body .top-bar,
 body.dark-theme .panel-topbar,
 body.dark-theme .top-bar {
     display: none !important;
 }
 
 /* 3. Universal Main Containers across all ERP Pages */
-body.dark-theme .dashboard-container,
-body.dark-theme .container,
-body.dark-theme .main-container,
-body.dark-theme .content-wrapper,
-body.dark-theme .panel-container,
-body.dark-theme .bill-container,
-body.dark-theme .pos-container,
-body.dark-theme .auth-container,
-body.dark-theme .settings-container,
-body.dark-theme .catalog-container {
+html.dark-theme body .dashboard-container,
+html.dark-theme body .container,
+html.dark-theme body .main-container,
+html.dark-theme body .content-wrapper,
+html.dark-theme body .panel-container,
+html.dark-theme body .bill-container,
+html.dark-theme body .pos-container,
+html.dark-theme body .auth-container,
+html.dark-theme body .settings-container,
+html.dark-theme body .catalog-container,
+html.dark-theme body .vyapar-container {
     background: #111827 !important;
     border-color: #334155 !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45) !important;
 }
 
-/* 4. Universal Cards, KPI Boxes & Surfaces */
-body.dark-theme .card,
-body.dark-theme .panel-card,
-body.dark-theme .erp-kpi-card,
-body.dark-theme .kpi-card,
-body.dark-theme .stat-card,
-body.dark-theme .analytics-box,
-body.dark-theme .module-card,
-body.dark-theme .stock-card,
-body.dark-theme .customer-card,
-body.dark-theme .expense-card,
-body.dark-theme .trip-card,
-body.dark-theme .order-card,
-body.dark-theme .report-card,
-body.dark-theme .setting-card,
-body.dark-theme .admin-card,
-body.dark-theme .agency-card,
-body.dark-theme .saas-metric-card,
-body.dark-theme .profile-card,
-body.dark-theme .bill-preview-box,
-body.dark-theme .pos-sidebar,
-body.dark-theme .cat-card,
-body.dark-theme .modal-content,
-body.dark-theme .modal-card,
-body.dark-theme .auth-card,
-body.dark-theme .swal2-popup,
-body.dark-theme .summary-stat-box,
-body.dark-theme .item-row,
-body.dark-theme .stock-item,
-body.dark-theme .customer-item {
+/* 4. Universal Cards, KPI Boxes, Modals & Module Surfaces */
+html.dark-theme body .card,
+html.dark-theme body .panel-card,
+html.dark-theme body .erp-kpi-card,
+html.dark-theme body .kpi-card,
+html.dark-theme body .kpi-box,
+html.dark-theme body .stat-card,
+html.dark-theme body .analytics-box,
+html.dark-theme body .module-card,
+html.dark-theme body .stock-card,
+html.dark-theme body .customer-card,
+html.dark-theme body .expense-card,
+html.dark-theme body .trip-card,
+html.dark-theme body .order-card,
+html.dark-theme body .report-card,
+html.dark-theme body .setting-card,
+html.dark-theme body .admin-card,
+html.dark-theme body .agency-card,
+html.dark-theme body .agency-item,
+html.dark-theme body .saas-metric-card,
+html.dark-theme body .leaderboard-card,
+html.dark-theme body .package-editor,
+html.dark-theme body .action-card,
+html.dark-theme body .alert-kpi-card,
+html.dark-theme body .alerts-toolbar,
+html.dark-theme body .vyapar-card,
+html.dark-theme body .vyapar-header-bar,
+html.dark-theme body .exec-card,
+html.dark-theme body .branch-card,
+html.dark-theme body .spotlight-card,
+html.dark-theme body .booker-card,
+html.dark-theme body .profile-card,
+html.dark-theme body .bill-preview-box,
+html.dark-theme body .pos-sidebar,
+html.dark-theme body .cat-card,
+html.dark-theme body .cat-card-container,
+html.dark-theme body .cat-agency-header,
+html.dark-theme body .cat-shopkeeper-card,
+html.dark-theme body .booking-top-card,
+html.dark-theme body .item-card,
+html.dark-theme body .list-item-card,
+html.dark-theme body .modal-content,
+html.dark-theme body .modal-card,
+html.dark-theme body .modal-box,
+html.dark-theme body .expense-modal-box,
+html.dark-theme body .profit-modal-box,
+html.dark-theme body .history-modal-content,
+html.dark-theme body .modal-kpi-box,
+html.dark-theme body .auth-card,
+html.dark-theme body .summary-stat-box,
+html.dark-theme body .item-row,
+html.dark-theme body .stock-item,
+html.dark-theme body .customer-item,
+html.dark-theme body .return-item-row,
+html.dark-theme body .stats-pill-grid,
+html.dark-theme body .agency-stats-bar,
+html.dark-theme body .branch-stats,
+html.dark-theme body .billno-box,
+html.dark-theme body .cust-info-box,
+html.dark-theme body .totals-box,
+html.dark-theme body .suggest-box,
+html.dark-theme body .product-search-dropdown,
+html.dark-theme body .filter-bar,
+html.dark-theme body .date-filter-bar,
+html.dark-theme body .report-tabs-nav,
+html.dark-theme body .admin-nav {
     background: #1e293b !important;
-    color: #ffffff !important;
-    border: 1px solid #334155 !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
 }
 
-/* 5. Typography: Headings, Labels, Values & Paragraphs */
-body.dark-theme h1,
-body.dark-theme h2,
-body.dark-theme h3,
-body.dark-theme h4,
-body.dark-theme h5,
-body.dark-theme h6,
-body.dark-theme .erp-title-group h1,
-body.dark-theme .box-title,
-body.dark-theme .kpi-main-val,
-body.dark-theme .stat-value,
-body.dark-theme .user-name,
-body.dark-theme #userName,
-body.dark-theme .app-title,
-body.dark-theme .module-card h3,
-body.dark-theme .item-title,
-body.dark-theme .stock-name,
-body.dark-theme .customer-name,
-body.dark-theme .saas-metric-val,
-body.dark-theme strong,
-body.dark-theme b,
-body.dark-theme .legend-row b {
+/* Nested Inset Surfaces (darker contrast inside cards) */
+html.dark-theme body .agency-stats-bar,
+html.dark-theme body .branch-stats,
+html.dark-theme body .stats-pill-grid,
+html.dark-theme body .drop-zone,
+html.dark-theme body .package-editor,
+html.dark-theme body .billno-box,
+html.dark-theme body .cust-info-box,
+html.dark-theme body .totals-box,
+html.dark-theme body .item-row,
+html.dark-theme body .return-item-row,
+html.dark-theme body .live-calc-box,
+html.dark-theme body .suggest-box,
+html.dark-theme body .product-search-dropdown,
+html.dark-theme body .cat-bar-container,
+html.dark-theme body .margin-bar-container,
+html.dark-theme body .quota-bar,
+html.dark-theme body .modal-actions-bar,
+html.dark-theme body #sessionSecurityBox {
+    background: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+}
+
+html.dark-theme body .drop-zone:hover,
+html.dark-theme body .drop-zone.dragover {
+    background: rgba(56, 189, 248, 0.12) !important;
+    border-color: #38bdf8 !important;
+}
+
+/* 5. Typography: Headings, Card Values & Primary Ink */
+html.dark-theme body h1,
+html.dark-theme body h2,
+html.dark-theme body h3,
+html.dark-theme body h4,
+html.dark-theme body h5,
+html.dark-theme body h6,
+html.dark-theme body .card-header h2,
+html.dark-theme body .erp-title-group h1,
+html.dark-theme body .box-title,
+html.dark-theme body .kpi-main-val,
+html.dark-theme body .kpi-val,
+html.dark-theme body .kpi-value,
+html.dark-theme body .kpi-details .kpi-val,
+html.dark-theme body .stat-value,
+html.dark-theme body .user-name,
+html.dark-theme body #userName,
+html.dark-theme body .app-title,
+html.dark-theme body .module-card h3,
+html.dark-theme body .item-title,
+html.dark-theme body .item-name,
+html.dark-theme body .list-item-title,
+html.dark-theme body .stock-name,
+html.dark-theme body .customer-name,
+html.dark-theme body .agency-name,
+html.dark-theme body .branch-name,
+html.dark-theme body .spotlight-name,
+html.dark-theme body .pkg-title,
+html.dark-theme body .saas-metric-val,
+html.dark-theme body .alert-kpi-val,
+html.dark-theme body .exec-value,
+html.dark-theme body .b-stat-num,
+html.dark-theme body .stat-pill-val,
+html.dark-theme body .row-total,
+html.dark-theme body .total-row.grand,
+html.dark-theme body .legend-row b,
+html.dark-theme body .modal-header h3 {
     color: #ffffff !important;
 }
 
-body.dark-theme p,
-body.dark-theme .sub-text,
-body.dark-theme .erp-title-group .sub-text,
-body.dark-theme .module-card p,
-body.dark-theme .kpi-title,
-body.dark-theme .kpi-sub-row,
-body.dark-theme .text-muted,
-body.dark-theme .user-email,
-body.dark-theme #userEmail,
-body.dark-theme .biz-item .label,
-body.dark-theme .billno-box .label,
-body.dark-theme .stat-label,
-body.dark-theme .app-subtitle,
-body.dark-theme label,
-body.dark-theme .form-group label,
-body.dark-theme .overdue-label,
-body.dark-theme .legend-row span {
+html.dark-theme body p,
+html.dark-theme body .sub-text,
+html.dark-theme body .header-note,
+html.dark-theme body .erp-title-group .sub-text,
+html.dark-theme body .module-card p,
+html.dark-theme body .kpi-title,
+html.dark-theme body .kpi-sub,
+html.dark-theme body .kpi-sub-row,
+html.dark-theme body .kpi-label,
+html.dark-theme body .text-muted,
+html.dark-theme body .user-email,
+html.dark-theme body #userEmail,
+html.dark-theme body .biz-item .label,
+html.dark-theme body .billno-box .label,
+html.dark-theme body .stat-label,
+html.dark-theme body .alert-kpi-lbl,
+html.dark-theme body .exec-label,
+html.dark-theme body .b-stat-lbl,
+html.dark-theme body .stat-pill-item,
+html.dark-theme body .saas-metric-lbl,
+html.dark-theme body .agency-meta,
+html.dark-theme body .customer-details,
+html.dark-theme body .item-details,
+html.dark-theme body .list-item-meta,
+html.dark-theme body .list-item-unit,
+html.dark-theme body .spotlight-meta,
+html.dark-theme body .app-subtitle,
+html.dark-theme body label,
+html.dark-theme body .form-group label,
+html.dark-theme body .limit-item label,
+html.dark-theme body .perm-check,
+html.dark-theme body .overdue-label,
+html.dark-theme body .legend-row span,
+html.dark-theme body .empty-state,
+html.dark-theme body .loading-inline {
     color: #cbd5e1 !important;
 }
 
-/* 6. Form Controls: Inputs, Selects, Search Boxes & Textareas */
-body.dark-theme input[type="text"],
-body.dark-theme input[type="number"],
-body.dark-theme input[type="tel"],
-body.dark-theme input[type="email"],
-body.dark-theme input[type="password"],
-body.dark-theme input[type="date"],
-body.dark-theme input[type="search"],
-body.dark-theme select,
-body.dark-theme textarea,
-body.dark-theme .search-box input,
-body.dark-theme .form-control,
-body.dark-theme .swal2-input,
-body.dark-theme .swal2-select,
-body.dark-theme .swal2-textarea {
-    background-color: #0f172a !important;
+/* Card Borders & Dividers */
+html.dark-theme body .card-header,
+html.dark-theme body .modal-header,
+html.dark-theme body .history-modal-header,
+html.dark-theme body .form-toggle-row,
+html.dark-theme body .erp-header-row,
+html.dark-theme body .launchers-section,
+html.dark-theme body .suggest-item,
+html.dark-theme body .product-search-item {
+    border-color: #334155 !important;
+}
+
+html.dark-theme body .total-row.grand {
+    border-top-color: #475569 !important;
+}
+
+html.dark-theme body .suggest-item:hover,
+html.dark-theme body .product-search-item:hover {
+    background: #334155 !important;
     color: #ffffff !important;
-    border: 1px solid #334155 !important;
 }
 
-body.dark-theme input::placeholder,
-body.dark-theme textarea::placeholder {
-    color: #64748b !important;
+/* 6. Form Controls: Inputs, Native Selects, Options, Textareas */
+html.dark-theme body input[type="text"],
+html.dark-theme body input[type="number"],
+html.dark-theme body input[type="tel"],
+html.dark-theme body input[type="email"],
+html.dark-theme body input[type="password"],
+html.dark-theme body input[type="date"],
+html.dark-theme body input[type="time"],
+html.dark-theme body input[type="datetime-local"],
+html.dark-theme body input[type="month"],
+html.dark-theme body input[type="url"],
+html.dark-theme body input[type="search"],
+html.dark-theme body input[type="file"],
+html.dark-theme body select,
+html.dark-theme body textarea,
+html.dark-theme body .search-box input,
+html.dark-theme body .search-mini,
+html.dark-theme body .select-input,
+html.dark-theme body .select-mini,
+html.dark-theme body .form-control,
+html.dark-theme body .limit-item input,
+html.dark-theme body .custom-date-inputs input,
+html.dark-theme body .swal2-input,
+html.dark-theme body .swal2-select,
+html.dark-theme body .swal2-textarea {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
 }
 
-body.dark-theme input:focus,
-body.dark-theme select:focus,
-body.dark-theme textarea:focus,
-body.dark-theme .search-box input:focus {
+html.dark-theme body select option,
+html.dark-theme body select optgroup,
+html.dark-theme body datalist option {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+html.dark-theme body input:disabled,
+html.dark-theme body select:disabled,
+html.dark-theme body textarea:disabled {
+    background-color: #1e293b !important;
+    color: #94a3b8 !important;
+    border-color: #334155 !important;
+    opacity: 0.85;
+}
+
+html.dark-theme body input::placeholder,
+html.dark-theme body textarea::placeholder {
+    color: #94a3b8 !important;
+}
+
+html.dark-theme body input:focus,
+html.dark-theme body select:focus,
+html.dark-theme body textarea:focus,
+html.dark-theme body .search-box input:focus {
     border-color: #38bdf8 !important;
     outline: none !important;
     box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
 }
 
 /* 7. Tables & Data Grids */
-body.dark-theme table,
-body.dark-theme .mini-table,
-body.dark-theme .recent-bills-table,
-body.dark-theme .ledger-table,
-body.dark-theme .table-responsive {
+html.dark-theme body table:not([data-invoice-paper="true"] table):not(#claimVoucherPrintArea table):not(.voucher-paper table),
+html.dark-theme body .mini-table,
+html.dark-theme body .recent-bills-table,
+html.dark-theme body .ledger-table,
+html.dark-theme body .leaderboard-table,
+html.dark-theme body .alerts-table,
+html.dark-theme body .vyapar-table,
+html.dark-theme body .report-table,
+html.dark-theme body .comp-table,
+html.dark-theme body .history-table,
+html.dark-theme body .table-responsive,
+html.dark-theme body .history-table-container {
     background: #1e293b !important;
-    color: #ffffff !important;
+    color: #f8fafc !important;
     border-color: #334155 !important;
 }
 
-body.dark-theme table th,
-body.dark-theme .mini-table th,
-body.dark-theme .defaulter-table-head th {
+html.dark-theme body table:not([data-invoice-paper="true"] table):not(#claimVoucherPrintArea table):not(.voucher-paper table) th,
+html.dark-theme body .mini-table th,
+html.dark-theme body .leaderboard-table th,
+html.dark-theme body .alerts-table th,
+html.dark-theme body .vyapar-table th,
+html.dark-theme body .report-table th,
+html.dark-theme body .comp-table th,
+html.dark-theme body .history-table th,
+html.dark-theme body .defaulter-table-head th {
     background: #0f172a !important;
     color: #cbd5e1 !important;
     border-bottom: 1px solid #334155 !important;
     border-color: #334155 !important;
 }
 
-body.dark-theme table td,
-body.dark-theme .mini-table td,
-body.dark-theme #defaultersTbody td {
-    color: #ffffff !important;
+html.dark-theme body table:not([data-invoice-paper="true"] table):not(#claimVoucherPrintArea table):not(.voucher-paper table) td,
+html.dark-theme body .mini-table td,
+html.dark-theme body .leaderboard-table td,
+html.dark-theme body .alerts-table td,
+html.dark-theme body .vyapar-table td,
+html.dark-theme body .report-table td,
+html.dark-theme body .comp-table td,
+html.dark-theme body .history-table td,
+html.dark-theme body #defaultersTbody td {
+    color: #f8fafc !important;
     border-bottom: 1px solid #334155 !important;
     border-color: #334155 !important;
 }
 
-body.dark-theme table tr:hover,
-body.dark-theme .mini-table tr:hover {
-    background: rgba(51, 65, 85, 0.5) !important;
+html.dark-theme body table:not([data-invoice-paper="true"] table):not(#claimVoucherPrintArea table):not(.voucher-paper table) tr:hover,
+html.dark-theme body table:not([data-invoice-paper="true"] table):not(#claimVoucherPrintArea table):not(.voucher-paper table) tr:hover td {
+    background: rgba(51, 65, 85, 0.55) !important;
 }
 
 /* 8. Defaulter Recovery & Alert Panels */
-body.dark-theme .defaulter-recovery-panel {
+html.dark-theme body .defaulter-recovery-panel {
     background: #1e293b !important;
     border: 2px solid #7f1d1d !important;
     color: #ffffff !important;
     box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15) !important;
 }
-body.dark-theme .recovery-header {
+html.dark-theme body .recovery-header {
     border-bottom-color: #374151 !important;
 }
-body.dark-theme .recovery-title h2 {
-    color: #f87171 !important;
-}
-body.dark-theme .recovery-subtext,
-body.dark-theme #defaulterSubtext {
+html.dark-theme body .recovery-title h2 {
     color: #fca5a5 !important;
-    opacity: 0.95;
 }
-body.dark-theme .overdue-pill {
-    background: rgba(239, 68, 68, 0.15) !important;
+html.dark-theme body .recovery-subtext,
+html.dark-theme body #defaulterSubtext {
+    color: #fecaca !important;
+}
+html.dark-theme body .overdue-pill {
+    background: rgba(239, 68, 68, 0.18) !important;
     color: #fca5a5 !important;
     border-color: #ef4444 !important;
 }
-body.dark-theme .overdue-pill.active {
+html.dark-theme body .overdue-pill.active {
     background: #dc2626 !important;
     color: #ffffff !important;
     border-color: #dc2626 !important;
 }
-body.dark-theme .badge-overdue-days {
-    background: rgba(239, 68, 68, 0.2) !important;
+html.dark-theme body .badge-overdue-days {
+    background: rgba(239, 68, 68, 0.22) !important;
     color: #fca5a5 !important;
-    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    border: 1px solid rgba(239, 68, 68, 0.45) !important;
 }
 
-/* 9. Quick Launchers Section */
-body.dark-theme .launchers-section {
-    border-top: 1px solid #334155 !important;
-}
-body.dark-theme .launchers-heading {
-    color: #f8fafc !important;
-}
-body.dark-theme .module-card:hover {
-    background: #334155 !important;
-    border-color: #38bdf8 !important;
-}
-
-/* 10. Booker Alert Banners & Phase Notes */
-body.dark-theme .booker-overdue-alert-banner,
-body.dark-theme .phase-note {
-    background: #1e293b !important;
-    border-color: #475569 !important;
-    color: #fde68a !important;
-}
-
-/* 11. Filter Tabs, Chips & Mode Switchers */
-body.dark-theme .chart-toggle-tabs,
-body.dark-theme .mode-tabs,
-body.dark-theme .auth-tabs,
-body.dark-theme #bookingModeToggleBar,
-body.dark-theme .search-bar,
-body.dark-theme .search-filter-bar {
+/* 9. Navigation Tabs, Filter Chips, Switchers & Pills Across All Modules */
+html.dark-theme body .chart-toggle-tabs,
+html.dark-theme body .mode-tabs,
+html.dark-theme body .auth-tabs,
+html.dark-theme body #bookingModeToggleBar,
+html.dark-theme body .view-segmented-bar,
+html.dark-theme body .rate-tier-bar,
+html.dark-theme body .vyapar-tabs,
+html.dark-theme body .period-bar,
+html.dark-theme body .cust-filter-tabs,
+html.dark-theme body .ledger-tab-nav,
+html.dark-theme body .search-bar,
+html.dark-theme body .search-filter-bar {
     background: #0f172a !important;
     border-color: #334155 !important;
     color: #cbd5e1 !important;
 }
 
-body.dark-theme .chart-tab-btn,
-body.dark-theme .mode-tab,
-body.dark-theme .auth-tab,
-body.dark-theme .filter-chip {
+html.dark-theme body .chart-tab-btn,
+html.dark-theme body .mode-tab,
+html.dark-theme body .auth-tab,
+html.dark-theme body .filter-chip,
+html.dark-theme body .filter-tab,
+html.dark-theme body .admin-nav-btn,
+html.dark-theme body .settings-tab-btn,
+html.dark-theme body .vyapar-tab-btn,
+html.dark-theme body .report-tab-btn,
+html.dark-theme body .date-preset-btn,
+html.dark-theme body .period-chip,
+html.dark-theme body .ledger-tab-btn,
+html.dark-theme body .view-tab-btn,
+html.dark-theme body .rate-tier-btn,
+html.dark-theme body .list-filter-pill,
+html.dark-theme body .cat-chip,
+html.dark-theme body .cat-nav-btn,
+html.dark-theme body .filter-date-btn,
+html.dark-theme body .btn-csv-export,
+html.dark-theme body .btn-outline-sm,
+html.dark-theme body .quick-rec-chip,
+html.dark-theme body .add-row-btn {
     background: #1e293b !important;
-    color: #cbd5e1 !important;
+    color: #e2e8f0 !important;
     border-color: #334155 !important;
 }
 
-body.dark-theme .chart-tab-btn.active,
-body.dark-theme .mode-tab.active,
-body.dark-theme .auth-tab.active,
-body.dark-theme .filter-chip.active {
+html.dark-theme body .admin-nav-btn:hover,
+html.dark-theme body .settings-tab-btn:hover,
+html.dark-theme body .vyapar-tab-btn:hover,
+html.dark-theme body .report-tab-btn:hover,
+html.dark-theme body .date-preset-btn:hover,
+html.dark-theme body .period-chip:hover,
+html.dark-theme body .filter-chip:hover,
+html.dark-theme body .list-filter-pill:hover,
+html.dark-theme body .cat-nav-btn:hover,
+html.dark-theme body .btn-csv-export:hover {
+    background: #334155 !important;
+    color: #ffffff !important;
+    border-color: #38bdf8 !important;
+}
+
+html.dark-theme body .chart-tab-btn.active,
+html.dark-theme body .mode-tab.active,
+html.dark-theme body .auth-tab.active,
+html.dark-theme body .filter-chip.active,
+html.dark-theme body .filter-tab.active,
+html.dark-theme body .admin-nav-btn.active,
+html.dark-theme body .settings-tab-btn.active,
+html.dark-theme body .vyapar-tab-btn.active,
+html.dark-theme body .report-tab-btn.active,
+html.dark-theme body .date-preset-btn.active,
+html.dark-theme body .period-chip.active,
+html.dark-theme body .ledger-tab-btn.active,
+html.dark-theme body .view-tab-btn.active,
+html.dark-theme body .rate-tier-btn.active,
+html.dark-theme body .list-filter-pill.active,
+html.dark-theme body .cat-chip.active,
+html.dark-theme body .booker-card.active {
     background: #0284c7 !important;
     color: #ffffff !important;
     border-color: #38bdf8 !important;
 }
 
-/* 12. KPI Icons & Special Values */
-body.dark-theme .biz-item .value,
-body.dark-theme .billno-box .value,
-body.dark-theme .kpi-sub-val,
-body.dark-theme .stock-price {
-    color: #34d399 !important;
+html.dark-theme body .admin-nav-btn.active {
+    background: #7c3aed !important;
+    border-color: #a78bfa !important;
 }
-body.dark-theme #kpiBookerParticipation,
-body.dark-theme #kpiFieldOrdersAmount,
-body.dark-theme .kpi-field-amount {
-    color: #38bdf8 !important;
+html.dark-theme body .rate-tier-btn.active.retail {
+    background: #059669 !important;
+    color: #ffffff !important;
+    border-color: #34d399 !important;
 }
 
-/* 13. High-Contrast Overrides for any inline styles */
-body.dark-theme [style*="color:#0f172a"],
-body.dark-theme [style*="color: #0f172a"],
-body.dark-theme [style*="color:#1e293b"],
-body.dark-theme [style*="color: #1e293b"],
-body.dark-theme [style*="color:#334155"],
-body.dark-theme [style*="color: #334155"] {
+/* Specific Report Colored Analytics Tab Buttons in dark mode */
+html.dark-theme body #reportTabsNav a.report-tab-btn[href="profit.html"],
+html.dark-theme body #reportTabsNav a.report-tab-btn[href="profit.html"] b {
+    background: rgba(16, 185, 129, 0.16) !important;
+    border-color: rgba(52, 211, 153, 0.45) !important;
+    color: #6ee7b7 !important;
+}
+html.dark-theme body #reportTabsNav a.report-tab-btn[href="profit.html"] b {
+    background: transparent !important;
+}
+html.dark-theme body #tabBtnMobileAnalytics {
+    background: rgba(14, 165, 233, 0.16) !important;
+    border-color: rgba(56, 189, 248, 0.45) !important;
+    color: #7dd3fc !important;
+}
+html.dark-theme body #tabBtnBooksAnalytics {
+    background: rgba(59, 130, 246, 0.16) !important;
+    border-color: rgba(96, 165, 250, 0.45) !important;
+    color: #93c5fd !important;
+}
+html.dark-theme body #tabBtnWholesalerAnalytics {
+    background: rgba(249, 115, 22, 0.16) !important;
+    border-color: rgba(251, 146, 60, 0.45) !important;
+    color: #fdba74 !important;
+}
+html.dark-theme body #tabBtnMedicalAnalytics {
+    background: rgba(16, 185, 129, 0.16) !important;
+    border-color: rgba(52, 211, 153, 0.45) !important;
+    color: #6ee7b7 !important;
+}
+html.dark-theme body #tabBtnRestaurantAnalytics {
+    background: rgba(220, 38, 38, 0.18) !important;
+    border-color: rgba(248, 113, 113, 0.45) !important;
+    color: #fca5a5 !important;
+}
+html.dark-theme body #tabBtnMobileAnalytics.active,
+html.dark-theme body #tabBtnBooksAnalytics.active,
+html.dark-theme body #tabBtnWholesalerAnalytics.active,
+html.dark-theme body #tabBtnMedicalAnalytics.active,
+html.dark-theme body #tabBtnRestaurantAnalytics.active {
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #38bdf8 !important;
+}
+
+html.dark-theme body #mobileAnalyticsModeSelect,
+html.dark-theme body #booksAnalyticsModeSelect,
+html.dark-theme body #wholesalerAnalyticsModeSelect,
+html.dark-theme body #medicalAnalyticsModeSelect,
+html.dark-theme body #restaurantAnalyticsModeSelect {
+    background: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #38bdf8 !important;
+}
+
+/* SaaS Paywall Lock Overlay in Dark Mode */
+html.dark-theme body #ebPageLockOverlay {
+    background: #1e293b !important;
+    border-color: #f59e0b !important;
+    color: #f8fafc !important;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55) !important;
+}
+html.dark-theme body #ebPageLockOverlay h2 {
     color: #ffffff !important;
 }
-
-body.dark-theme [style*="color:#64748b"],
-body.dark-theme [style*="color: #64748b"],
-body.dark-theme [style*="color:#475569"],
-body.dark-theme [style*="color: #475569"] {
+html.dark-theme body #ebPageLockOverlay h4 {
+    color: #fbbf24 !important;
+}
+html.dark-theme body #ebPageLockOverlay p {
+    color: #cbd5e1 !important;
+}
+html.dark-theme body #ebPageLockOverlay .eb-lock-footer-box {
+    background: #0f172a !important;
+    border-color: #334155 !important;
     color: #cbd5e1 !important;
 }
 
-body.dark-theme [style*="color:#7f1d1d"],
-body.dark-theme [style*="color: #7f1d1d"] {
-    color: #fca5a5 !important;
+/* 10. Bills & Inventory Cards / Badges / Chips */
+html.dark-theme body .list-item-card.booked {
+    background: rgba(2, 132, 199, 0.18) !important;
+    border-color: #38bdf8 !important;
 }
-
-body.dark-theme [style*="color:#b91c1c"],
-body.dark-theme [style*="color: #b91c1c"] {
-    color: #f87171 !important;
+html.dark-theme body .list-item-thumb,
+html.dark-theme body .list-item-barcode,
+html.dark-theme body .item-code-tag,
+html.dark-theme body .item-cat-tag,
+html.dark-theme body .list-offer-badge-gray,
+html.dark-theme body .c-chip,
+html.dark-theme body .c-chip-shop,
+html.dark-theme body .c-chip-phone,
+html.dark-theme body .c-chip-route,
+html.dark-theme body .stat-pill {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+    border-color: #334155 !important;
 }
-
-body.dark-theme [style*="color:#166534"],
-body.dark-theme [style*="color: #166534"],
-body.dark-theme [style*="color:#15803d"],
-body.dark-theme [style*="color: #15803d"] {
-    color: #4ade80 !important;
+html.dark-theme body .list-counter-box,
+html.dark-theme body .list-tokari-btn,
+html.dark-theme body .cat-qty-val {
+    background: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #38bdf8 !important;
 }
-
-body.dark-theme [style*="color:#78350f"],
-body.dark-theme [style*="color: #78350f"],
-body.dark-theme [style*="color:#b45309"],
-body.dark-theme [style*="color: #b45309"] {
+html.dark-theme body .list-counter-val {
+    color: #ffffff !important;
+}
+html.dark-theme body .list-item-rate {
+    color: #38bdf8 !important;
+}
+html.dark-theme body .list-offer-badge-green {
+    background: rgba(16, 185, 129, 0.16) !important;
+    border-color: rgba(52, 211, 153, 0.45) !important;
+}
+html.dark-theme body .list-offer-title-green,
+html.dark-theme body .list-offer-tracker.unlocked {
+    color: #6ee7b7 !important;
+}
+html.dark-theme body .list-offer-tracker.pending {
     color: #fde68a !important;
 }
 
-body.dark-theme [style*="color:#4338ca"],
-body.dark-theme [style*="color: #4338ca"] {
-    color: #a5b4fc !important;
+html.dark-theme body .item-card.low-stock {
+    background: rgba(245, 158, 11, 0.12) !important;
+    border-color: rgba(251, 191, 36, 0.4) !important;
+}
+html.dark-theme body .item-card.out-stock {
+    background: rgba(239, 68, 68, 0.14) !important;
+    border-color: rgba(248, 113, 113, 0.4) !important;
+}
+html.dark-theme body .rate-retail { background: rgba(16, 185, 129, 0.18) !important; color: #6ee7b7 !important; }
+html.dark-theme body .rate-wholesale { background: rgba(14, 165, 233, 0.18) !important; color: #7dd3fc !important; }
+html.dark-theme body .rate-cost { background: rgba(245, 158, 11, 0.18) !important; color: #fde68a !important; }
+
+html.dark-theme body .section-locked {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    opacity: 0.45 !important;
 }
 
-body.dark-theme [style*="color:#a21caf"],
-body.dark-theme [style*="color: #a21caf"] {
-    color: #f0abfc !important;
+/* 11. Badges & Status Pills in Dark Mode */
+html.dark-theme body .stock-ok,
+html.dark-theme body .net-online,
+html.dark-theme body .badge-ok,
+html.dark-theme body .badge-paid,
+html.dark-theme body .badge-sale,
+html.dark-theme body .badge-delivered,
+html.dark-theme body .badge-sub-active,
+html.dark-theme body .badge-claim-recovered,
+html.dark-theme body .recovery-status-full,
+html.dark-theme body .c-chip.tier-retail,
+html.dark-theme body .c-chip.filer-yes,
+html.dark-theme body .profit-badge-high {
+    background: rgba(16, 185, 129, 0.2) !important;
+    color: #6ee7b7 !important;
+    border-color: rgba(52, 211, 153, 0.4) !important;
 }
 
-body.dark-theme [style*="color:#0d9488"],
-body.dark-theme [style*="color: #0d9488"] {
-    color: #5eead4 !important;
+html.dark-theme body .stock-low,
+html.dark-theme body .badge-low,
+html.dark-theme body .badge-pending,
+html.dark-theme body .badge-partial,
+html.dark-theme body .badge-sub-due,
+html.dark-theme body .badge-claim-partial,
+html.dark-theme body .recovery-status-partial,
+html.dark-theme body .c-chip-balance,
+html.dark-theme body .cust-balance-chip,
+html.dark-theme body .stock-hint,
+html.dark-theme body .offline-queue-bar,
+html.dark-theme body .profit-badge-med,
+html.dark-theme body .quick-rec-chip.full {
+    background: rgba(245, 158, 11, 0.2) !important;
+    color: #fde68a !important;
+    border-color: rgba(251, 191, 36, 0.4) !important;
 }
 
-body.dark-theme [style*="color:#0284c7"],
-body.dark-theme [style*="color: #0284c7"] {
+html.dark-theme body .stock-out,
+html.dark-theme body .net-offline,
+html.dark-theme body .badge-out,
+html.dark-theme body .badge-due,
+html.dark-theme body .badge-loss,
+html.dark-theme body .badge-return,
+html.dark-theme body .badge-sub-expired,
+html.dark-theme body .badge-claim-pending,
+html.dark-theme body .badge-claim-loss,
+html.dark-theme body .kpi-highlight,
+html.dark-theme body .c-chip.filer-no,
+html.dark-theme body .profit-badge-loss,
+html.dark-theme body .quick-rec-chip.clear,
+html.dark-theme body .bal-due {
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #fca5a5 !important;
+    border-color: rgba(248, 113, 113, 0.4) !important;
+}
+
+html.dark-theme body .badge-pkg-single,
+html.dark-theme body .badge-dispatched,
+html.dark-theme body .c-chip.tier-wholesale,
+html.dark-theme body .badge-voucher,
+html.dark-theme body .cust-type-tag {
+    background: rgba(14, 165, 233, 0.2) !important;
+    color: #7dd3fc !important;
+    border-color: rgba(56, 189, 248, 0.4) !important;
+}
+
+html.dark-theme body .badge-pkg-multi,
+html.dark-theme body .badge-returned {
+    background: rgba(168, 85, 247, 0.2) !important;
+    color: #e9d5ff !important;
+    border-color: rgba(192, 132, 252, 0.4) !important;
+}
+
+/* 12. KPI Icons & Special Values */
+html.dark-theme body .biz-item .value,
+html.dark-theme body .billno-box .value,
+html.dark-theme body .kpi-sub-val,
+html.dark-theme body .stock-price,
+html.dark-theme body .bal-zero {
+    color: #34d399 !important;
+}
+html.dark-theme body #kpiBookerParticipation,
+html.dark-theme body #kpiFieldOrdersAmount,
+html.dark-theme body .kpi-field-amount {
     color: #38bdf8 !important;
 }
 
-/* 14. ERP Header Row Divider */
-body.dark-theme .erp-header-row {
-    border-bottom-color: #334155 !important;
+/* 13. Quick Launchers & Cards Hover */
+html.dark-theme body .launchers-section {
+    border-top: 1px solid #334155 !important;
+}
+html.dark-theme body .launchers-heading {
+    color: #f8fafc !important;
+}
+html.dark-theme body .module-card:hover,
+html.dark-theme body .agency-item:hover {
+    background: #263449 !important;
+    border-color: #38bdf8 !important;
+}
+
+/* 14. Booker Alert Banners, Phase Notes & Push Box */
+html.dark-theme body .booker-overdue-alert-banner,
+html.dark-theme body .phase-note {
+    background: rgba(245, 158, 11, 0.16) !important;
+    border-color: rgba(251, 191, 36, 0.45) !important;
+    color: #fde68a !important;
+}
+html.dark-theme body .push-notify-box,
+html.dark-theme body #backupSecurityBox {
+    background: rgba(16, 185, 129, 0.14) !important;
+    border-color: rgba(52, 211, 153, 0.4) !important;
+    color: #d1fae5 !important;
 }
 
 /* 15. Buttons in Dark Mode */
-body.dark-theme .btn-secondary,
-body.dark-theme .btn-light {
+html.dark-theme body .btn-secondary,
+html.dark-theme body .btn-light,
+html.dark-theme body .btn-perm-off,
+html.dark-theme body .btn-close-modal,
+html.dark-theme body .modal-close {
     background: #334155 !important;
     color: #ffffff !important;
     border-color: #475569 !important;
 }
-body.dark-theme .btn-secondary:hover,
-body.dark-theme .btn-light:hover {
+html.dark-theme body .btn-secondary:hover,
+html.dark-theme body .btn-light:hover,
+html.dark-theme body .btn-perm-off:hover,
+html.dark-theme body .btn-close-modal:hover,
+html.dark-theme body .modal-close:hover {
     background: #475569 !important;
     color: #ffffff !important;
+}
+
+/* 16. SweetAlert2 Popups & Nested Modal Content in Dark Mode */
+html.dark-theme .swal2-popup,
+body.dark-theme .swal2-popup {
+    background: #1e293b !important;
+    color: #f8fafc !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65) !important;
+}
+html.dark-theme .swal2-title,
+body.dark-theme .swal2-title {
+    color: #ffffff !important;
+}
+html.dark-theme .swal2-html-container,
+html.dark-theme .swal2-content,
+html.dark-theme .swal2-footer,
+html.dark-theme .swal2-radio,
+html.dark-theme .swal2-checkbox,
+html.dark-theme .swal2-popup label,
+body.dark-theme .swal2-html-container,
+body.dark-theme .swal2-content,
+body.dark-theme .swal2-footer,
+body.dark-theme .swal2-radio,
+body.dark-theme .swal2-checkbox,
+body.dark-theme .swal2-popup label {
+    color: #e2e8f0 !important;
+}
+html.dark-theme .swal2-close,
+body.dark-theme .swal2-close {
+    color: #cbd5e1 !important;
+}
+html.dark-theme .swal2-validation-message,
+body.dark-theme .swal2-validation-message {
+    background: #0f172a !important;
+    color: #fca5a5 !important;
+}
+
+/* ==========================================================================
+   17. INLINE LIGHT-BACKGROUND -> DARK-SURFACE & INLINE DARK-TEXT -> LIGHT-TEXT ENGINE
+   Explicitly EXCLUDES printable receipts/vouchers, loaders, sidebar logo & toggle UI!
+   High specificity (html.dark-theme body ...) ensures victory over generic typography.
+   ========================================================================== */
+
+/* Neutral white / off-white / light-gray inline backgrounds */
+html.dark-theme body [style*="background:#fff"]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *):not(.bill-paper):not(.bill-paper *):not(.switch-slider):not(.eb-sidebar-logo),
+html.dark-theme body [style*="background: #fff"]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *):not(.bill-paper):not(.bill-paper *):not(.switch-slider):not(.eb-sidebar-logo),
+html.dark-theme body [style*="background:#ffffff" i]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *):not(.bill-paper):not(.bill-paper *):not(.switch-slider):not(.eb-sidebar-logo),
+html.dark-theme body [style*="background: #ffffff" i]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *):not(.bill-paper):not(.bill-paper *):not(.switch-slider):not(.eb-sidebar-logo),
+html.dark-theme body [style*="background-color:#fff" i]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *):not(.bill-paper):not(.bill-paper *):not(.switch-slider),
+html.dark-theme body [style*="background-color: #fff" i]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *):not(.bill-paper):not(.bill-paper *):not(.switch-slider),
+html.dark-theme body [style*="background:white" i]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *),
+html.dark-theme body [style*="background: white" i]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *),
+html.dark-theme body [style*="rgb(255, 255, 255)"]:not([data-invoice-paper="true"]):not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea):not(#claimVoucherPrintArea *):not(.voucher-paper):not(.voucher-paper *):not(.bill-paper):not(.bill-paper *):not(.switch-slider),
+html.dark-theme body [style*="background:#f8fafc" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #f8fafc" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="rgb(248, 250, 252)"]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#f1f5f9" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #f1f5f9" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="rgb(241, 245, 249)"]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#f8f9fa" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #f8f9fa" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#eef2f7" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #eef2f7" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#fafbfc" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #fafbfc" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#fafafa" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #fafafa" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#f0f4f8" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#e2e8f0" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #e2e8f0" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#ecf0f1" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #ecf0f1" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background:#f9fafb" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="background: #f9fafb" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *),
+html.dark-theme body [style*="rgba(0,0,0,0.02)"],
+html.dark-theme body [style*="rgba(0,0,0,0.03)"],
+html.dark-theme body [style*="rgba(0, 0, 0, 0.02)"],
+html.dark-theme body [style*="rgba(0, 0, 0, 0.03)"],
+html.dark-theme body [style*="linear-gradient"][style*="#f8fafc" i],
+html.dark-theme body [style*="linear-gradient"][style*="#f1f5f9" i] {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+/* Pastel Blue / Sky / Cyan Inline Backgrounds */
+html.dark-theme body [style*="background:#f0f9ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #f0f9ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#eff6ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #eff6ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#e0f2fe" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #e0f2fe" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#dbeafe" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #dbeafe" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#e0e7ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #e0e7ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#f0f7ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#ecfeff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #ecfeff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#e0f7fa" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#bae6fd" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="linear-gradient"][style*="#eff6ff" i],
+html.dark-theme body [style*="linear-gradient"][style*="#e0f2fe" i] {
+    background: rgba(14, 165, 233, 0.18) !important;
+    border-color: rgba(56, 189, 248, 0.4) !important;
+    color: #bae6fd !important;
+}
+
+/* Pastel Green / Emerald / Teal Inline Backgrounds */
+html.dark-theme body [style*="background:#f0fdf4" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #f0fdf4" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#dcfce7" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #dcfce7" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#ecfdf5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #ecfdf5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#d1fae5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #d1fae5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#ccfbf1" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #ccfbf1" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#f0fdfa" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #f0fdfa" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="linear-gradient"][style*="#f0fdf4" i],
+html.dark-theme body [style*="linear-gradient"][style*="#ecfdf5" i] {
+    background: rgba(16, 185, 129, 0.18) !important;
+    border-color: rgba(52, 211, 153, 0.4) !important;
+    color: #a7f3d0 !important;
+}
+
+/* Pastel Amber / Yellow / Orange Inline Backgrounds */
+html.dark-theme body [style*="background:#fffbeb" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fffbeb" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fef3c7" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fef3c7" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fef9c3" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fef9c3" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fff3cd" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fff3cd" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fffdf5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fefce8" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fff7ed" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fff7ed" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#ffedd5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #ffedd5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="linear-gradient"][style*="#fffbeb" i],
+html.dark-theme body [style*="linear-gradient"][style*="#fef3c7" i] {
+    background: rgba(245, 158, 11, 0.18) !important;
+    border-color: rgba(251, 191, 36, 0.4) !important;
+    color: #fde68a !important;
+}
+
+/* Pastel Red / Rose Inline Backgrounds */
+html.dark-theme body [style*="background:#fef2f2" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fef2f2" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fff5f5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fff5f5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fff1f2" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fff1f2" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fee2e2" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fee2e2" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="linear-gradient"][style*="#fef2f2" i],
+html.dark-theme body [style*="linear-gradient"][style*="#fee2e2" i],
+html.dark-theme body [style*="linear-gradient"][style*="#fff5f5" i] {
+    background: rgba(239, 68, 68, 0.18) !important;
+    border-color: rgba(248, 113, 113, 0.4) !important;
+    color: #fecaca !important;
+}
+
+/* Pastel Purple / Pink Inline Backgrounds */
+html.dark-theme body [style*="background:#f3e8ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #f3e8ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fae8ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fae8ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fdf4ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fdf4ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#fdf2f8" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #fdf2f8" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#f5f3ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #f5f3ff" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background:#ede9fe" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="background: #ede9fe" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="linear-gradient"][style*="#fdf4ff" i],
+html.dark-theme body [style*="linear-gradient"][style*="#fae8ff" i] {
+    background: rgba(168, 85, 247, 0.18) !important;
+    border-color: rgba(192, 132, 252, 0.4) !important;
+    color: #e9d5ff !important;
+}
+
+/* Dark / Black Inline Text -> High-Contrast White / Slate */
+html.dark-theme body [style*="color:#0f172a" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #0f172a" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#1e293b" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #1e293b" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#334155" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #334155" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#000" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #000" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:black" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: black" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#111" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #111" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#1f2937" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #1f2937" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#222" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #222" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#333" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #333" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#374151" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #374151" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#2c3e50" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #2c3e50" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color:#34495e" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *),
+html.dark-theme body [style*="color: #34495e" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *):not(.voucher-paper *):not(.bill-paper *) {
+    color: #ffffff !important;
+}
+
+html.dark-theme body [style*="color:#64748b" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #64748b" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#475569" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #475569" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#4b5563" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #4b5563" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#555" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #555" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#666" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #666" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#6b7280" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#7f8c8d" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #7f8c8d" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#95a5a6" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #95a5a6" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *) {
+    color: #cbd5e1 !important;
+}
+
+/* Dark Semantic Inline Colors -> Bright Luminous Equivalents */
+html.dark-theme body [style*="color:#7f1d1d" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #7f1d1d" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#991b1b" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #991b1b" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#b91c1c" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #b91c1c" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#dc2626" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *) {
+    color: #fca5a5 !important;
+}
+
+html.dark-theme body [style*="color:#14532d" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #14532d" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#064e3b" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#065f46" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#166534" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #166534" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#15803d" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #15803d" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#047857" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#115e59" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#16a34a" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *) {
+    color: #6ee7b7 !important;
+}
+
+html.dark-theme body [style*="color:#78350f" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #78350f" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#92400e" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#854d0e" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#856404" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#b45309" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #b45309" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#c2410c" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#9a3412" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#d97706" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#ea580c" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *) {
+    color: #fde68a !important;
+}
+
+html.dark-theme body [style*="color:#1e3a8a" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#1e40af" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#1d4ed8" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#2563eb" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#0369a1" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #0369a1" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#0c4a6e" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#0284c7" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color: #0284c7" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#0e7490" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *),
+html.dark-theme body [style*="color:#155e75" i]:not([data-invoice-paper="true"] *):not(#claimVoucherPrintArea *) {
+    color: #7dd3fc !important;
+}
+
+html.dark-theme body [style*="color:#4338ca" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color: #4338ca" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#4f46e5" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#5b21b6" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#6d28d9" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#7e22ce" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#701a75" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#86198f" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#a21caf" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color: #a21caf" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#9333ea" i]:not([data-invoice-paper="true"] *) {
+    color: #e9d5ff !important;
+}
+
+html.dark-theme body [style*="color:#0d9488" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color: #0d9488" i]:not([data-invoice-paper="true"] *),
+html.dark-theme body [style*="color:#0f766e" i]:not([data-invoice-paper="true"] *) {
+    color: #5eead4 !important;
+}
+
+/* Preserve pure white text on solid dark/accent buttons & badges */
+html.dark-theme body [style*="color:#fff" i]:not([style*="background:#fff" i]):not([style*="background: #fff" i]),
+html.dark-theme body [style*="color: #fff" i]:not([style*="background:#fff" i]):not([style*="background: #fff" i]),
+html.dark-theme body [style*="color:white" i]:not([style*="background:white" i]):not([style*="background:#fff" i]),
+html.dark-theme body [style*="color: white" i]:not([style*="background:white" i]):not([style*="background:#fff" i]) {
+    color: #ffffff !important;
+}
+
+/* Protect Printable Invoice / Voucher Paper even while Dark Mode is enabled */
+body.dark-theme [data-invoice-paper="true"],
+body.dark-theme .voucher-paper,
+body.dark-theme #claimVoucherPrintArea,
+body.dark-theme .bill-paper {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+
+@media print {
+    html.dark-theme,
+    html.dark-theme body,
+    body.dark-theme {
+        background: #ffffff !important;
+        color: #000000 !important;
+        color-scheme: light !important;
+    }
+    .eb-sidebar,
+    .eb-sidebar-overlay,
+    .eb-universal-topbar {
+        display: none !important;
+    }
+    .eb-page-content {
+        margin-left: 0 !important;
+    }
 }
 
 /* ==========================================================================
@@ -471,7 +1464,6 @@ html[data-lang="en-ur"] .ur-sub {
     margin-left: 4px;
 }
 
-/* Sidebar item Urdu subline: Always clean separate line underneath English */
 html[data-lang="en-ur"] .eb-item-ur.ur-sub,
 html[data-lang="en-ur"] .eb-sidebar .eb-item-ur {
     display: block !important;
@@ -522,3 +1514,28 @@ a[href*="netlify.com"] {
 .swal2-container {
     z-index: 99999999 !important;
 }
+
+/* 📱 Global Mobile Overflow Safeguard for Selects, Inputs, Filter Bars & Cards */
+@media (max-width: 768px) {
+    .panel-container,
+    .vyapar-container,
+    .dashboard-container,
+    .panel-card,
+    .vyapar-card,
+    .filter-bar,
+    .card-header {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .panel-card select,
+    .vyapar-container select,
+    .filter-bar select,
+    .card-header select,
+    .search-box,
+    .search-box input {
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+}
+

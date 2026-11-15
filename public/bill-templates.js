@@ -980,11 +980,15 @@ function template4Modern(bill, agency, customer, settings) {
                     ${s.showBillNo ? `<b>🧾 Bill No:</b> ${bill.billNo}<br>` : ''}
                     ${s.showDate ? `<b>📅 Date:</b> ${dateStr}<br>` : ''}
                     ${s.showTime ? `<b>🕐 Time:</b> ${timeStr}<br>` : ''}
+                    ${bill.serviceModeLabel || bill.serviceMode ? `<b>🍔 Mode:</b> ${bill.serviceModeLabel || bill.serviceMode}<br>` : ''}
+                    ${bill.tableTokenNo ? `<b>🍽️ Table / Token:</b> ${bill.tableTokenNo}<br>` : ''}
+                    ${bill.riderWaiterName ? `<b>🛵 Rider / Waiter:</b> ${bill.riderWaiterName}<br>` : ''}
                     ${s.showBookerName && (bill.bookerName || bill.salesmanName) ? `<b>🚴 Booker:</b> ${bill.bookerName || bill.salesmanName} ${bill.bookerMobile ? '(' + bill.bookerMobile + ')' : ''}<br>` : ''}
                     ${bill.supplierName ? `<b>🏢 Supplier:</b> ${bill.supplierName}` : ''}
                 </div>
             </div>
         </div>
+        ${bill.kitchenOrderNote ? `<div style="background:#fff7ed; border:1px dashed #c2410c; color:#9a3412; border-radius:6px; padding:6px 12px; margin-bottom:10px; font-size:12px; font-weight:700;">👨‍🍳 <b>Kitchen / KOT Note:</b> ${bill.kitchenOrderNote}</div>` : ''}
 
         <table>
             <tr>
@@ -1317,6 +1321,31 @@ function template6Thermal(bill, agency, customer, settings) {
         else payTypeBadge = '*** CASH SALE ***';
     }
 
+    const resolvedCatId = (() => {
+        let rawCat = (agency && (agency.businessCategory || agency.businessType))
+            || (bill && (bill.businessCategory || (bill.agency && (bill.agency.businessCategory || bill.agency.businessType))))
+            || '';
+        if (rawCat && typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.getById === 'function') {
+            const catObj = window.BusinessCategories.getById(rawCat);
+            if (catObj && catObj.id) rawCat = catObj.id;
+        }
+        if (!rawCat) {
+            if (bill.serviceMode || bill.serviceModeLabel || bill.tableTokenNo || bill.riderWaiterName || bill.kitchenOrderNote || items.some(x => (x.itemSubtitle || '').includes('Deal:') || (x.itemSubtitle || '').includes('KOT:') || (x.itemSubtitle || '').includes('Prep:') || ['order', 'plate', 'deal', 'serving', 'cup', 'glass'].includes(String(x.unit || '').toLowerCase()))) {
+                rawCat = 'restaurant';
+            } else if (items.some(x => (x.itemSubtitle || '').includes('IMEI:') || (x.itemSubtitle || '').includes('PTA:'))) {
+                rawCat = 'mobile';
+            } else if (items.some(x => (x.itemSubtitle || '').includes('Formula:') || (x.itemSubtitle || '').includes('Batch:'))) {
+                rawCat = 'medical';
+            } else if (items.some(x => x.bonus > 0 || x.ctn > 0 || (x.itemSubtitle || '').includes('Ctn:') || (x.itemSubtitle || '').includes('TP:'))) {
+                rawCat = 'wholesaler';
+            } else if (typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+                rawCat = window.BusinessCategories.resolveActiveCategory(agency, '');
+            }
+        }
+        return rawCat;
+    })();
+    const isRestaurantBill = resolvedCatId === 'restaurant' || Boolean(bill.serviceMode || bill.serviceModeLabel || bill.tableTokenNo || bill.riderWaiterName || bill.kitchenOrderNote);
+
     const L = {
         title: isUrdu ? (agency.name || 'آسان بل اسٹور') : (agency.name || 'EasyBill Store'),
         prop: isUrdu ? 'پروپرائٹر:' : 'Prop:',
@@ -1327,7 +1356,12 @@ function template6Thermal(bill, agency, customer, settings) {
         customer: isUrdu ? 'گاہک / خریدار:' : 'Customer:',
         walkInCustomer: isUrdu ? 'کاؤنٹر گاہک (نقد)' : 'Cash Customer',
         customerPhone: isUrdu ? 'گاہک فون:' : 'Customer Phone:',
-        routeArea: isUrdu ? 'علاقہ / روٹ:' : 'Route / Area:',
+        routeArea: isUrdu ? (isRestaurantBill ? 'ڈلیوری زون / علاقہ:' : 'علاقہ / روٹ:') : (isRestaurantBill ? 'Delivery Zone:' : 'Route / Area:'),
+        deliveryAddress: isUrdu ? 'ڈلیوری پتہ:' : 'Delivery Addr:',
+        serviceMode: isUrdu ? 'آرڈر کی قسم:' : 'Service Mode:',
+        tableToken: isUrdu ? 'ٹیبل / ٹوکن #:' : 'Table / Token #:',
+        riderWaiter: isUrdu ? 'رائیڈر / ویٹر:' : 'Rider / Waiter:',
+        kotNoteTitle: isUrdu ? 'کچن / کے او ٹی نوٹ:' : 'KITCHEN / KOT NOTE:',
         booker: isUrdu ? 'سیلز مین / آرڈر بکر:' : 'Booker / Sales:',
         deliveryMan: isUrdu ? 'ڈلیوری مین / وین:' : 'Delivery / Van:',
         loadForm: isUrdu ? 'لوڈ فارم / بلٹی:' : 'Load Form #:',
@@ -1350,18 +1384,10 @@ function template6Thermal(bill, agency, customer, settings) {
         totalItemsCount: isUrdu ? 'کل آئٹمز:' : 'Total Items:',
         totalQuantityCount: isUrdu ? 'کل تعداد:' : 'Total Qty:',
         termsDefault: (() => {
-            let catId = (agency && (agency.businessCategory || agency.businessType))
-                || (bill && (bill.businessCategory || (bill.agency && (bill.agency.businessCategory || bill.agency.businessType))))
-                || '';
-            if (!catId) {
-                if (items.some(x => (x.itemSubtitle || '').includes('IMEI:') || (x.itemSubtitle || '').includes('PTA:'))) catId = 'mobile';
-                else if (items.some(x => x.bonus > 0 || x.ctn > 0 || (x.itemSubtitle || '').includes('Ctn:') || (x.itemSubtitle || '').includes('TP:'))) catId = 'wholesaler';
-                else if (typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
-                    catId = window.BusinessCategories.resolveActiveCategory(agency, '');
-                }
-            }
-            if (typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.getThermalTerms === 'function' && catId) {
-                return window.BusinessCategories.getThermalTerms(catId, isUrdu ? 'ur' : 'en');
+            if (isUrdu && s && s.termsTextUr) return s.termsTextUr;
+            if (!isUrdu && s && s.termsTextEn) return s.termsTextEn;
+            if (typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.getThermalTerms === 'function' && resolvedCatId) {
+                return window.BusinessCategories.getThermalTerms(resolvedCatId, isUrdu ? 'ur' : 'en');
             }
             return isUrdu
                 ? 'مال واپس یا تبدیل 3 دن کے اندر بل کے ساتھ ممکن ہے۔'
@@ -1627,6 +1653,12 @@ function template6Thermal(bill, agency, customer, settings) {
             ${(s.showPayType !== false) ? `
                 <div class="t-pay-badge">${payTypeBadge}</div>
             ` : ''}
+
+            ${isRestaurantBill && (bill.serviceModeLabel || bill.serviceMode || bill.tableTokenNo) ? `
+                <div style="border:2px solid #000; padding:3px 6px; margin:4px auto 2px; font-weight:900; font-size:${is58 ? '11px' : '12.5px'}; background:#fff; color:#000; text-transform:uppercase; letter-spacing:0.4px;">
+                    ${bill.serviceModeLabel || bill.serviceMode || 'ORDER'}${bill.tableTokenNo ? ` &bull; ${bill.tableTokenNo}` : ''}
+                </div>
+            ` : ''}
         </div>
 
         <div class="t-divider"></div>
@@ -1661,6 +1693,13 @@ function template6Thermal(bill, agency, customer, settings) {
                 </div>
             ` : ''}
 
+            ${isRestaurantBill && customer.address && customer.address !== bill.tableTokenNo ? `
+                <div class="t-row">
+                    <span>${L.deliveryAddress}</span>
+                    <span class="t-bold">${customer.address}</span>
+                </div>
+            ` : ''}
+
             ${(customer.cnic || customer.ntn || bill.customerCnic) ? `
                 <div class="t-row">
                     <span>${isUrdu ? 'شناختی کارڈ / NTN:' : 'CNIC / NTN:'}</span>
@@ -1675,6 +1714,13 @@ function template6Thermal(bill, agency, customer, settings) {
                 </div>
             ` : ''}
 
+            ${isRestaurantBill && bill.riderWaiterName ? `
+                <div class="t-row">
+                    <span>${L.riderWaiter}</span>
+                    <span class="t-bold">${bill.riderWaiterName}</span>
+                </div>
+            ` : ''}
+
             ${(s.showBookerName !== false) && (bill.bookerName || bill.salesmanName) ? `
                 <div class="t-row">
                     <span>${L.booker}</span>
@@ -1682,20 +1728,27 @@ function template6Thermal(bill, agency, customer, settings) {
                 </div>
             ` : ''}
 
-            ${(s.showDeliveryMan !== false) && (bill.deliveredBy || bill.deliveryMan) ? `
+            ${(s.showDeliveryMan !== false) && (bill.deliveredBy || bill.deliveryMan) && (!isRestaurantBill || (bill.deliveredBy || bill.deliveryMan) !== bill.riderWaiterName) ? `
                 <div class="t-row">
                     <span>${L.deliveryMan}</span>
                     <span>${bill.deliveredBy || bill.deliveryMan}</span>
                 </div>
             ` : ''}
 
-            ${bill.loadFormNo ? `
+            ${bill.loadFormNo && (!isRestaurantBill || bill.loadFormNo !== bill.tableTokenNo) ? `
                 <div class="t-row">
                     <span>${L.loadForm}</span>
                     <span>${bill.loadFormNo}</span>
                 </div>
             ` : ''}
         </div>
+
+        ${bill.kitchenOrderNote ? `
+            <div style="border:1.5px dashed #000; padding:4px 5px; margin:4px 0; font-size:${is58 ? '10px' : '11px'}; font-weight:800; line-height:1.3; word-break:break-word;">
+                <div>${L.kotNoteTitle}</div>
+                <div style="font-weight:700; margin-top:1px;">${bill.kitchenOrderNote}</div>
+            </div>
+        ` : ''}
 
         <!-- ITEMS HEADER -->
         <div class="t-items-header">

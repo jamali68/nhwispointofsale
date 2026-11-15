@@ -30,6 +30,8 @@ const db = firebase.firestore();
 // ============================================
 const UNIT_LABELS = {
     'unit': 'Unit', 'pcs': 'pcs', 'carton': 'Ctn', 'master_ctn': 'M.Ctn', 'crate': 'Crate', 'box': 'Box',
+    'strip': 'Strip', 'pack': 'Pack', 'vial': 'Vial', 'ampoule': 'Amp', 'tube': 'Tube', 'sachet': 'Sachet',
+    'order': 'Order', 'plate': 'Plate', 'deal': 'Deal', 'serving': 'Srv', 'cup': 'Cup', 'glass': 'Glass',
     'packet': 'Pkt', 'bag': 'Bag', 'dozen': 'Dzn', 'bottle': 'Btl',
     'can': 'Can', 'set': 'Set', 'bundle': 'Bndl', 'ream': 'Ream', 'pair': 'Pair', 'suit': 'Suit',
     'roll': 'Roll',
@@ -303,6 +305,102 @@ function resolveWholesaleProductGroup() {
     return 'general';
 }
 
+// Determine Medical Store & Pharmacy product group ('medicine_solid', 'medicine_liquid', 'topical_surgical', 'baby_nutrition', 'general')
+function resolveMedicalProductGroup() {
+    const subTypeEl = document.getElementById('customField_itemSubType');
+    const catEl = document.getElementById('itemCategory');
+    const subVal = (subTypeEl ? subTypeEl.value : '').toLowerCase();
+    const catVal = (catEl ? catEl.value : '').toLowerCase();
+    const combined = subVal + ' ' + catVal;
+
+    if (
+        combined.includes('tablet') || combined.includes('capsule') || combined.includes('sachet') ||
+        combined.includes('گولی') || combined.includes('کیپسول') || combined.includes('ساشے')
+    ) {
+        return 'medicine_solid';
+    }
+    if (
+        combined.includes('syrup') || combined.includes('suspension') || combined.includes('injection') ||
+        combined.includes('vial') || combined.includes('iv fluid') || combined.includes('drops') ||
+        combined.includes('شربت') || combined.includes('ٹیکہ') || combined.includes('ڈرپ') || combined.includes('قطرے')
+    ) {
+        return 'medicine_liquid';
+    }
+    if (
+        combined.includes('cream') || combined.includes('ointment') || combined.includes('gel') ||
+        combined.includes('surgical') || combined.includes('syringe') || combined.includes('merham') ||
+        combined.includes('مرہم') || combined.includes('کریم') || combined.includes('سرجیکل') || combined.includes('سرنج')
+    ) {
+        return 'topical_surgical';
+    }
+    if (
+        combined.includes('baby') || combined.includes('milk') || combined.includes('formula') ||
+        combined.includes('diaper') || combined.includes('بچوں کا دودھ') || combined.includes('پیمپرز') ||
+        combined.includes('device') || combined.includes('apparatus') || combined.includes('glucometer')
+    ) {
+        return 'baby_nutrition';
+    }
+    return 'general';
+}
+
+// Determine Restaurant, Fast Food & Cafe product group ('fast_food_item', 'pizza_combo', 'desi_bbq', 'beverage_cafe', 'general')
+function resolveRestaurantProductGroup() {
+    const subTypeEl = document.getElementById('customField_itemSubType');
+    const catEl = document.getElementById('itemCategory');
+    const subVal = (subTypeEl ? subTypeEl.value : '').toLowerCase();
+    const catVal = (catEl ? catEl.value : '').toLowerCase();
+    const combined = subVal + ' ' + catVal;
+
+    if (
+        combined.includes('combo') || combined.includes('deal') || combined.includes('pizza') ||
+        combined.includes('pasta') || combined.includes('family') || combined.includes('party') ||
+        combined.includes('پیزا') || combined.includes('پاستا') || combined.includes('ڈیل') || combined.includes('کومبو')
+    ) {
+        return 'pizza_combo';
+    }
+    if (
+        combined.includes('burger') || combined.includes('zinger') || combined.includes('shawarma') ||
+        combined.includes('broast') || combined.includes('wings') || combined.includes('fries') ||
+        combined.includes('nugget') || combined.includes('برگر') || combined.includes('زنگر') ||
+        combined.includes('شوارما') || combined.includes('بروسٹ') || combined.includes('ونگز') || combined.includes('فرائز')
+    ) {
+        return 'fast_food_item';
+    }
+    if (
+        combined.includes('biryani') || combined.includes('pulao') || combined.includes('karahi') ||
+        combined.includes('bbq') || combined.includes('tikka') || combined.includes('kebab') ||
+        combined.includes('roll paratha') || combined.includes('handi') || combined.includes('بریانی') ||
+        combined.includes('پلاؤ') || combined.includes('کڑاہی') || combined.includes('باربی کیو') ||
+        combined.includes('تکہ') || combined.includes('کباب') || combined.includes('رول پراٹھا')
+    ) {
+        return 'desi_bbq';
+    }
+    if (
+        combined.includes('drink') || combined.includes('shake') || combined.includes('juice') ||
+        combined.includes('tea') || combined.includes('coffee') || combined.includes('chai') ||
+        combined.includes('ice cream') || combined.includes('dessert') || combined.includes('soda') ||
+        combined.includes('کولڈ ڈرنک') || combined.includes('شیک') || combined.includes('جوس') ||
+        combined.includes('چائے') || combined.includes('کافی') || combined.includes('آئس کریم')
+    ) {
+        return 'beverage_cafe';
+    }
+    return 'general';
+}
+
+function classifyStockExpiryStatus(expStr) {
+    const clean = String(expStr || '').trim();
+    if (!clean) return { status: 'none', daysLeft: null, label: '' };
+    const expDate = new Date(`${clean.slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(expDate.getTime())) return { status: 'none', daysLeft: null, label: '' };
+    const now = new Date();
+    const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffDays = Math.ceil((expDate.getTime() - base.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return { status: 'expired', daysLeft: diffDays, label: `EXPIRED (${Math.abs(diffDays)}d ago)` };
+    if (diffDays <= 30) return { status: 'critical', daysLeft: diffDays, label: `Exp ≤${diffDays}d` };
+    if (diffDays <= 90) return { status: 'warning', daysLeft: diffDays, label: `Exp ${diffDays}d` };
+    return { status: 'safe', daysLeft: diffDays, label: `Valid (${diffDays}d)` };
+}
+
 function updateAddExtraImeiButtonState() {
     const btn = document.getElementById('addExtraImeiBtn');
     if (!btn) return;
@@ -506,6 +604,16 @@ window.selectOtherBrandOption = async function(fieldIdOverride = '') {
         defaultOther = whGroup === 'bulk_commodity'
             ? (bCfg.otherSecondaryDefault || 'Own Wholesale Brand (ذاتی برانڈ)')
             : (bCfg.otherPrimaryDefault || 'Other Principal Company (دیگر کمپنی)');
+    } else if (catId === 'medical') {
+        const medGroup = resolveMedicalProductGroup();
+        defaultOther = (medGroup === 'topical_surgical' || medGroup === 'baby_nutrition')
+            ? (bCfg.otherSecondaryDefault || 'Other Medical / Surgical Brand (دیگر برانڈ)')
+            : (bCfg.otherPrimaryDefault || 'Other Pharma Company (دیگر فارما کمپنی)');
+    } else if (catId === 'restaurant') {
+        const restGroup = resolveRestaurantProductGroup();
+        defaultOther = (restGroup === 'pizza_combo')
+            ? (bCfg.otherSecondaryDefault || 'House Special Menu (ہاؤس اسپیشل)')
+            : (bCfg.otherPrimaryDefault || 'Main Fast Food Kitchen (مین کچن)');
     } else if (bCfg.otherPrimaryDefault) {
         defaultOther = bCfg.otherPrimaryDefault;
     }
@@ -545,6 +653,10 @@ function applyDynamicCustomFieldVisibility(preserveUnitVal = '') {
         activeGroup = resolveMobileProductGroup();
     } else if (currentCategoryDef.id === 'wholesaler') {
         activeGroup = resolveWholesaleProductGroup();
+    } else if (currentCategoryDef.id === 'medical') {
+        activeGroup = resolveMedicalProductGroup();
+    } else if (currentCategoryDef.id === 'restaurant') {
+        activeGroup = resolveRestaurantProductGroup();
     }
 
     // 1. Dynamically filter <select id="itemUnit"> so only relevant units appear
@@ -564,13 +676,36 @@ function applyDynamicCustomFieldVisibility(preserveUnitVal = '') {
             if (activeGroup === 'bulk_commodity') targetUnit = 'bag';
             else if (activeGroup === 'master_case' || activeGroup === 'agency_goods' || activeGroup === 'beverage_dairy') targetUnit = 'carton';
         }
+        // Smart default unit for Medical & Pharmacy when choosing Medicine Group
+        if (!editingItemId && !safePreserve && currentCategoryDef.id === 'medical') {
+            if (activeGroup === 'medicine_solid') targetUnit = 'box';
+            else if (activeGroup === 'medicine_liquid') targetUnit = subVal.includes('injection') || subVal.includes('vial') ? 'vial' : 'bottle';
+            else if (activeGroup === 'topical_surgical') targetUnit = (subVal.includes('cream') || subVal.includes('ointment')) ? 'tube' : 'pcs';
+            else if (activeGroup === 'baby_nutrition') targetUnit = 'pack';
+        }
+        // Smart default unit for Restaurant, Fast Food & Cafe when choosing Menu Group
+        if (!editingItemId && !safePreserve && currentCategoryDef.id === 'restaurant') {
+            if (activeGroup === 'pizza_combo') {
+                targetUnit = (subVal.includes('deal') || subVal.includes('combo') || subVal.includes('ڈیل') || subVal.includes('کومبو')) ? 'deal' : 'order';
+            } else if (activeGroup === 'fast_food_item') {
+                targetUnit = 'order';
+            } else if (activeGroup === 'desi_bbq') {
+                targetUnit = 'plate';
+            } else if (activeGroup === 'beverage_cafe') {
+                if (subVal.includes('drink') || subVal.includes('cola') || subVal.includes('soda') || subVal.includes('کولڈ ڈرنک')) targetUnit = 'bottle';
+                else if (subVal.includes('tea') || subVal.includes('coffee') || subVal.includes('chai') || subVal.includes('چائے') || subVal.includes('کافی')) targetUnit = 'cup';
+                else targetUnit = 'glass';
+            } else {
+                targetUnit = 'order';
+            }
+        }
         window.BusinessCategories.populateUnitSelect(unitSelect, currentCategoryDef.id, activeGroup, targetUnit);
         syncUnitPackSizeHelper();
     }
 
-    if (currentCategoryDef.id !== 'books' && currentCategoryDef.id !== 'mobile' && currentCategoryDef.id !== 'wholesaler') return;
+    if (currentCategoryDef.id !== 'books' && currentCategoryDef.id !== 'mobile' && currentCategoryDef.id !== 'wholesaler' && currentCategoryDef.id !== 'medical' && currentCategoryDef.id !== 'restaurant') return;
 
-    // 2. Show/hide product-specific custom fields for Book Depot, Mobile Shop, or Wholesaler
+    // 2. Show/hide product-specific custom fields for Book Depot, Mobile Shop, Wholesaler, or Medical Pharmacy
     currentCategoryDef.customFields.forEach(f => {
         if (f.id === 'itemSubType') return;
         const wrapper = document.getElementById(`customFieldWrap_${f.id}`);
@@ -610,6 +745,8 @@ function syncUnitPackSizeHelper() {
     const u = unitSelect.value;
     const isMobile = currentCategoryDef && currentCategoryDef.id === 'mobile';
     const isWholesaler = currentCategoryDef && currentCategoryDef.id === 'wholesaler';
+    const isMedical = currentCategoryDef && currentCategoryDef.id === 'medical';
+    const isRestaurant = currentCategoryDef && currentCategoryDef.id === 'restaurant';
     const mobGroup = isMobile ? resolveMobileProductGroup() : '';
 
     if (isMobile && mobGroup === 'handset') {
@@ -621,6 +758,10 @@ function syncUnitPackSizeHelper() {
         }
     } else if (isWholesaler && limitInput && !editingItemId) {
         limitInput.placeholder = '5 (Low Carton / Bag Alert)';
+    } else if (isMedical && limitInput && !editingItemId) {
+        limitInput.placeholder = '5 (Low Box / Bottle Alert)';
+    } else if (isRestaurant && limitInput && !editingItemId) {
+        limitInput.placeholder = '5 (Low Menu / Cold Drink Alert)';
     } else if (limitInput && !editingItemId) {
         limitInput.placeholder = '10';
     }
@@ -636,16 +777,27 @@ function syncUnitPackSizeHelper() {
     } else if (u === 'ream') {
         packInput.placeholder = '500 Sheets per Ream (رم میں 500 شیٹس)';
         if (!packInput.value && !editingItemId) packInput.value = '500';
+    } else if (u === 'strip') {
+        packInput.placeholder = isMedical ? 'مثلاً: 10 یا 14 Tablets per Strip (پتے میں گولیاں)' : '10 Units per Strip';
+        if (isMedical && !packInput.value && !editingItemId) packInput.value = '10';
+    } else if (u === 'deal' || u === 'serving' || u === 'order' || u === 'plate') {
+        packInput.placeholder = isRestaurant
+            ? `مثلاً: 4 یا 6 Pcs / Items in ${UNIT_LABELS[u] || u} (وِنگز / ڈیل آئٹمز تعداد)`
+            : 'اختیاری (1 Serving / Order)';
     } else if (u === 'set') {
         packInput.placeholder = isMobile
             ? 'مثلاً: 5 Pcs in Combo / Repairing Kit (سیٹ میں آئٹمز کی تعداد)'
             : 'مثلاً: 8 Books in Set (سیٹ میں کتابوں کی تعداد)';
-    } else if (u === 'master_ctn' || u === 'carton' || u === 'crate' || u === 'bag' || u === 'box' || u === 'packet' || u === 'bundle') {
-        packInput.placeholder = isWholesaler
-            ? `مثلاً: 24 یا 48 Pcs / kg per ${UNIT_LABELS[u] || u} (فی کارٹن/بوری تعداد)`
-            : (isMobile
-                ? `مثلاً: 10 Protectors یا 20 Cables per ${UNIT_LABELS[u] || u}`
-                : 'مثلاً: 10 یا 12 یا 24 Pcs per ' + (UNIT_LABELS[u] || u));
+    } else if (u === 'master_ctn' || u === 'carton' || u === 'crate' || u === 'bag' || u === 'box' || u === 'packet' || u === 'pack' || u === 'bundle') {
+        packInput.placeholder = isMedical
+            ? `مثلاً: 10 Strips یا 100 Tablets per ${UNIT_LABELS[u] || u} (فی ڈبہ پتے/گولیاں)`
+            : (isWholesaler
+                ? `مثلاً: 24 یا 48 Pcs / kg per ${UNIT_LABELS[u] || u} (فی کارٹن/بوری تعداد)`
+                : (isMobile
+                    ? `مثلاً: 10 Protectors یا 20 Cables per ${UNIT_LABELS[u] || u}`
+                    : (isRestaurant
+                        ? `مثلاً: 6 یا 12 Pcs per ${UNIT_LABELS[u] || u} (باکس / ڈیل پیسز)`
+                        : 'مثلاً: 10 یا 12 یا 24 Pcs per ' + (UNIT_LABELS[u] || u))));
     } else {
         packInput.placeholder = 'اختیاری (1 Piece / Single Unit)';
     }
@@ -749,6 +901,8 @@ window.cloneVariantItem = function(itemId) {
 window.openCategoryVariantGenerator = async function() {
     const isMobile = currentCategoryDef && currentCategoryDef.id === 'mobile';
     const isWholesaler = currentCategoryDef && currentCategoryDef.id === 'wholesaler';
+    const isMedical = currentCategoryDef && currentCategoryDef.id === 'medical';
+    const isRestaurant = currentCategoryDef && currentCategoryDef.id === 'restaurant';
     const currentName = (document.getElementById('itemName')?.value || '').trim();
     const currentBrand = (document.getElementById('customField_brandCompany')?.value || document.getElementById('customField_publisherBoard')?.value || '').trim();
     const currentCat = (document.getElementById('itemCategory')?.value || '').trim();
@@ -758,15 +912,27 @@ window.openCategoryVariantGenerator = async function() {
 
     const modalTitle = isMobile
         ? '⚡ Mobile & Accessories Multi-Variant Generator'
-        : (isWholesaler ? '⚡ Wholesale Carton / Pack Multi-Variant Generator' : '⚡ Book & Stationery Multi-Variant Generator');
+        : (isMedical
+            ? '⚡ Pharmacy Potency & Pack Multi-Variant Generator'
+            : (isRestaurant
+                ? '⚡ Fast Food Size, Flavor & Deal Multi-Variant Generator'
+                : (isWholesaler ? '⚡ Wholesale Carton / Pack Multi-Variant Generator' : '⚡ Book & Stationery Multi-Variant Generator')));
 
     const sampleBase = isMobile
         ? (currentName || 'Tempered Glass 9D / Back Pouch / Panel')
-        : (isWholesaler ? (currentName || 'Dalda Cooking Oil / Tapal Danedar') : (currentName || 'Oxford New Countdown Math'));
+        : (isMedical
+            ? (currentName || 'Augmentin / Risek / Panadol')
+            : (isRestaurant
+                ? (currentName || 'Chicken Fajita Pizza / Zinger Burger')
+                : (isWholesaler ? (currentName || 'Dalda Cooking Oil / Tapal Danedar') : (currentName || 'Oxford New Countdown Math'))));
 
     const sampleVariants = isMobile
         ? 'iPhone 13, iPhone 14, iPhone 15, iPhone 15 Pro Max'
-        : (isWholesaler ? '250g Pack, 500g Box, 1kg Pouch, Master Carton 24 Pcs' : 'Class 1, Class 2, Class 3, Class 4, Class 5');
+        : (isMedical
+            ? '375mg Tab, 625mg Tab, 1g Tab, 156mg Syrup, DS 312mg Syrup'
+            : (isRestaurant
+                ? 'Small (7"), Medium (10"), Large (13"), Jumbo XL (16"), Family Combo Deal'
+                : (isWholesaler ? '250g Pack, 500g Box, 1kg Pouch, Master Carton 24 Pcs' : 'Class 1, Class 2, Class 3, Class 4, Class 5')));
 
     const { value: formValues } = await Swal.fire({
         title: modalTitle,
@@ -775,26 +941,34 @@ window.openCategoryVariantGenerator = async function() {
                 <p style="margin-bottom:8px; background:#f0f9ff; border:1px solid #bae6fd; padding:8px; border-radius:8px; color:#0369a1;">
                     ${isMobile
                         ? '💡 <b>موبائل اور ایسیسریز ٹپ:</b> ایک ہی پروڈکٹ کے مختلف ماڈلز، کلرز یا RAM/ROM ویرینٹس (مثلاً گلاس پروٹیکٹرز، کورز، پینلز یا فون کلرز) ایک ساتھ اسٹاک میں بنائیں۔'
-                        : (isWholesaler
-                            ? '💡 <b>ہول سیل و ڈسٹری بیوشن ٹپ:</b> ایک ہی کمپنی پروڈکٹ کی مختلف پیکنگ / کارٹن سائز (مثلاً 250g، 500g، 1kg، Master Carton) ایک کلک میں اسٹاک میں شامل کریں۔'
-                            : '💡 <b>بک ڈپو ٹپ:</b> ایک ہی کتاب یا کاپی سیریز کی مختلف کلاسز (Class 1 تا Class 10) ایک کلک میں اسٹاک میں شامل کریں۔')}
+                        : (isMedical
+                            ? '💡 <b>فارمیسی ٹپ:</b> ایک ہی دوائی کی مختلف پوٹینسی اور پیکنگ (مثلاً 250mg، 500mg، 1g، Syrup 60ml، DS Syrup) ایک کلک میں اسٹاک میں شامل کریں۔'
+                            : (isRestaurant
+                                ? '💡 <b>فاسٹ فوڈ و مینو ٹپ:</b> ایک ہی ڈش کے مختلف سائز، پورشن یا کومبو ڈیلز (مثلاً Small, Medium, Large Pizza یا Single/Family Deal) ایک کلک میں مینو میں شامل کریں۔'
+                                : (isWholesaler
+                                    ? '💡 <b>ہول سیل و ڈسٹری بیوشن ٹپ:</b> ایک ہی کمپنی پروڈکٹ کی مختلف پیکنگ / کارٹن سائز (مثلاً 250g، 500g، 1kg، Master Carton) ایک کلک میں اسٹاک میں شامل کریں۔'
+                                    : '💡 <b>بک ڈپو ٹپ:</b> ایک ہی کتاب یا کاپی سیریز کی مختلف کلاسز (Class 1 تا Class 10) ایک کلک میں اسٹاک میں شامل کریں۔')))}
                 </p>
                 <div style="margin-bottom:8px;">
-                    <label style="font-weight:bold; display:block; margin-bottom:3px;">📦 بنیادی پروڈکٹ کا نام (Base Product Name) *</label>
+                    <label style="font-weight:bold; display:block; margin-bottom:3px;">📦 بنیادی پروڈکٹ / ڈش کا نام (Base Item Name) *</label>
                     <input id="vgBaseName" class="swal2-input" style="margin:0; width:100%; height:36px; font-size:13px; direction:ltr;" value="${sampleBase}">
                 </div>
                 <div style="margin-bottom:8px;">
                     <label style="font-weight:bold; display:block; margin-bottom:3px;">
                         ${isMobile
                             ? '📲 ماڈلز / RAM-Storage / کلرز (کوما لگا کر لکھیں) *'
-                            : (isWholesaler ? '📦 پیکنگ / کارٹن / وزن ویرینٹس (کوما لگا کر لکھیں) *' : '🎓 کلاسز / صفحات ویرینٹس (کوما لگا کر لکھیں) *')}
+                            : (isMedical
+                                ? '💊 پوٹینسی / مقدار / پیکنگ (کوما لگا کر لکھیں) *'
+                                : (isRestaurant
+                                    ? '📏 سائز / پورشن / ڈیل ویرینٹس (کوما لگا کر لکھیں) *'
+                                    : (isWholesaler ? '📦 پیکنگ / کارٹن / وزن ویرینٹس (کوما لگا کر لکھیں) *' : '🎓 کلاسز / صفحات ویرینٹس (کوما لگا کر لکھیں) *')))}
                     </label>
                     <input id="vgVariantsList" class="swal2-input" style="margin:0; width:100%; height:36px; font-size:13px; direction:ltr;" placeholder="${sampleVariants}" value="${sampleVariants}">
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; direction:ltr;">
                     <div>
-                        <label style="font-weight:bold; font-size:11.5px; display:block; margin-bottom:2px;">🏷️ Brand / Company</label>
-                        <input id="vgBrand" class="swal2-input" style="margin:0; width:100%; height:34px; font-size:12.5px;" value="${currentBrand}" placeholder="${isMobile ? 'e.g. Samsung, Apple, Crown' : (isWholesaler ? 'e.g. Unilever, Nestlé, Dalda' : 'e.g. Oxford, PCTB')}">
+                        <label style="font-weight:bold; font-size:11.5px; display:block; margin-bottom:2px;">🏷️ ${isRestaurant ? 'Kitchen Station / Line' : 'Brand / Company'}</label>
+                        <input id="vgBrand" class="swal2-input" style="margin:0; width:100%; height:34px; font-size:12.5px;" value="${currentBrand}" placeholder="${isMobile ? 'e.g. Samsung, Apple, Crown' : (isMedical ? 'e.g. GSK, Getz, Sami, Abbott' : (isRestaurant ? 'e.g. Woodfire Pizza Oven, Burger Bar' : (isWholesaler ? 'e.g. Unilever, Nestlé, Dalda' : 'e.g. Oxford, PCTB')))}">
                     </div>
                     <div>
                         <label style="font-weight:bold; font-size:11.5px; display:block; margin-bottom:2px;">🔢 Qty Per Variant</label>
@@ -853,7 +1027,7 @@ window.openCategoryVariantGenerator = async function() {
         });
 
         let createdCount = 0;
-        const unitVal = document.getElementById('itemUnit')?.value || (isWholesaler ? 'carton' : 'pcs');
+        const unitVal = document.getElementById('itemUnit')?.value || (isWholesaler ? 'carton' : (isRestaurant ? 'order' : 'pcs'));
         const defaultCat = currentCat || (currentCategoryDef && currentCategoryDef.subcategories ? currentCategoryDef.subcategories[0] : '');
 
         for (const vLabel of formValues.variants) {
@@ -865,6 +1039,15 @@ window.openCategoryVariantGenerator = async function() {
             if (isMobile) {
                 if (formValues.brand) indFields.brandCompany = formValues.brand;
                 indFields.modelVariant = vLabel;
+            } else if (isMedical) {
+                if (formValues.brand) indFields.brandCompany = formValues.brand;
+                indFields.dosageStrength = vLabel;
+            } else if (isRestaurant) {
+                if (formValues.brand) indFields.brandCompany = formValues.brand;
+                indFields.portionSize = vLabel;
+                if (vLabel.toLowerCase().includes('deal') || vLabel.toLowerCase().includes('combo')) {
+                    indFields.dealContents = fullName;
+                }
             } else if (isWholesaler) {
                 if (formValues.brand) indFields.brandCompany = formValues.brand;
                 indFields.cartonPacking = vLabel;
@@ -891,6 +1074,7 @@ window.openCategoryVariantGenerator = async function() {
                 publisherDiscPercent: 0,
                 wholesaleDiscPercent: 0,
                 hasScheme: false,
+                businessCategory: (currentCategoryDef && currentCategoryDef.id) || 'books',
                 agencyId: myAgencyId,
                 createdBy: myUid,
                 createdAt: new Date().toISOString(),
@@ -914,7 +1098,10 @@ window.openCategoryVariantGenerator = async function() {
 };
 
 function setupIndustryCategoryMode() {
-    const rawType = (myAgency && myAgency.businessType) ? myAgency.businessType : 'books';
+    const rawType = (myAgency && (myAgency.businessType || myAgency.businessCategory || myAgency.category))
+        || localStorage.getItem('eb_active_business_category')
+        || localStorage.getItem('eb_active_category')
+        || 'books';
     currentBizType = rawType;
 
     if (window.BusinessCategories) {
@@ -936,6 +1123,10 @@ function setupIndustryCategoryMode() {
             searchInp.placeholder = 'Search by product name, company/brand, carton packing, SKU/batch, scheme or barcode...';
         } else if (currentCategoryDef.id === 'mobile') {
             searchInp.placeholder = 'Search by mobile model, brand, IMEI, RAM/ROM, PTA status or barcode...';
+        } else if (currentCategoryDef.id === 'medical') {
+            searchInp.placeholder = 'Search by medicine name, generic salt/formula, pharma company, batch #, rack or barcode...';
+        } else if (currentCategoryDef.id === 'restaurant') {
+            searchInp.placeholder = 'Search by burger, pizza, combo deal, kitchen station, size, flavor/spice or barcode...';
         }
     }
 
@@ -1181,12 +1372,22 @@ function saveCustomSupplierForCategory(supName, supPhone = '', supCity = '') {
 window.openAddCustomSupplierModal = async function(targetInputId = 'itemSupplierName') {
     const isMob = currentCategoryDef && currentCategoryDef.id === 'mobile';
     const isWh = currentCategoryDef && currentCategoryDef.id === 'wholesaler';
+    const isMed = currentCategoryDef && currentCategoryDef.id === 'medical';
+    const isRest = currentCategoryDef && currentCategoryDef.id === 'restaurant';
     const titleTxt = isMob
         ? '🏢 نیا موبائل ڈسٹری بیوٹر / ہول سیل ڈیلر شامل کریں'
-        : (isWh ? '🏭 نئی پرنسپل کمپنی / سپر اسٹاکسٹ / منڈی ڈیلر شامل کریں' : '🏛️ نیا پبلشر / ہول سیل سپلائر شامل کریں');
+        : (isMed
+            ? '🏥 نیا فارما ڈسٹری بیوٹر / ہول سیل میڈیسن سپلائر شامل کریں'
+            : (isRest
+                ? '🍔 نیا فروزن فوڈ / کچن ہول سیل سپلائر شامل کریں'
+                : (isWh ? '🏭 نئی پرنسپل کمپنی / سپر اسٹاکسٹ / منڈی ڈیلر شامل کریں' : '🏛️ نیا پبلشر / ہول سیل سپلائر شامل کریں')));
     const placeholderTxt = isMob
         ? 'مثلاً: Airlink Lahore, Hall Road LCD House, Al-Madina Telecom...'
-        : (isWh ? 'مثلاً: Unilever Depot, Nestlé Distributor, Akbari Mandi Broker...' : 'مثلاً: Al-Faisal Publishers, Urdu Bazar Wholesale House...');
+        : (isMed
+            ? 'مثلاً: M&P Pharma, UDL, IBL, Premier Agency, Katchery Bazar Medicine...'
+            : (isRest
+                ? "مثلاً: K&N's Pakistan, Sabroso, Dawn Foods, Metro Cash & Carry, Pepsi Agency..."
+                : (isWh ? 'مثلاً: Unilever Depot, Nestlé Distributor, Akbari Mandi Broker...' : 'مثلاً: Al-Faisal Publishers, Urdu Bazar Wholesale House...')));
 
     const { value: formValues } = await Swal.fire({
         title: titleTxt,
@@ -1392,19 +1593,43 @@ window.printUsedPhoneUndertakingFromItem = function(itemId) {
     });
 };
 
-// Wholesaler Master Carton ↔ Per-Piece Cost & Margin Breakdown Helper
+// Wholesaler Master Carton & Fast Food Batch/Deal Food-Cost Margin Breakdown Helper
 function updateWholesaleCartonBreakdown() {
     const badge = document.getElementById('whCalcBreakdownBadge');
     const bar = document.getElementById('wholesaleCartonCalcBar');
     if (!badge || !bar || bar.style.display === 'none') return;
 
+    const isRestMode = currentCategoryDef && currentCategoryDef.id === 'restaurant';
     const whPack = parseFloat(document.getElementById('whCalcPackSize')?.value) || parseFloat(document.getElementById('customField_packSize')?.value) || 0;
     const cartonCostInput = parseFloat(document.getElementById('whCalcCartonCost')?.value) || 0;
     const itemCost = parseFloat(document.getElementById('itemPurchase')?.value) || 0;
     const itemWh = parseFloat(document.getElementById('itemWholesale')?.value) || 0;
     const itemRet = parseFloat(document.getElementById('itemRate')?.value) || 0;
-    const unitVal = document.getElementById('itemUnit')?.value || 'carton';
-    const isBulkUnit = ['carton', 'master_ctn', 'crate', 'bag', 'bundle', 'box', 'dozen', 'maund'].includes(unitVal);
+    const unitVal = document.getElementById('itemUnit')?.value || (isRestMode ? 'order' : 'carton');
+    const isBulkUnit = ['carton', 'master_ctn', 'crate', 'bag', 'bundle', 'box', 'dozen', 'maund', 'deal'].includes(unitVal);
+
+    if (isRestMode) {
+        const effCost = (whPack > 1 && cartonCostInput > 0) ? cartonCostInput : itemCost;
+        const foodCostPct = (itemRet > 0 && effCost > 0) ? (Math.round((effCost / itemRet) * 1000) / 10) : 0;
+        const marginPct = (itemRet > 0 && effCost > 0) ? (Math.round(((itemRet - effCost) / itemRet) * 1000) / 10) : 0;
+
+        if (whPack > 1) {
+            const perSrvCost = effCost > 0 ? (Math.round((effCost / whPack) * 100) / 100) : 0;
+            const perSrvRet = itemRet > 0 ? (Math.round(((isBulkUnit ? itemRet / whPack : itemRet)) * 100) / 100) : 0;
+            if (perSrvCost > 0 || perSrvRet > 0) {
+                badge.innerHTML = `🍔 <b>${whPack} Pcs/${UNIT_LABELS[unitVal] || unitVal}</b> &nbsp;|&nbsp; 🍳 Food Cost: <b>Rs ${perSrvCost}/pc</b>${perSrvRet > 0 ? ` &nbsp;|&nbsp; 🏷️ Menu: <b>Rs ${perSrvRet}/pc</b>` : ''}${foodCostPct > 0 ? ` &nbsp;|&nbsp; 📊 FC%: <b>${foodCostPct}%</b> (Margin: <b>+${marginPct}%</b>)` : ''}`;
+                return;
+            }
+            badge.innerHTML = `🍔 Deal / Batch Size: <b>${whPack} Pcs</b> — اوپر Batch Food Cost یا Menu Rate درج کریں۔`;
+            return;
+        }
+        if (effCost > 0 && itemRet > 0) {
+            badge.innerHTML = `🍳 Food Cost: <b>Rs ${effCost}</b> (${foodCostPct}%) &nbsp;|&nbsp; 💰 Kitchen Margin: <b>+Rs ${Math.round((itemRet - effCost) * 100) / 100} (${marginPct}%)</b>`;
+            return;
+        }
+        badge.innerHTML = `💡 Menu Price اور Food Cost لکھیں — فی سرونگ لاگت اور Food Cost % خود نظر آئے گا`;
+        return;
+    }
 
     if (whPack > 1) {
         const effectiveCartonCost = cartonCostInput > 0 ? cartonCostInput : (isBulkUnit ? itemCost : itemCost * whPack);
@@ -1434,13 +1659,33 @@ function setupPurchaseAndSupplierHelper() {
         helperBox.style.display = pCfg.enableMrpDiscountCalc ? 'block' : 'none';
     }
 
-    // Show/hide Wholesaler Master Carton ↔ Per-Piece Calculator Bar
+    // Show/hide Wholesaler Master Carton / Fast Food Deal-Batch Food Cost Calculator Bar
     const whCalcBar = document.getElementById('wholesaleCartonCalcBar');
     if (whCalcBar) {
         whCalcBar.style.display = pCfg.enableCartonPieceCalc ? 'block' : 'none';
     }
 
-    // Dynamically update helper box titles & field labels for the active category (Books vs Mobile vs Wholesaler)
+    const isRestMode = currentCategoryDef.id === 'restaurant';
+    const whBarTitle = document.getElementById('whCalcBarTitle');
+    const whPackLbl = document.getElementById('whCalcPackLabel');
+    const whCostLbl = document.getElementById('whCalcCostLabel');
+    const btnWhPerPc = document.getElementById('btnWhApplyPerPiece');
+    const btnWhCtnCost = document.getElementById('btnWhApplyCartonCost');
+    if (isRestMode) {
+        if (whBarTitle) whBarTitle.innerText = '🍔 بیچ / کومبو ڈیل ↔ فی سرونگ فوڈ کاسٹ کیلکولیٹر (Batch / Deal Food Cost & Margin %)';
+        if (whPackLbl) whPackLbl.innerText = '🔢 بیچ / ڈیل میں کل پیسز یا سرونگز (Servings / Pcs)';
+        if (whCostLbl) whCostLbl.innerText = '🍳 مکمل بیچ / ڈیل فوڈ لاگت (Total Batch / Deal Cost)';
+        if (btnWhPerPc) btnWhPerPc.innerText = '🔢 Divide Rates per Serving/Pc';
+        if (btnWhCtnCost) btnWhCtnCost.innerText = '📥 Calc Food Cost / Serving';
+    } else {
+        if (whBarTitle) whBarTitle.innerText = '📦 ماسٹر کارٹن ↔ فی پیس ریٹ کیلکولیٹر (Master Carton to Per-Piece Cost & Margin Calculator)';
+        if (whPackLbl) whPackLbl.innerText = '🔢 پیسز فی کارٹن / بوری (Pack Size)';
+        if (whCostLbl) whCostLbl.innerText = '🏭 کارٹن خریداری لاگت (Master Carton Cost)';
+        if (btnWhPerPc) btnWhPerPc.innerText = '🔢 Convert Carton → Per-Piece Rates';
+        if (btnWhCtnCost) btnWhCtnCost.innerText = '📥 Calc Per-Piece Cost from Carton';
+    }
+
+    // Dynamically update helper box titles & field labels for the active category (Books vs Mobile vs Wholesaler vs Medical vs Restaurant)
     const helperTitleEl = document.getElementById('purchaseHelperTitle');
     if (helperTitleEl) {
         helperTitleEl.innerText = pCfg.helperTitle || 'پبلشر ڈسکاؤنٹ اور خریداری ریٹ کیلکولیٹر (Publisher Trade Discount & Supplier - اختیاری)';
@@ -1739,8 +1984,18 @@ function applyImageUrlPermission() {
 // ============================================
 // 💾 SMART CACHING SYSTEM (QUOTA SHIELD)
 // ============================================
+function getActiveStockCategoryId() {
+    if (currentCategoryDef && currentCategoryDef.id) return currentCategoryDef.id;
+    if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+        return window.BusinessCategories.resolveActiveCategory(myAgency, 'books');
+    }
+    return (myAgency && (myAgency.businessCategory || myAgency.businessType || myAgency.category))
+        || localStorage.getItem('eb_active_business_category')
+        || 'books';
+}
+
 function getCacheKey() {
-    return `eb_stock_cache_${myAgencyId}`;
+    return `eb_stock_cache_${myAgencyId}_${getActiveStockCategoryId()}`;
 }
 
 function loadFromCache() {
@@ -1749,7 +2004,12 @@ function loadFromCache() {
         if (cachedStr) {
             const parsed = JSON.parse(cachedStr);
             if (Array.isArray(parsed.items) && parsed.items.length > 0) {
-                allItems = parsed.items;
+                const activeCatId = getActiveStockCategoryId();
+                allItems = parsed.items.filter(item =>
+                    !window.BusinessCategories || typeof window.BusinessCategories.matchesActiveCategoryRecord !== 'function'
+                        ? true
+                        : window.BusinessCategories.matchesActiveCategoryRecord(item, activeCatId, myAgency)
+                );
                 populateCategoryFilter();
                 renderStats();
                 renderItems();
@@ -1790,10 +2050,16 @@ async function fetchFreshStock() {
             .where('agencyId', '==', myAgencyId)
             .get();
 
+        const activeCatId = getActiveStockCategoryId();
         allItems = [];
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                if (!window.BusinessCategories.matchesActiveCategoryRecord(data, activeCatId, myAgency)) {
+                    return;
+                }
+            }
             // Backwards compatibility for old rate field
             if (data.retailRate === undefined) data.retailRate = data.rate || 0;
             if (data.wholesaleRate === undefined) data.wholesaleRate = data.rate || 0;
@@ -1952,6 +2218,8 @@ function populateCategoryFilter() {
     const isBooksMode = !currentCategoryDef || currentCategoryDef.id === 'books';
     const isMobileMode = currentCategoryDef && currentCategoryDef.id === 'mobile';
     const isWholesalerMode = currentCategoryDef && currentCategoryDef.id === 'wholesaler';
+    const isMedicalMode = currentCategoryDef && currentCategoryDef.id === 'medical';
+    const isRestaurantMode = currentCategoryDef && currentCategoryDef.id === 'restaurant';
 
     if (isBooksMode) {
         refreshBrandDatalistOptions();
@@ -2085,6 +2353,107 @@ function populateCategoryFilter() {
         });
         if (prevSec === '__active_scheme__' || groupsAndSchemes.has(prevSec)) secSelect.value = prevSec;
         else { secSelect.value = 'all'; currentIndustrySecondary = 'all'; }
+    } else if (isMedicalMode) {
+        refreshBrandDatalistOptions();
+        const pharmaCompanies = new Set();
+        const formulasAndRacks = new Set();
+        getCustomBrandsForCategory().forEach(b => {
+            const bName = typeof b === 'object' ? b.name : b;
+            if (bName) pharmaCompanies.add(String(bName).trim());
+        });
+        let nearOrExpiredCount = 0;
+        allItems.forEach(i => {
+            const f = i.industryFields || {};
+            const br = String(f.brandCompany || i.supplierName || i.lastSupplier || '').trim();
+            const gen = String(f.genericFormula || '').trim();
+            const rack = String(f.storageRack || '').trim();
+            if (br) pharmaCompanies.add(br);
+            if (gen) formulasAndRacks.add(gen);
+            if (rack) formulasAndRacks.add(rack);
+            const expInfo = classifyStockExpiryStatus(f.expiryDate || i.expiryDate);
+            if (expInfo.status === 'expired' || expInfo.status === 'critical' || expInfo.status === 'warning') {
+                nearOrExpiredCount += 1;
+            }
+        });
+
+        quickBar.style.display = 'flex';
+
+        const prevPri = priSelect.value || 'all';
+        priSelect.innerHTML = '<option value="all">🏥 All Pharma Companies / تمام کمپنیاں</option>';
+        pharmaCompanies.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = `🏥 ${c}`;
+            priSelect.appendChild(opt);
+        });
+        if (pharmaCompanies.has(prevPri)) priSelect.value = prevPri;
+        else { priSelect.value = 'all'; currentIndustryPrimary = 'all'; }
+
+        const prevSec = secSelect.value || 'all';
+        secSelect.innerHTML = `<option value="all">🧬 All Formulas &amp; Expiry Status</option>
+            <option value="__near_expiry__">⏳ Near-Expiry (≤90d) &amp; Expired Only${nearOrExpiredCount > 0 ? ` (${nearOrExpiredCount})` : ''}</option>
+            <option value="__expired_only__">🔴 Expired Medicines Only</option>`;
+        formulasAndRacks.forEach(fr => {
+            const opt = document.createElement('option');
+            opt.value = fr;
+            opt.textContent = `🧬 ${fr}`;
+            secSelect.appendChild(opt);
+        });
+        if (prevSec === '__near_expiry__' || prevSec === '__expired_only__' || formulasAndRacks.has(prevSec)) secSelect.value = prevSec;
+        else { secSelect.value = 'all'; currentIndustrySecondary = 'all'; }
+    } else if (isRestaurantMode) {
+        refreshBrandDatalistOptions();
+        const stations = new Set();
+        const sizesFlavorsZones = new Set();
+        getCustomBrandsForCategory().forEach(b => {
+            const bName = typeof b === 'object' ? b.name : b;
+            if (bName) stations.add(String(bName).trim());
+        });
+        let dealComboCount = 0;
+        allItems.forEach(i => {
+            const f = i.industryFields || {};
+            const st = String(f.brandCompany || i.supplierName || i.lastSupplier || '').trim();
+            const sz = String(f.portionSize || '').trim();
+            const sp = String(f.spiceVariant || '').trim();
+            const kz = String(f.kitchenKOTZone || '').trim();
+            if (st) stations.add(st);
+            if (sz) sizesFlavorsZones.add(sz);
+            if (sp) sizesFlavorsZones.add(sp);
+            if (kz) sizesFlavorsZones.add(kz);
+            if (
+                i.unit === 'deal' ||
+                Boolean(f.dealContents) ||
+                String(f.itemSubType || '').toLowerCase().includes('deal') ||
+                String(f.itemSubType || '').toLowerCase().includes('combo')
+            ) {
+                dealComboCount += 1;
+            }
+        });
+
+        quickBar.style.display = 'flex';
+
+        const prevPri = priSelect.value || 'all';
+        priSelect.innerHTML = '<option value="all">👨‍🍳 All Kitchen Stations / تمام کاؤنٹرز</option>';
+        stations.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = `👨‍🍳 ${s}`;
+            priSelect.appendChild(opt);
+        });
+        if (stations.has(prevPri)) priSelect.value = prevPri;
+        else { priSelect.value = 'all'; currentIndustryPrimary = 'all'; }
+
+        const prevSec = secSelect.value || 'all';
+        secSelect.innerHTML = `<option value="all">🍔 All Sizes, Flavors &amp; KOT Zones</option>
+            <option value="__deals_combos__">🎁 Combo &amp; Family Deals Only${dealComboCount > 0 ? ` (${dealComboCount})` : ''}</option>`;
+        sizesFlavorsZones.forEach(sfz => {
+            const opt = document.createElement('option');
+            opt.value = sfz;
+            opt.textContent = `🌶️ ${sfz}`;
+            secSelect.appendChild(opt);
+        });
+        if (prevSec === '__deals_combos__' || sizesFlavorsZones.has(prevSec)) secSelect.value = prevSec;
+        else { secSelect.value = 'all'; currentIndustrySecondary = 'all'; }
     } else {
         quickBar.style.display = 'none';
         currentIndustryPrimary = 'all';
@@ -2141,9 +2510,9 @@ function renderItems() {
             return false;
         }
 
-        // Industry Primary Filter (Class/Grade for Books, Brand/Company for Mobile & Wholesaler)
+        // Industry Primary Filter (Class/Grade for Books, Brand/Company/Station for Mobile, Wholesaler, Medical & Restaurant)
         if (currentIndustryPrimary !== 'all') {
-            if (currentCategoryDef && (currentCategoryDef.id === 'mobile' || currentCategoryDef.id === 'wholesaler')) {
+            if (currentCategoryDef && (currentCategoryDef.id === 'mobile' || currentCategoryDef.id === 'wholesaler' || currentCategoryDef.id === 'medical' || currentCategoryDef.id === 'restaurant')) {
                 const brOrSup = String(ind.brandCompany || item.supplierName || item.lastSupplier || '').toLowerCase();
                 if (brOrSup !== currentIndustryPrimary.toLowerCase()) return false;
             } else {
@@ -2153,7 +2522,7 @@ function renderItems() {
             }
         }
 
-        // Industry Secondary Filter (Publisher/Board for Books, PTA/Condition for Mobile, Group/Scheme for Wholesaler)
+        // Industry Secondary Filter (Publisher/Board for Books, PTA/Condition for Mobile, Group/Scheme for Wholesaler, Formula/Expiry for Medical, Deals/Sizes/Flavors for Restaurant)
         if (currentIndustrySecondary !== 'all') {
             if (currentCategoryDef && currentCategoryDef.id === 'mobile') {
                 const targetSec = currentIndustrySecondary.toLowerCase();
@@ -2170,6 +2539,34 @@ function renderItems() {
                     const bonMatch = String(ind.bonusSchemeRule || '').toLowerCase() === targetSec;
                     const lblMatch = String(item.schemeLabel || '').toLowerCase() === targetSec;
                     if (!subMatch && !bonMatch && !lblMatch) return false;
+                }
+            } else if (currentCategoryDef && currentCategoryDef.id === 'medical') {
+                if (currentIndustrySecondary === '__near_expiry__') {
+                    const expInfo = classifyStockExpiryStatus(ind.expiryDate || item.expiryDate);
+                    if (expInfo.status !== 'expired' && expInfo.status !== 'critical' && expInfo.status !== 'warning') return false;
+                } else if (currentIndustrySecondary === '__expired_only__') {
+                    const expInfo = classifyStockExpiryStatus(ind.expiryDate || item.expiryDate);
+                    if (expInfo.status !== 'expired') return false;
+                } else {
+                    const targetSec = currentIndustrySecondary.toLowerCase();
+                    const genMatch = String(ind.genericFormula || '').toLowerCase() === targetSec;
+                    const rackMatch = String(ind.storageRack || '').toLowerCase() === targetSec;
+                    if (!genMatch && !rackMatch) return false;
+                }
+            } else if (currentCategoryDef && currentCategoryDef.id === 'restaurant') {
+                if (currentIndustrySecondary === '__deals_combos__') {
+                    const isDeal = item.unit === 'deal' ||
+                        Boolean(ind.dealContents) ||
+                        String(ind.itemSubType || '').toLowerCase().includes('deal') ||
+                        String(ind.itemSubType || '').toLowerCase().includes('combo') ||
+                        String(item.category || '').toLowerCase().includes('deal');
+                    if (!isDeal) return false;
+                } else {
+                    const targetSec = currentIndustrySecondary.toLowerCase();
+                    const sizeMatch = String(ind.portionSize || '').toLowerCase() === targetSec;
+                    const spiceMatch = String(ind.spiceVariant || '').toLowerCase() === targetSec;
+                    const zoneMatch = String(ind.kitchenKOTZone || '').toLowerCase() === targetSec;
+                    if (!sizeMatch && !spiceMatch && !zoneMatch) return false;
                 }
             } else {
                 const pubOrSup = String(ind.publisherBoard || item.supplierName || item.lastSupplier || '').toLowerCase();
@@ -2242,13 +2639,25 @@ function renderItems() {
         const rawPackSize = parseFloat(ind.packSize) || (item.unit === 'dozen' ? 12 : (item.unit === 'maund' ? 40 : (item.unit === 'ream' ? 500 : 0)));
         const effectivePackSize = rawPackSize > 1 ? rawPackSize : 0;
         const isWhMode = currentCategoryDef && currentCategoryDef.id === 'wholesaler';
+        const isMedMode = currentCategoryDef && currentCategoryDef.id === 'medical';
+        const isRestMode = currentCategoryDef && currentCategoryDef.id === 'restaurant';
 
         if ((item.industryFields && typeof item.industryFields === 'object') || item.supplierName || item.lastSupplier || item.publisherDiscPercent) {
             const parts = [];
             if (ind.itemSubType) parts.push(`🏷️ <b>قسم:</b> ${ind.itemSubType}`);
             if (ind.classGrade) parts.push(`🎓 <b>جماعت:</b> ${ind.classGrade}`);
             if (ind.publisherBoard) parts.push(`🏛️ <b>بورڈ/پبلشر:</b> ${ind.publisherBoard}`);
-            if (ind.brandCompany) parts.push(`${isWhMode ? '🏭 <b>کمپنی/برانڈ:</b>' : '📱 <b>برانڈ:</b>'} ${ind.brandCompany}`);
+            if (ind.brandCompany) parts.push(`${isMedMode ? '🏥 <b>فارما کمپنی:</b>' : (isWhMode ? '🏭 <b>کمپنی/برانڈ:</b>' : (isRestMode ? '👨‍🍳 <b>کچن اسٹیشن:</b>' : '📱 <b>برانڈ:</b>'))} ${ind.brandCompany}`);
+            if (ind.portionSize) parts.push(`📏 <b>سائز/پورشن:</b> ${ind.portionSize}`);
+            if (ind.spiceVariant) parts.push(`🌶️ <b>فلیور/مصالحہ:</b> ${ind.spiceVariant}`);
+            if (ind.prepTimeMins) parts.push(`⏱️ <b>تیاری:</b> ${ind.prepTimeMins}m`);
+            if (ind.kitchenKOTZone) parts.push(`🔔 <b>KOT زون:</b> ${ind.kitchenKOTZone}`);
+            if (ind.dealContents) parts.push(`🎁 <b>ڈیل آئٹمز:</b> ${ind.dealContents}`);
+            if (ind.addonsNote) parts.push(`🧀 <b>ایڈ آنز:</b> ${ind.addonsNote}`);
+            if (ind.tableNo) parts.push(`🍽️ <b>سروس موڈ:</b> ${ind.tableNo}`);
+            if (ind.genericFormula) parts.push(`🧬 <b>فارمولا/سالٹ:</b> ${ind.genericFormula}`);
+            if (ind.dosageStrength) parts.push(`⚖️ <b>پوٹینسی/پیک:</b> ${ind.dosageStrength}`);
+            if (ind.storageRack) parts.push(`🗄️ <b>ریک/اسٹیٹس:</b> ${ind.storageRack}`);
             if (ind.modelVariant) parts.push(`📲 <b>ماڈل:</b> ${ind.modelVariant}`);
             if (ind.ramStorage) parts.push(`💾 <b>ریم/اسپیک:</b> ${ind.ramStorage}`);
             if (ind.cartonPacking) parts.push(`📦 <b>کارٹن پیکنگ:</b> ${ind.cartonPacking}`);
@@ -2282,7 +2691,7 @@ function renderItems() {
             if (ind.warrantyInfo) parts.push(`🛡️ <b>وارنٹی:</b> ${ind.warrantyInfo}`);
             if (effectivePackSize > 1) {
                 const isMobMode = currentCategoryDef && currentCategoryDef.id === 'mobile';
-                const subLabel = item.unit === 'set' ? (isMobMode ? 'Items/Set' : 'Books/Set') : (item.unit === 'ream' ? 'Sheets/Ream' : (item.unit === 'maund' ? 'kg/Maund' : `Pcs/${unit}`));
+                const subLabel = item.unit === 'set' ? (isMobMode ? 'Items/Set' : 'Books/Set') : (item.unit === 'ream' ? 'Sheets/Ream' : (item.unit === 'maund' ? 'kg/Maund' : (isMedMode ? `Strips/Tabs per ${unit}` : `Pcs/${unit}`)));
                 parts.push(`📦 <b>پیکنگ:</b> ${effectivePackSize} ${subLabel}`);
             }
             if (ind.isbnCode) parts.push(`🔢 <b>ISBN/کوڈ:</b> ${ind.isbnCode}`);
@@ -2293,7 +2702,18 @@ function renderItems() {
             if (Number(item.publisherDiscPercent) > 0) parts.push(`📉 <b>ڈسکاؤنٹ:</b> ${item.publisherDiscPercent}%`);
             if (item.lastPurchaseInvoice) parts.push(`🧾 <b>بلٹی/بل:</b> ${item.lastPurchaseInvoice}`);
             if (ind.batchNo) parts.push(`💊 <b>Batch:</b> ${ind.batchNo}`);
-            if (ind.expiryDate) parts.push(`⏳ <b>Exp:</b> ${ind.expiryDate}`);
+            if (ind.expiryDate) {
+                const expInfo = classifyStockExpiryStatus(ind.expiryDate);
+                if (expInfo.status === 'expired') {
+                    parts.push(`<span style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:1px 6px; border-radius:6px; font-weight:800;">🔴 EXPIRED (${ind.expiryDate})</span>`);
+                } else if (expInfo.status === 'critical') {
+                    parts.push(`<span style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; padding:1px 6px; border-radius:6px; font-weight:800;">🟠 ${expInfo.label} (${ind.expiryDate})</span>`);
+                } else if (expInfo.status === 'warning') {
+                    parts.push(`<span style="background:#fef9c3; color:#a16207; border:1px solid #fde047; padding:1px 6px; border-radius:6px; font-weight:700;">🟡 ${expInfo.label} (${ind.expiryDate})</span>`);
+                } else {
+                    parts.push(`⏳ <b>Exp:</b> ${ind.expiryDate}`);
+                }
+            }
             if (ind.shoeSize) parts.push(`👟 <b>Size:</b> ${ind.shoeSize}`);
             if (ind.clothSize) parts.push(`👕 <b>Size:</b> ${ind.clothSize}`);
 
@@ -2871,7 +3291,7 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
         if (supplierName && !industryFields.publisherBoard && currentCategoryDef && currentCategoryDef.id === 'books') {
             industryFields.publisherBoard = supplierName;
         }
-        if (supplierName && !industryFields.brandCompany && currentCategoryDef && (currentCategoryDef.id === 'mobile' || currentCategoryDef.id === 'wholesaler')) {
+        if (supplierName && !industryFields.brandCompany && currentCategoryDef && (currentCategoryDef.id === 'mobile' || currentCategoryDef.id === 'wholesaler' || currentCategoryDef.id === 'medical' || currentCategoryDef.id === 'restaurant')) {
             industryFields.brandCompany = supplierName;
         }
         const printedMrp = parseFloat(document.getElementById('itemPrintedMrp')?.value) || retailRate || 0;
@@ -2900,6 +3320,7 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
             schemeMinQty: parseFloat(document.getElementById('itemSchemeMinQty')?.value) || 0,
             schemeValue: parseFloat(document.getElementById('itemSchemeValue')?.value) || 0,
             schemeLabel: (document.getElementById('itemSchemeLabel')?.value || '').trim(),
+            businessCategory: getActiveStockCategoryId(),
             agencyId: myAgencyId,
             updatedAt: new Date().toISOString()
         };
@@ -3117,13 +3538,16 @@ function updateModalPurchaseSummary() {
     const item = allItems.find(i => i.id === modalItemId);
     const ind = (item && item.industryFields) ? item.industryFields : {};
     const packSz = parseFloat(ind.packSize) || (item && item.unit === 'dozen' ? 12 : (item && item.unit === 'maund' ? 40 : 0));
+    const isRest = currentCategoryDef && currentCategoryDef.id === 'restaurant';
 
-    // Update Wholesaler Restock Per-Piece & Pack readout if visible
+    // Update Wholesaler / Fast Food Restock Per-Piece & Pack readout if visible
     const whPerPcBadge = document.getElementById('modalPerPieceCostBadge');
     if (whPerPcBadge && packSz > 1) {
         const perPc = cost > 0 ? (Math.round((cost / packSz) * 100) / 100) : 0;
         const totPcsTxt = qty > 0 ? ` • Incoming: +${Math.round(qty * packSz * 100) / 100} Pcs` : '';
-        whPerPcBadge.innerText = (perPc > 0 ? `Per-Piece Cost: Rs ${perPc}/pc` : 'Per-Piece Cost: Rs --') + totPcsTxt;
+        whPerPcBadge.innerText = (perPc > 0
+            ? (isRest ? `Food Cost/Pc: Rs ${perPc}` : `Per-Piece Cost: Rs ${perPc}/pc`)
+            : (isRest ? 'Food Cost/Pc: Rs --' : 'Per-Piece Cost: Rs --')) + totPcsTxt;
     }
 
     if (!badge) return;
@@ -3131,10 +3555,16 @@ function updateModalPurchaseSummary() {
     if (qty > 0 && cost > 0) {
         const totalCost = Math.round(qty * cost);
         const totalMrp = mrp > cost ? Math.round(qty * mrp) : 0;
-        const marginTxt = totalMrp > totalCost ? ` &nbsp;|&nbsp; 📈 Margin: +Rs ${fmtPKR(totalMrp - totalCost)}` : '';
+        const marginAmt = totalMrp > totalCost ? (totalMrp - totalCost) : 0;
+        const foodCostPct = totalMrp > 0 ? (Math.round((totalCost / totalMrp) * 1000) / 10) : 0;
+        const marginTxt = marginAmt > 0
+            ? (isRest
+                ? ` &nbsp;|&nbsp; 📊 Food Cost: <b>${foodCostPct}%</b> &nbsp;|&nbsp; 📈 Kitchen Margin: +Rs ${fmtPKR(marginAmt)}`
+                : ` &nbsp;|&nbsp; 📈 Margin: +Rs ${fmtPKR(marginAmt)}`)
+            : '';
         const pcsTxt = packSz > 1 ? ` &nbsp;|&nbsp; 📦 +${Math.round(qty * packSz * 100) / 100} Pcs` : '';
         badge.style.display = 'block';
-        badge.innerHTML = `💰 Total Purchase Bill: <b>Rs ${fmtPKR(totalCost)}</b>${marginTxt}${pcsTxt}`;
+        badge.innerHTML = `${isRest ? '🍳 Total Kitchen Batch Cost' : '💰 Total Purchase Bill'}: <b>Rs ${fmtPKR(totalCost)}</b>${marginTxt}${pcsTxt}`;
     } else {
         badge.style.display = 'none';
     }
@@ -3187,13 +3617,15 @@ function openStockModal(itemId, mode) {
     bindStockModalCalculators();
     populateSupplierSuggestionsDatalist();
 
+    const cid = currentCategoryDef ? currentCategoryDef.id : '';
+    const isRest = cid === 'restaurant';
     const pCfg = (window.BusinessCategories && currentCategoryDef)
         ? window.BusinessCategories.getPurchaseConfig(currentCategoryDef.id)
         : { enableMrpDiscountCalc: false, allowEditionUpdateOnRestock: false };
 
-    document.getElementById('stockModalTitle').innerText = mode === 'in' 
-        ? '📥 Restock — Stock Inflow (مال آیا)' 
-        : '📤 Stock Outflow — Direct Sale / Reduction';
+    document.getElementById('stockModalTitle').innerText = mode === 'in'
+        ? (isRest ? '📥 Kitchen Supply / Batch Prep IN (کچن مال آیا)' : '📥 Restock — Stock Inflow (مال آیا)')
+        : (isRest ? '📤 Kitchen Outflow / Wastage / Staff Meal' : '📤 Stock Outflow — Direct Sale / Reduction');
     
     document.getElementById('stockModalItem').innerText = 
         `${item.name} — Available: ${item.qty || 0} ${UNIT_LABELS[item.unit] || ''}`;
@@ -3209,6 +3641,11 @@ function openStockModal(itemId, mode) {
     const whModalRow = document.getElementById('modalWholesaleCartonRow');
     const ind = item.industryFields || {};
 
+    const mPurchLbl = document.getElementById('modalNewPurchaseLabel');
+    const mRetLbl = document.getElementById('modalNewRetailLabel');
+    if (mPurchLbl) mPurchLbl.innerText = isRest ? '🍳 Food Cost / Batch Rate (لاگت فی آرڈر)' : '💵 Purchase Rate (لاگت ریٹ)';
+    if (mRetLbl) mRetLbl.innerText = isRest ? '🏷️ Menu Selling Price (مینو ریٹ)' : '🏷️ Retail / MRP (پرچون ریٹ)';
+
     if (mode === 'in') {
         purchaseGroup.style.display = 'block';
         document.getElementById('modalNewPurchase').value = item.purchaseRate || '';
@@ -3222,7 +3659,7 @@ function openStockModal(itemId, mode) {
 
         if (document.getElementById('modalSupplierName')) {
             document.getElementById('modalSupplierName').placeholder = pCfg.supplierPlaceholder || 'e.g. Supplier / Distributor';
-            document.getElementById('modalSupplierName').value = item.supplierName || ind.publisherBoard || ind.brandCompany || item.lastSupplier || '';
+            document.getElementById('modalSupplierName').value = item.supplierName || item.lastSupplier || ind.publisherBoard || ind.brandCompany || '';
         }
         if (document.getElementById('modalInvoiceNo')) {
             document.getElementById('modalInvoiceNo').placeholder = pCfg.invoicePlaceholder || 'e.g. Inv #412 / Bilty #88';
@@ -3232,12 +3669,15 @@ function openStockModal(itemId, mode) {
             bookCalcGroup.style.display = pCfg.enableMrpDiscountCalc ? 'block' : 'none';
             const calcTitle = document.getElementById('modalCalcGroupTitle');
             if (calcTitle) {
-                const cid = currentCategoryDef ? currentCategoryDef.id : '';
                 calcTitle.innerText = cid === 'mobile'
                     ? '📱 Official Box Price (MRP) & Dealer Margin % Calculator (اختیاری)'
                     : (cid === 'wholesaler'
                         ? '📦 Master Carton / Trade Price (TP) & Company Discount % Calculator (اختیاری)'
-                        : '📚 Printed Price (MRP) & Publisher Discount % Calculator (اختیاری)');
+                        : (cid === 'medical'
+                            ? '💊 Pharma Printed MRP & Trade Margin % (15% TP) Calculator (اختیاری)'
+                            : (cid === 'restaurant'
+                                ? '🍔 Menu Selling Price & Food Cost Margin % Calculator (فوڈ کاسٹ کیلکولیٹر)'
+                                : '📚 Printed Price (MRP) & Publisher Discount % Calculator (اختیاری)')));
             }
             const mMrpLbl = document.getElementById('modalMrpLabel');
             if (mMrpLbl && pCfg.mrpLabel) mMrpLbl.innerText = pCfg.mrpLabel;
@@ -3255,7 +3695,7 @@ function openStockModal(itemId, mode) {
                 if (pCfg.enableCartonPieceCalc && pk > 1) {
                     whModalRow.style.display = 'block';
                     const pkLbl = document.getElementById('modalCartonPackLabel');
-                    if (pkLbl) pkLbl.innerText = `${pk} Pcs / ${UNIT_LABELS[item.unit] || item.unit || 'Ctn'}${ind.cartonPacking ? ` (${ind.cartonPacking})` : ''}`;
+                    if (pkLbl) pkLbl.innerText = `${pk} Pcs / ${UNIT_LABELS[item.unit] || item.unit || (isRest ? 'Deal' : 'Ctn')}${ind.cartonPacking ? ` (${ind.cartonPacking})` : ''}`;
                     updateModalPurchaseSummary();
                 } else {
                     whModalRow.style.display = 'none';
@@ -3402,7 +3842,7 @@ document.getElementById('modalConfirmBtn').addEventListener('click', async () =>
                 updatedInd.publisherBoard = supplierName;
                 indChanged = true;
             }
-            if (supplierName && !updatedInd.brandCompany && currentCategoryDef && (currentCategoryDef.id === 'mobile' || currentCategoryDef.id === 'wholesaler')) {
+            if (supplierName && !updatedInd.brandCompany && currentCategoryDef && (currentCategoryDef.id === 'mobile' || currentCategoryDef.id === 'wholesaler' || currentCategoryDef.id === 'medical')) {
                 updatedInd.brandCompany = supplierName;
                 indChanged = true;
             }
@@ -3599,10 +4039,10 @@ document.getElementById('exportStockBtn').addEventListener('click', () => {
         const barcode = `"${i.barcode || ''}"`;
         const cat = `"${(i.category || '').replace(/"/g, '""')}"`;
         const brandPub = `"${(ind.brandCompany || ind.publisherBoard || i.supplierName || '').replace(/"/g, '""')}"`;
-        const modelCls = `"${(ind.modelVariant || ind.classGrade || ind.cartonPacking || '').replace(/"/g, '""')}"`;
-        const ramSpec = `"${(ind.ramStorage || ind.pagesRuling || (ind.packSize ? `${ind.packSize} Pcs` : '') || '').replace(/"/g, '""')}"`;
-        const imeiOrIsbn = `"${([ind.imei1, ind.imei2, ind.imei3, ind.imei4].filter(Boolean).join(' / ') || ind.imeiSerial || ind.isbnCode || ind.skuBatchCode || '').replace(/"/g, '""')}"`;
-        const ptaCond = `"${([ind.ptaStatus, ind.conditionGrade, ind.bonusSchemeRule || i.schemeLabel].filter(Boolean).join(' - ') || '').replace(/"/g, '""')}"`;
+        const modelCls = `"${(ind.modelVariant || ind.classGrade || ind.cartonPacking || ind.portionSize || '').replace(/"/g, '""')}"`;
+        const ramSpec = `"${(ind.ramStorage || ind.pagesRuling || ind.spiceVariant || (ind.packSize ? `${ind.packSize} Pcs` : '') || '').replace(/"/g, '""')}"`;
+        const imeiOrIsbn = `"${([ind.imei1, ind.imei2, ind.imei3, ind.imei4].filter(Boolean).join(' / ') || ind.imeiSerial || ind.isbnCode || ind.skuBatchCode || ind.kitchenKOTZone || '').replace(/"/g, '""')}"`;
+        const ptaCond = `"${([ind.ptaStatus, ind.conditionGrade, ind.bonusSchemeRule || ind.dealContents || i.schemeLabel].filter(Boolean).join(' - ') || '').replace(/"/g, '""')}"`;
         const unit = i.unit || 'unit';
         const qty = i.qty || 0;
         const cost = i.purchaseRate || 0;

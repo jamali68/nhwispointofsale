@@ -398,3 +398,27 @@ a[href*="netlify.com"] {
 .swal2-container {
     z-index: 99999999 !important;
 }
+
+@media (max-width: 768px) {
+    .panel-container,
+    .panel-card,
+    .form-row,
+    .form-group,
+    .agency-main {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .form-group {
+        min-width: 100%;
+    }
+    .form-group select,
+    .form-group input,
+    .form-group textarea {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        text-overflow: ellipsis;
+    }
+}
+

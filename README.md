@@ -1,6 +1,6 @@
 # NH POS & Wholesale Distribution ERP System (Master Documentation)
 
-> **Documentation Version:** 6.0  
+> **Documentation Version:** 8.0 (Updated: Multi-Category Independent Database + 10+ Agency Profit Comparison + Industry Audits)  
 > **Architecture:** Vite + React Shell + Progressive Web App (PWA) + HTML5/ES6 Standalone Core Modules  
 > **Backend Integration:** Cloud Functions / Firebase & Netlify Ready Architecture (Secrets Protected)  
 > **Languages:** Dual Language Documentation — **Roman Urdu** (حصہ اول) & **Pure Urdu** (حصہ دوم)
@@ -13,13 +13,16 @@
    - 1.1 [Software Ka Ta'aruf & Maqsad](#11-software-ka-taaruf--maqsad)
    - 1.2 [System Architecture & Future Migration Rules](#12-system-architecture--future-migration-rules)
    - 1.3 [User Roles & Permissions (RBAC)](#13-user-roles--permissions-rbac)
-   - 1.4 [Modules & Pages Ki Tafseel (All 17+ Pages)](#14-modules--pages-ki-tafseel)
+   - 1.4 [Modules & Pages Ki Tafseel (All 18+ Pages)](#14-modules--pages-ki-tafseel)
    - 1.5 [Bill Templates Ki Tafseel & 6 Phases](#15-bill-templates-ki-tafseel--6-phases)
    - 1.6 [Dynamic Input Boxes System](#16-dynamic-input-boxes-system)
    - 1.7 [Order Booker Mode vs Admin Counter POS Mode](#17-order-booker-mode-vs-admin-counter-pos-mode)
    - 1.8 [Customer Khata & Offline Sync Engine (IndexedDB)](#18-customer-khata--offline-sync-engine)
    - 1.9 [Future Developers & AI Guidelines (Rule 6)](#19-future-developers--ai-guidelines)
    - 1.10 [Official NH POS Logo & Business Custom Logo Engine](#110-official-nh-pos-logo--business-custom-logo-engine)
+   - 1.11 [1 Category = 1 Independent Database (Category Switch Data Protection)](#111-1-category--1-independent-database-category-switch-data-protection)
+   - 1.12 [Multi-Distribution (5–10+ Agencies) Management & Profit Comparison](#112-multi-distribution-510-agencies-management--profit-comparison)
+   - 1.13 [20 Business Categories & Completed 7-Phase Audits (Master Changelog)](#113-20-business-categories--completed-7-phase-audits-master-changelog)
 2. [PART 2: خالص اردو ماسٹر گائیڈ (PURE URDU DOCUMENTATION)](#part-2-خالص-اردو-ماسٹر-گائیڈ-pure-urdu-documentation)
    - 2.1 [سافٹ ویئر کا تعارف اور خصوصیات](#21-سافٹ-ویئر-کا-تعارف-اور-خصوصیات)
    - 2.2 [سسٹم آرکیٹیکچر اور کلاؤڈ رولز](#22-سسٹم-آرکیٹیکچر-اور-کلاؤڈ-رولز)
@@ -31,6 +34,9 @@
    - 2.8 [آف لائن ڈیٹا بیس اور کلاؤڈ ہم آہنگی](#28-آف-لائن-ڈیٹا-بیس-اور-کلاؤڈ-ہم-آہنگی)
    - 2.9 [نئے ڈویلپرز اور AI ماڈلز کے لیے رہنما اصول](#29-نئے-ڈویلپرز-اور-ai-ماڈلز-کے-لیے-رہنما-اصول)
    - 2.10 [آفیشل NH POS لوگو اور کاروباری مونوگرام سسٹم](#210-آفیشل-nh-pos-لوگو-اور-کاروباری-مونوگرام-سسٹم)
+   - 2.11 [ہر کیٹیگری کا الگ ڈیٹابیس (1 Category = 1 Database) اور ڈیٹا تحفظ](#211-ہر-کیٹیگری-کا-الگ-ڈیٹابیس-1-category--1-database-اور-ڈیٹا-تحفظ)
+   - 2.12 [ملٹی ڈسٹری بیوشن (5 تا 10+ ایجنسیز) اور منافع کا مکمل مقابلہ](#212-ملٹی-ڈسٹری-بیوشن-5-تا-10-ایجنسیز-اور-منافع-کا-مکمل-مقابلہ)
+   - 2.13 [کاروباری کیٹیگریز اور مکمل شدہ 7 فیزز آڈٹ لاگ (Changelog)](#213-کاروباری-کیٹیگریز-اور-مکمل-شدہ-7-فیزز-آڈٹ-لاگ-changelog)
 
 ---
 
@@ -204,6 +210,58 @@ Agli bar jab bhi kisi naye developer ya AI ko project update karne ke liye diya 
 * Yeh logo tamam 11 bill templates ke header mein automatically render hota hai (`ag.logoBase64 || ag.logo`).
 
 ---
+
+## 1.11 1 Category = 1 Independent Database (Category Switch Data Protection)
+> **⚠️ YAD-DAasht / PERMANENT ARCHITECTURAL RULE:**  
+> Is system mein **har Business Category ka apna alag aur mehfooz Database Workspace (`businessCategory`)** hai.
+
+### A. Yeh Kaise Kaam Karta Hai?
+1. **Zero Data Loss & Zero Mixing:** Agar koi user 1 din ya 10 saal tak kisi ek category (maslan `books`, `wholesaler`, `medical`, ya `mobile`) par kaam karta hai aur phir `settings.html` se apni Business Category kisi doosri category (maslan `distributor`) par switch karta hai:
+   - Pehli category ka **100% data (Stock, Customers/Khata, Bills, Orders, Damage Claims, Operating Expenses, aur Profit & Loss)** us category ke naam (`businessCategory`) ke sath lock ho kar mehfooz rehta hai (`lockExistingCategoryRecordsOnSwitch` in `public/settings.js`).
+   - Nayi category select karne par naya saaf workspace khulta hai—pehli category ka koi bhi item, customer ya bill doosri category mein mix nahi hota.
+   - Jab user dobara pehli category par wapas switch karta hai, toh uska 1 din ya 10 saal ka purana sara data **bina kisi nuqsan ke 100% wapas apni jagah par** milta hai.
+2. **Technical Functions (`public/business-categories.js`):**
+   - `window.BusinessCategories.resolveRecordCategory(record, agencyObj, defaultCategoryId)`: Har record ki asal category pehchanta hai (explicit `businessCategory` tag, `industryFields`, ya `primaryCategory` fallback).
+   - `window.BusinessCategories.matchesActiveCategoryRecord(record, activeCategoryId, agencyObj)`: `stock.js`, `customers.js`, `bills.js`, `delivery-returns.js`, `profit.js`, aur `multi-agency.js` mein sirf active category ke records load karta hai.
+   - LocalStorage caches bhi category-scoped hain (`eb_stock_cache_${agencyId}_${catId}`, `eb_cust_cache_${agencyId}_${catId}`).
+
+---
+
+## 1.12 Multi-Distribution (5–10+ Agencies) Management & Profit Comparison
+Ek hi Admin / Distributor ek waqt mein **5, 10, ya 20+ Agencies** ko do tareeqon se chala sakta hai aur unka mukammal profit comparison dekh sakta hai:
+
+### 1. Ek Hi Category Database Ke Andar 10+ Agencies (`profit.html` -> Tab #7):
+* Agar ek Distributor `🚚 Distributor & FMCG Agency` (ya `📦 Wholesaler`) category ke andar 5 ya 10 mukhtalif companies/agencies ka maal rakhta hai, toh har product/bill ke sath uski Agency/Company (`brandCompany` / `supplierName`) save hoti hai.
+* **`profit.html` (`public/profit.js`) mein Tab #7 (`🏭 7. Agency / Company Profit - 10+ ایجنسیز منافع مقابلہ`):**
+  - Active category ke andar mojood tamam 10+ agencies ka side-by-side muqabla dikhata hai:
+    - **Rank (`🏆 #1`, `🥈 #2`, `🥉 #3`, ...)**
+    - **Agency / Principal Company Name**
+    - **SKUs / Products Count & Active Stock Value (`Rs`)**
+    - **Total Bills & Units Sold (+ Free Scheme Units)**
+    - **Total Sales (`Rs`), COGS (`Rs`), Gross Profit (`Rs`), Margin `%`, aur Profit Share `%`**
+    - **Performance Badge (`🏆 Top Agency`, `🟢 High Margin`, `🔵 Active`, `🔴 Loss`)** + **CSV/Excel Export**.
+
+### 2. Alag Branch Agencies (`multi-agency.html` / `public/multi-agency.js`):
+* Admin `multi-agency.html` se alag branches/agencies register kar sakta hai (jisme tamam 20 Business Categories select karne ka option hai) aur har branch apni active category database ke hisab se Sales, COGS, Expenses, Claims aur Net Profit ka comparison dikhati hai.
+
+### 3. Zero Hardcoded Company Names Rule:
+* Kisi bhi category (khasosan `distributor` aur `wholesaler`) mein kisi khaas company ka naam (maslan Unilever, Nestlé, LU, Pampers waghaira) hardcode nahi kiya gaya. Subcategories aur placeholders generic hain taake har distributor apni marzi ki companies aur agencies khud add aur save kar sake.
+
+---
+
+## 1.13 20 Business Categories & Completed 7-Phase Audits (Master Changelog)
+Har category ke boxes, units, aur items doosri category se **100% isolated** hain (ek category ke boxes kisi doosri category mein nazar nahi aate):
+
+| Category ID | Category Name | Status & Key Features (Phases A–G Completed) |
+|---|---|---|
+| `books` | 📚 Book Depot & Stationery | **100% Complete (Phases A–G):** Publisher, Edition/Session, Class/Grade, Subject, ISBN, Author, School/Academy/Govt Tender segments, Publisher Discount %, Specimen/Complementary copy tracking. |
+| `mobile` | 📱 Mobile Shop & Accessories | **100% Complete (Phases A–G):** 15-Digit IMEI / Serial scanner & multi-IMEI chip selector, PTA Approved / Non-PTA / JV status, RAM/Storage & Color, Battery Health %, Official/Shop Warranty, Used Phone Exchange / Trade-In deduction, Thermal Barcode Labels. |
+| `medical` | 💊 Medical Store & Pharmacy | **100% Complete (Phases A–G):** Generic Salt Formula, Batch / Lot #, Strict Expiry Date Block & Near-Expiry FEFO Warning, Cold Chain / Narcotic / Schedule-G flags, Loose Strip/Tablet Auto-Converter (`Box -> Strip -> Tablet`), Form-2A Drug Warranty Certificate on print, Expired/Short-Expiry Supplier Claims. |
+| `wholesaler` | 📦 Wholesaler & Bulk Mandi | **100% Complete (Phases A–G):** Bulk Mandi system (Anaj, चीनी, آٹا, دالیں, گھی). Units: `Bori`, `Katta`, `Petti`, `Torah`, `Mann (40kg)`. Packing Size, Gross Weight & Bardana (Tare) Weight (`kg`), Net Weight auto-badge, 3-Tier Wholesale Rate (1–4, 5–9, 10+ Bori), Bilty / Gate Pass / Truck / Driver / Adda / Bardana/Mazdoori charges, Mandi Supplier Claim Voucher. |
+| `distributor` | 🚚 Distributor & FMCG Agency | **Separate from Wholesaler (7-Phase Architecture):** Branded Packaged Goods (Biscuits, Nimko, Diapers, Soaps, Beverages, Tea, etc. — zero hardcoded brand names). Cartons + Pieces, Trade Price (TP) vs Retail Price (MRP), Free Scheme / Bonus (`12+1`), TO% / TD%, PJP Routes & Order Bookers, Van Load Sheet, FBR Sales/Advance Tax, aur 10+ Agencies Profit Comparison. |
+| Other 15 Categories | `general`, `garments`, `electronics`, `hardware`, `auto`, `footwear`, `cosmetics`, `bakeries`, `fertilizer`, `furniture`, `jewelry`, `computers`, `optics`, `restaurant`, `other` | Full dynamic industry fields, units, subcategories, customer segments, and strict cross-category UI/database isolation active in `public/business-categories.js`. |
+
+---
 ---
 
 # PART 2: خالص اردو ماسٹر گائیڈ (PURE URDU DOCUMENTATION)
@@ -328,3 +386,41 @@ Agli bar jab bhi kisi naye developer ya AI ko project update karne ke liye diya 
 * ہر دکان دار یا ایجنسی کا مالک `profile.html` میں جا کر اپنی دکان کا ذاتی لوگو یا مونوگرام لگا سکتا ہے۔
 * سافٹ ویئر کینوس ٹیکنالوجی کے ذریعے تصویر کو خود بخود **زیادہ سے زیادہ 250 پکسل (8 سے 15 کلو بائٹ)** کے انتہائی ہلکے بیس 64 سائز میں سکیڑ (compress) لیتا ہے تاکہ ڈیٹا بیس پر بوجھ نہ بنے۔
 * یہ لوگو تمام 11 بل ٹیمپلیٹس کے اوپر دکان کے نام کے ساتھ انتہائی صاف اور خوبصورت پرنٹ ہوتا ہے۔
+
+---
+
+## 2.11 ہر کیٹیگری کا الگ ڈیٹابیس (1 Category = 1 Database) اور ڈیٹا تحفظ
+> **⚠️ مستقل اصول (Permanent Rule):**  
+> اس سافٹ ویئر میں **ہر کاروباری کیٹیگری کا اپنا الگ اور محفوظ ڈیٹابیس ورک اسپیس (`businessCategory`)** ہے۔
+
+1. **کیٹیگری تبدیل کرنے پر ڈیٹا کا 100% تحفظ:**
+   - اگر کوئی صارف 1 دن یا 10 سال تک کسی ایک کیٹیگری (مثلاً بک ڈپو، ہول سیلر، میڈیکل اسٹور یا موبائل شاپ) پر کام کرتا ہے اور بعد میں سیٹنگز (`settings.html`) سے اپنی کیٹیگری تبدیل کر کے کسی دوسری کیٹیگری (مثلاً ڈسٹری بیوٹر اینڈ ایف ایم سی جی ایجنسی) پر جاتا ہے تو پہلی کیٹیگری کا تمام ڈیٹا (**اسٹاک، گاہکوں کے کھاتے، بلز، آرڈرز، ڈیمیج کلیمز، اخراجات اور منافع**) خودکار طور پر پہلی کیٹیگری کے نام سے لاک ہو کر محفوظ ہو جاتا ہے۔
+2. **زیرو مکسنگ اور مکمل بحالی:**
+   - نئی کیٹیگری سلیکٹ کرنے پر صرف اسی کیٹیگری کا اپنا ڈیٹا نظر آتا ہے، پچھلی کیٹیگری کا کوئی بھی آئٹم یا کھاتہ نئی کیٹیگری میں مکس نہیں ہوتا۔
+   - جب بھی صارف دوبارہ پرانی کیٹیگری پر واپس آتا ہے تو اس کا 10 سال کا پرانا ڈیٹا بھی بغیر کسی کمی یا نقصان کے 100 فیصد واپس اپنی اصل حالت میں موجود ملتا ہے۔
+
+---
+
+## 2.12 ملٹی ڈسٹری بیوشن (5 تا 10+ ایجنسیز) اور منافع کا مکمل مقابلہ
+ایک ہی ایڈمن یا ڈسٹری بیوٹر ایک ہی کیٹیگری کے اندر **5، 10 یا 20 سے زائد ایجنسیز / کمپنیز** کا کاروبار چلا سکتا ہے اور ان کے منافع کا مکمل موازنہ کر سکتا ہے:
+
+1. **پرافٹ اینڈ لاس میں نیا ٹیب نمبر 7 (`🏭 7. Agency / Company Profit - 10+ ایجنسیز منافع مقابلہ`):**
+   - `profit.html` میں ٹیب نمبر 7 کے ذریعے آپ اپنی ایکٹیو کیٹیگری کے اندر موجود تمام **10+ ایجنسیز / کمپنیز** کا آمنے سامنے مکمل مقابلہ دیکھ سکتے ہیں:
+     - **رینکنگ (`🏆 #1`, `🥈 #2`, `🥉 #3`)**
+     - **ایجنسی / کمپنی کا نام**
+     - **آئٹمز کی تعداد (SKUs) اور موجودہ اسٹاک کی مالیت (`Stock Value`)**
+     - **کل بلز اور فروخت شدہ یونٹس (+ فری اسکیم یونٹس)**
+     - **کل فروخت (`Total Sales`)، لاگت (`COGS`)، خالص منافع (`Gross Profit`)، مارجن فیصد (`Margin %`) اور منافع میں حصہ (`Profit Share %`)**۔
+2. **کسی مخصوص کمپنی کا نام پہلے سے فکس نہیں (Zero Hardcoded Brands):**
+   - سسٹم میں کسی بھی کمپنی کا نام زبردستی فکس نہیں رکھا گیا، تاکہ ہر ڈسٹری بیوٹر اپنی مرضی کی ایجنسیز اور کمپنیوں کے نام خود شامل اور محفوظ کر سکے۔
+
+---
+
+## 2.13 کاروباری کیٹیگریز اور مکمل شدہ 7 فیزز آڈٹ لاگ (Changelog)
+ہر کیٹیگری کے ان پٹ باکسز اور آئٹمز دوسری کیٹیگری سے مکمل طور پر الگ ہیں (ایک کیٹیگری کے خانے کسی دوسری کیٹیگری میں نظر نہیں آتے):
+
+* **📚 Book Depot & Stationery (`books`):** مکمل 7 فیزز آڈٹ شدہ (پبلشر، ایڈیشن، کلاس، مضمون، ISBN، مصنف، اسکول/اکیڈمی ڈسکاؤنٹ اور اسپیسیمن کاپی ٹریکنگ)۔
+* **📱 Mobile Shop & Accessories (`mobile`):** مکمل 7 فیزز آڈٹ شدہ (15 ہندسوں کا IMEI اسکینر اور ملٹی چپ سلیکٹر، پی ٹی اے اسٹیٹس، ریم/اسٹوریج، بیٹری ہیلتھ، وارنٹی، پرانا موبائل ایکسچینج/ٹریڈ ان، اور تھرمل بارکوڈ لیبلز)۔
+* **💊 Medical Store & Pharmacy (`medical`):** مکمل 7 فیزز آڈٹ شدہ (جنرک سالٹ فارمولا، بیچ نمبر، ایکسپائری ڈیٹ بلاک اور FEFO الرٹ، لوز اسٹرپ/گولی کنورٹر، ڈرگ وارنٹی سرٹیفکیٹ، اور ایکسپائر مال کا سپلائر کلیم)۔
+* **📦 Wholesaler & Bulk Mandi (`wholesaler`):** مکمل 7 فیزز آڈٹ شدہ (تھوک منڈی سسٹم: بوری، کٹہ، پیٹی، توڑا، من 40 کلو، باردانہ وزن کٹوتی، 3 ٹیئر ہول سیل ریٹ، بلٹی/گیٹ پاس/ٹرک/ڈرائیور/باردانہ مزدوری چارجز اور منڈی کلیم واؤچر)۔
+* **🚚 Distributor & FMCG Agency (`distributor`):** ہول سیلر سے الگ مکمل ڈسٹری بیوشن سسٹم (پیک شدہ برانڈڈ مصنوعات جیسے بسکٹ، نمکو، پیمپرز، صابن، مشروبات وغیرہ — بغیر کسی فکس کمپنی نام کے، کارٹن + پیسز، ٹریڈ پرائس بمقابلہ ریٹیل پرائس، فری اسکیم/بونس، روٹ بکنگ، وین لوڈ شیٹ، ٹیکس انوائس، اور 10+ ایجنسیز منافع مقابلہ)۔

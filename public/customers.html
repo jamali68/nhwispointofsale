@@ -71,15 +71,15 @@
 
     <!-- ===== 🔍 SEARCH & QUICK FILTER PILLS ===== -->
     <div class="search-filter-bar">
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-            <div class="search-box" style="flex:1; min-width:220px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; max-width:100%; min-width:0;">
+            <div class="search-box" style="flex:1 1 200px; min-width:0; max-width:100%;">
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search by name, shop, mobile, route, city, booker...">
             </div>
-            <select id="custRouteFilter" style="padding:10px 12px; border:2px solid #e0e6e8; border-radius:12px; font-size:13px; font-weight:700; background:#fff; color:#1e293b; outline:none; max-width:240px;" title="Filter by Route / Market / PJP Beat">
+            <select id="custRouteFilter" style="flex:1 1 180px; min-width:0; max-width:100%; box-sizing:border-box; padding:10px 12px; border:2px solid #e0e6e8; border-radius:12px; font-size:13px; font-weight:700; background:#fff; color:#1e293b; outline:none;" title="Filter by Route / Market / PJP Beat">
                 <option value="all">🛣️ All Routes / PJP Beats</option>
             </select>
-            <button type="button" id="btnPrintRouteList" onclick="printWholesalePjpRouteSheet()" style="padding:10px 14px; border:none; border-radius:12px; font-size:12.5px; font-weight:800; background:#0284c7; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;" title="Print PJP Route Customer &amp; Recovery Sheet">
+            <button type="button" id="btnPrintRouteList" onclick="printWholesalePjpRouteSheet()" style="padding:10px 14px; border:none; border-radius:12px; font-size:12.5px; font-weight:800; background:#0284c7; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; max-width:100%;" title="Print PJP Route Customer &amp; Recovery Sheet">
                 <i class="fas fa-print"></i> <span>Route Khata Sheet</span>
             </button>
         </div>
@@ -300,7 +300,7 @@
                 <button class="btn-action-sm btn-new-bill-cust" onclick="createNewBillForThisCustomer()" title="Create New Bill">
                     <i class="fas fa-plus-circle"></i> <span>New Bill</span>
                 </button>
-                <button class="btn-action-sm" style="background:#0f766e; color:#fff;" onclick="openCustomerDeviceImeiModal()" title="View Sold / Repaired Phones, IMEIs &amp; Warranties for this Customer">
+                <button id="btnModalCustImeiDevices" class="btn-action-sm" style="background:#0f766e; color:#fff;" onclick="openCustomerDeviceImeiModal()" title="View Sold / Repaired Phones, IMEIs &amp; Warranties for this Customer">
                     <i class="fas fa-mobile-alt"></i> <span>IMEI / Devices</span>
                 </button>
                 <button class="btn-action-sm btn-print-ledger" onclick="printCustomerLedger()" title="Print Full A4 Khata Statement">

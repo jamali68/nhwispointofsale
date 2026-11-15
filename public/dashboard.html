@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <!-- 📱 Progressive Web App (PWA) Standards -->
-    <link rel="manifest" href="manifest.json?v=5.0.0">
-    <meta name="theme-color" content="#0E0F09">
+    <link rel="manifest" href="manifest.json?v=5.5.3">
+    <meta name="theme-color" content="#f4f7f6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="NH POS">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.0.0">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.0.0">
-    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.0.0">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.5.3">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.5.3">
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.5.3">
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1835,10 +1835,22 @@
 
         if (salesChartInstance) salesChartInstance.destroy();
 
-        const isDarkMode = document.body.classList.contains('dark-theme') || document.documentElement.getAttribute('data-theme') === 'dark';
+        const activeThemeAttr = document.documentElement.getAttribute('data-theme') || 'light';
+        const isDarkMode = document.body.classList.contains('dark-theme') || activeThemeAttr === 'dark';
         const axisColor = isDarkMode ? '#cbd5e1' : '#64748b';
         const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
         const legendColor = isDarkMode ? '#ffffff' : '#0f172a';
+        const chartPalette = {
+            dark: { line: '#38bdf8', fill: 'rgba(56, 189, 248, 0.15)' },
+            light: { line: '#0284c7', fill: 'rgba(2, 132, 199, 0.09)' },
+            'theme-green': { line: '#059669', fill: 'rgba(5, 150, 105, 0.12)' },
+            'theme-red': { line: '#dc2626', fill: 'rgba(220, 38, 38, 0.11)' },
+            'theme-blue': { line: '#2563eb', fill: 'rgba(37, 99, 235, 0.11)' },
+            'theme-purple': { line: '#7c3aed', fill: 'rgba(124, 58, 237, 0.11)' },
+            'theme-yellow': { line: '#b45309', fill: 'rgba(180, 83, 9, 0.12)' },
+            'theme-orange': { line: '#ea580c', fill: 'rgba(234, 88, 12, 0.11)' }
+        };
+        const activeColors = chartPalette[activeThemeAttr] || chartPalette.light;
 
         salesChartInstance = new Chart(ctx, {
             type: 'line',
@@ -1848,8 +1860,8 @@
                     {
                         label: 'Sales (Rs)',
                         data: salesData,
-                        borderColor: '#38bdf8',
-                        backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.15)' : 'rgba(2, 132, 199, 0.08)',
+                        borderColor: activeColors.line,
+                        backgroundColor: activeColors.fill,
                         fill: true,
                         tension: 0.35,
                         yAxisID: 'y'
@@ -1958,15 +1970,19 @@
         });
     }
 
-    // Listen for theme change message or toggle to re-render charts immediately
+    // Listen for theme change message or same-window toggle to re-render charts immediately
+    function refreshDashboardChartsTheme() {
+        setTimeout(() => {
+            try { renderSalesTrendChart(currentChartPeriod); } catch (_) {}
+            try { renderStockDonutChart(); } catch (_) {}
+        }, 80);
+    }
     window.addEventListener('message', (e) => {
         if (e.data && e.data.type === 'THEME_CHANGED') {
-            setTimeout(() => {
-                renderSalesTrendChart(currentChartPeriod);
-                renderStockDonutChart();
-            }, 100);
+            refreshDashboardChartsTheme();
         }
     });
+    window.addEventListener('eb-theme-changed', refreshDashboardChartsTheme);
 
     // ============================================
     // 🏆 4. TOP PRODUCTS & BOOKERS

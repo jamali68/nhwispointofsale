@@ -320,6 +320,82 @@
                 width: calc(100% - 270px);
             }
         }
+        /* Restaurant / Fast Food POS Service Mode & KOT Bar (Light & Dark Theme Contrast Safe) */
+        .rest-order-bar {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border: 1.5px solid #f59e0b;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.12);
+        }
+        .rest-order-bar-title {
+            font-size: 12px;
+            font-weight: 900;
+            color: #92400e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .rest-order-bar-badge {
+            font-size: 10.5px;
+            background: #fef08a;
+            color: #78350f;
+            border: 1px solid #facc15;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 800;
+        }
+        .rest-order-bar label {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #78350f;
+            margin-bottom: 3px;
+        }
+        .rest-order-bar select,
+        .rest-order-bar input {
+            width: 100%;
+            height: 34px;
+            padding: 4px 8px;
+            border: 1.5px solid #fcd34d;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f172a;
+            background: #ffffff;
+            box-sizing: border-box;
+            outline: none;
+        }
+        html.dark-theme .rest-order-bar,
+        .dark-theme .rest-order-bar {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-color: #d97706;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+        html.dark-theme .rest-order-bar-title,
+        .dark-theme .rest-order-bar-title,
+        html.dark-theme .rest-order-bar label,
+        .dark-theme .rest-order-bar label {
+            color: #fde68a;
+        }
+        html.dark-theme .rest-order-bar-badge,
+        .dark-theme .rest-order-bar-badge {
+            background: #451a03;
+            color: #fde68a;
+            border-color: #b45309;
+        }
+        html.dark-theme .rest-order-bar select,
+        html.dark-theme .rest-order-bar input,
+        .dark-theme .rest-order-bar select,
+        .dark-theme .rest-order-bar input {
+            background: #0f172a;
+            color: #f8fafc;
+            border-color: #475569;
+        }
     </style>
 </head>
 <body>
@@ -579,11 +655,11 @@
     <div class="panel-card" id="billFormCard" style="padding-bottom:110px; padding-top:2px;">
 
         <!-- 🎨 BILL TEMPLATE SELECTOR (بل ٹیمپلیٹ / ڈیزائن منتخب کریں) -->
-        <div class="template-selector-banner" id="billTemplateSelectorCard" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1.5px solid #bfdbfe; border-radius: 9px; padding: 6px 10px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:18px;">🎨</span>
-                <div>
-                    <div style="font-size:12px; font-weight:800; color:#1e3a8a; display:flex; align-items:center; gap:6px;">
+        <div class="template-selector-banner" id="billTemplateSelectorCard" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1.5px solid #bfdbfe; border-radius: 9px; padding: 6px 10px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); max-width: 100%; box-sizing: border-box;">
+            <div style="display:flex; align-items:center; gap:8px; min-width:0; max-width:100%; flex:1 1 240px;">
+                <span style="font-size:18px; flex-shrink:0;">🎨</span>
+                <div style="min-width:0; max-width:100%;">
+                    <div style="font-size:12px; font-weight:800; color:#1e3a8a; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                         <span>Bill Format &amp; Template <span class="ur-sub">(بل فارمیٹ و پرنٹ ٹیمپلیٹ)</span>:</span>
                         <span id="activeTemplateBadge" style="font-size:10px; background:#e2e8f0; color:#334155; padding:1px 7px; border-radius:10px; font-weight:800;">⚡ Minimal Mode</span>
                     </div>
@@ -592,8 +668,8 @@
                     </div>
                 </div>
             </div>
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <select id="mainBillTemplateSelect" style="padding: 5px 10px; border-radius: 7px; border: 1.5px solid #3b82f6; font-size: 12.5px; font-weight: 800; color: #1e3a8a; outline: none; background: #fff; cursor: pointer; box-shadow:0 1px 3px rgba(59,130,246,0.15);">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; max-width:100%; flex:1 1 260px;">
+                <select id="mainBillTemplateSelect" style="flex:1 1 200px; min-width:0; max-width:100%; width:100%; box-sizing:border-box; padding: 5px 10px; border-radius: 7px; border: 1.5px solid #3b82f6; font-size: 12.5px; font-weight: 800; color: #1e3a8a; outline: none; background: #fff; cursor: pointer; box-shadow:0 1px 3px rgba(59,130,246,0.15); text-overflow:ellipsis;">
                     <option value="template4" selected>⚡ Modern Minimal / Table Invoice (Default — عام پرچون بل)</option>
                     <option value="template1">🇵🇰 Urdu Classic (Nastaliq — کلاسک اردو بل)</option>
                     <option value="template2">📋 Traders English (Header — ٹریڈرز انگلش بل)</option>
@@ -606,7 +682,7 @@
                     <option value="template11">📦 Al-Raheem Agencies FMCG Distribution (کارپوریٹ ڈسٹری بیوشن)</option>
                     <option value="template10">🏢 Hassan Distributor Corporate FMCG & Tax Invoice [101067]</option>
                 </select>
-                <select id="mainThermalWidthSelect" style="padding: 5px 8px; border-radius: 7px; border: 1.5px solid #0284c7; font-size: 12px; font-weight: 800; color: #0369a1; outline: none; background: #f0f9ff; cursor: pointer;" title="Thermal Receipt Roll Size (80mm Desktop vs 58mm Mini Bluetooth)">
+                <select id="mainThermalWidthSelect" style="min-width:0; max-width:100%; box-sizing:border-box; padding: 5px 8px; border-radius: 7px; border: 1.5px solid #0284c7; font-size: 12px; font-weight: 800; color: #0369a1; outline: none; background: #f0f9ff; cursor: pointer;" title="Thermal Receipt Roll Size (80mm Desktop vs 58mm Mini Bluetooth)">
                     <option value="80" selected>🧾 80mm Roll</option>
                     <option value="58">🧾 58mm Roll</option>
                 </select>
@@ -712,6 +788,46 @@
              📝 ADMIN / AGENCY OWNER CLASSIC POS BILLING (ADD NEW ROW & DIRECT PRINT)
              ============================================ -->
         <div id="adminPosTableSection" style="margin-top:10px;">
+            <!-- 🍔 RESTAURANT / FAST FOOD SERVICE MODE & KOT BAR (Visible only for restaurant category) -->
+            <div id="posRestaurantOrderBar" class="rest-order-bar" style="display:none;">
+                <div class="rest-order-bar-title">
+                    <span>🍔 Fast Food Order Type, Table / Token &amp; Kitchen KOT <span class="ur-sub">(آرڈر سروس موڈ و کچن نوٹ)</span></span>
+                    <span id="posRestModeStatusBadge" class="rest-order-bar-badge">🍽️ Dine-in Mode</span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(155px, 1fr)); gap:8px;">
+                    <div>
+                        <label for="posRestServiceMode">🍽️ سروس موڈ (Service Mode)</label>
+                        <select id="posRestServiceMode">
+                            <option value="dine_in">🍽️ Dine-in / Table Service (ڈائن ان)</option>
+                            <option value="takeaway">🛍️ Takeaway / Parcel (ٹیک اوے / پارسل)</option>
+                            <option value="delivery">🛵 Home Delivery (ہوم ڈلیوری)</option>
+                            <option value="online_app">📱 Online / Foodpanda (آن لائن ایپ)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label id="posRestTableTokenLabel" for="posRestTableToken">🪑 ٹیبل / ٹوکن # (Table / Token #)</label>
+                        <input type="text" id="posRestTableToken" list="posRestTableSuggestions" placeholder="e.g. Table 04 / Family Hall">
+                        <datalist id="posRestTableSuggestions">
+                            <option value="Table 01">
+                            <option value="Table 02">
+                            <option value="Table 03">
+                            <option value="Table 04">
+                            <option value="Family Hall - T1">
+                            <option value="Token #01 (Takeaway)">
+                            <option value="Car Service / Outside">
+                        </datalist>
+                    </div>
+                    <div>
+                        <label id="posRestRiderWaiterLabel" for="posRestRiderWaiter">🛵 ویٹر / رائیڈر / مہمان (Waiter / Rider)</label>
+                        <input type="text" id="posRestRiderWaiter" placeholder="e.g. Waiter Ali / Rider Bilal">
+                    </div>
+                    <div>
+                        <label for="posRestKitchenNote">🔔 کچن / KOT ہدایات (Kitchen Order Note)</label>
+                        <input type="text" id="posRestKitchenNote" placeholder="e.g. Less Spicy, Extra Crispy, Packing Alag">
+                    </div>
+                </div>
+            </div>
+
             <!-- 🔍 BARCODE SCANNER & CAMERA BUTTON (Admin POS Fast Billing) -->
             <div style="background:#fff; border:1.5px solid #e2e8f0; border-radius:12px; padding:10px 12px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.03);">
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -1333,7 +1449,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <!-- 🧭 SIDEBAR SYSTEM -->
-<script src="sidebar.js?v=5.4.0"></script>
+<script src="sidebar.js?v=5.5.3"></script>
 <!-- ⚡ CLOUD SYNC & FIREBASE QUOTA SAVER -->
 <script src="sync-engine.js"></script>
 <!-- 📦 INDEXEDDB OFFLINE BILLING CACHE -->
@@ -1345,6 +1461,6 @@
 <!-- 🎨 BILL TEMPLATES -->
 <script src="bill-templates.js"></script>
 <!-- 🧾 PRO BILLING & OFFLINE ENGINE -->
-<script src="bills.js?v=5.4.0"></script>
+<script src="bills.js?v=5.5.3"></script>
 </body>
 </html>

@@ -68,6 +68,12 @@
         <button class="report-tab-btn" data-tab="wholesaler_analytics" id="tabBtnWholesalerAnalytics" style="background:#fff7ed; border-color:#fdba74; color:#c2410c;">
             <i class="fas fa-boxes-stacked" style="color:#ea580c;"></i> <b>Wholesale, PJP, Expiry &amp; Schemes (ہول سیل و ڈسٹری بیوشن)</b>
         </button>
+        <button class="report-tab-btn" data-tab="medical_analytics" id="tabBtnMedicalAnalytics" style="background:#ecfdf5; border-color:#6ee7b7; color:#047857;">
+            <i class="fas fa-pills" style="color:#059669;"></i> <b>Pharmacy, Formula &amp; FEFO Expiry (میڈیکل و فارمیسی رپورٹ)</b>
+        </button>
+        <button class="report-tab-btn" data-tab="restaurant_analytics" id="tabBtnRestaurantAnalytics" style="background:#fef2f2; border-color:#fca5a5; color:#b91c1c;">
+            <i class="fas fa-utensils" style="color:#dc2626;"></i> <b>Restaurant, Kitchen &amp; Deals (ریسٹورنٹ و کچن رپورٹ)</b>
+        </button>
     </div>
 
     <!-- ===== 📅 DATE FILTER & ACTION BAR ===== -->
@@ -111,27 +117,39 @@
 
         <!-- Report Table Header with Search -->
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:10px;">
-            <div>
+            <div style="min-width:0; max-width:100%;">
                 <h2 id="reportTitle"><i class="fas fa-file-lines"></i> Sales Report</h2>
                 <small class="header-note" id="reportSubTitle">Loading report metrics...</small>
             </div>
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <select id="mobileAnalyticsModeSelect" style="display:none; padding:6px 10px; border:1px solid #7dd3fc; border-radius:8px; font-size:12px; font-weight:700; color:#0369a1; background:#f0f9ff; outline:none; cursor:pointer;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; max-width:100%; min-width:0;">
+                <select id="mobileAnalyticsModeSelect" style="display:none; max-width:100%; box-sizing:border-box; padding:6px 10px; border:1px solid #7dd3fc; border-radius:8px; font-size:12px; font-weight:700; color:#0369a1; background:#f0f9ff; outline:none; cursor:pointer;">
                     <option value="brand">📱 Brand &amp; Model Analytics (برانڈ اور ماڈل کے لحاظ سے سیلز و اسٹاک)</option>
                     <option value="imei_audit">🔢 Sold &amp; In-Stock IMEI Register (فروخت شدہ اور موجودہ IMEI رجسٹر)</option>
                     <option value="repair_lab">🛠️ Repairing Lab &amp; Technician Jobs (ریپئرنگ لیب، ٹوکنز اور کاریگر رپورٹ)</option>
                     <option value="exchange_used">🔄 Used Phone &amp; Exchange Trade-In Register (ایکسچینج اور استعمال شدہ موبائل رپورٹ)</option>
                 </select>
-                <select id="booksAnalyticsModeSelect" style="display:none; padding:6px 10px; border:1px solid #93c5fd; border-radius:8px; font-size:12px; font-weight:700; color:#1e40af; background:#eff6ff; outline:none; cursor:pointer;">
+                <select id="booksAnalyticsModeSelect" style="display:none; max-width:100%; box-sizing:border-box; padding:6px 10px; border:1px solid #93c5fd; border-radius:8px; font-size:12px; font-weight:700; color:#1e40af; background:#eff6ff; outline:none; cursor:pointer;">
                     <option value="publisher">🏛️ Group by Publisher / Brand (پبلشر و برانڈ کے لحاظ سے)</option>
                     <option value="class">🎓 Group by Class / Grade (کلاس و جماعت کے لحاظ سے)</option>
                     <option value="subject">📖 Group by Subject / Item Type (مضمون و قسم کے لحاظ سے)</option>
                 </select>
-                <select id="wholesalerAnalyticsModeSelect" style="display:none; padding:6px 10px; border:1px solid #fdba74; border-radius:8px; font-size:12px; font-weight:700; color:#c2410c; background:#fff7ed; outline:none; cursor:pointer;">
+                <select id="wholesalerAnalyticsModeSelect" style="display:none; max-width:100%; box-sizing:border-box; padding:6px 10px; border:1px solid #fdba74; border-radius:8px; font-size:12px; font-weight:700; color:#c2410c; background:#fff7ed; outline:none; cursor:pointer;">
                     <option value="principal_company">🏭 Principal Company / Brand Sales &amp; Stock (کمپنی و برانڈ رپورٹ)</option>
                     <option value="pjp_route">🗺️ PJP Beat / Route Sales &amp; Khata (روٹ / بیٹ سیلز و ریکوری)</option>
                     <option value="expiry_batch">⏳ Batch Expiry Radar &amp; Damage Claims (ایکسپائری و کلیمز رپورٹ)</option>
                     <option value="scheme_bonus">🎁 Free Bonus (TP) &amp; Trade Schemes Audit (مفت بونس و اسکیم آڈٹ)</option>
+                </select>
+                <select id="medicalAnalyticsModeSelect" style="display:none; max-width:100%; box-sizing:border-box; padding:6px 10px; border:1px solid #6ee7b7; border-radius:8px; font-size:12px; font-weight:700; color:#047857; background:#ecfdf5; outline:none; cursor:pointer;">
+                    <option value="pharma_company">🏥 Pharma Company / Brand Sales &amp; Stock (فارما کمپنی رپورٹ)</option>
+                    <option value="generic_formula">🧬 Generic Salt / Formula Demand &amp; Stock (جنیرک فارمولا رپورٹ)</option>
+                    <option value="expiry_fefo">⏳ FEFO Batch Expiry Radar &amp; Pharma Claims (ایکسپائری و کلیم ریڈار)</option>
+                    <option value="rack_schedule">🗄️ Rack Location, Cold-Chain (2-8°C) &amp; Rx Audit (ریک و فریج رپورٹ)</option>
+                </select>
+                <select id="restaurantAnalyticsModeSelect" style="display:none; max-width:100%; box-sizing:border-box; padding:6px 10px; border:1px solid #fca5a5; border-radius:8px; font-size:12px; font-weight:700; color:#b91c1c; background:#fef2f2; outline:none; cursor:pointer;">
+                    <option value="kitchen_station">👨‍🍳 Kitchen Station / Brand Sales &amp; Pantry Stock (کچن کاؤنٹر و اسٹاک)</option>
+                    <option value="service_channel">🍽️ Service Mode, Table / Delivery &amp; Rider Sales (سروس موڈ و رائیڈر)</option>
+                    <option value="deals_combos">🎁 Combo Deals, Sizes &amp; Food-Cost Margin (ڈیلز و مارجن تجزیہ)</option>
+                    <option value="wastage_claims">🔥 Kitchen Wastage, Freezer Spoilage &amp; Cancelled Orders (کچن ویسٹیج و کلیمز)</option>
                 </select>
                 <div style="position:relative; width:100%; max-width:260px;">
                     <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>

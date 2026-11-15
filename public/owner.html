@@ -353,14 +353,14 @@
 
             html += `
             <div class="agency-item" data-id="${bk.id}">
-                <div class="agency-main" style="flex: 1; min-width: 250px;">
+                <div class="agency-main" style="flex: 1 1 250px; min-width: 0; max-width: 100%;">
                     <div class="agency-name">
                         ${isSupplier ? '🚚' : '📕'} ${bk.name || bk.email}
                         ${roleBadge}
                     </div>
                     <div class="agency-meta">
                         📧 ${bk.email} | ${statusHtml} ${bk.mobile ? `| 📱 ${bk.mobile}` : ''}<br>
-                        🔑 Password: <span style="font-family: monospace; background:#e2e8f0; padding:2px 6px; border-radius:4px;">${bk.tempPassword || '******'}</span>
+                        🔑 Password: <span style="font-family: monospace; background:#e2e8f0; color:#0f172a; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px;">${bk.tempPassword || '******'}</span>
                         | 📍 Route: <b>${bk.route || 'General Depot'}</b>
                         <div style="margin-top: 5px; display:flex; gap:6px; flex-wrap:wrap;">
                             <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permStock ? '#dcfce7; color:#15803d;' : '#f1f5f9; color:#94a3b8;'} font-weight:bold;">📦 Stock: ${permStock ? 'ON' : 'OFF'}</span>

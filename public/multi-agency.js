@@ -287,12 +287,22 @@ async function fetchBranchMetrics(agency) {
             db.collection('damage_claims').where('agencyId', '==', branchId).get().catch(() => ({ forEach: () => {} }))
         ]);
 
+        const branchCatId = agency.businessCategory || agency.businessType || agency.category || 'wholesaler';
+        const matchesBranchCat = (rec) => {
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                return window.BusinessCategories.matchesActiveCategoryRecord(rec, branchCatId, agency);
+            }
+            return true;
+        };
+
         // Stock valuation & cost lookup map
         const costById = {};
         const costByName = {};
-        stockItemsCount = stockSnap.size;
+        stockItemsCount = 0;
         stockSnap.forEach(d => {
             const item = d.data();
+            if (!matchesBranchCat(item)) return;
+            stockItemsCount++;
             const qty = Number(item.qty || 0);
             const purRate = Number(item.purchaseRate || item.purchasePrice || 0);
             const sellRate = Number(item.retailRate || item.rate || 0);
@@ -308,6 +318,7 @@ async function fetchBranchMetrics(agency) {
         billsSnap.forEach(d => {
             const b = d.data();
             if (b.orderStatus === 'cancelled') return;
+            if (!matchesBranchCat(b)) return;
             const bDate = b.date || (b.createdAt ? b.createdAt.slice(0, 10) : '');
             const total = Number(b.billAmount || b.grandTotal || Math.max(0, (Number(b.subTotal) || 0) - (Number(b.discount) || 0)));
 
@@ -338,12 +349,15 @@ async function fetchBranchMetrics(agency) {
 
         // Customers Khata Receivables
         custSnap.forEach(d => {
-            totalKhata += Math.max(0, Number(d.data().balance || 0));
+            const c = d.data();
+            if (!matchesBranchCat(c)) return;
+            totalKhata += Math.max(0, Number(c.balance || 0));
         });
 
         // Expenses & Staff Salaries split
         expSnap.forEach(d => {
             const e = d.data();
+            if (!matchesBranchCat(e)) return;
             const eDate = (e.date || (e.createdAt ? e.createdAt.slice(0, 10) : '')).slice(0, 10);
             if (eDate && (eDate < range.start || eDate > range.end)) return;
             const amt = Number(e.amount || 0);
@@ -355,6 +369,7 @@ async function fetchBranchMetrics(agency) {
         // Damage / Expiry Claims Net Unrecovered Loss
         claimsSnap.forEach(d => {
             const c = d.data();
+            if (!matchesBranchCat(c)) return;
             const cDate = (c.incidentDate || (c.createdAt ? c.createdAt.slice(0, 10) : '')).slice(0, 10);
             if (cDate && (cDate < range.start || cDate > range.end)) return;
             const grossLoss = Number(c.totalLoss || (Number(c.qty || 0) * Number(c.purchaseRate || 0)));
@@ -772,20 +787,30 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
         return;
     }
 
-    const primaryCat = (ownedBranches[0] && (ownedBranches[0].businessCategory || ownedBranches[0].businessType)) || 'wholesaler';
+    const primaryCat = (ownedBranches[0] && (ownedBranches[0].businessCategory || ownedBranches[0].businessType)) || 'distributor';
+    const allCats = (window.BusinessCategories && typeof window.BusinessCategories.getAll === 'function')
+        ? window.BusinessCategories.getAll()
+        : [
+            { id: 'distributor', icon: '🚚', name: 'Distributor & FMCG Agency' },
+            { id: 'wholesaler', icon: '📦', name: 'Wholesaler & Bulk Mandi' },
+            { id: 'books', icon: '📚', name: 'Book Depot & Stationery' },
+            { id: 'mobile', icon: '📱', name: 'Mobile Shop & Accessories' },
+            { id: 'medical', icon: '💊', name: 'Medical Store & Pharmacy' },
+            { id: 'general', icon: '🛒', name: 'General Store & Kiryana' }
+        ];
+    const catOptionsHtml = allCats.map(c =>
+        `<option value="${c.id}" ${primaryCat === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`
+    ).join('');
     const { value: formValues } = await Swal.fire({
         title: '🏢 Register New Agency / Branch',
         html: `
             <div style="text-align:left; font-size:13px;">
                 <label><b>Agency / Branch Name *</b></label>
-                <input id="swalBrName" class="swal2-input" placeholder="e.g. Al-Noor Distribution (Unilever Agency)" style="margin-top:4px; margin-bottom:10px;">
+                <input id="swalBrName" class="swal2-input" placeholder="e.g. City Distribution Agency #2" style="margin-top:4px; margin-bottom:10px;">
                 
                 <label><b>Business Category *</b></label>
                 <select id="swalBrCat" class="swal2-input" style="margin-top:4px; margin-bottom:10px;">
-                    <option value="wholesaler" ${primaryCat === 'wholesaler' ? 'selected' : ''}>📦 Wholesaler &amp; Bulk Distribution</option>
-                    <option value="books" ${primaryCat === 'books' ? 'selected' : ''}>📚 Book Depot &amp; Stationery</option>
-                    <option value="mobile" ${primaryCat === 'mobile' ? 'selected' : ''}>📱 Mobile Shop &amp; Accessories</option>
-                    <option value="general" ${primaryCat === 'general' ? 'selected' : ''}>🛒 General Store &amp; Kiryana</option>
+                    ${catOptionsHtml}
                 </select>
 
                 <label><b>City / District *</b></label>

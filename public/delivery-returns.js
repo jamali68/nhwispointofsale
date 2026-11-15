@@ -258,6 +258,10 @@ window.switchVyaparTab = function(tab) {
     if (tab === 'claims') renderClaimsTable();
     if (tab === 'history') renderHistoryAnalysis();
     if (tab === 'staff') renderStaffTable();
+
+    if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
+        window.ebSidebar.setActive(tab === 'claims' ? 'delivery-returns.html?tab=claims' : 'delivery-returns.html');
+    }
 };
 
 function setupTabs() {
@@ -387,15 +391,6 @@ function populateCategoryReturnReasons(selectedValue = '') {
         activeList.forEach(r => {
             const val = typeof r === 'string' ? r : (r.value || r.label || '');
             if (val && !catReasons.includes(val)) catReasons.push(val);
-        });
-        // Also keep mobile and books reasons accessible so multi-category agencies never miss an option
-        ['mobile', 'books'].forEach(cId => {
-            if (cId === catId) return;
-            const extra = window.BusinessCategories.getReturnReasons(cId) || [];
-            extra.forEach(r => {
-                const val = typeof r === 'string' ? r : (r.value || r.label || '');
-                if (val && !catReasons.includes(val)) catReasons.push(val);
-            });
         });
     }
 
@@ -615,11 +610,21 @@ async function loadOrders() {
             snap = await db.collection('bills').where('agencyId', '==', myAgencyId).get();
         }
 
+        const activeCat = getActiveDeliveryCategory();
+        const filterByCat = (rec) => {
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                return window.BusinessCategories.matchesActiveCategoryRecord(rec, activeCat, myAgency);
+            }
+            return true;
+        };
+
         allOrders = [];
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allOrders.push(sanitizeOrder(data));
+            if (filterByCat(data)) {
+                allOrders.push(sanitizeOrder(data));
+            }
         });
 
         // 🔄 ALSO CHECK 'orders' COLLECTION TO MIGRATE & SHOW ANY RECENTLY BOOKED ORDERS!
@@ -630,6 +635,7 @@ async function loadOrders() {
 
             for (const d of snapOrders.docs) {
                 const oData = d.data();
+                if (!filterByCat(oData)) continue;
                 const alreadyInBills = allOrders.some(x => 
                     x.id === d.id || 
                     (x.orderNo && (x.orderNo === oData.orderNo || x.orderNo === oData.billNo)) || 
@@ -640,6 +646,7 @@ async function loadOrders() {
                     const fallbackStatus = (oData.deliveryStatus === 'delivered' || oData.deliveryStatus === 'dispatched') ? 'approved' : 'pending_approval';
                     const billDocData = {
                         ...oData,
+                        businessCategory: oData.businessCategory || activeCat,
                         billNo: oData.billNo || oData.orderNo || ('ORD-' + Math.floor(1000 + Math.random() * 9000)),
                         orderNo: oData.orderNo || oData.billNo,
                         orderStatus: oData.orderStatus || fallbackStatus,
@@ -664,12 +671,15 @@ async function loadOrders() {
     } catch (e) {
         console.error('Orders load error:', e);
         try {
+            const activeCat = getActiveDeliveryCategory();
             const snap = await db.collection('bills').where('agencyId', '==', myAgencyId).get();
             allOrders = [];
             snap.forEach(d => {
                 const data = d.data();
                 data.id = d.id;
-                allOrders.push(sanitizeOrder(data));
+                if (!window.BusinessCategories || typeof window.BusinessCategories.matchesActiveCategoryRecord !== 'function' || window.BusinessCategories.matchesActiveCategoryRecord(data, activeCat, myAgency)) {
+                    allOrders.push(sanitizeOrder(data));
+                }
             });
             allOrders.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
             renderOrdersTable();
@@ -810,7 +820,8 @@ function renderOrdersTable() {
             const billNo = (ord.billNo || '').toLowerCase();
             const cust = (ord.customerName || '').toLowerCase();
             const booker = (ord.bookerName || '').toLowerCase();
-            return billNo.includes(query) || cust.includes(query) || booker.includes(query);
+            const restMeta = [ord.serviceModeLabel, ord.serviceMode, ord.tableTokenNo, ord.riderWaiterName, ord.kitchenOrderNote].filter(Boolean).join(' ').toLowerCase();
+            return billNo.includes(query) || cust.includes(query) || booker.includes(query) || restMeta.includes(query);
         }
         return true;
     });
@@ -864,11 +875,12 @@ function renderOrdersTable() {
                 <td>
                     <b>${ord.billNo || ord.id.slice(0,8)}</b><br>
                     <small style="color:#64748b;">${ord.date || ord.createdAt?.slice(0,10) || ''}</small>
-                    ${ord.loadFormNo ? `<div style="margin-top:2px;"><span style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🚚 ${ord.loadFormNo}</span></div>` : ''}
+                    ${ord.serviceModeLabel ? `<div style="margin-top:2px;"><span style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🍔 ${ord.serviceModeLabel}${ord.tableTokenNo ? ' • ' + ord.tableTokenNo : ''}</span></div>` : (ord.loadFormNo ? `<div style="margin-top:2px;"><span style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🚚 ${ord.loadFormNo}</span></div>` : '')}
                 </td>
                 <td>
                     <b>${ord.customerName || 'Counter Sale'}</b><br>
                     <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}</small>
+                    ${ord.kitchenOrderNote ? `<div style="font-size:11px; color:#9a3412; font-weight:700; margin-top:2px;">👨‍🍳 KOT: ${ord.kitchenOrderNote}</div>` : ''}
                 </td>
                 <td>
                     <span style="color:#0284c7; font-weight:700;"><i class="fas fa-user-edit"></i> ${ord.bookerName || 'Staff Booker'}</span>
@@ -1226,14 +1238,16 @@ function viewOrderDetails(orderId) {
                     ${isPending ? '⏳ Pending Approval' : '✅ Approved Bill'}
                 </span>
                 <div style="font-weight:bold; font-size:15px; margin-top:4px; color:#0284c7;">${ord.billNo || ord.id.slice(0,8)}</div>
-                ${ord.loadFormNo ? `<div style="font-size:11px; font-weight:800; color:#6d28d9;">🚚 ${ord.loadFormNo}</div>` : ''}
+                ${ord.serviceModeLabel ? `<div style="font-size:11px; font-weight:800; color:#c2410c;">🍔 ${ord.serviceModeLabel}${ord.tableTokenNo ? ' • ' + ord.tableTokenNo : ''}</div>` : (ord.loadFormNo ? `<div style="font-size:11px; font-weight:800; color:#6d28d9;">🚚 ${ord.loadFormNo}</div>` : '')}
             </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px; color:#475569;">
-            <div><b>Order Booker:</b> 📕 ${ord.bookerName || 'Staff'}</div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px; color:#475569; flex-wrap:wrap; gap:6px;">
+            <div><b>Order Booker:</b> 📕 ${ord.bookerName || 'Staff'}${ord.riderWaiterName ? ` &nbsp;|&nbsp; 🛵 <b>Rider / Waiter:</b> ${ord.riderWaiterName}` : ''}</div>
             <div><b>Date:</b> 📅 ${ord.date || ord.createdAt?.slice(0,10) || ''} ${ord.time || ''}</div>
         </div>
+
+        ${ord.kitchenOrderNote ? `<div style="background:#fff7ed; border:1px dashed #ea580c; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:12px; color:#9a3412;">👨‍🍳 <b>Kitchen / KOT Note:</b> ${ord.kitchenOrderNote}</div>` : ''}
 
         ${itemsTable}
 
@@ -2169,7 +2183,7 @@ window.printReturnVoucherThermal = function(returnId = null, paperWidth = '80mm'
         <table style="width:100%; border-collapse:collapse;">
             <thead>
                 <tr style="border-bottom:1.5px solid #000;">
-                    <th style="text-align:left; font-size:10.5px;">RETURNED ITEM / IMEI</th>
+                    <th style="text-align:left; font-size:10.5px;">${getActiveDeliveryCategory() === 'mobile' ? 'RETURNED ITEM / IMEI' : 'RETURNED ITEM'}</th>
                     <th style="text-align:right; font-size:10.5px;">QTY</th>
                 </tr>
             </thead>
@@ -2886,6 +2900,11 @@ const DEFAULT_CLAIM_CATEGORIES = [
     { id: 'cat_mob_lcd_folder', name: '🖥️ Defective LCD Panel / Combo Folder Claim (خراب پینل / فولڈر سپلائر کلیم)', type: 'broken', icon: 'fa-mobile-retro', color: '#dc2626', desc: 'Touch/Display fault before fitting — supplier replacement claim' },
     { id: 'cat_mob_accessory_claim', name: '🔌 Branded Charger / Cable / Earbuds Warranty Claim (چارجر، کیبل و ایئربڈز وارنٹی کلیم)', type: 'defect', icon: 'fa-plug-circle-bolt', color: '#d97706', desc: 'Ronin/Audionic/Faster/Zero accessory replacement claim' },
     { id: 'cat_mob_battery_swollen', name: '🔋 Swollen / Dead Battery Claim (پھولی ہوئی یا خراب بیٹری کلیم)', type: 'expired', icon: 'fa-battery-empty', color: '#ea580c', desc: 'Battery backup fault or swollen cell warranty replacement' },
+    { id: 'cat_rest_frozen_spoiled', name: '🧊 Frozen Patties / Chicken Expiry & Freezer Spoilage (فروزن آئٹم خرابی کلیم)', type: 'expired', icon: 'fa-snowflake', color: '#0284c7', desc: 'Expired or thawed frozen patties, cheese, or sauces claimed from vendor' },
+    { id: 'cat_rest_kitchen_waste', name: '🔥 Kitchen Wastage / Burnt / Remake Order Loss (کچن ضیاع و ری میک آرڈر)', type: 'broken', icon: 'fa-fire', color: '#dc2626', desc: 'Food burnt, dropped, or remade due to kitchen error' },
+    { id: 'cat_rest_delivery_cancel', name: '🛵 Rider Delivery Refusal / Cancelled Parcel (ڈلیوری منسوخ یا پارسل واپسی)', type: 'defect', icon: 'fa-motorcycle', color: '#ea580c', desc: 'Home delivery order refused by customer or wrong drop' },
+    { id: 'cat_rest_vendor_short', name: '📉 Raw Material / Cold Drink Vendor Shortage (سپلائر مال شارٹیج کلیم)', type: 'shortage', icon: 'fa-scale-unbalanced', color: '#7c3aed', desc: 'Short weight chicken, missing buns, or damaged beverage cans from supplier' },
+    { id: 'cat_rest_packaging_damage', name: '📦 Pizza Box / Packaging & Sauce Leak Claim (پیکنگ ڈیمج و لیکیج)', type: 'broken', icon: 'fa-box-open', color: '#d97706', desc: 'Crushed pizza boxes or spilled sauce containers during transit' },
     { id: 'cat_expired', name: '⏰ Expired Items (تاریخ ختم)', type: 'expired', icon: 'fa-hourglass-end', color: '#f59e0b', desc: 'Expiry date passed / obsolete' },
     { id: 'cat_broken', name: '💥 Broken / Physical Damage (ٹوٹ پھوٹ)', type: 'broken', icon: 'fa-burst', color: '#ef4444', desc: 'Broken bottles, packs, crushed cartons' },
     { id: 'cat_leaked', name: '📦 Leaked / Damaged Packing (لیکج یا ڈبہ خراب)', type: 'damage', icon: 'fa-box-tissue', color: '#dc2626', desc: 'Torn wrapper, leaked liquid, seal broken' },
@@ -2897,10 +2916,27 @@ const DEFAULT_CLAIM_CATEGORIES = [
     { id: 'cat_other', name: '📝 Other Damage / Lost (دیگر نقصان)', type: 'other', icon: 'fa-triangle-exclamation', color: '#64748b', desc: 'General warehouse loss or transit issue' }
 ];
 
+function isClaimCategoryAllowedForAgency(catObj, activeCatId) {
+    if (!catObj) return false;
+    const id = String(catObj.id || '').toLowerCase();
+    if (id.startsWith('cat_mob_')) return activeCatId === 'mobile';
+    if (id.startsWith('cat_rest_')) return activeCatId === 'restaurant';
+    if (id.startsWith('cat_wh_')) return activeCatId === 'wholesaler';
+    if (id.startsWith('cat_med_')) return activeCatId === 'medical';
+    if (id === 'cat_misprint' || id === 'cat_old_edition' || id.startsWith('cat_book_')) return activeCatId === 'books';
+    return true;
+}
+
 // ============================================
 // 🏷️ CATEGORIES MANAGEMENT
 // ============================================
 async function loadClaimCategories() {
+    const catId = getActiveDeliveryCategory();
+    const catSpecific = (window.BusinessCategories && typeof window.BusinessCategories.getClaimCategories === 'function')
+        ? window.BusinessCategories.getClaimCategories(catId)
+        : [];
+    const allowedUniversalDefaults = DEFAULT_CLAIM_CATEGORIES.filter(dc => isClaimCategoryAllowedForAgency(dc, catId));
+
     try {
         const snap = await db.collection('claim_categories')
             .where('agencyId', '==', myAgencyId)
@@ -2910,18 +2946,14 @@ async function loadClaimCategories() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allClaimCategories.push(data);
+            if (isClaimCategoryAllowedForAgency(data, catId)) {
+                allClaimCategories.push(data);
+            }
         });
-
-        // Merge category-specific claimCategories from BusinessCategories so Mobile & Books categories are always available
-        const catId = getActiveDeliveryCategory();
-        const catSpecific = (window.BusinessCategories && typeof window.BusinessCategories.getClaimCategories === 'function')
-            ? window.BusinessCategories.getClaimCategories(catId)
-            : [];
 
         if (allClaimCategories.length === 0) {
             const combinedDefaults = [...catSpecific];
-            DEFAULT_CLAIM_CATEGORIES.forEach(dc => {
+            allowedUniversalDefaults.forEach(dc => {
                 if (!combinedDefaults.some(x => x.id === dc.id || x.name === dc.name)) {
                     combinedDefaults.push(dc);
                 }
@@ -2943,7 +2975,11 @@ async function loadClaimCategories() {
         renderCategoriesList();
     } catch (e) {
         console.error('Load claim categories error:', e);
-        allClaimCategories = DEFAULT_CLAIM_CATEGORIES.map(c => ({ ...c, agencyId: myAgencyId, isDefault: true }));
+        const combined = [...catSpecific];
+        allowedUniversalDefaults.forEach(dc => {
+            if (!combined.some(x => x.id === dc.id || x.name === dc.name)) combined.push(dc);
+        });
+        allClaimCategories = combined.map(c => ({ ...c, agencyId: myAgencyId, isDefault: true }));
         populateCategoryDropdowns();
         renderCategoriesList();
     }
@@ -3162,11 +3198,14 @@ async function loadDamageClaims() {
                 .get();
         }
 
+        const activeCat = getActiveDeliveryCategory();
         allClaims = [];
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allClaims.push(data);
+            if (!window.BusinessCategories || typeof window.BusinessCategories.matchesActiveCategoryRecord !== 'function' || window.BusinessCategories.matchesActiveCategoryRecord(data, activeCat, myAgency)) {
+                allClaims.push(data);
+            }
         });
 
         allClaims.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
@@ -3588,6 +3627,9 @@ window.openDamageClaimModal = function(claimId = null) {
     document.getElementById('claimSelectedProductMeta').style.display = 'none';
     const imeiRes = document.getElementById('claimImeiLookupResult');
     if (imeiRes) { imeiRes.style.display = 'none'; imeiRes.innerHTML = ''; }
+    const imeiLookupBox = document.getElementById('claimImeiLookupBox');
+    const isMobAgency = getActiveDeliveryCategory() === 'mobile';
+    if (imeiLookupBox) imeiLookupBox.style.display = isMobAgency ? 'block' : 'none';
 
     // Defaults
     const today = new Date().toISOString().slice(0, 10);
@@ -3596,6 +3638,7 @@ window.openDamageClaimModal = function(claimId = null) {
     if (claimId) {
         const c = allClaims.find(x => x.id === claimId);
         if (c) {
+            if (imeiLookupBox && c.imeiSerial) imeiLookupBox.style.display = 'block';
             document.getElementById('claimEditId').value = c.id;
             document.getElementById('claimStockId').value = c.stockId || '';
             document.getElementById('claimProductSearch').value = c.itemName || '';
@@ -3668,6 +3711,7 @@ window.handleDamageClaimSubmit = async function(e) {
 
         const claimData = {
             agencyId: myAgencyId,
+            businessCategory: getActiveDeliveryCategory(),
             voucherNo: editId ? (allClaims.find(x => x.id === editId)?.voucherNo || voucherNo) : voucherNo,
             stockId: stockId || '',
             itemName: itemName,
