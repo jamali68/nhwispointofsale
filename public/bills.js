@@ -2804,7 +2804,7 @@ function loadCustomers() {
     if (allMyCustomers.length === 0 && window.BillsDB) {
         window.BillsDB.getCachedCustomers(myAgencyId).then(list => {
             if (Array.isArray(list) && list.length > 0 && allMyCustomers.length === 0) {
-                allMyCustomers = list;
+                allMyCustomers = filterRecordsForActiveCategory(list);
                 checkPreselect();
             }
         }).catch(() => {});
@@ -3017,6 +3017,8 @@ document.getElementById('quickAddCustBtn').addEventListener('click', async () =>
         try {
             const custData = {
                 ...formValues,
+                businessCategory: getActiveAgencyBusinessType(),
+                categoryConfirmedByCreate: true,
                 agencyId: myAgencyId,
                 createdBy: myUid,
                 createdAt: new Date().toISOString()
@@ -4672,6 +4674,7 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
         balance: balance,
         rateTier: activeRateTier,
         businessCategory: getActiveAgencyBusinessType(),
+        categoryConfirmedByCreate: true,
         date: new Date().toISOString().slice(0, 10),
         time: new Date().toLocaleTimeString('en-PK', {hour:'2-digit', minute:'2-digit'}),
         template: forceTemplate || getActiveBillTemplate(),

@@ -834,14 +834,15 @@
                 ? (window.BusinessCategories.getById(bizType)?.id || bizType)
                 : bizType;
             const homeCat = (window.BusinessCategories && typeof window.BusinessCategories.getPrimaryCategoryOfAgency === 'function')
-                ? (window.BusinessCategories.getPrimaryCategoryOfAgency(myAgencyObj) || prevCat)
-                : prevCat;
+                ? (window.BusinessCategories.getPrimaryCategoryOfAgency(myAgencyObj) || 'general')
+                : 'general';
 
-            if (prevCat && nextCat && prevCat !== nextCat) {
-                await lockExistingCategoryRecordsFromProfile(myAgencyId, prevCat);
-            }
+            // Always lock legacy untagged records to the original home category (e.g. 'general' for Taj Karyana) FIRST!
             if (homeCat && homeCat !== nextCat) {
                 await lockExistingCategoryRecordsFromProfile(myAgencyId, homeCat);
+            }
+            if (window.BusinessCategories && typeof window.BusinessCategories.healMisassignedLegacyRecords === 'function') {
+                await window.BusinessCategories.healMisassignedLegacyRecords(db, myAgencyId, myAgencyObj);
             }
 
             // Preserve previous category profiles & save current category profile independently
@@ -849,7 +850,10 @@
                 ? { ...myAgencyObj.categoryProfiles }
                 : {};
             const rootOldName = String((myAgencyObj && (myAgencyObj.originalName || myAgencyObj.name)) || '').trim();
-            if (homeCat && rootOldName && !existingCatProfiles[homeCat]) {
+            const isDemoRoot = window.BusinessCategories && typeof window.BusinessCategories.isAutoDemoOrWorkspaceName === 'function'
+                ? window.BusinessCategories.isAutoDemoOrWorkspaceName(rootOldName)
+                : false;
+            if (homeCat && rootOldName && !isDemoRoot && !existingCatProfiles[homeCat]) {
                 existingCatProfiles[homeCat] = {
                     name: rootOldName,
                     mobile: (myAgencyObj && myAgencyObj.mobile) || '',

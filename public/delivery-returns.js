@@ -3715,6 +3715,7 @@ window.handleDamageClaimSubmit = async function(e) {
         const claimData = {
             agencyId: myAgencyId,
             businessCategory: getActiveDeliveryCategory(),
+            categoryConfirmedByCreate: true,
             voucherNo: editId ? (allClaims.find(x => x.id === editId)?.voucherNo || voucherNo) : voucherNo,
             stockId: stockId || '',
             itemName: itemName,

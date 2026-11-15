@@ -1,7 +1,7 @@
 # NH POS & Wholesale Distribution ERP System (Master Documentation)
 
 > **Documentation Version:** 8.1 (Updated: Per-Category Shop Profile & Fresh/Demo Workspace + Multi-Category Independent Database + 10+ Agency Profit Comparison)  
-> **Active PWA Version:** `5.6.0` (`nhpos-pwa-v5.6.0-live`)  
+> **Active PWA Version:** `5.6.5` (`nhpos-pwa-v5.6.5-live`)  
 > **Architecture:** Vite + React Shell + Progressive Web App (PWA) + HTML5/ES6 Standalone Core Modules  
 > **Backend Integration:** Cloud Functions / Firebase & Netlify Ready Architecture (Secrets Protected)  
 > **Languages:** Dual Language Documentation — **Roman Urdu** (حصہ اول) & **Pure Urdu** (حصہ دوم)

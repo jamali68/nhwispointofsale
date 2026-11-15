@@ -1126,6 +1126,7 @@ async function handleSaveExpense(e) {
         const expenseData = {
             agencyId: myAgencyId,
             businessCategory: activeCat,
+            categoryConfirmedByCreate: true,
             categoryId: catId,
             category: catName,
             amount: amount,

@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <!-- 📱 Progressive Web App (PWA) Standards -->
-    <link rel="manifest" href="manifest.json?v=5.6.0">
+    <link rel="manifest" href="manifest.json?v=5.6.5">
     <meta name="theme-color" content="#f4f7f6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="NH POS">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.6.0">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.6.0">
-    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.6.0">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.6.5">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.6.5">
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.6.5">
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1126,6 +1126,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<!-- 🏢 BUSINESS CATEGORY & ISOLATED DATABASE ENGINE -->
+<script src="business-categories.js?v=5.6.5"></script>
 
 <script>
     const firebaseConfig = {
@@ -1235,6 +1237,9 @@
                     myAgency.id = myAgencyId;
                     if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
                         window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+                    }
+                    if (window.BusinessCategories && typeof window.BusinessCategories.healMisassignedLegacyRecords === 'function') {
+                        window.BusinessCategories.healMisassignedLegacyRecords(db, myAgencyId, myAgency).catch(() => {});
                     }
                     const activeCatId = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
                         ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')

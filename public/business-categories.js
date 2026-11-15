@@ -2267,10 +2267,19 @@ const BusinessCategories = {
         return fb ? fb.id : String(raw || 'books').toLowerCase();
     },
 
-    // Smartly infer category from a shop/agency name if it contains explicit industry keywords
+    // Detect whether a shop name is an auto-generated Demo or New Workspace placeholder
+    isAutoDemoOrWorkspaceName(shopName = '') {
+        const s = String(shopName || '').trim();
+        if (!s) return true;
+        if (s.includes('(New Workspace)')) return true;
+        if (/^(new|demo)\s+/i.test(s)) return true;
+        return false;
+    },
+
+    // Smartly infer category from a real shop/agency name if it contains explicit industry keywords
     inferCategoryFromShopName(shopName = '') {
         const s = String(shopName || '').toLowerCase().trim();
-        if (!s) return '';
+        if (!s || this.isAutoDemoOrWorkspaceName(s)) return '';
         if (/\b(karyana|kiryana|general\s*store|super\s*store|grocery|parchoon|mart)\b/i.test(s)) return 'general';
         if (/\b(book\s*depot|book\s*shop|book\s*point|stationery|kitab|publishers?)\b/i.test(s)) return 'books';
         if (/\b(pharmacy|medical\s*store|chemist|dawakhana|medicos|pharma)\b/i.test(s)) return 'medical';
@@ -2281,17 +2290,46 @@ const BusinessCategories = {
         return '';
     },
 
-    // Determine the original home category of an agency (even if it switched categories before primaryCategory was saved)
+    // Determine the original home category of an agency (even if it switched categories or used a Demo name)
     getPrimaryCategoryOfAgency(agencyObj = null) {
-        if (!agencyObj || typeof agencyObj !== 'object') return '';
+        if (!agencyObj || typeof agencyObj !== 'object') return 'general';
+
+        // 1. Check originalName or root name if it's a real shop name (e.g. "Taj Karyana and Mobile Shop")
+        const origName = String(agencyObj.originalName || '').trim();
+        const currName = String(agencyObj.name || agencyObj.businessName || '').trim();
+        const fromOrig = this.inferCategoryFromShopName(origName);
+        if (fromOrig) return fromOrig;
+        const fromCurr = this.inferCategoryFromShopName(currName);
+        if (fromCurr) return fromCurr;
+
+        // 2. Check categoryProfiles for a real (non-demo) shop name like "Taj Karyana and Mobile Shop"
+        if (agencyObj.categoryProfiles && typeof agencyObj.categoryProfiles === 'object') {
+            if (agencyObj.categoryProfiles.general && !this.isAutoDemoOrWorkspaceName(agencyObj.categoryProfiles.general.name)) {
+                return 'general';
+            }
+            for (const [cId, prof] of Object.entries(agencyObj.categoryProfiles)) {
+                if (prof && prof.name && !this.isAutoDemoOrWorkspaceName(prof.name)) {
+                    const inferred = this.inferCategoryFromShopName(prof.name);
+                    if (inferred) return inferred;
+                    const found = this.getById(cId);
+                    if (found) return found.id;
+                }
+            }
+        }
+
+        // 3. Check explicit primaryCategory if it wasn't set by a demo workspace
         if (agencyObj.primaryCategory || agencyObj.originalCategory) {
             const pri = this.getById(agencyObj.primaryCategory || agencyObj.originalCategory);
-            if (pri) return pri.id;
+            if (pri) {
+                const profForPri = agencyObj.categoryProfiles && agencyObj.categoryProfiles[pri.id];
+                if (!profForPri || !this.isAutoDemoOrWorkspaceName(profForPri.name)) {
+                    return pri.id;
+                }
+            }
         }
-        const rootName = agencyObj.originalName || agencyObj.name || agencyObj.businessName || '';
-        const inferredFromName = this.inferCategoryFromShopName(rootName);
-        if (inferredFromName) return inferredFromName;
-        return '';
+
+        // 4. Default legacy home category is 'general' (Kiryana & General Store)
+        return 'general';
     },
 
     // Get the isolated Shop/Agency Profile for a specific category ("Category Change = Everything Change")
@@ -2353,7 +2391,7 @@ const BusinessCategories = {
             (inferredRootCat && inferredRootCat !== targetCat)
         );
 
-        if (!rootBelongsToOtherCategory && rootName && !rootName.includes('(New Workspace)')) {
+        if (!rootBelongsToOtherCategory && rootName && !this.isAutoDemoOrWorkspaceName(rootName)) {
             return {
                 name: rootName,
                 displayTitle: rootName,
@@ -2380,6 +2418,7 @@ const BusinessCategories = {
 
         // Fresh unconfigured category workspace! Do NOT leak previous category's shop name/details
         const shortCatName = (catMeta.nameEn || 'Business').split('(')[0].trim();
+        const prevShop = (storedProfiles[homeCat] && storedProfiles[homeCat].name) || (!this.isAutoDemoOrWorkspaceName(rootName) ? rootName : '');
         return {
             name: '',
             displayTitle: `${catMeta.icon || '🏢'} ${shortCatName} (New Workspace)`,
@@ -2402,8 +2441,8 @@ const BusinessCategories = {
             businessType: targetCat,
             isConfigured: false,
             isFreshWorkspace: true,
-            previousShopName: rootName,
-            previousCategoryId: homeCat || inferredRootCat || ''
+            previousShopName: prevShop,
+            previousCategoryId: homeCat || inferredRootCat || 'general'
         };
     },
 
@@ -2417,7 +2456,7 @@ const BusinessCategories = {
         const catProfiles = (agencyObj.categoryProfiles && typeof agencyObj.categoryProfiles === 'object')
             ? { ...agencyObj.categoryProfiles }
             : {};
-        if (homeCat && rootName && !rootName.includes('(New Workspace)') && !catProfiles[homeCat]) {
+        if (homeCat && rootName && !this.isAutoDemoOrWorkspaceName(rootName) && !catProfiles[homeCat]) {
             catProfiles[homeCat] = {
                 name: rootName,
                 tagline: agencyObj.tagline || agencyObj.slogan || '',
@@ -2437,10 +2476,12 @@ const BusinessCategories = {
             };
         }
 
-        agencyObj.originalName = agencyObj.originalName || rootName;
-        if (homeCat && !agencyObj.primaryCategory) {
-            agencyObj.primaryCategory = homeCat;
+        if (!this.isAutoDemoOrWorkspaceName(rootName)) {
+            agencyObj.originalName = rootName;
+        } else if (catProfiles[homeCat] && catProfiles[homeCat].name) {
+            agencyObj.originalName = catProfiles[homeCat].name;
         }
+        agencyObj.primaryCategory = homeCat || 'general';
         agencyObj.categoryProfiles = catProfiles;
 
         const targetCat = categoryId
@@ -2469,11 +2510,11 @@ const BusinessCategories = {
 
     // Infer or resolve the canonical category ID of a stored record (stock, bill, customer, claim, expense)
     resolveRecordCategory(record = null, agencyObj = null, defaultCategoryId = '') {
-        if (!record || typeof record !== 'object') return defaultCategoryId || '';
+        if (!record || typeof record !== 'object') return defaultCategoryId || 'general';
 
-        // 1. Explicit category tag on the record itself
+        // 1. If the record was explicitly created inside a specific category (confirmed at creation time), trust its explicit tag
         const explicitRaw = record.businessCategory || record.categoryWorkspace || record.agencyCategory || record.businessType || '';
-        if (explicitRaw) {
+        if (explicitRaw && record.categoryConfirmedByCreate === true) {
             const found = this.getById(explicitRaw);
             return found ? found.id : String(explicitRaw).toLowerCase().trim();
         }
@@ -2499,18 +2540,36 @@ const BusinessCategories = {
         }
 
         // 3. Infer from distinct customer segment if it is a customer record
-        const seg = String(record.custSubCategory || '').toLowerCase().trim();
+        const seg = String(record.custSubCategory || record.subCategory || '').toLowerCase().trim();
         if (['school_college', 'library_inst', 'teacher_tutor', 'student_parent'].includes(seg)) return 'books';
         if (['repair_tech', 'installment_cust', 'used_buyer_seller'].includes(seg)) return 'mobile';
         if (['clinic_hospital', 'doctor_prescriber', 'sub_chemist', 'panel_inst', 'chronic_patient'].includes(seg)) return 'medical';
         if (['dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'catering_event'].includes(seg)) return 'restaurant';
         if (['mandi_party'].includes(seg)) return 'wholesaler';
 
-        // 4. Fallback to agency's original primaryCategory (or inferred category from original shop name like "Taj Karyana...")
-        const homeCat = this.getPrimaryCategoryOfAgency(agencyObj);
-        if (homeCat) return homeCat;
+        // 4. Check explicit tag ONLY if the agency has not switched categories, OR if explicitRaw matches homeCat
+        const homeCat = this.getPrimaryCategoryOfAgency(agencyObj) || 'general';
+        const hasCategorySwitchHistory = Boolean(
+            agencyObj && (
+                (agencyObj.categoryProfiles && Object.keys(agencyObj.categoryProfiles).length > 0) ||
+                agencyObj.originalName ||
+                agencyObj.primaryCategory ||
+                this.isAutoDemoOrWorkspaceName(agencyObj.name)
+            )
+        );
+        if (explicitRaw) {
+            const found = this.getById(explicitRaw);
+            const normExplicit = found ? found.id : String(explicitRaw).toLowerCase().trim();
+            // Protect legacy Kiryana records (like Creamy Tofi, Data Cable, Melkees Tofi, 33 Booker Orders)
+            // that were accidentally batch-stamped with 'books' or 'medical' during a category switch
+            if (hasCategorySwitchHistory && normExplicit !== homeCat && !record.categoryConfirmedByCreate) {
+                return homeCat;
+            }
+            return normExplicit;
+        }
 
-        return defaultCategoryId || '';
+        // 5. Fallback to agency's original home category (e.g. 'general' for "Taj Karyana and Mobile Shop")
+        return homeCat || defaultCategoryId || 'general';
     },
 
     // Check whether a record belongs to the currently active category workspace ("1 Category = 1 Database")
@@ -2521,10 +2580,51 @@ const BusinessCategories = {
 
         const recCat = this.resolveRecordCategory(record, agencyObj, '');
         if (!recCat) {
-            // Legacy untagged record with no category switch history belongs to current active category
-            return true;
+            return false;
         }
         return recCat === targetCat;
+    },
+
+    // Background Self-Heal: Ensures legacy records of the home shop (e.g. "Taj Karyana and Mobile Shop") are locked to homeCat ('general') in Firestore
+    async healMisassignedLegacyRecords(db, agencyId, agencyObj = null) {
+        if (!db || !agencyId || agencyId === 'super-admin-hq') return 0;
+        const homeCat = this.getPrimaryCategoryOfAgency(agencyObj) || 'general';
+        const healFlagKey = `eb_legacy_healed_v565_${agencyId}_${homeCat}`;
+        try {
+            if (typeof localStorage !== 'undefined' && localStorage.getItem(healFlagKey) === 'done') {
+                return 0;
+            }
+        } catch (_) {}
+
+        let repairedCount = 0;
+        const cols = ['stock', 'customers', 'bills', 'orders', 'damage_claims', 'expenses'];
+        for (const col of cols) {
+            try {
+                const snap = await db.collection(col).where('agencyId', '==', agencyId).get();
+                const refsToFix = [];
+                snap.forEach(d => {
+                    const rec = d.data() || {};
+                    if (rec.categoryConfirmedByCreate === true) return;
+                    const resolved = this.resolveRecordCategory(rec, agencyObj, homeCat);
+                    if (resolved === homeCat && rec.businessCategory !== homeCat) {
+                        refsToFix.push(d.ref);
+                    }
+                });
+                for (let i = 0; i < refsToFix.length; i += 400) {
+                    const batch = db.batch();
+                    refsToFix.slice(i, i + 400).forEach(r => batch.update(r, { businessCategory: homeCat }));
+                    await batch.commit();
+                    repairedCount += refsToFix.slice(i, i + 400).length;
+                }
+            } catch (e) {}
+        }
+
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(healFlagKey, 'done');
+            }
+        } catch (_) {}
+        return repairedCount;
     },
 
     // Unified thermal paper width resolver ('58mm' or '80mm')

@@ -603,23 +603,25 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
             ? (window.BusinessCategories.getById(bizType)?.id || bizType)
             : bizType;
         const homeCat = (window.BusinessCategories && typeof window.BusinessCategories.getPrimaryCategoryOfAgency === 'function')
-            ? (window.BusinessCategories.getPrimaryCategoryOfAgency(myAgency) || prevCat)
-            : ((myAgency && myAgency.primaryCategory) ? myAgency.primaryCategory : prevCat);
-        const isSwitchingCategory = prevCat && nextCat && prevCat !== nextCat;
-        const preservedPrimaryCategory = homeCat || prevCat;
+            ? (window.BusinessCategories.getPrimaryCategoryOfAgency(myAgency) || 'general')
+            : ((myAgency && myAgency.primaryCategory) ? myAgency.primaryCategory : 'general');
+        const preservedPrimaryCategory = homeCat || 'general';
 
-        if (isSwitchingCategory) {
-            await lockExistingCategoryRecordsOnSwitch(myAgencyId, prevCat);
-        }
         if (preservedPrimaryCategory && preservedPrimaryCategory !== nextCat) {
             await lockExistingCategoryRecordsOnSwitch(myAgencyId, preservedPrimaryCategory);
+        }
+        if (window.BusinessCategories && typeof window.BusinessCategories.healMisassignedLegacyRecords === 'function') {
+            await window.BusinessCategories.healMisassignedLegacyRecords(db, myAgencyId, myAgency);
         }
 
         const existingCatProfiles = (myAgency && myAgency.categoryProfiles && typeof myAgency.categoryProfiles === 'object')
             ? { ...myAgency.categoryProfiles }
             : {};
         const rootOldName = String((myAgency && (myAgency.originalName || myAgency.name)) || '').trim();
-        if (preservedPrimaryCategory && rootOldName && !existingCatProfiles[preservedPrimaryCategory]) {
+        const isDemoRoot = window.BusinessCategories && typeof window.BusinessCategories.isAutoDemoOrWorkspaceName === 'function'
+            ? window.BusinessCategories.isAutoDemoOrWorkspaceName(rootOldName)
+            : false;
+        if (preservedPrimaryCategory && rootOldName && !isDemoRoot && !existingCatProfiles[preservedPrimaryCategory]) {
             existingCatProfiles[preservedPrimaryCategory] = {
                 name: rootOldName,
                 tagline: (myAgency && (myAgency.tagline || myAgency.slogan)) || '',

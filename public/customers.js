@@ -983,6 +983,7 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
             ntn: ntn,
             fbrStatus: fbrStatus,
             businessCategory: getActiveCategoryId(),
+            categoryConfirmedByCreate: true,
             agencyId: myAgencyId,
             updatedAt: new Date().toISOString()
         };

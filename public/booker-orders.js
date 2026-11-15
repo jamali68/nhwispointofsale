@@ -303,6 +303,9 @@ auth.onAuthStateChanged(async (user) => {
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
             if (agDoc.exists) {
                 myAgency = agDoc.data();
+                if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                    myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+                }
                 const headEl = document.getElementById('agencyNameHeader');
                 if (headEl && myAgency.name) {
                     headEl.innerText = `🏢 ${myAgency.name} | Field Booking Operations`;
@@ -574,6 +577,13 @@ async function loadStaff() {
 // ============================================
 // 📦 LOAD STOCK & CUSTOMERS
 // ============================================
+function matchesBookerActiveCategory(rec) {
+    if (!window.BusinessCategories || typeof window.BusinessCategories.matchesActiveCategoryRecord !== 'function') {
+        return true;
+    }
+    return window.BusinessCategories.matchesActiveCategoryRecord(rec, getActiveBookerCategory(), myAgency);
+}
+
 async function loadStock() {
     try {
         const snap = await db.collection('stock').where('agencyId', '==', myAgencyId).get();
@@ -581,7 +591,9 @@ async function loadStock() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allStock.push(data);
+            if (matchesBookerActiveCategory(data)) {
+                allStock.push(data);
+            }
         });
     } catch (e) {
         console.error('Load stock error:', e);
@@ -595,7 +607,9 @@ async function loadCustomers() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allCustomers.push(data);
+            if (matchesBookerActiveCategory(data)) {
+                allCustomers.push(data);
+            }
         });
     } catch (e) {
         console.error('Load customers error:', e);
@@ -608,11 +622,12 @@ async function loadCustomers() {
 function loadFromCache() {
     try {
         const agKey = myAgencyId || localStorage.getItem('eb_active_agencyId') || 'default_agency';
-        const raw = localStorage.getItem(`eb_cache_orders_${agKey}`);
+        const catId = getActiveBookerCategory();
+        const raw = localStorage.getItem(`eb_cache_orders_${agKey}_${catId}`);
         if (raw) {
             const list = JSON.parse(raw);
             if (Array.isArray(list) && list.length > 0) {
-                allOrders = list.map(sanitizeOrder);
+                allOrders = list.filter(matchesBookerActiveCategory).map(sanitizeOrder);
                 renderKPIRibbon();
                 renderBookerRibbon();
                 renderOrdersTable();
@@ -631,8 +646,9 @@ function loadFromCache() {
 function saveToCache() {
     try {
         const agKey = myAgencyId || localStorage.getItem('eb_active_agencyId') || 'default_agency';
+        const catId = getActiveBookerCategory();
         if (agKey && Array.isArray(allOrders)) {
-            localStorage.setItem(`eb_cache_orders_${agKey}`, JSON.stringify(allOrders.slice(0, 300)));
+            localStorage.setItem(`eb_cache_orders_${agKey}_${catId}`, JSON.stringify(allOrders.slice(0, 300)));
         }
     } catch (e) {}
 }
@@ -657,7 +673,9 @@ async function loadOrders() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allOrders.push(sanitizeOrder(data));
+            if (matchesBookerActiveCategory(data)) {
+                allOrders.push(sanitizeOrder(data));
+            }
         });
 
         // 🔄 Inspect 'orders' collection (non-blocking sync)
@@ -668,6 +686,7 @@ async function loadOrders() {
 
             for (const d of snapOrders.docs) {
                 const oData = d.data();
+                if (!matchesBookerActiveCategory(oData)) continue;
                 const alreadyInBills = allOrders.some(x => 
                     x.id === d.id || 
                     (x.orderNo && (x.orderNo === oData.orderNo || x.orderNo === oData.billNo)) || 
@@ -728,7 +747,9 @@ async function loadOrders() {
             snap.forEach(d => {
                 const data = d.data();
                 data.id = d.id;
-                allOrders.push(sanitizeOrder(data));
+                if (matchesBookerActiveCategory(data)) {
+                    allOrders.push(sanitizeOrder(data));
+                }
             });
             allOrders.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
             renderKPIRibbon();
@@ -755,6 +776,7 @@ function listenForLiveOrders() {
             snap.docChanges().forEach(change => {
                 const data = sanitizeOrder(change.doc.data());
                 data.id = change.doc.id;
+                if (!matchesBookerActiveCategory(data)) return;
 
                 if (change.type === 'added') {
                     if (!allOrders.some(o => o.id === data.id)) {
@@ -805,6 +827,7 @@ function listenForLiveOrders() {
                     if (change.type === 'added') {
                         const data = sanitizeOrder(change.doc.data());
                         data.id = change.doc.id;
+                        if (!matchesBookerActiveCategory(data)) return;
                         if (!allOrders.some(o => o.id === data.id || (o.orderNo && o.orderNo === data.orderNo))) {
                             if (!data.billNo && data.orderNo) data.billNo = data.orderNo;
                             db.collection('bills').doc(data.id).set(data).catch(() => {});

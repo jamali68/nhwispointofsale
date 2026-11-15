@@ -137,7 +137,7 @@ auth.onAuthStateChanged(async (user) => {
         }
 
         // Load limits
-        loadAgencyLimits();
+        await loadAgencyLimits();
 
         // 🛡️ STEP 1: LOAD FROM LOCAL CACHE INSTANTLY (QUOTA SHIELD)
         loadFromCache();
@@ -1075,6 +1075,7 @@ window.openCategoryVariantGenerator = async function() {
                 wholesaleDiscPercent: 0,
                 hasScheme: false,
                 businessCategory: (currentCategoryDef && currentCategoryDef.id) || 'books',
+                categoryConfirmedByCreate: true,
                 agencyId: myAgencyId,
                 createdBy: myUid,
                 createdAt: new Date().toISOString(),
@@ -3324,6 +3325,7 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
             schemeValue: parseFloat(document.getElementById('itemSchemeValue')?.value) || 0,
             schemeLabel: (document.getElementById('itemSchemeLabel')?.value || '').trim(),
             businessCategory: getActiveStockCategoryId(),
+            categoryConfirmedByCreate: true,
             agencyId: myAgencyId,
             updatedAt: new Date().toISOString()
         };
