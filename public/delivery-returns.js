@@ -177,8 +177,11 @@ auth.onAuthStateChanged(async (user) => {
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
             if (agDoc.exists) {
                 myAgency = agDoc.data() || {};
+                if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                    myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+                }
                 const nameEl = document.getElementById('agencyNameHeader');
-                if (nameEl) nameEl.innerText = `${myAgency.name || 'Our Agency'} • ${myAgency.city || 'Depot'}`;
+                if (nameEl) nameEl.innerText = `${myAgency.name || myAgency._activeCategoryDisplayTitle || 'Our Agency'} • ${myAgency.city || 'Depot'}`;
             }
         }
 

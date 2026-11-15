@@ -115,6 +115,9 @@ auth.onAuthStateChanged(async (user) => {
         try {
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
             myAgency = agDoc.exists ? agDoc.data() : {};
+            if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+            }
         } catch (e) {
             myAgency = {};
         }
@@ -376,23 +379,28 @@ async function loadExpenses() {
                 .get();
         }
 
+        const activeCat = window.BusinessCategories ? window.BusinessCategories.getActiveCategoryId(myAgency) : 'general';
         rawExpenses = [];
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            rawExpenses.push(data);
+            if (!window.BusinessCategories || window.BusinessCategories.matchesActiveCategoryRecord(data, activeCat, myAgency)) {
+                rawExpenses.push(data);
+            }
         });
 
-        // Cache loaded expenses locally
-        localStorage.setItem(`eb_expenses_${myAgencyId}`, JSON.stringify(rawExpenses));
+        // Cache loaded expenses locally (per category)
+        localStorage.setItem(`eb_expenses_${myAgencyId}_${activeCat}`, JSON.stringify(rawExpenses));
 
     } catch (e) {
         console.warn('Expense fetch error, reading cached:', e);
         try {
-            const cached = localStorage.getItem(`eb_expenses_${myAgencyId}`);
+            const activeCat = window.BusinessCategories ? window.BusinessCategories.getActiveCategoryId(myAgency) : 'general';
+            const cached = localStorage.getItem(`eb_expenses_${myAgencyId}_${activeCat}`) || localStorage.getItem(`eb_expenses_${myAgencyId}`);
             if (cached) {
                 const parsed = JSON.parse(cached);
                 rawExpenses = parsed.filter(item => {
+                    if (window.BusinessCategories && !window.BusinessCategories.matchesActiveCategoryRecord(item, activeCat, myAgency)) return false;
                     const d = item.date || '';
                     if (dateStart && dateEnd) return d >= dateStart && d <= dateEnd;
                     return true;
@@ -1114,8 +1122,10 @@ async function handleSaveExpense(e) {
     try {
         const timeNow = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
+        const activeCat = window.BusinessCategories ? window.BusinessCategories.getActiveCategoryId(myAgency) : 'general';
         const expenseData = {
             agencyId: myAgencyId,
+            businessCategory: activeCat,
             categoryId: catId,
             category: catName,
             amount: amount,

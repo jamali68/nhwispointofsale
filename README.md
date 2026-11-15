@@ -1,6 +1,7 @@
 # NH POS & Wholesale Distribution ERP System (Master Documentation)
 
-> **Documentation Version:** 8.0 (Updated: Multi-Category Independent Database + 10+ Agency Profit Comparison + Industry Audits)  
+> **Documentation Version:** 8.1 (Updated: Per-Category Shop Profile & Fresh/Demo Workspace + Multi-Category Independent Database + 10+ Agency Profit Comparison)  
+> **Active PWA Version:** `5.6.0` (`nhpos-pwa-v5.6.0-live`)  
 > **Architecture:** Vite + React Shell + Progressive Web App (PWA) + HTML5/ES6 Standalone Core Modules  
 > **Backend Integration:** Cloud Functions / Firebase & Netlify Ready Architecture (Secrets Protected)  
 > **Languages:** Dual Language Documentation — **Roman Urdu** (حصہ اول) & **Pure Urdu** (حصہ دوم)
@@ -211,19 +212,29 @@ Agli bar jab bhi kisi naye developer ya AI ko project update karne ke liye diya 
 
 ---
 
-## 1.11 1 Category = 1 Independent Database (Category Switch Data Protection)
-> **⚠️ YAD-DAasht / PERMANENT ARCHITECTURAL RULE:**  
-> Is system mein **har Business Category ka apna alag aur mehfooz Database Workspace (`businessCategory`)** hai.
+## 1.11 1 Category = 1 Independent Database & Per-Category Shop Profile ("Category Change = Everything Change")
+> **⚠️ YAD-DAASHT / PERMANENT ARCHITECTURAL RULE:**  
+> Is system mein **har Business Category ka apna alag Shop Profile (`categoryProfiles[catId]`) aur apna alag Database Workspace (`businessCategory`)** hai.
 
 ### A. Yeh Kaise Kaam Karta Hai?
-1. **Zero Data Loss & Zero Mixing:** Agar koi user 1 din ya 10 saal tak kisi ek category (maslan `books`, `wholesaler`, `medical`, ya `mobile`) par kaam karta hai aur phir `settings.html` se apni Business Category kisi doosri category (maslan `distributor`) par switch karta hai:
-   - Pehli category ka **100% data (Stock, Customers/Khata, Bills, Orders, Damage Claims, Operating Expenses, aur Profit & Loss)** us category ke naam (`businessCategory`) ke sath lock ho kar mehfooz rehta hai (`lockExistingCategoryRecordsOnSwitch` in `public/settings.js`).
-   - Nayi category select karne par naya saaf workspace khulta hai—pehli category ka koi bhi item, customer ya bill doosri category mein mix nahi hota.
-   - Jab user dobara pehli category par wapas switch karta hai, toh uska 1 din ya 10 saal ka purana sara data **bina kisi nuqsan ke 100% wapas apni jagah par** milta hai.
-2. **Technical Functions (`public/business-categories.js`):**
-   - `window.BusinessCategories.resolveRecordCategory(record, agencyObj, defaultCategoryId)`: Har record ki asal category pehchanta hai (explicit `businessCategory` tag, `industryFields`, ya `primaryCategory` fallback).
-   - `window.BusinessCategories.matchesActiveCategoryRecord(record, activeCategoryId, agencyObj)`: `stock.js`, `customers.js`, `bills.js`, `delivery-returns.js`, `profit.js`, aur `multi-agency.js` mein sirf active category ke records load karta hai.
-   - LocalStorage caches bhi category-scoped hain (`eb_stock_cache_${agencyId}_${catId}`, `eb_cust_cache_${agencyId}_${catId}`).
+1. **Per-Category Shop / Agency Profile (`categoryProfiles[catId]`):**
+   - Har category (`general`, `books`, `mobile`, `medical`, `wholesaler`, `distributor`, waghaira) ka apna alag **Shop Name, Mobile 1, Mobile 2, Address, City, NTN, Licence No, Bill Prefix, aur Logo** save hota hai (`agencies/{agencyId}.categoryProfiles[catId]`).
+   - Agar user **Kiryana (`Taj Karyana and Mobile Shop`)** se **`📚 Book Depot & Stationery` (`books`)** (ya kisi bhi doosri category) par switch karta hai aur us nayi category mein abhi koi shop create nahi hui:
+     - Purani category ka naam (`Taj Karyana and Mobile Shop`), mobile number ya address nayi category mein **hargiz show nahi hota**.
+     - `profile.html` aur `settings.html` par category change karte hi form fresh/blank ho jata hai aur ek **Interactive Prompt Modal** khulta hai jahan user:
+       1. Nayi category ke liye **Apni Nayi Dukan / Agency Ka Naam** likh sakta hai, **YA**
+       2. **"⚡ Use Demo Account Name"** button daba kar 1-click mein Demo Account (`New Book Depot & Stationery`) set kar sakta hai.
+     - Topbar, Sidebar, Dashboard aur Bills mein bhi active category ka apna naam (ya `📚 Book Depot & Stationery (New Workspace)`) show hota hai.
+2. **Zero Data Loss & Zero Mixing (100% Data Isolation):**
+   - Agar koi user 1 din ya 10 saal tak kisi ek category par kaam karta hai aur phir `profile.html` ya `settings.html` se apni Business Category kisi doosri category par switch karta hai:
+     - Pehli category ka **Shop Profile (`categoryProfiles[oldCat]`)** aur **100% Data (Stock, Customers/Khata, Bills, Orders, Damage Claims, Operating Expenses, Alerts, Reports, aur Profit & Loss)** us category ke naam (`businessCategory`) ke sath lock ho kar mehfooz rehta hai.
+     - Nayi category select karne par bilkul fresh workspace khulta hai—pehli category ka koi bhi item, customer, bill ya shop name doosri category mein mix nahi hota.
+     - Jab user dobara pehli category par wapas switch karta hai, toh uski purani dukan ka naam (`Taj Karyana and Mobile Shop`) aur 10 saal ka sara data **bina kisi nuqsan ke 100% wapas apni jagah par** milta hai.
+3. **Technical Functions (`public/business-categories.js`):**
+   - `window.BusinessCategories.inferCategoryFromShopName(shopName)` & `getPrimaryCategoryOfAgency(agencyObj)`: Dukan ke asal naam (maslan `Taj Karyana and Mobile Shop` -> `general`) se home category pehchanta hai taake legacy untagged data hamesha apni asal category ke sath juda rahe.
+   - `window.BusinessCategories.getEffectiveCategoryProfile(agencyObj, categoryId)` & `applyActiveCategoryProfile(agencyObj, categoryId)`: Active category ka alag Shop Profile load karta hai ya unconfigured category ke liye Fresh Workspace (`isConfigured: false, isFreshWorkspace: true`) return karta hai.
+   - `window.BusinessCategories.resolveRecordCategory(record, agencyObj, defaultCategoryId)` & `matchesActiveCategoryRecord(record, activeCategoryId, agencyObj)`: `dashboard.html`, `stock.js`, `customers.js`, `bills.js`, `delivery-returns.js`, `expenses.js`, `reports.js`, `alerts.js`, `profit.js`, aur `multi-agency.js` mein sirf active category ke records dikhata hai.
+   - LocalStorage caches bhi category-scoped hain (`eb_stock_cache_${agencyId}_${catId}`, `eb_cust_cache_${agencyId}_${catId}`, `eb_expenses_${agencyId}_${catId}`).
 
 ---
 

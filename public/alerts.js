@@ -123,6 +123,10 @@ auth.onAuthStateChanged(async (user) => {
         try {
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
             myAgency = agDoc.exists ? agDoc.data() : {};
+            myAgency.id = myAgencyId;
+            if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+            }
             const h = document.getElementById('agencyNameHeader');
             if (h && myAgency.name) h.innerText = `🏢 ${myAgency.name}`;
         } catch (e) {}
@@ -139,11 +143,19 @@ auth.onAuthStateChanged(async (user) => {
 // 📦 LOAD STOCK & COMPUTE ALERTS (LIVE LISTENER)
 // ============================================
 function loadStockAndAlerts() {
+    const activeCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+        ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
+        : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'general');
     db.collection('stock')
         .where('agencyId', '==', myAgencyId)
         .onSnapshot((snap) => {
             allStock = [];
-            snap.forEach(d => allStock.push({ id: d.id, ...d.data() }));
+            snap.forEach(d => {
+                const item = { id: d.id, ...d.data() };
+                if (!window.BusinessCategories || typeof window.BusinessCategories.matchesActiveCategoryRecord !== 'function' || window.BusinessCategories.matchesActiveCategoryRecord(item, activeCat, myAgency)) {
+                    allStock.push(item);
+                }
+            });
 
             computeAlerts();
             populateCategoryFilter();

@@ -223,6 +223,9 @@ auth.onAuthStateChanged(async (user) => {
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
             if (agDoc.exists) {
                 myAgency = agDoc.data();
+                if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                    myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+                }
                 pkgId = myAgency.packageId || 'free';
             }
         } catch (e) {}

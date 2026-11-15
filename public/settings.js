@@ -187,16 +187,77 @@ function populateSettingsFields() {
         ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
         : (myAgency.businessCategory || myAgency.businessType || 'general');
 
-    // Profile & Identity
-    document.getElementById('setAgencyName').value = myAgency.name || '';
-    document.getElementById('setAgencyTagline').value = myAgency.tagline || myAgency.slogan || '';
-    if (bizSel) bizSel.value = resolvedBizCat;
-    document.getElementById('setCity').value = myAgency.city || '';
-    document.getElementById('setMobile').value = myAgency.mobile || myAgency.ownerMobile || '';
-    document.getElementById('setPhone').value = myAgency.phone || '';
-    document.getElementById('setAddress').value = myAgency.address || '';
-    document.getElementById('setNTN').value = myAgency.ntn || '';
-    document.getElementById('setShowNTN').checked = myAgency.showNTN === true;
+    function applyCategoryProfileToSettingsForm(catId, promptIfFresh = false) {
+        const prof = (window.BusinessCategories && typeof window.BusinessCategories.getEffectiveCategoryProfile === 'function')
+            ? window.BusinessCategories.getEffectiveCategoryProfile(myAgency, catId)
+            : {
+                name: myAgency.name || '',
+                tagline: myAgency.tagline || myAgency.slogan || '',
+                city: myAgency.city || '',
+                mobile: myAgency.mobile || myAgency.ownerMobile || '',
+                phone: myAgency.phone || '',
+                address: myAgency.address || '',
+                ntn: myAgency.ntn || '',
+                showNTN: myAgency.showNTN === true,
+                isConfigured: true,
+                isFreshWorkspace: false
+            };
+
+        document.getElementById('setAgencyName').value = prof.isConfigured ? (prof.name || '') : '';
+        document.getElementById('setAgencyName').placeholder = prof.suggestedDemoName
+            ? `e.g. ${prof.suggestedDemoName}`
+            : 'Enter Shop / Agency Name for this Category';
+        document.getElementById('setAgencyTagline').value = prof.tagline || '';
+        document.getElementById('setCity').value = prof.city || '';
+        document.getElementById('setMobile').value = prof.mobile || '';
+        document.getElementById('setPhone').value = prof.phone || '';
+        document.getElementById('setAddress').value = prof.address || '';
+        document.getElementById('setNTN').value = prof.ntn || '';
+        document.getElementById('setShowNTN').checked = prof.showNTN === true;
+
+        if (promptIfFresh && prof.isFreshWorkspace && typeof Swal !== 'undefined') {
+            const catMeta = (window.BusinessCategories && window.BusinessCategories.getById(catId)) || { icon: '🏢', nameEn: catId };
+            Swal.fire({
+                title: `🆕 ${catMeta.icon} ${catMeta.nameEn}`,
+                html: `
+                    <div style="text-align:left; font-size:13px; line-height:1.5;">
+                        <p style="margin:0 0 8px 0; color:#334155;">
+                            Is category mein abhi aap ki koi Shop / Agency create nahi hai.
+                        </p>
+                        ${prof.previousShopName ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px 10px; border-radius:8px; color:#166534; font-size:12px; margin-bottom:10px;">🔒 <b>Data Safe Guarantee:</b> Aap ki pichli category (<b>${prof.previousShopName}</b>) ka sara data 100% alag aur mehfooz hai!</div>` : ''}
+                        <label style="font-weight:800; color:#0f172a; display:block; margin-bottom:4px;">🏢 Is Category Ki Nayi Shop / Agency Ka Naam:</label>
+                        <input id="swalSetNewCatShopName" class="swal2-input" placeholder="e.g. ${prof.suggestedDemoName}" value="" style="margin:0 0 8px 0; width:100%; box-sizing:border-box;">
+                    </div>
+                `,
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: '✅ Set Shop Name',
+                denyButtonText: '⚡ Use Demo Account Name',
+                cancelButtonText: 'Type Manually',
+                confirmButtonColor: '#10b981',
+                denyButtonColor: '#0284c7'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    const typed = (document.getElementById('swalSetNewCatShopName')?.value || '').trim();
+                    document.getElementById('setAgencyName').value = typed || prof.suggestedDemoName || `New ${catMeta.nameEn}`;
+                } else if (res.isDenied) {
+                    document.getElementById('setAgencyName').value = prof.suggestedDemoName || `Demo ${catMeta.nameEn}`;
+                }
+                document.getElementById('setAgencyName').focus();
+            });
+        }
+    }
+
+    if (bizSel) {
+        bizSel.value = resolvedBizCat;
+        if (!bizSel.dataset.catSwitchBound) {
+            bizSel.dataset.catSwitchBound = 'true';
+            bizSel.addEventListener('change', function() {
+                applyCategoryProfileToSettingsForm(this.value, true);
+            });
+        }
+    }
+    applyCategoryProfileToSettingsForm(resolvedBizCat, false);
 
     // Invoicing & POS
     document.getElementById('setDefaultTemplate').value = myAgency.defaultTemplate || localStorage.getItem('eb_default_template') || 'template4';
@@ -541,19 +602,56 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
         const nextCat = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
             ? (window.BusinessCategories.getById(bizType)?.id || bizType)
             : bizType;
+        const homeCat = (window.BusinessCategories && typeof window.BusinessCategories.getPrimaryCategoryOfAgency === 'function')
+            ? (window.BusinessCategories.getPrimaryCategoryOfAgency(myAgency) || prevCat)
+            : ((myAgency && myAgency.primaryCategory) ? myAgency.primaryCategory : prevCat);
         const isSwitchingCategory = prevCat && nextCat && prevCat !== nextCat;
-        const preservedPrimaryCategory = (myAgency && myAgency.primaryCategory) ? myAgency.primaryCategory : prevCat;
+        const preservedPrimaryCategory = homeCat || prevCat;
 
         if (isSwitchingCategory) {
             await lockExistingCategoryRecordsOnSwitch(myAgencyId, prevCat);
         }
+        if (preservedPrimaryCategory && preservedPrimaryCategory !== nextCat) {
+            await lockExistingCategoryRecordsOnSwitch(myAgencyId, preservedPrimaryCategory);
+        }
+
+        const existingCatProfiles = (myAgency && myAgency.categoryProfiles && typeof myAgency.categoryProfiles === 'object')
+            ? { ...myAgency.categoryProfiles }
+            : {};
+        const rootOldName = String((myAgency && (myAgency.originalName || myAgency.name)) || '').trim();
+        if (preservedPrimaryCategory && rootOldName && !existingCatProfiles[preservedPrimaryCategory]) {
+            existingCatProfiles[preservedPrimaryCategory] = {
+                name: rootOldName,
+                tagline: (myAgency && (myAgency.tagline || myAgency.slogan)) || '',
+                city: (myAgency && myAgency.city) || '',
+                mobile: (myAgency && (myAgency.mobile || myAgency.ownerMobile)) || '',
+                phone: (myAgency && myAgency.phone) || '',
+                address: (myAgency && myAgency.address) || '',
+                ntn: (myAgency && myAgency.ntn) || '',
+                showNTN: Boolean(myAgency && myAgency.showNTN === true)
+            };
+        }
+
+        existingCatProfiles[nextCat] = {
+            ...(existingCatProfiles[nextCat] || {}),
+            name: name,
+            tagline: tagline,
+            city: city,
+            mobile: mobile,
+            phone: phone,
+            address: address,
+            ntn: ntn,
+            showNTN: showNTN
+        };
 
         const updatePayload = {
             name: name,
+            originalName: rootOldName || name,
             tagline: tagline,
             businessType: nextCat,
             businessCategory: nextCat,
             primaryCategory: preservedPrimaryCategory,
+            categoryProfiles: existingCatProfiles,
             city: city,
             mobile: mobile,
             phone: phone,
@@ -565,18 +663,31 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
         };
 
         await db.collection('agencies').doc(myAgencyId).update(updatePayload);
-        myAgency = { ...(myAgency || {}), ...updatePayload };
+        myAgency = { ...(myAgency || {}), ...updatePayload, id: myAgencyId };
 
-        // Update local storage cache
+        // Update local & session storage cache
         localStorage.setItem(`eb_agency_name_${myAgencyId}`, name);
         localStorage.setItem('eb_active_business_category', nextCat);
         localStorage.setItem('eb_active_category', nextCat);
+        localStorage.setItem(`eb_cat_profiles_${myAgencyId}`, JSON.stringify(existingCatProfiles));
         localStorage.setItem('eb_user_agency', JSON.stringify({ id: myAgencyId, ...myAgency }));
         localStorage.setItem('eb_app_language', langMode);
+        try {
+            sessionStorage.setItem('eb_agency_data', JSON.stringify(myAgency));
+            const cachedProf = JSON.parse(sessionStorage.getItem('eb_user_profile') || '{}');
+            cachedProf.agencyName = name;
+            cachedProf.city = city;
+            sessionStorage.setItem('eb_user_profile', JSON.stringify(cachedProf));
+        } catch (_) {}
         document.documentElement.setAttribute('data-lang', langMode);
 
         const h = document.getElementById('agencyNameHeader');
         if (h) h.innerText = `🏢 ${name}`;
+        if (window.ebSidebar && typeof window.ebSidebar.refresh === 'function') {
+            window.__myAgencyData = myAgency;
+            if (window.__myProfile) window.__myProfile.agencyName = name;
+            window.ebSidebar.refresh();
+        }
 
         if (isSwitchingCategory) {
             const prevLabel = window.BusinessCategories?.getById(prevCat)?.nameEn || prevCat;

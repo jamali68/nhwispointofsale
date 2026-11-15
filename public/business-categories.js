@@ -2267,6 +2267,206 @@ const BusinessCategories = {
         return fb ? fb.id : String(raw || 'books').toLowerCase();
     },
 
+    // Smartly infer category from a shop/agency name if it contains explicit industry keywords
+    inferCategoryFromShopName(shopName = '') {
+        const s = String(shopName || '').toLowerCase().trim();
+        if (!s) return '';
+        if (/\b(karyana|kiryana|general\s*store|super\s*store|grocery|parchoon|mart)\b/i.test(s)) return 'general';
+        if (/\b(book\s*depot|book\s*shop|book\s*point|stationery|kitab|publishers?)\b/i.test(s)) return 'books';
+        if (/\b(pharmacy|medical\s*store|chemist|dawakhana|medicos|pharma)\b/i.test(s)) return 'medical';
+        if (/\b(mobile\s*shop|mobile\s*zone|telecom|cellular|mobiles)\b/i.test(s)) return 'mobile';
+        if (/\b(galla\s*mandi|grain\s*market|kholi\s*bori|bulk\s*mandi|anaj)\b/i.test(s)) return 'wholesaler';
+        if (/\b(fmcg|distribution\s*agency|distributor\s*agency)\b/i.test(s)) return 'distributor';
+        if (/\b(restaurant|fast\s*food|cafe|pizza|biryani|tikka|burger)\b/i.test(s)) return 'restaurant';
+        return '';
+    },
+
+    // Determine the original home category of an agency (even if it switched categories before primaryCategory was saved)
+    getPrimaryCategoryOfAgency(agencyObj = null) {
+        if (!agencyObj || typeof agencyObj !== 'object') return '';
+        if (agencyObj.primaryCategory || agencyObj.originalCategory) {
+            const pri = this.getById(agencyObj.primaryCategory || agencyObj.originalCategory);
+            if (pri) return pri.id;
+        }
+        const rootName = agencyObj.originalName || agencyObj.name || agencyObj.businessName || '';
+        const inferredFromName = this.inferCategoryFromShopName(rootName);
+        if (inferredFromName) return inferredFromName;
+        return '';
+    },
+
+    // Get the isolated Shop/Agency Profile for a specific category ("Category Change = Everything Change")
+    getEffectiveCategoryProfile(agencyObj = null, categoryId = '') {
+        const targetCatObj = this.getById(categoryId || this.resolveActiveCategory(agencyObj, 'books'));
+        const targetCat = targetCatObj ? targetCatObj.id : String(categoryId || 'books').toLowerCase().trim();
+        const catMeta = targetCatObj || { id: targetCat, icon: '🏢', nameEn: 'Business Workspace', nameUr: 'کاروبار' };
+
+        let storedProfiles = {};
+        if (agencyObj && agencyObj.categoryProfiles && typeof agencyObj.categoryProfiles === 'object') {
+            storedProfiles = { ...agencyObj.categoryProfiles };
+        }
+        if (typeof localStorage !== 'undefined') {
+            try {
+                const agId = (agencyObj && agencyObj.id) || localStorage.getItem('eb_active_agencyId') || 'default';
+                const localRaw = localStorage.getItem(`eb_cat_profiles_${agId}`);
+                if (localRaw) {
+                    const parsedLocal = JSON.parse(localRaw);
+                    if (parsedLocal && typeof parsedLocal === 'object') {
+                        storedProfiles = { ...parsedLocal, ...storedProfiles };
+                    }
+                }
+            } catch (_) {}
+        }
+
+        const savedForCat = storedProfiles[targetCat];
+        if (savedForCat && typeof savedForCat === 'object' && String(savedForCat.name || '').trim()) {
+            return {
+                name: String(savedForCat.name || '').trim(),
+                displayTitle: String(savedForCat.name || '').trim(),
+                tagline: savedForCat.tagline || '',
+                mobile: savedForCat.mobile || '',
+                mobile2: savedForCat.mobile2 || '',
+                phone: savedForCat.phone || '',
+                city: savedForCat.city || '',
+                address: savedForCat.address || '',
+                ntn: savedForCat.ntn || '',
+                showNTN: savedForCat.showNTN === true,
+                licenceNo: savedForCat.licenceNo || '',
+                billPrefix: savedForCat.billPrefix || '',
+                logoBase64: savedForCat.logoBase64 || '',
+                defaultTemplate: savedForCat.defaultTemplate || savedForCat.template || 'template4',
+                payType: savedForCat.payType || 'CASH',
+                allowRateSwitch: savedForCat.allowRateSwitch || 'yes',
+                businessCategory: targetCat,
+                businessType: targetCat,
+                isConfigured: true,
+                isFreshWorkspace: false
+            };
+        }
+
+        // Check if the root agencyObj fields belong to this category or to a different previous category
+        const rootName = String((agencyObj && (agencyObj.originalName || agencyObj.name || agencyObj.businessName)) || '').trim();
+        const homeCat = this.getPrimaryCategoryOfAgency(agencyObj);
+        const inferredRootCat = this.inferCategoryFromShopName(rootName);
+
+        const rootBelongsToOtherCategory = Boolean(
+            (homeCat && homeCat !== targetCat) ||
+            (inferredRootCat && inferredRootCat !== targetCat)
+        );
+
+        if (!rootBelongsToOtherCategory && rootName && !rootName.includes('(New Workspace)')) {
+            return {
+                name: rootName,
+                displayTitle: rootName,
+                tagline: (agencyObj && (agencyObj.tagline || agencyObj.slogan)) || '',
+                mobile: (agencyObj && (agencyObj.mobile || agencyObj.ownerMobile)) || '',
+                mobile2: (agencyObj && agencyObj.mobile2) || '',
+                phone: (agencyObj && agencyObj.phone) || '',
+                city: (agencyObj && agencyObj.city) || '',
+                address: (agencyObj && agencyObj.address) || '',
+                ntn: (agencyObj && agencyObj.ntn) || '',
+                showNTN: Boolean(agencyObj && agencyObj.showNTN === true),
+                licenceNo: (agencyObj && agencyObj.licenceNo) || '',
+                billPrefix: (agencyObj && (agencyObj.billPrefix || (agencyObj.billPrefixes && agencyObj.billPrefixes.stock))) || '',
+                logoBase64: (agencyObj && (agencyObj.logoBase64 || agencyObj.logo)) || '',
+                defaultTemplate: (agencyObj && (agencyObj.defaultTemplate || agencyObj.template)) || 'template4',
+                payType: (agencyObj && agencyObj.payType) || 'CASH',
+                allowRateSwitch: (agencyObj && agencyObj.allowRateSwitch) || 'yes',
+                businessCategory: targetCat,
+                businessType: targetCat,
+                isConfigured: true,
+                isFreshWorkspace: false
+            };
+        }
+
+        // Fresh unconfigured category workspace! Do NOT leak previous category's shop name/details
+        const shortCatName = (catMeta.nameEn || 'Business').split('(')[0].trim();
+        return {
+            name: '',
+            displayTitle: `${catMeta.icon || '🏢'} ${shortCatName} (New Workspace)`,
+            suggestedDemoName: `New ${shortCatName}`,
+            tagline: '',
+            mobile: '',
+            mobile2: '',
+            phone: '',
+            city: '',
+            address: '',
+            ntn: '',
+            showNTN: false,
+            licenceNo: '',
+            billPrefix: '',
+            logoBase64: '',
+            defaultTemplate: 'template4',
+            payType: 'CASH',
+            allowRateSwitch: 'yes',
+            businessCategory: targetCat,
+            businessType: targetCat,
+            isConfigured: false,
+            isFreshWorkspace: true,
+            previousShopName: rootName,
+            previousCategoryId: homeCat || inferredRootCat || ''
+        };
+    },
+
+    // Apply the active category's profile onto an agency object in memory so Topbar, Sidebar, Dashboard, and Bills show the right shop identity
+    applyActiveCategoryProfile(agencyObj = null, categoryId = '') {
+        if (!agencyObj || typeof agencyObj !== 'object') return agencyObj;
+        const homeCat = this.getPrimaryCategoryOfAgency(agencyObj);
+        const rootName = String(agencyObj.originalName || agencyObj.name || agencyObj.businessName || '').trim();
+
+        // Preserve the root shop under its home category inside categoryProfiles in memory if not saved yet
+        const catProfiles = (agencyObj.categoryProfiles && typeof agencyObj.categoryProfiles === 'object')
+            ? { ...agencyObj.categoryProfiles }
+            : {};
+        if (homeCat && rootName && !rootName.includes('(New Workspace)') && !catProfiles[homeCat]) {
+            catProfiles[homeCat] = {
+                name: rootName,
+                tagline: agencyObj.tagline || agencyObj.slogan || '',
+                mobile: agencyObj.mobile || agencyObj.ownerMobile || '',
+                mobile2: agencyObj.mobile2 || '',
+                phone: agencyObj.phone || '',
+                city: agencyObj.city || '',
+                address: agencyObj.address || '',
+                ntn: agencyObj.ntn || '',
+                showNTN: agencyObj.showNTN === true,
+                licenceNo: agencyObj.licenceNo || '',
+                billPrefix: agencyObj.billPrefix || (agencyObj.billPrefixes && agencyObj.billPrefixes.stock) || '',
+                logoBase64: agencyObj.logoBase64 || agencyObj.logo || '',
+                defaultTemplate: agencyObj.defaultTemplate || agencyObj.template || 'template4',
+                payType: agencyObj.payType || 'CASH',
+                allowRateSwitch: agencyObj.allowRateSwitch || 'yes'
+            };
+        }
+
+        agencyObj.originalName = agencyObj.originalName || rootName;
+        if (homeCat && !agencyObj.primaryCategory) {
+            agencyObj.primaryCategory = homeCat;
+        }
+        agencyObj.categoryProfiles = catProfiles;
+
+        const targetCat = categoryId
+            ? (this.getById(categoryId) ? this.getById(categoryId).id : String(categoryId).toLowerCase().trim())
+            : this.resolveActiveCategory(agencyObj, 'books');
+        const prof = this.getEffectiveCategoryProfile(agencyObj, targetCat);
+
+        agencyObj.businessCategory = targetCat;
+        agencyObj.businessType = targetCat;
+        agencyObj.name = prof.isConfigured ? prof.name : prof.displayTitle;
+        agencyObj.businessName = agencyObj.name;
+        agencyObj._activeCategoryDisplayTitle = prof.displayTitle;
+        agencyObj._activeCategorySuggestedDemoName = prof.suggestedDemoName || '';
+        agencyObj.tagline = prof.tagline;
+        agencyObj.mobile = prof.mobile;
+        agencyObj.mobile2 = prof.mobile2;
+        agencyObj.phone = prof.phone;
+        agencyObj.city = prof.city;
+        agencyObj.address = prof.address;
+        agencyObj.ntn = prof.ntn;
+        agencyObj.licenceNo = prof.licenceNo;
+        agencyObj.billPrefix = prof.billPrefix;
+        agencyObj.isFreshCategoryWorkspace = prof.isFreshWorkspace;
+        return agencyObj;
+    },
+
     // Infer or resolve the canonical category ID of a stored record (stock, bill, customer, claim, expense)
     resolveRecordCategory(record = null, agencyObj = null, defaultCategoryId = '') {
         if (!record || typeof record !== 'object') return defaultCategoryId || '';
@@ -2293,9 +2493,8 @@ const BusinessCategories = {
             return 'books';
         }
         if (ind.cartonPacking || ind.tradePriceTP || ind.bonusSchemeRule || ind.skuBatchCode || record.cartonPacking || record.tradePriceTP) {
-            // Check if agency primaryCategory is distributor vs wholesaler
-            const agPri = agencyObj && (agencyObj.primaryCategory || agencyObj.originalCategory);
-            if (agPri && this.getById(agPri)?.id === 'distributor') return 'distributor';
+            const agPri = this.getPrimaryCategoryOfAgency(agencyObj);
+            if (agPri === 'distributor') return 'distributor';
             return 'wholesaler';
         }
 
@@ -2307,11 +2506,9 @@ const BusinessCategories = {
         if (['dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'catering_event'].includes(seg)) return 'restaurant';
         if (['mandi_party'].includes(seg)) return 'wholesaler';
 
-        // 4. Fallback to agency's original primaryCategory if the agency previously switched categories
-        if (agencyObj && (agencyObj.primaryCategory || agencyObj.originalCategory)) {
-            const pri = this.getById(agencyObj.primaryCategory || agencyObj.originalCategory);
-            if (pri) return pri.id;
-        }
+        // 4. Fallback to agency's original primaryCategory (or inferred category from original shop name like "Taj Karyana...")
+        const homeCat = this.getPrimaryCategoryOfAgency(agencyObj);
+        if (homeCat) return homeCat;
 
         return defaultCategoryId || '';
     },

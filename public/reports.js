@@ -117,6 +117,10 @@ auth.onAuthStateChanged(async (user) => {
         try {
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
             myAgency = agDoc.exists ? agDoc.data() : {};
+            myAgency.id = myAgencyId;
+            if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+            }
             const h = document.getElementById('agencyNameHeader');
             if (h && myAgency.name) h.innerText = `🏢 ${myAgency.name} (${myAgency.city || 'Depot'})`;
         } catch (e) {}
@@ -330,9 +334,18 @@ async function loadAllReportData() {
             db.collection('orders').where('agencyId', '==', myAgencyId).get().catch(() => ({ forEach: () => {} }))
         ]);
 
+        const activeCat = getActiveReportCategory();
+        const filterByCat = (rec) => {
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                return window.BusinessCategories.matchesActiveCategoryRecord(rec, activeCat, myAgency);
+            }
+            return true;
+        };
+
         rawBills = [];
         billsSnap.forEach(d => {
             const b = d.data();
+            if (!filterByCat(b)) return;
             const bDate = b.date || (b.createdAt || '').slice(0, 10);
             if (bDate >= dateStart && bDate <= dateEnd) {
                 rawBills.push({ id: d.id, ...b });
@@ -340,11 +353,15 @@ async function loadAllReportData() {
         });
 
         rawStock = [];
-        stockSnap.forEach(d => rawStock.push({ id: d.id, ...d.data() }));
+        stockSnap.forEach(d => {
+            const s = { id: d.id, ...d.data() };
+            if (filterByCat(s)) rawStock.push(s);
+        });
 
         rawMovements = [];
         moveSnap.forEach(d => {
             const m = d.data();
+            if (!filterByCat(m)) return;
             const mDate = (m.createdAt || '').slice(0, 10);
             if (mDate >= dateStart && mDate <= dateEnd) {
                 rawMovements.push({ id: d.id, ...m });
@@ -352,7 +369,10 @@ async function loadAllReportData() {
         });
 
         rawCustomers = [];
-        custSnap.forEach(d => rawCustomers.push({ id: d.id, ...d.data() }));
+        custSnap.forEach(d => {
+            const c = { id: d.id, ...d.data() };
+            if (filterByCat(c)) rawCustomers.push(c);
+        });
 
         rawUsers = [];
         usersSnap.forEach(d => rawUsers.push({ id: d.id, ...d.data() }));
@@ -360,6 +380,7 @@ async function loadAllReportData() {
         rawStockReturns = [];
         returnsSnap.forEach(d => {
             const r = d.data();
+            if (!filterByCat(r)) return;
             const rDate = (r.createdAt || '').slice(0, 10);
             if (!rDate || (rDate >= dateStart && rDate <= dateEnd)) {
                 rawStockReturns.push({ id: d.id, ...r });
@@ -369,6 +390,7 @@ async function loadAllReportData() {
         rawDamageClaims = [];
         claimsSnap.forEach(d => {
             const c = d.data();
+            if (!filterByCat(c)) return;
             const cDate = c.incidentDate || (c.createdAt || '').slice(0, 10);
             if (!cDate || (cDate >= dateStart && cDate <= dateEnd)) {
                 rawDamageClaims.push({ id: d.id, ...c });
@@ -378,6 +400,7 @@ async function loadAllReportData() {
         rawOrders = [];
         ordersSnap.forEach(d => {
             const o = d.data();
+            if (!filterByCat(o)) return;
             const oDate = o.date || (o.createdAt || '').slice(0, 10);
             if (!oDate || (oDate >= dateStart && oDate <= dateEnd)) {
                 rawOrders.push({ id: d.id, ...o });

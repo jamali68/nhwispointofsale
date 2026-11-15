@@ -7,7 +7,7 @@
 // ✅ Role-aware menu (Booker ko limited)
 // ============================================
 
-window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.5.3';
+window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.6.0';
 
 (function initSidebar() {
     // Inject dark-theme.css link dynamically if not present
@@ -855,6 +855,11 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.5.3';
             myProfile = JSON.parse(cachedProfileStr);
             if (cachedAgencyStr) {
                 myAgencyData = JSON.parse(cachedAgencyStr);
+                if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                    window.BusinessCategories.applyActiveCategoryProfile(myAgencyData);
+                    if (myAgencyData.name) myProfile.agencyName = myAgencyData.name;
+                    myProfile.city = myAgencyData.city || '';
+                }
                 agencyPackageState = evaluatePackageStatus(myAgencyData);
             }
             window.__myAgencyData = myAgencyData;
@@ -900,12 +905,16 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.5.3';
                         if (agDoc.exists) {
                             myAgencyData = agDoc.data();
                             myAgencyData.id = agDoc.id;
+                            if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                                window.BusinessCategories.applyActiveCategoryProfile(myAgencyData);
+                            }
                             if (myAgencyData.name) myProfile.agencyName = myAgencyData.name;
-                            if (myAgencyData.city) myProfile.city = myAgencyData.city;
+                            myProfile.city = myAgencyData.city || '';
                             agencyPackageState = evaluatePackageStatus(myAgencyData);
 
                             try {
                                 sessionStorage.setItem('eb_agency_data', JSON.stringify(myAgencyData));
+                                sessionStorage.setItem('eb_user_profile', JSON.stringify(myProfile));
                             } catch (_) {}
 
                             // ⛔ Check if agency is suspended / frozen by Super Admin
@@ -1122,7 +1131,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.5.3';
                         ${isSuperAdmin ? '<span style="font-size:12px;">👑</span>' : ''}
                     </div>
                     <div class="eb-sidebar-agency" style="padding-left:0; font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agencyTitleText}</div>
-                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.5.3'}</div>
+                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.6.0'}</div>
                 </div>
             </div>
         </div>`;

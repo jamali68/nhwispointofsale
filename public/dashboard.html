@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <!-- 📱 Progressive Web App (PWA) Standards -->
-    <link rel="manifest" href="manifest.json?v=5.5.3">
+    <link rel="manifest" href="manifest.json?v=5.6.0">
     <meta name="theme-color" content="#f4f7f6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="NH POS">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.5.3">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.5.3">
-    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.5.3">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.6.0">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.6.0">
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.6.0">
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1227,16 +1227,26 @@
             rPill.innerText = (myUser.role || 'user').toUpperCase();
             rPill.className = `role-pill ${myUser.role}`;
 
-            // Load Agency Profile
+            // Load Agency Profile (Category-Isolated Identity)
             if (myAgencyId && myAgencyId !== 'super-admin-hq') {
                 const agDoc = await db.collection('agencies').doc(myAgencyId).get();
                 if (agDoc.exists) {
                     myAgency = agDoc.data() || {};
+                    myAgency.id = myAgencyId;
+                    if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                        window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+                    }
+                    const activeCatId = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+                        ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
+                        : (myAgency.businessCategory || myAgency.businessType || 'general');
+                    const catObj = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+                        ? window.BusinessCategories.getById(activeCatId)
+                        : null;
                     const bizName = (myAgency && myAgency.name) || 'Wholesale Business Overview';
                     const bizCity = (myAgency && myAgency.city) || 'Depot';
-                    const bizType = (myAgency && myAgency.businessType) || 'Distribution';
+                    const bizTypeLabel = catObj ? `${catObj.icon} ${catObj.nameEn}` : ((myAgency && myAgency.businessType) || 'Distribution');
                     document.getElementById('bizHeadingName').innerText = bizName;
-                    const subText = `${bizName} • ${bizCity} (${bizType})`;
+                    const subText = `${bizName} • ${bizCity} (${bizTypeLabel})`;
                     const agencySubEl = document.getElementById('agencyDepotSub');
                     if (agencySubEl) agencySubEl.innerText = subText;
                     const topSubEl = document.getElementById('ebTopSubtitle');
@@ -1372,10 +1382,33 @@
                 db.collection('users').where('agencyId', '==', myAgencyId).get()
             ]);
 
-            allBills = []; billsSnap.forEach(d => allBills.push({ id: d.id, ...d.data() }));
-            allStock = []; stockSnap.forEach(d => allStock.push({ id: d.id, ...d.data() }));
-            allCustomers = []; custSnap.forEach(d => allCustomers.push({ id: d.id, ...d.data() }));
-            allBookers = []; usersSnap.forEach(d => {
+            const activeCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+                ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
+                : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'general');
+            const filterByCat = (rec) => {
+                if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                    return window.BusinessCategories.matchesActiveCategoryRecord(rec, activeCat, myAgency);
+                }
+                return true;
+            };
+
+            allBills = [];
+            billsSnap.forEach(d => {
+                const b = { id: d.id, ...d.data() };
+                if (filterByCat(b)) allBills.push(b);
+            });
+            allStock = [];
+            stockSnap.forEach(d => {
+                const s = { id: d.id, ...d.data() };
+                if (filterByCat(s)) allStock.push(s);
+            });
+            allCustomers = [];
+            custSnap.forEach(d => {
+                const c = { id: d.id, ...d.data() };
+                if (filterByCat(c)) allCustomers.push(c);
+            });
+            allBookers = [];
+            usersSnap.forEach(d => {
                 const u = d.data();
                 if (u.role === 'booker' && u.status !== 'deleted') allBookers.push({ id: d.id, ...u });
             });
@@ -1386,6 +1419,7 @@
                 ordersSnap.forEach(d => {
                     const od = d.data();
                     od.id = d.id;
+                    if (!filterByCat(od)) return;
                     if (!allBills.some(b => b.id === d.id || (b.orderNo && (b.orderNo === od.orderNo || b.orderNo === od.billNo)) || (b.billNo && (b.billNo === od.billNo || b.billNo === od.orderNo)))) {
                         allBills.push(od);
                     }

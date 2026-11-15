@@ -1929,6 +1929,9 @@ async function loadAgencyLimits() {
     try {
         const agDoc = await db.collection('agencies').doc(myAgencyId).get();
         myAgency = agDoc.exists ? agDoc.data() : {};
+        if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+            myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+        }
         const pkgId = myAgency.packageId || 'free';
         const pkgDoc = await db.collection('packages').doc(pkgId).get();
         if (pkgDoc.exists && pkgDoc.data().limits) {

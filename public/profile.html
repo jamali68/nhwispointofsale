@@ -135,10 +135,11 @@
             <small class="header-note">Ye details aap ke bills par aur reports mein use hongi!</small>
         </div>
         <form id="businessForm" class="panel-form">
+            <div id="pfCategoryWorkspaceBanner" style="display:none; margin-bottom:14px; padding:12px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;"></div>
             <div class="form-row">
                 <div class="form-group">
                     <label>🏢 Business Name *</label>
-                    <input type="text" id="pfBizName" maxlength="50" required>
+                    <input type="text" id="pfBizName" maxlength="50" placeholder="Enter Shop / Agency Name for this Category" required>
                 </div>
                 <div class="form-group">
                     <label>🏪 Business Type *</label>
@@ -399,6 +400,129 @@
     let myRole = null;
     let myAgencyId = null;
     let myEmail = null;
+    let myAgencyObj = null;
+
+    async function lockExistingCategoryRecordsFromProfile(agencyId, previousCategoryId) {
+        if (!agencyId || !previousCategoryId) return 0;
+        const prevCat = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+            ? (window.BusinessCategories.getById(previousCategoryId)?.id || previousCategoryId)
+            : String(previousCategoryId).toLowerCase().trim();
+        const cols = ['stock', 'customers', 'bills', 'orders', 'damage_claims', 'expenses'];
+        let count = 0;
+        for (const col of cols) {
+            try {
+                const snap = await db.collection(col).where('agencyId', '==', agencyId).get();
+                const refs = [];
+                snap.forEach(d => {
+                    const rec = d.data() || {};
+                    if (!rec.businessCategory && !rec.categoryWorkspace) refs.push(d.ref);
+                });
+                for (let i = 0; i < refs.length; i += 400) {
+                    const batch = db.batch();
+                    refs.slice(i, i + 400).forEach(r => batch.update(r, { businessCategory: prevCat }));
+                    await batch.commit();
+                    count += refs.slice(i, i + 400).length;
+                }
+            } catch (e) {}
+        }
+        return count;
+    }
+
+    function loadCategoryProfileIntoProfileForm(catId, promptIfFresh = false) {
+        if (!myAgencyObj || !window.BusinessCategories) return;
+        const catMeta = window.BusinessCategories.getById(catId) || { id: catId, icon: '🏢', nameEn: catId, nameUr: '' };
+        const prof = window.BusinessCategories.getEffectiveCategoryProfile(myAgencyObj, catMeta.id);
+        const banner = document.getElementById('pfCategoryWorkspaceBanner');
+
+        document.getElementById('pfBizName').value = prof.isConfigured ? (prof.name || '') : '';
+        document.getElementById('pfBizName').placeholder = prof.suggestedDemoName
+            ? `e.g. ${prof.suggestedDemoName}`
+            : 'Enter Shop / Agency Name for this Category';
+        document.getElementById('pfBizMobile').value = prof.mobile || '';
+        document.getElementById('pfBizMobile2').value = prof.mobile2 || '';
+        document.getElementById('pfBizCity').value = prof.city || '';
+        document.getElementById('pfBizAddress').value = prof.address || '';
+        document.getElementById('pfBizNTN').value = prof.ntn || '';
+        document.getElementById('pfBizLic').value = prof.licenceNo || '';
+        document.getElementById('pfPayType').value = prof.payType || 'CASH';
+        document.getElementById('pfTemplate').value = prof.defaultTemplate || localStorage.getItem('eb_default_template') || 'template4';
+        document.getElementById('pfBillPrefix').value = prof.billPrefix || '';
+        document.getElementById('pfAllowRateSwitch').value = prof.allowRateSwitch || 'yes';
+
+        if (banner) {
+            banner.style.display = 'block';
+            if (prof.isFreshWorkspace) {
+                const prevNote = prof.previousShopName
+                    ? `<div style="margin-top:4px; font-size:11.5px; color:#0369a1;">🔒 <b>Mehfooz Purani Category:</b> Aap ki pichli shop <b>"${prof.previousShopName}"</b> aur uska 100% data apni category mein bilkul mehfooz hai.</div>`
+                    : '';
+                banner.style.background = '#eff6ff';
+                banner.style.border = '1.5px solid #93c5fd';
+                banner.style.color = '#1e3a8a';
+                banner.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <b>🆕 New Category Database: ${catMeta.icon} ${catMeta.nameEn}</b>
+                            <div>Is category mein abhi koi Shop / Agency create nahi hai. Nayi shop ka naam darj karein ya Demo Name use karein!</div>
+                            ${prevNote}
+                        </div>
+                        <button type="button" id="btnFillDemoCatShop" style="background:#0284c7; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer;">
+                            ⚡ Fill Demo Shop Name
+                        </button>
+                    </div>
+                `;
+                const demoBtn = document.getElementById('btnFillDemoCatShop');
+                if (demoBtn) {
+                    demoBtn.onclick = () => {
+                        document.getElementById('pfBizName').value = prof.suggestedDemoName || `New ${catMeta.nameEn}`;
+                        document.getElementById('pfBizName').focus();
+                    };
+                }
+            } else {
+                banner.style.background = '#f0fdf4';
+                banner.style.border = '1.5px solid #86efac';
+                banner.style.color = '#14532d';
+                banner.innerHTML = `
+                    <div>
+                        <b>✅ Active Category Database: ${catMeta.icon} ${catMeta.nameEn}</b>
+                        <span style="margin-left:6px; font-size:11.5px; color:#15803d;">(Shop: <b>${prof.name}</b> — Is category ka apna alag Stock, Khata, Bills aur Profit database active hai)</span>
+                    </div>
+                `;
+            }
+        }
+
+        if (promptIfFresh && prof.isFreshWorkspace && typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: `🆕 ${catMeta.icon} ${catMeta.nameEn}`,
+                html: `
+                    <div style="text-align:left; font-size:13px; line-height:1.5;">
+                        <p style="margin:0 0 8px 0; color:#334155;">
+                            Aap ne <b>${catMeta.nameEn}</b> category select ki hai. Is category mein abhi koi Shop / Agency create nahi hai.
+                        </p>
+                        ${prof.previousShopName ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px 10px; border-radius:8px; color:#166534; font-size:12px; margin-bottom:10px;">🔒 <b>Data Safe Guarantee:</b> Aap ki pichli category (<b>${prof.previousShopName}</b>) ka sara data 100% mehfooz hai!</div>` : ''}
+                        <label style="font-weight:800; color:#0f172a; display:block; margin-bottom:4px;">🏢 Is Nayi Category Ki Shop / Agency Ka Naam Likhein:</label>
+                        <input id="swalNewCatShopName" class="swal2-input" placeholder="e.g. ${prof.suggestedDemoName}" value="" style="margin:0 0 8px 0; width:100%; box-sizing:border-box;">
+                        <small style="color:#64748b; display:block;">Ya neeche "⚡ Demo Account Name" button dabayein.</small>
+                    </div>
+                `,
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: '✅ Set New Shop Name',
+                denyButtonText: '⚡ Use Demo Account Name',
+                cancelButtonText: 'Fill Manually Below',
+                confirmButtonColor: '#10b981',
+                denyButtonColor: '#0284c7'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    const typed = (document.getElementById('swalNewCatShopName')?.value || '').trim();
+                    document.getElementById('pfBizName').value = typed || prof.suggestedDemoName || `New ${catMeta.nameEn}`;
+                } else if (res.isDenied) {
+                    document.getElementById('pfBizName').value = prof.suggestedDemoName || `Demo ${catMeta.nameEn}`;
+                }
+                document.getElementById('pfBizName').focus();
+            });
+        }
+    }
+
     let pendingLogoBase64 = null;   // 🆕 Naya logo (save par update hoga!)
 
     auth.onAuthStateChanged(async (user) => {
@@ -471,7 +595,9 @@
                 const agDoc = await db.collection('agencies').doc(myAgencyId).get();
                 if (agDoc.exists) {
                     const ag = agDoc.data();
-                    document.getElementById('pfBizName').value = ag.name || '';
+                    ag.id = myAgencyId;
+                    myAgencyObj = { ...ag };
+
                     const resolvedBiz = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
                         ? window.BusinessCategories.resolveActiveCategory(ag, 'other')
                         : (ag.businessCategory || ag.businessType || 'other');
@@ -481,17 +607,16 @@
                     } else if (pfBizSel) {
                         pfBizSel.value = resolvedBiz;
                     }
-                    document.getElementById('pfBizMobile').value = ag.mobile || '';
-                    document.getElementById('pfBizMobile2').value = ag.mobile2 || '';
-                    // ✅ Mobile 3 REMOVE — ab load nahi hota
-                    document.getElementById('pfBizCity').value = ag.city || '';
-                    document.getElementById('pfBizAddress').value = ag.address || '';
-                    document.getElementById('pfBizNTN').value = ag.ntn || '';
-                    document.getElementById('pfBizLic').value = ag.licenceNo || '';
-                    document.getElementById('pfPayType').value = ag.payType || 'CASH';
-                    document.getElementById('pfTemplate').value = ag.template || ag.defaultTemplate || localStorage.getItem('eb_default_template') || 'template4';
-                    document.getElementById('pfBillPrefix').value = ag.billPrefix || '';
-                    document.getElementById('pfAllowRateSwitch').value = ag.allowRateSwitch || 'yes';
+
+                    // Load per-category isolated Shop Profile (never leak Kiryana shop name into Book Depot!)
+                    loadCategoryProfileIntoProfileForm(resolvedBiz, false);
+
+                    if (pfBizSel && !pfBizSel.dataset.catSwitchBound) {
+                        pfBizSel.dataset.catSwitchBound = 'true';
+                        pfBizSel.addEventListener('change', function() {
+                            loadCategoryProfileIntoProfileForm(this.value, true);
+                        });
+                    }
 
                     // 🖨️ Checkboxes load karo
                     const pSet = ag.printSettings || (window.ebPrintEngine ? window.ebPrintEngine.DEFAULT_PRINT_SETTINGS : {});
@@ -702,21 +827,79 @@
         document.getElementById('saveBizBtn').disabled = true;
 
         try {
-            const updateData = {
+            const prevCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+                ? window.BusinessCategories.resolveActiveCategory(myAgencyObj, 'general')
+                : ((myAgencyObj && (myAgencyObj.businessCategory || myAgencyObj.businessType)) || 'general');
+            const nextCat = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+                ? (window.BusinessCategories.getById(bizType)?.id || bizType)
+                : bizType;
+            const homeCat = (window.BusinessCategories && typeof window.BusinessCategories.getPrimaryCategoryOfAgency === 'function')
+                ? (window.BusinessCategories.getPrimaryCategoryOfAgency(myAgencyObj) || prevCat)
+                : prevCat;
+
+            if (prevCat && nextCat && prevCat !== nextCat) {
+                await lockExistingCategoryRecordsFromProfile(myAgencyId, prevCat);
+            }
+            if (homeCat && homeCat !== nextCat) {
+                await lockExistingCategoryRecordsFromProfile(myAgencyId, homeCat);
+            }
+
+            // Preserve previous category profiles & save current category profile independently
+            const existingCatProfiles = (myAgencyObj && myAgencyObj.categoryProfiles && typeof myAgencyObj.categoryProfiles === 'object')
+                ? { ...myAgencyObj.categoryProfiles }
+                : {};
+            const rootOldName = String((myAgencyObj && (myAgencyObj.originalName || myAgencyObj.name)) || '').trim();
+            if (homeCat && rootOldName && !existingCatProfiles[homeCat]) {
+                existingCatProfiles[homeCat] = {
+                    name: rootOldName,
+                    mobile: (myAgencyObj && myAgencyObj.mobile) || '',
+                    mobile2: (myAgencyObj && myAgencyObj.mobile2) || '',
+                    city: (myAgencyObj && myAgencyObj.city) || '',
+                    address: (myAgencyObj && myAgencyObj.address) || '',
+                    ntn: (myAgencyObj && myAgencyObj.ntn) || '',
+                    licenceNo: (myAgencyObj && myAgencyObj.licenceNo) || '',
+                    payType: (myAgencyObj && myAgencyObj.payType) || 'CASH',
+                    defaultTemplate: (myAgencyObj && (myAgencyObj.defaultTemplate || myAgencyObj.template)) || 'template4',
+                    billPrefix: (myAgencyObj && myAgencyObj.billPrefix) || '',
+                    allowRateSwitch: (myAgencyObj && myAgencyObj.allowRateSwitch) || 'yes',
+                    logoBase64: (myAgencyObj && myAgencyObj.logoBase64) || ''
+                };
+            }
+
+            const currentCatProfile = {
                 name: bizName,
-                businessType: bizType,
                 mobile: document.getElementById('pfBizMobile').value.trim(),
                 mobile2: document.getElementById('pfBizMobile2').value.trim(),
-                // ✅ Mobile 3 REMOVE — DB mein purana mobile3 ho to bhi update nahi hoga
                 city: document.getElementById('pfBizCity').value.trim(),
                 address: document.getElementById('pfBizAddress').value.trim(),
                 ntn: document.getElementById('pfBizNTN').value.trim(),
                 licenceNo: document.getElementById('pfBizLic').value.trim(),
                 payType: document.getElementById('pfPayType').value,
-                template: document.getElementById('pfTemplate').value,
                 defaultTemplate: document.getElementById('pfTemplate').value,
                 billPrefix: document.getElementById('pfBillPrefix').value.trim(),
                 allowRateSwitch: document.getElementById('pfAllowRateSwitch').value,
+                logoBase64: pendingLogoBase64 || (existingCatProfiles[nextCat] && existingCatProfiles[nextCat].logoBase64) || ''
+            };
+            existingCatProfiles[nextCat] = currentCatProfile;
+
+            const updateData = {
+                name: bizName,
+                originalName: rootOldName || bizName,
+                businessType: nextCat,
+                businessCategory: nextCat,
+                primaryCategory: homeCat || nextCat,
+                categoryProfiles: existingCatProfiles,
+                mobile: currentCatProfile.mobile,
+                mobile2: currentCatProfile.mobile2,
+                city: currentCatProfile.city,
+                address: currentCatProfile.address,
+                ntn: currentCatProfile.ntn,
+                licenceNo: currentCatProfile.licenceNo,
+                payType: currentCatProfile.payType,
+                template: currentCatProfile.defaultTemplate,
+                defaultTemplate: currentCatProfile.defaultTemplate,
+                billPrefix: currentCatProfile.billPrefix,
+                allowRateSwitch: currentCatProfile.allowRateSwitch,
                 printSettings: {
                     showLogo: document.getElementById('chkShowLogo') ? document.getElementById('chkShowLogo').checked : true,
                     showOwnerName: document.getElementById('chkShowOwnerName') ? document.getElementById('chkShowOwnerName').checked : true,
@@ -737,7 +920,6 @@
                 updatedAt: new Date().toISOString()
             };
 
-            // 🖼️ Logo sirf tab update ho jab naya select ho!
             if (pendingLogoBase64) {
                 updateData.logoBase64 = pendingLogoBase64;
                 pendingLogoBase64 = null;
@@ -745,13 +927,32 @@
             }
 
             await db.collection('agencies').doc(myAgencyId).update(updateData);
-            localStorage.setItem('eb_default_template', document.getElementById('pfTemplate').value);
+            myAgencyObj = { ...(myAgencyObj || {}), ...updateData, id: myAgencyId };
+
+            localStorage.setItem('eb_default_template', currentCatProfile.defaultTemplate);
+            localStorage.setItem('eb_active_business_category', nextCat);
+            localStorage.setItem('eb_active_category', nextCat);
+            localStorage.setItem(`eb_cat_profiles_${myAgencyId}`, JSON.stringify(existingCatProfiles));
+            try {
+                sessionStorage.setItem('eb_agency_data', JSON.stringify(myAgencyObj));
+                const cachedProf = JSON.parse(sessionStorage.getItem('eb_user_profile') || '{}');
+                cachedProf.agencyName = bizName;
+                cachedProf.city = currentCatProfile.city;
+                sessionStorage.setItem('eb_user_profile', JSON.stringify(cachedProf));
+            } catch (_) {}
+
+            loadCategoryProfileIntoProfileForm(nextCat, false);
+            if (window.ebSidebar && typeof window.ebSidebar.refresh === 'function') {
+                window.__myAgencyData = myAgencyObj;
+                if (window.__myProfile) window.__myProfile.agencyName = bizName;
+                window.ebSidebar.refresh();
+            }
 
             document.getElementById('saveBizBtn').disabled = false;
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
-                timer: 2000, icon: 'success',
-                title: '✅ Business info saved!'
+                timer: 2200, icon: 'success',
+                title: `✅ ${bizName} (${nextCat.toUpperCase()}) saved!`
             });
         } catch (error) {
             document.getElementById('saveBizBtn').disabled = false;

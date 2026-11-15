@@ -2229,6 +2229,9 @@ auth.onAuthStateChanged(async (user) => {
         try {
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
             myAgency = agDoc.exists ? agDoc.data() : {};
+            if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+            }
 
             // ⚠️ Phase 6: Subscription Expiry Check
             if (myAgency && myAgency.subscriptionExpiry) {
