@@ -465,15 +465,9 @@ window.EASYBILL_VERSION = '5.7.4';
             const isSubpath = window.location.pathname.startsWith('/nhsm/');
             const swPath = isSubpath ? '/nhsm/sw.js' : 'sw.js';
             const swScope = isSubpath ? '/nhsm/' : './';
-            let refreshingOnSwUpdate = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (refreshingOnSwUpdate) return;
-                refreshingOnSwUpdate = true;
-                window.location.reload();
-            });
             navigator.serviceWorker.register(swPath, { scope: swScope, updateViaCache: 'none' })
                 .then((registration) => {
-                    // Check for updates on page load
+                    // Check for updates silently in the background
                     try { registration.update(); } catch (_) {}
 
                     registration.onupdatefound = () => {
@@ -481,8 +475,10 @@ window.EASYBILL_VERSION = '5.7.4';
                         if (installingWorker) {
                             installingWorker.onstatechange = () => {
                                 if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    console.log('[PWA] New version installed! Activating immediately...');
-                                    installingWorker.postMessage({ type: 'SKIP_WAITING' });
+                                    // Silent background update staged: never reload or interrupt active user forms!
+                                    // The new version will take effect automatically on the user's next refresh, navigation, or app reopen.
+                                    window.__nhPendingSwUpdateReady = true;
+                                    console.log('[PWA] New update downloaded silently in background — will apply on next refresh or reopen.');
                                 }
                             };
                         }

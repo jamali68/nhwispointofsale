@@ -70,7 +70,7 @@ const RELATIVE_SHELL_ASSETS = [
   'image-optimizer.js'
 ];
 
-// 1️⃣ Install: Quickly cache only core shell assets resolved against active scope
+// 1️⃣ Install: Silently pre-cache updated shell assets in the background, then stage activation
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
@@ -86,28 +86,29 @@ self.addEventListener('install', (event) => {
       const promises = targetAssets.map((assetUrl) => {
         const req = new Request(assetUrl, { cache: 'reload' });
         return cache.add(req).catch((err) => {
-          console.warn(`[PWA SW v5.6.9] Pre-cache skipped for ${assetUrl}:`, err.message);
+          console.warn(`[PWA SW v5.7.4] Pre-cache skipped for ${assetUrl}:`, err.message);
         });
       });
-      return Promise.all(promises);
+      await Promise.all(promises);
+      // Activate in background only after all new assets are safely cached (never forces page reload)
+      await self.skipWaiting();
     })
   );
-  self.skipWaiting();
 });
 
-// 2️⃣ Activate: Purge all obsolete cache versions immediately
+// 2️⃣ Activate: Purge obsolete cache versions silently in background
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then(async (keys) => {
+      await Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => {
-          console.log('[PWA SW v5.6.9] Purged outdated cache:', key);
+          console.log('[PWA SW v5.7.4] Purged outdated cache:', key);
           return caches.delete(key);
         })
       );
+      await self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
 // 3️⃣ Fetch: High-speed Network & Cache Routing
