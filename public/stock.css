@@ -17,6 +17,13 @@ body {
     min-height: 100vh;
     padding: 12px;
     padding-bottom: 40px;
+    max-width: 100vw;
+    overflow-x: clip;
+}
+.panel-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 /* ============================================
@@ -132,11 +139,24 @@ body {
 }
 .stock-filters-panel {
     max-width: 1000px;
+    width: 100%;
+    min-width: 0;
     margin: 0 auto 15px;
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
     align-items: center;
+}
+.stock-filters-panel select,
+#categoryFilter,
+#industryFilterPrimary,
+#industryFilterSecondary {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 input, select, textarea, .form-group {
     scroll-margin-top: 135px;
@@ -218,20 +238,25 @@ input, select, textarea, .form-group {
     gap: 12px;
     margin-bottom: 12px;
 }
-.form-group { display: flex; flex-direction: column; }
+.form-group { display: flex; flex-direction: column; min-width: 0; max-width: 100%; }
 .form-group label {
     font-size: 12px;
     font-weight: bold;
     color: #475569;
     margin-bottom: 5px;
 }
-.form-group input, .form-group select {
+.form-group input, .form-group select, #customFieldsGrid input, #customFieldsGrid select {
     padding: 10px 12px;
     border: 2px solid #e2e8f0;
     border-radius: 8px;
     font-size: 14px;
     outline: none;
     background: #fff;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    text-overflow: ellipsis;
 }
 .form-group input:focus, .form-group select:focus { border-color: var(--share); }
 
@@ -270,7 +295,7 @@ input, select, textarea, .form-group {
     background: #fff5f5;
 }
 
-.item-info { flex: 1; min-width: 260px; }
+.item-info { flex: 1; min-width: 220px; max-width: 100%; word-break: break-word; }
 .item-name {
     font-size: 15px;
     font-weight: 700;
@@ -380,6 +405,38 @@ input, select, textarea, .form-group {
     text-align: center;
     padding: 15px;
     font-weight: bold;
+}
+
+/* ============================================
+   📱 MOBILE SCREEN FIT (Prevent Dropdown Overflow)
+   ============================================ */
+@media (max-width: 768px) {
+    .stock-filters-panel,
+    #industryQuickFilterBar {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+    #categoryFilter,
+    #industryFilterPrimary,
+    #industryFilterSecondary {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 1 1 100% !important;
+    }
+    .filter-chips {
+        width: 100%;
+        max-width: 100%;
+    }
+    .form-row,
+    #customFieldsGrid {
+        grid-template-columns: 1fr !important;
+    }
+    .item-info {
+        min-width: 0 !important;
+        width: 100%;
+    }
 }
 
 /* ============================================

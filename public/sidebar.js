@@ -577,6 +577,16 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
         .eb-sidebar-overlay.show { display: block; }
 
         /* ========== 🔝 UNIVERSAL SOLID STICKY TOPBAR (Dark Navy Sleek) ========== */
+        html, body {
+            max-width: 100vw;
+            overflow-x: clip;
+        }
+        select {
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            text-overflow: ellipsis !important;
+        }
         input, select, textarea, .form-group {
             scroll-margin-top: 135px !important;
         }
