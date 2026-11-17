@@ -54,6 +54,7 @@ function getTemplateCustomer(bill) {
     const b = bill || {};
     const ntnVal = b.customerNtn || b.custNTN || b.customerNTN || (b.customer && (b.customer.ntn || b.customer.customerNtn)) || '';
     const fbrStatusVal = b.customerFbrStatus || (b.customer && b.customer.fbrStatus) || (ntnVal ? 'filer' : 'non-filer');
+    const resolvedRoute = b.customerRoute || b.route || b.affiliatedBoard || (b.customer && (b.customer.route || b.customer.affiliatedBoard)) || '';
     return {
         id: b.customerId || '',
         code: b.customerId ? b.customerId.slice(-4) : (b.customerCode || '101'),
@@ -61,9 +62,9 @@ function getTemplateCustomer(bill) {
         shopName: b.customerShopName || b.customerShop || (b.customer && b.customer.shopName) || '',
         mobile: b.customerMobile || (b.customer && b.customer.mobile) || '',
         address: b.customerAddress || (b.customer && b.customer.address) || '',
-        route: b.customerRoute || b.route || (b.customer && b.customer.route) || '',
+        route: resolvedRoute,
         city: b.customerCity || (b.customer && b.customer.city) || '',
-        area: b.customerArea || b.customerRoute || b.route || (b.customer && (b.customer.area || b.customer.route)) || '',
+        area: b.customerArea || resolvedRoute || (b.customer && b.customer.area) || '',
         terms: b.customerTerms || b.creditTerms || (b.customer && b.customer.paymentTerms) || '',
         ntn: ntnVal,
         fbrStatus: fbrStatusVal,
@@ -87,6 +88,8 @@ function getTemplateItems(bill) {
         const ctnQty = parseFloat(it.ctn !== undefined ? it.ctn : (it.carton || 0)) || 0;
         const boxQty = parseFloat(it.box !== undefined ? it.box : (it.boxes || 0)) || 0;
         const pcsQty = parseFloat(it.pcs || 0) || 0;
+        const rawBonusRule = it.bonusSchemeRule || (it.industryFields && it.industryFields.bonusSchemeRule) || '';
+        const schemeText = it.promoDesc || it.schemeLabel || (rawBonusRule && !String(rawBonusRule).startsWith('No Scheme') ? rawBonusRule : '') || '';
         return {
             sno: i + 1,
             name: (it.name || '') + subHtml,
@@ -95,17 +98,17 @@ function getTemplateItems(bill) {
             unit: it.unit || '',
             qty: it.qty,
             rate: itemRate,
-            tp: parseFloat(it.tp !== undefined ? it.tp : (it.tradePrice !== undefined ? it.tradePrice : itemRate)) || 0,
+            tp: parseFloat(it.tp !== undefined ? it.tp : (it.tradePrice !== undefined ? it.tradePrice : (it.tradePriceTP !== undefined ? it.tradePriceTP : itemRate))) || 0,
             discount: it.totalDiscount !== undefined ? it.totalDiscount : (it.discount || 0),
-            to: parseFloat(it.to) || 0,
+            to: parseFloat(it.to !== undefined ? it.to : (it.tradeOfferDiscount !== undefined ? it.tradeOfferDiscount : 0)) || 0,
             td: parseFloat(it.td) || 0,
             sd: parseFloat(it.sd) || 0,
             bonus: bonusQty,
             ctn: ctnQty,
             box: boxQty,
             pcs: pcsQty,
-            sku: it.sku || it.skuCode || '',
-            promoDesc: it.promoDesc || it.schemeLabel || '',
+            sku: it.sku || it.skuCode || it.skuBatchCode || (it.industryFields && it.industryFields.skuBatchCode) || '',
+            promoDesc: schemeText,
             total: (parseFloat(itemTotal) || 0).toFixed(2)
         };
     });
@@ -1920,7 +1923,7 @@ function template7FMCGDistribution(bill, agency, customer, settings) {
     const dateStr = formatFmcgShortDate(bill.date || bill.createdAt || bill.invoiceDate);
     const deliveryDateStr = formatFmcgShortDate(bill.deliveryDate || bill.dispatchDate || bill.date);
     const billNo = bill.billNo || 'D1772INV1452';
-    const pjpName = bill.pjpName || (bill.bookerName ? `${bill.bookerName} Monday` : (agency.ownerName ? `${agency.ownerName} Monday` : 'M Wakeel Monday'));
+    const pjpName = bill.pjpName || customer.route || (bill.bookerName ? `${bill.bookerName} Monday` : (agency.ownerName ? `${agency.ownerName} Monday` : 'M Wakeel Monday'));
     const channelName = bill.channel || (customer.customerType === 'retail' ? 'Retail' : (customer.customerType === 'wholesale' ? 'Wholesale' : 'Retail'));
     const loadFormNo = bill.loadFormNo ? ('Load Form # ' + bill.loadFormNo.replace(/^Load Form #\s*/i, '')) : ('Load Form # D' + (bill.billNo ? String(bill.billNo).replace(/\D/g, '') : '1772') + 'LF' + (bill.billNo ? String(bill.billNo).slice(-3) : '145'));
     
@@ -1946,7 +1949,7 @@ function template7FMCGDistribution(bill, agency, customer, settings) {
 
     const items = bill.items || [];
     const itemRows = items.map((it, idx) => {
-        const sku = it.skuCode || it.sku || it.barcode || it.code || ('SKU' + String(idx + 1).padStart(5, '0'));
+        const sku = it.skuCode || it.sku || it.skuBatchCode || (it.industryFields && it.industryFields.skuBatchCode) || it.barcode || it.code || ('SKU' + String(idx + 1).padStart(5, '0'));
         const ctnVal = (it.ctn !== undefined && it.ctn !== null && it.ctn !== '') ? it.ctn : (it.carton !== undefined ? it.carton : '-');
         if (typeof ctnVal === 'number' && !isNaN(ctnVal)) totalCtn += ctnVal;
 
@@ -1956,7 +1959,7 @@ function template7FMCGDistribution(bill, agency, customer, settings) {
         const freeVal = (it.freeUnits !== undefined && it.freeUnits !== null && it.freeUnits !== '') ? it.freeUnits : (it.freeQty !== undefined ? it.freeQty : (it.bonus || '-'));
         if (typeof freeVal === 'number' && !isNaN(freeVal)) totalFreeUnits += freeVal;
 
-        const tp = parseFloat(it.tp !== undefined ? it.tp : (it.tradePrice !== undefined ? it.tradePrice : it.rate)) || 0;
+        const tp = parseFloat(it.tp !== undefined ? it.tp : (it.tradePrice !== undefined ? it.tradePrice : (it.tradePriceTP !== undefined ? it.tradePriceTP : it.rate))) || 0;
         const gross = parseFloat(it.gross !== undefined ? it.gross : (boxVal * tp));
         totalGross += gross;
 
@@ -3045,7 +3048,9 @@ function template9AbidTraders(bill, agency, customer, settings) {
     const custName = customer.shopName ? customer.shopName : (customer.name || 'تاج کریانہ سٹور');
     const custMobile = customer.mobile || customer.phone || '03146800959';
     const custCnic = customer.cnic || customer.ntn || '';
-    const custAddress = customer.address || customer.area || 'تاج چوک بائی پاس';
+    const custRouteStr = customer.route || bill.route || bill.customerRoute || bill.affiliatedBoard || '';
+    const baseAddrStr = customer.address || customer.area || '';
+    const custAddress = ([baseAddrStr, (custRouteStr && custRouteStr !== baseAddrStr) ? custRouteStr : '', bill.loadFormNo ? `(${bill.loadFormNo})` : ''].filter(Boolean).join(' — ')) || 'تاج چوک بائی پاس';
 
     let totalPieces = 0;
     let totalCtn = 0;
@@ -3891,8 +3896,8 @@ function template10HassanDistributor(bill, agency, customer, settings) {
 
         groupItems.forEach((it) => {
             grandSkuCount++;
-            const sku = it.sku || it.skuCode || it.barcode || ('SKU' + String(grandSkuCount).padStart(4, '0'));
-            const ctnSize = it.ctnSize || it.packing || 144;
+            const sku = it.sku || it.skuCode || it.skuBatchCode || (it.industryFields && it.industryFields.skuBatchCode) || it.barcode || ('SKU' + String(grandSkuCount).padStart(4, '0'));
+            const ctnSize = it.ctnSize || it.packSize || (it.industryFields && it.industryFields.packSize) || it.packing || 144;
             const ctnQty = (it.ctn !== undefined && it.ctn !== null && it.ctn !== '') ? it.ctn : '-';
             const boxQty = it.box !== undefined && it.box !== null && it.box !== '' ? it.box : (it.qty || 1);
             const pcsQty = (it.pcs !== undefined && it.pcs !== null && it.pcs !== '') ? it.pcs : '-';
@@ -3905,12 +3910,12 @@ function template10HassanDistributor(bill, agency, customer, settings) {
             grandTotalQty += rowUnitCount;
 
             const retailPrice = parseFloat(it.retailPrice !== undefined ? it.retailPrice : (it.retailRate || 0));
-            const tradePrice = parseFloat(it.tradePrice !== undefined ? it.tradePrice : (it.rate || it.tp || 0));
+            const tradePrice = parseFloat(it.tradePrice !== undefined ? it.tradePrice : (it.tradePriceTP !== undefined ? it.tradePriceTP : (it.rate || it.tp || 0)));
             const gross = parseFloat(it.gross !== undefined ? it.gross : (numBox > 0 ? (numBox * tradePrice) : (tradePrice * (parseFloat(it.qty) || 1))));
             catGross += gross;
             grandGross += gross;
 
-            const freeQty = (it.freeQty !== undefined && it.freeQty !== null && it.freeQty !== '') ? it.freeQty : (it.bonus || '-');
+            const freeQty = (it.freeQty !== undefined && it.freeQty !== null && it.freeQty !== '') ? it.freeQty : ((it.freeUnits !== undefined && it.freeUnits !== null && it.freeUnits !== '') ? it.freeUnits : (it.bonus || '-'));
             const freeAmount = (it.freeAmount !== undefined && it.freeAmount !== null && it.freeAmount !== '') ? parseFloat(it.freeAmount).toFixed(2) : '-';
 
             // Discount
@@ -4584,19 +4589,46 @@ function buildBillHTML(bill, templateIdOrAgency, customSettingsOrCustomer, fourt
         templateId = (customSettings && customSettings.template) || bill.template;
     }
 
-    const agRaw = passedAgency || ((typeof myAgency !== 'undefined' && myAgency) ? myAgency : (bill.agency || {}));
+    const rawAgencyInput = passedAgency || ((typeof myAgency !== 'undefined' && myAgency) ? myAgency : (bill.agency || {}));
+    const agRaw = (typeof window !== 'undefined' && window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function')
+        ? window.BusinessCategories.applyActiveCategoryProfile({ ...rawAgencyInput })
+        : rawAgencyInput;
     const agency = getTemplateAgency(agRaw, bill);
     const baseCustomer = getTemplateCustomer(bill);
     const customer = (passedCustomer && typeof passedCustomer === 'object')
-        ? { ...baseCustomer, ...passedCustomer, name: passedCustomer.name || baseCustomer.name, mobile: passedCustomer.mobile || baseCustomer.mobile, ntn: passedCustomer.ntn || baseCustomer.ntn, cnic: passedCustomer.cnic || passedCustomer.ntn || baseCustomer.cnic }
+        ? { ...baseCustomer, ...passedCustomer, name: passedCustomer.name || baseCustomer.name, mobile: passedCustomer.mobile || baseCustomer.mobile, ntn: passedCustomer.ntn || baseCustomer.ntn, cnic: passedCustomer.cnic || passedCustomer.ntn || baseCustomer.cnic, route: passedCustomer.route || passedCustomer.affiliatedBoard || baseCustomer.route }
         : baseCustomer;
     const tId = templateId || bill.template || agency.defaultTemplate || agency.template || DEFAULT_TEMPLATE;
     const template = BILL_TEMPLATES[tId] || BILL_TEMPLATES[DEFAULT_TEMPLATE] || BILL_TEMPLATES['template4'];
     
     // Read checkbox controls if print engine loaded and merge customSettings cleanly
+    const defaultPrintFlags = {
+        showLogo: true,
+        showAgencyName: true,
+        showTagline: true,
+        showAddress: true,
+        showMobiles: true,
+        showNTN: true,
+        showLicence: true,
+        showOwnerName: true,
+        showPayType: true,
+        showBillNo: true,
+        showDate: true,
+        showTime: true,
+        showCustomerName: true,
+        showCustomerPhone: true,
+        showCustomerAddress: true,
+        showCustomerRoute: true,
+        showCustomerNTN: true,
+        showBookerName: true,
+        showPreviousBalance: true,
+        showReceivedAmount: true,
+        showBalance: true,
+        showTermsAndConditions: true
+    };
     const baseSettings = (window.ebPrintEngine && window.ebPrintEngine.getEffectivePrintSettings)
         ? window.ebPrintEngine.getEffectivePrintSettings(agRaw)
-        : (typeof DEFAULT_PRINT_SETTINGS !== 'undefined' ? DEFAULT_PRINT_SETTINGS : {});
+        : (typeof DEFAULT_PRINT_SETTINGS !== 'undefined' ? { ...defaultPrintFlags, ...DEFAULT_PRINT_SETTINGS } : defaultPrintFlags);
     const settings = customSettings ? { ...baseSettings, ...customSettings } : baseSettings;
 
     return template.fn(bill, agency, customer, settings);

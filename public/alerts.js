@@ -46,7 +46,9 @@ function classifyAlertStockItem(item, refDate = new Date()) {
     const ind = item.industryFields || {};
     const supplier = String(item.supplierName || ind.supplierName || item.brandCompany || ind.brandCompany || item.publisherBoard || 'General').trim() || 'General';
     const expStr = String(item.expiryDate || ind.expiryDate || '').trim().slice(0, 10);
-    const batchNo = String(item.batchNo || ind.batchNo || '').trim();
+    const batchNo = String(item.batchNo || ind.batchNo || item.skuBatchCode || ind.skuBatchCode || '').trim();
+    const cartonPacking = String(item.cartonPacking || ind.cartonPacking || '').trim();
+    const packSize = Number(item.packSize || ind.packSize || 0);
 
     let expiryStatus = 'none';
     let daysLeft = null;
@@ -74,6 +76,8 @@ function classifyAlertStockItem(item, refDate = new Date()) {
         supplier,
         expStr,
         batchNo,
+        cartonPacking,
+        packSize,
         expiryStatus,
         daysLeft,
         stockValueCost: qty * cost
@@ -90,8 +94,9 @@ function UNIT_LBL(u) {
     const m = {
         'kg': 'kg', 'g': 'g', 'pound': 'lb', 'maund': 'Maund', 'liter': 'L',
         'pcs': 'pcs', 'dozen': 'Dozen', 'packet': 'Pkt', 'bag': 'Bag',
-        'box': 'Box', 'carton': 'Ctn', 'bottle': 'Btl', 'can': 'Can',
-        'meter': 'm', 'feet': 'ft', 'gallon': 'Gal', 'unit': 'Unit'
+        'box': 'Box', 'carton': 'Ctn', 'master_ctn': 'M.Ctn', 'pack': 'Pack',
+        'sachet': 'Sachet', 'crate': 'Crate', 'strip': 'Strip', 'vial': 'Vial',
+        'bottle': 'Btl', 'can': 'Can', 'meter': 'm', 'feet': 'ft', 'gallon': 'Gal', 'unit': 'Unit'
     };
     return m[u] || u || 'Unit';
 }
@@ -125,7 +130,10 @@ auth.onAuthStateChanged(async (user) => {
             myAgency = agDoc.exists ? agDoc.data() : {};
             myAgency.id = myAgencyId;
             if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
-                window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+                myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+            }
+            if (window.BusinessCategories && typeof window.BusinessCategories.healMisassignedLegacyRecords === 'function') {
+                window.BusinessCategories.healMisassignedLegacyRecords(db, myAgencyId, myAgency).catch(() => {});
             }
             const h = document.getElementById('agencyNameHeader');
             if (h && myAgency.name) h.innerText = `🏢 ${myAgency.name}`;
@@ -139,13 +147,35 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
+function getActiveAlertsCategory() {
+    if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+        return window.BusinessCategories.resolveActiveCategory(myAgency, 'general');
+    }
+    return (myAgency && (myAgency.businessCategory || myAgency.businessType))
+        || localStorage.getItem('eb_active_business_category')
+        || localStorage.getItem('eb_active_category')
+        || 'general';
+}
+
+function getActiveAlertsCategoryMeta() {
+    const catId = getActiveAlertsCategory();
+    if (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function') {
+        return window.BusinessCategories.getById(catId) || { id: catId, icon: '🏢', nameEn: catId };
+    }
+    return { id: catId, icon: '🏢', nameEn: catId };
+}
+
 // ============================================
 // 📦 LOAD STOCK & COMPUTE ALERTS (LIVE LISTENER)
 // ============================================
 function loadStockAndAlerts() {
-    const activeCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
-        ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
-        : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'general');
+    const activeCat = getActiveAlertsCategory();
+    const catMeta = getActiveAlertsCategoryMeta();
+    const catBadge = document.getElementById('alertsActiveCategoryBadge');
+    if (catBadge) {
+        catBadge.innerHTML = `${catMeta.icon || '🏢'} ${catMeta.nameEn || activeCat} • ${(myAgency && myAgency.name) || 'Workspace'}`;
+    }
+
     db.collection('stock')
         .where('agencyId', '==', myAgencyId)
         .onSnapshot((snap) => {
@@ -165,9 +195,24 @@ function loadStockAndAlerts() {
                 window.hideNHLoader();
             }
 
-            // Save low stock cache for badge synchronization
-            localStorage.setItem(`eb_low_stock_count_${myAgencyId}`, lowStockItems.length);
-            localStorage.setItem(`eb_expiry_alert_count_${myAgencyId}`, expiryAlertItems.filter(x => x.expiryStatus === 'expired' || x.expiryStatus === 'critical').length);
+            // Save category-scoped stock & low stock count for topbar bell badge synchronization
+            const criticalExpCount = expiryAlertItems.filter(x => x.expiryStatus === 'expired' || x.expiryStatus === 'critical').length;
+            try {
+                localStorage.setItem(`eb_stock_cache_${myAgencyId}_${activeCat}`, JSON.stringify({
+                    items: allStock,
+                    timestamp: new Date().toISOString()
+                }));
+                localStorage.setItem(`eb_low_stock_count_${myAgencyId}_${activeCat}`, String(lowStockItems.length));
+                localStorage.setItem(`eb_expiry_alert_count_${myAgencyId}_${activeCat}`, String(criticalExpCount));
+                localStorage.setItem(`eb_low_stock_count_${myAgencyId}`, String(lowStockItems.length));
+            } catch (_) {}
+
+            if (window.ebSidebar && typeof window.ebSidebar.syncBadge === 'function') {
+                window.ebSidebar.syncBadge();
+            }
+
+            // Refresh Push Notification status text with live low-stock count for this category
+            updatePushUIState();
         }, (e) => {
             console.error('Stock alerts error:', e);
             if (window.hideNHLoader) window.hideNHLoader();
@@ -235,6 +280,19 @@ function populateCategoryFilter() {
         const sup = String(s.supplierName || ind.supplierName || s.brandCompany || ind.brandCompany || '').trim();
         if (sup) suppliers.add(sup);
     });
+    try {
+        const activeCat = getActiveAlertsCategory();
+        const savedBrandsRaw = localStorage.getItem(`eb_custom_brands_${myAgencyId}_${activeCat}`);
+        if (savedBrandsRaw) {
+            const parsedBrands = JSON.parse(savedBrandsRaw);
+            if (Array.isArray(parsedBrands)) {
+                parsedBrands.forEach(b => {
+                    const clean = String(b || '').trim();
+                    if (clean) suppliers.add(clean);
+                });
+            }
+        }
+    } catch (_) {}
 
     let html = '<option value="">All Categories</option>';
     Array.from(cats).sort().forEach(c => {
@@ -286,11 +344,14 @@ function renderTable() {
     });
 
     if (filtered.length === 0) {
+        const catMeta = getActiveAlertsCategoryMeta();
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" style="text-align:center; padding:35px; color:#15803d; font-weight:bold;">
                     <i class="fas fa-check-circle" style="font-size:26px; color:#10b981; display:block; margin-bottom:8px;"></i>
-                    ${isExpiryMode ? 'Mashallah! Koi expired ya near-expiry batch alert mojood nahi hai!' : 'Mashallah! Koi item low stock ya khatam nahi hai. Sara stock theek hai!'}
+                    ${isExpiryMode
+                        ? `All clear in ${catMeta.nameEn}! No expired or near-expiry batches found.`
+                        : `All clear in ${catMeta.nameEn}! No items are out of stock or below their low-stock limit.`}
                 </td>
             </tr>`;
         return;
@@ -410,10 +471,13 @@ window.quickRestockModal = async function(stockId, itemName, unit, curCost) {
                 updatedAt: new Date().toISOString()
             });
 
-            // Log movement
+            // Log movement (isolated per active category)
+            const activeCat = getActiveAlertsCategory();
             const moveRef = db.collection('movements').doc();
             batch.set(moveRef, {
                 agencyId: myAgencyId,
+                businessCategory: activeCat,
+                categoryConfirmedByCreate: true,
                 itemName: itemName,
                 itemId: stockId,
                 qty: formValues.qty,
@@ -496,41 +560,170 @@ document.getElementById('btnPrintChecklist').addEventListener('click', () => {
 });
 
 // ============================================
-// 🔔 WEB DESKTOP / MOBILE PUSH NOTIFICATIONS
+// 🔔 WEB DESKTOP / MOBILE & SMART IN-APP PUSH NOTIFICATIONS (PER ACTIVE CATEGORY)
 // ============================================
+function getCategoryPushPrefKey() {
+    const activeCat = getActiveAlertsCategory();
+    return `eb_push_alerts_${myAgencyId || 'default'}_${activeCat}`;
+}
+
+function isCategoryPushEnabled() {
+    const pref = localStorage.getItem(getCategoryPushPrefKey());
+    if (pref === 'enabled') return true;
+    if (pref === 'disabled') return false;
+    return ('Notification' in window) && Notification.permission === 'granted';
+}
+
+function updatePushUIState() {
+    const btn = document.getElementById('btnTogglePush');
+    const txt = document.getElementById('pushStatusText');
+    if (!btn || !txt) return;
+
+    const catMeta = getActiveAlertsCategoryMeta();
+    const enabled = isCategoryPushEnabled();
+    const browserGranted = ('Notification' in window) && Notification.permission === 'granted';
+
+    if (enabled) {
+        const modeLabel = browserGranted ? 'Browser + In-App Push Active' : 'Smart In-App Push Active';
+        txt.innerHTML = `✅ <b>${modeLabel} (${catMeta.nameEn}):</b> You will be notified automatically whenever items in <b>${catMeta.nameEn}</b> reach low stock (${lowStockItems.length} low-stock items right now).`;
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Push Alerts Enabled';
+        btn.style.background = '#0284c7';
+        btn.disabled = false;
+        btn.title = 'Click to manage or turn off push alerts for this category';
+    } else {
+        txt.innerHTML = `Enable push alerts for <b>${catMeta.nameEn}</b> to get notified whenever stock runs low during sales!`;
+        btn.innerHTML = '<i class="fas fa-bell"></i> Enable Push Alerts';
+        btn.style.background = '#15803d';
+        btn.disabled = false;
+        btn.title = 'Click to enable low-stock push alerts for this category';
+    }
+}
+
 function setupPushNotificationUI() {
     const btn = document.getElementById('btnTogglePush');
     const txt = document.getElementById('pushStatusText');
+    if (!btn || !txt) return;
 
-    if (!('Notification' in window)) {
-        txt.innerText = 'Browser notifications are not supported on this device.';
-        btn.style.display = 'none';
-        return;
-    }
-
-    if (Notification.permission === 'granted') {
-        txt.innerHTML = '✅ <b>Push Alerts Active!</b> You will receive notifications when items reach low stock threshold.';
-        btn.innerText = '🔔 Push Alerts Enabled';
-        btn.disabled = true;
-        btn.style.background = '#64748b';
-    }
+    updatePushUIState();
 
     btn.addEventListener('click', async () => {
-        const perm = await Notification.requestPermission();
-        if (perm === 'granted') {
-            txt.innerHTML = '✅ <b>Push Alerts Activated!</b>';
-            btn.innerText = '🔔 Push Alerts Enabled';
-            btn.disabled = true;
-            btn.style.background = '#64748b';
+        const catMeta = getActiveAlertsCategoryMeta();
+        const prefKey = getCategoryPushPrefKey();
+        const currentlyEnabled = isCategoryPushEnabled();
 
-            if (lowStockItems.length > 0) {
-                new Notification('⚠️ NH POS — Low Stock Alert', {
-                    body: `${lowStockItems.length} items require immediate restocking!`,
-                    icon: 'icon-192.png'
+        // If already enabled, offer option to test alert or disable for this category
+        if (currentlyEnabled) {
+            const res = await Swal.fire({
+                icon: 'info',
+                title: `🔔 Push Alerts (${catMeta.nameEn})`,
+                html: `
+                    <div style="text-align:left; font-size:13px; line-height:1.55; color:#334155;">
+                        <p style="margin:0 0 8px 0;">Low-stock push notifications are currently <b>ENABLED</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>.</p>
+                        <p style="margin:0;">• <b>Active Low-Stock Items in this Category:</b> ${lowStockItems.length}</p>
+                    </div>
+                `,
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: '🔔 Send Test Alert',
+                denyButtonText: '🔕 Turn Off for this Category',
+                cancelButtonText: 'Close',
+                confirmButtonColor: '#10b981',
+                denyButtonColor: '#ef4444'
+            });
+
+            if (res.isConfirmed) {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    try {
+                        new Notification(`🔔 NH POS — ${catMeta.nameEn}`, {
+                            body: lowStockItems.length > 0
+                                ? `${lowStockItems.length} item(s) require restocking in ${catMeta.nameEn}!`
+                                : `Push alerts are working! All stock is healthy in ${catMeta.nameEn}.`,
+                            icon: 'icon-192.png'
+                        });
+                    } catch (_) {}
+                }
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    timer: 2600,
+                    showConfirmButton: false,
+                    icon: 'success',
+                    title: lowStockItems.length > 0
+                        ? `⚠️ ${lowStockItems.length} low-stock item(s) in ${catMeta.nameEn}!`
+                        : `✅ Test Alert Sent! 0 low-stock items in ${catMeta.nameEn}.`
+                });
+            } else if (res.isDenied) {
+                localStorage.setItem(prefKey, 'disabled');
+                updatePushUIState();
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    icon: 'info',
+                    title: `Push alerts turned off for ${catMeta.nameEn}.`
                 });
             }
+            return;
+        }
+
+        // Enabling Push Alerts for the active category
+        let perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+        if ('Notification' in window && perm !== 'granted') {
+            try {
+                perm = await Notification.requestPermission();
+            } catch (err) {
+                perm = Notification.permission || 'denied';
+            }
+        }
+
+        // Always enable Per-Category Smart Push Alerts in NH POS
+        localStorage.setItem(prefKey, 'enabled');
+        updatePushUIState();
+
+        if (perm === 'granted') {
+            if (lowStockItems.length > 0) {
+                try {
+                    new Notification(`⚠️ NH POS — ${catMeta.nameEn} Low Stock`, {
+                        body: `${lowStockItems.length} item(s) require immediate restocking in ${catMeta.nameEn}!`,
+                        icon: 'icon-192.png'
+                    });
+                } catch (_) {}
+            }
+            await Swal.fire({
+                icon: 'success',
+                title: '✅ Push Alerts Enabled!',
+                html: `
+                    <div style="text-align:left; font-size:13px; line-height:1.55; color:#334155;">
+                        <p style="margin:0 0 8px 0;">Browser &amp; In-App Push Notifications are now <b>ACTIVE</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>.</p>
+                        <p style="margin:0;">Whenever any item in this category falls below its low-stock limit during sales, you will receive an instant alert.</p>
+                    </div>
+                `,
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#10b981'
+            });
         } else {
-            Swal.fire('ℹ️', 'Notification permission deny ho gayi!', 'info');
+            await Swal.fire({
+                icon: 'success',
+                title: '✅ Smart Push Alerts Enabled!',
+                html: `
+                    <div style="text-align:left; font-size:13px; line-height:1.55; color:#334155;">
+                        <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px; margin-bottom:10px; color:#166534;">
+                            <b>✅ In-App Smart Push Alerts are now ACTIVE</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>! You will receive instant on-screen &amp; bell alerts whenever stock runs low in this category.
+                        </div>
+                        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-size:12px; color:#475569;">
+                            <b>📲 Optional — How to also allow Browser / Mobile Lock-Screen Notifications:</b>
+                            <ol style="margin:6px 0 0 18px; padding:0;">
+                                <li>Tap the <b>Lock / Tune icon (🔒)</b> on the left side of your browser's address bar.</li>
+                                <li>Tap <b>Permissions</b> (or <b>Site settings</b>) &rarr; <b>Notifications</b>.</li>
+                                <li>Select <b>Allow</b> (or open the installed <b>NH POS App</b> from your home screen).</li>
+                            </ol>
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: 'Got It',
+                confirmButtonColor: '#10b981'
+            });
         }
     });
 }

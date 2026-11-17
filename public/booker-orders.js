@@ -60,6 +60,7 @@ function setupCategoryBookerUI() {
     const catId = getActiveBookerCategory();
     const isMobile = catId === 'mobile';
     const isWholesale = catId === 'wholesaler';
+    const isDistributor = catId === 'distributor';
 
     const repairBtn = document.getElementById('btnOpenRepairJobModal');
     if (repairBtn) {
@@ -68,12 +69,14 @@ function setupCategoryBookerUI() {
     const vanLoadBtn = document.getElementById('btnOpenVanLoadSheet');
     if (vanLoadBtn) {
         vanLoadBtn.style.display = 'inline-flex';
-        if (isWholesale) {
+        if (isWholesale || isDistributor) {
             vanLoadBtn.style.boxShadow = '0 0 0 2px #ddd6fe';
         }
     }
     const searchInp = document.getElementById('orderSearchInput');
-    if (searchInp && isWholesale) {
+    if (searchInp && isDistributor) {
+        searchInp.placeholder = 'Search by Order/Bill #, Load Form #, Shop, Weekly Route (PJP), Principal Company, SKU...';
+    } else if (searchInp && isWholesale) {
         searchInp.placeholder = 'Search by Order/Bill #, Load Form #, Shop, PJP Route, SKU, Product...';
     }
 }
@@ -114,23 +117,50 @@ function formatWholesaleQtySummary(qty, freeQty, unit, packSize) {
     return `${total} ${u} (1x${p})`;
 }
 
+function getTodayBookerRouteInfo() {
+    const days = [
+        { en: 'Sunday', ur: 'اتوار' },
+        { en: 'Monday', ur: 'پیر' },
+        { en: 'Tuesday', ur: 'منگل' },
+        { en: 'Wednesday', ur: 'بدھ' },
+        { en: 'Thursday', ur: 'جمعرات' },
+        { en: 'Friday', ur: 'جمعہ' },
+        { en: 'Saturday', ur: 'ہفتہ' }
+    ];
+    return days[new Date().getDay()] || days[1];
+}
+
+function matchesTodayBookerRoute(ord) {
+    if (!ord) return false;
+    const todayInfo = getTodayBookerRouteInfo();
+    const hay = `${ord.affiliatedBoard || ''} ${ord.customerRoute || ''}`.toLowerCase();
+    return hay.includes(todayInfo.en.toLowerCase()) || hay.includes(todayInfo.ur);
+}
+
 function populateRouteFilterDropdown() {
     const sel = document.getElementById('filterRouteSelect');
     if (!sel) return;
-    const isWholesale = getActiveBookerCategory() === 'wholesaler';
+    const catId = getActiveBookerCategory();
+    const isWholesale = catId === 'wholesaler';
+    const isDistributor = catId === 'distributor';
     const routeSet = new Set();
     allOrders.forEach(o => {
         if (o.customerRoute && String(o.customerRoute).trim()) routeSet.add(String(o.customerRoute).trim());
-        if (isWholesale && o.affiliatedBoard && String(o.affiliatedBoard).trim()) routeSet.add(String(o.affiliatedBoard).trim());
+        if ((isWholesale || isDistributor) && o.affiliatedBoard && String(o.affiliatedBoard).trim()) routeSet.add(String(o.affiliatedBoard).trim());
     });
     allStaff.forEach(s => {
         if (s.route && String(s.route).trim()) routeSet.add(String(s.route).trim());
     });
     const sorted = Array.from(routeSet).sort((a, b) => a.localeCompare(b));
     const prev = activeRouteFilter || sel.value || 'all';
+    const todayInfo = getTodayBookerRouteInfo();
+    const todayOptHtml = (isDistributor || isWholesale)
+        ? `<option value="__today_route__">📅 Today's Route / آج کا ہفتہ وار روٹ (${todayInfo.ur} / ${todayInfo.en})</option>`
+        : '';
     sel.innerHTML = '<option value="all">🛣️ All PJP Routes</option>' +
+        todayOptHtml +
         sorted.map(r => `<option value="${r.replace(/"/g, '&quot;')}">🛣️ ${r}</option>`).join('');
-    if (prev !== 'all' && sorted.includes(prev)) {
+    if (prev !== 'all' && (prev === '__today_route__' || sorted.includes(prev))) {
         sel.value = prev;
         activeRouteFilter = prev;
     } else {
@@ -533,7 +563,10 @@ async function loadStaff() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allStaff.push(data);
+            if (data.status === 'deleted') return;
+            if (data.role === 'owner' || data.role === 'super-admin' || matchesBookerActiveCategory(data)) {
+                allStaff.push(data);
+            }
         });
 
         // Populate Delivery Suppliers dropdown in Bulk Action bar
@@ -1205,10 +1238,15 @@ function renderOrdersTable() {
 
         // 2b. PJP Route Filter
         if (activeRouteFilter !== 'all') {
-            const targetRoute = activeRouteFilter.toLowerCase().trim();
-            const oRoute = (ord.customerRoute || '').toLowerCase().trim();
-            const oBeat = (getActiveBookerCategory() === 'wholesaler' ? (ord.affiliatedBoard || '') : '').toLowerCase().trim();
-            if (oRoute !== targetRoute && oBeat !== targetRoute) return false;
+            if (activeRouteFilter === '__today_route__') {
+                if (!matchesTodayBookerRoute(ord)) return false;
+            } else {
+                const targetRoute = activeRouteFilter.toLowerCase().trim();
+                const oRoute = (ord.customerRoute || '').toLowerCase().trim();
+                const catNow = getActiveBookerCategory();
+                const oBeat = ((catNow === 'wholesaler' || catNow === 'distributor') ? (ord.affiliatedBoard || '') : '').toLowerCase().trim();
+                if (oRoute !== targetRoute && oBeat !== targetRoute) return false;
+            }
         }
 
         // 3. Date Preset Filter
@@ -1344,6 +1382,7 @@ function renderOrdersTable() {
         const billDisplay = ord.billNo || ord.orderNo || ord.repairTokenNo || ord.id.slice(0, 8);
         const activeCat = getActiveBookerCategory();
         const isWholesaleCat = activeCat === 'wholesaler';
+        const isDistributorCat = activeCat === 'distributor';
 
         return `
             <tr>
@@ -1362,7 +1401,7 @@ function renderOrdersTable() {
                 <td>
                     <b>${ord.customerName || 'Counter Sale'}</b> ${ord.customerShop ? `<span style="color:#64748b;">(${ord.customerShop})</span>` : ''}
                     ${ord.customerSubCategory && window.BusinessCategories ? `<span style="font-size:10px; background:#ede9fe; color:#5b21b6; padding:1px 6px; border-radius:6px; font-weight:700;">${window.BusinessCategories.getCustomerSegmentLabel(activeCat, ord.customerSubCategory)}</span>` : ''}<br>
-                    <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}${ord.affiliatedBoard ? ` | ${isWholesaleCat ? '🛣️ PJP:' : (activeCat === 'restaurant' ? '📍 Zone:' : '🏷️')} ${ord.affiliatedBoard}` : ''}</small>
+                    <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}${ord.affiliatedBoard ? ` | ${isDistributorCat ? '🗓️ Weekly Route (PJP):' : (isWholesaleCat ? '🛣️ PJP:' : (activeCat === 'restaurant' ? '📍 Zone:' : '🏷️'))} ${ord.affiliatedBoard}` : ''}</small>
                     ${ord.kitchenOrderNote ? `<div style="font-size:11px; color:#9a3412; font-weight:700; margin-top:2px;">👨‍🍳 KOT: ${ord.kitchenOrderNote}</div>` : ''}
                     ${isRepairJob && ord.repairDeviceModel ? `<div style="font-size:11px; color:#0f766e; font-weight:700; margin-top:2px;">📱 ${ord.repairDeviceModel} ${ord.repairImei ? `(IMEI: ${ord.repairImei})` : ''}</div>` : ''}
                 </td>
@@ -1639,6 +1678,8 @@ async function approveOrder(orderId) {
             const moveRef = db.collection('movements').doc();
             batch.set(moveRef, {
                 agencyId: myAgencyId,
+                businessCategory: getActiveBookerCategory(),
+                categoryConfirmedByCreate: true,
                 billNo: liveBillNo,
                 type: 'out',
                 reason: 'sale',
@@ -2343,6 +2384,8 @@ async function handleBulkApproveAndAssign() {
                     const moveRef = db.collection('movements').doc();
                     batch.set(moveRef, {
                         agencyId: myAgencyId,
+                        businessCategory: getActiveBookerCategory(),
+                        categoryConfirmedByCreate: true,
                         billNo: liveBillNo,
                         type: 'out',
                         reason: 'sale',
@@ -2701,11 +2744,13 @@ window.printVanLoadingChallan = function() {
     const routesSet = new Set();
     const suppliersSet = new Set();
     const activeCat = getActiveBookerCategory();
-    const subIcon = activeCat === 'wholesaler' ? '📦' : (activeCat === 'mobile' ? '📱' : (activeCat === 'medical' ? '💊' : (activeCat === 'restaurant' ? '🍔' : '📚')));
+    const isDistributor = activeCat === 'distributor';
+    const subIcon = isDistributor ? '🚚' : (activeCat === 'wholesaler' ? '📦' : (activeCat === 'mobile' ? '📱' : (activeCat === 'medical' ? '💊' : (activeCat === 'restaurant' ? '🍔' : '📚'))));
 
     targetOrders.forEach(ord => {
         totalGrossAmount += (parseFloat(ord.billAmount || ord.grandTotal) || 0);
         if (ord.customerRoute && String(ord.customerRoute).trim()) routesSet.add(String(ord.customerRoute).trim());
+        if (isDistributor && ord.affiliatedBoard && String(ord.affiliatedBoard).trim()) routesSet.add(String(ord.affiliatedBoard).trim());
         if (ord.supplierName && String(ord.supplierName).trim()) suppliersSet.add(String(ord.supplierName).trim());
 
         (ord.items || []).forEach(it => {
@@ -2756,7 +2801,10 @@ window.printVanLoadingChallan = function() {
     `;
     }).join('');
 
-    const shopsList = targetOrders.map(o => `${o.billNo || o.orderNo || ''} • ${o.customerShop || o.customerName} (${o.customerRoute || 'Area'})`).join(' | ');
+    const shopsList = targetOrders.map(o => `${o.billNo || o.orderNo || ''} • ${o.customerShop || o.customerName} (${o.customerRoute || o.affiliatedBoard || 'Area'})`).join(' | ');
+    const gatePassTitle = isDistributor
+        ? '🚚 FMCG AGENCY VAN LOADING CHALLAN & GODOWN GATE PASS (وین لوڈنگ چالان و گودام گیٹ پاس)'
+        : '🚚 ڈلیوری وین لوڈنگ چالان و گیٹ پاس (Van Loading Gate Pass)';
 
     const html = `
         <!DOCTYPE html>
@@ -2777,7 +2825,7 @@ window.printVanLoadingChallan = function() {
             <div style="text-align: center; border-bottom: 2px solid #7c3aed; padding-bottom: 8px;">
                 <h2 style="margin: 0; color: #7c3aed;">${myAgency?.name || 'Distribution Agency'}</h2>
                 <div style="font-size: 12px; color: #64748b;">${myAgency?.address || ''} | فون: ${myAgency?.mobile || ''}</div>
-                <h3 style="margin: 6px 0 0; color: #0f172a; text-transform: uppercase;">🚚 ڈلیوری وین لوڈنگ چالان و گیٹ پاس (Van Loading Gate Pass)</h3>
+                <h3 style="margin: 6px 0 0; color: #0f172a; text-transform: uppercase;">${gatePassTitle}</h3>
                 <div style="font-size: 11.5px; color: #475569; margin-top:3px;">
                     Load Form #: <b style="color:#6d28d9;">${loadFormDisplay}</b> &nbsp;|&nbsp;
                     Van / Supplier: <b>${vanDriverText}</b> &nbsp;|&nbsp;
@@ -2793,7 +2841,7 @@ window.printVanLoadingChallan = function() {
             </div>
 
             <div style="margin-top: 10px; font-size: 11.5px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 6px;">
-                <div><b>🛣️ PJP Routes:</b> ${routesListText}</div>
+                <div><b>🗓️ Weekly Routes (PJP):</b> ${routesListText}</div>
                 <div style="margin-top:3px;"><b>🏪 Bills / Shops Included:</b> ${shopsList}</div>
             </div>
 

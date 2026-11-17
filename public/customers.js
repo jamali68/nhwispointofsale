@@ -69,12 +69,18 @@ const CUST_SUBCATEGORY_LABELS = {
     'foodpanda_online': '📱 Online App / Aggregator',
     'corporate_office': '🏢 Corporate / Office Account',
     'catering_event': '🎉 Catering / Party Bulk',
+    'sub_distributor': '🚛 Sub-Distributor / Town Agency',
+    'bakery_confectionery': '🥐 Bakery / Sweet Mart / Tuck Shop',
+    'medical_cosmetic_shop': '👶 Medical / Diaper & Cosmetics',
+    'wholesale_dealer': '📦 Wholesale Dealer / Bulk Buyer',
+    'cash_counter': '💵 Cash Counter Sale',
     'general_cust': '👤 General Customer'
 };
 const INSTITUTIONAL_SEGMENTS = [
     'school_college', 'sub_dealer', 'library_inst', 'teacher_tutor',
     'repair_tech', 'installment_cust', 'used_buyer_seller', 'corporate_inst',
     'kiryana_retailer', 'superstore_mart', 'mandi_party', 'corporate_canteen',
+    'sub_distributor', 'bakery_confectionery', 'medical_cosmetic_shop', 'wholesale_dealer',
     'clinic_hospital', 'doctor_prescriber', 'sub_chemist', 'panel_inst', 'chronic_patient',
     'dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'corporate_office', 'catering_event'
 ];
@@ -350,9 +356,11 @@ async function loadAgencyBookers() {
         snap.forEach(d => {
             const u = d.data();
             u.id = d.id;
-            if (u.status !== 'deleted' && (u.role === 'booker' || u.role === 'supplier' || u.role === 'delivery')) {
-                agencyBookers.push(u);
-                seenIds.add(u.id);
+            if (u.status !== 'deleted' && (u.role === 'booker' || u.role === 'supplier' || u.role === 'delivery' || u.role === 'driver')) {
+                if (matchesCustomerCategory(u)) {
+                    agencyBookers.push(u);
+                    seenIds.add(u.id);
+                }
             }
         });
 
@@ -363,7 +371,7 @@ async function loadAgencyBookers() {
                 if (!seenIds.has(d.id)) {
                     const u = d.data();
                     u.id = d.id;
-                    if (u.status !== 'deleted') {
+                    if (u.status !== 'deleted' && matchesCustomerCategory(u)) {
                         agencyBookers.push(u);
                         seenIds.add(u.id);
                     }
@@ -379,16 +387,43 @@ async function loadAgencyBookers() {
     }
 }
 
+function getTodayRouteDayInfo() {
+    const dayIdx = new Date().getDay();
+    const map = [
+        { en: 'sunday', shortEn: 'sun', ur: 'اتوار', label: 'اتوار Sunday' },
+        { en: 'monday', shortEn: 'mon', ur: 'پیر', label: 'پیر Monday' },
+        { en: 'tuesday', shortEn: 'tue', ur: 'منگل', label: 'منگل Tuesday' },
+        { en: 'wednesday', shortEn: 'wed', ur: 'بدھ', label: 'بدھ Wednesday' },
+        { en: 'thursday', shortEn: 'thu', ur: 'جمعرات', label: 'جمعرات Thursday' },
+        { en: 'friday', shortEn: 'fri', ur: 'جمعہ', label: 'جمعہ Friday' },
+        { en: 'saturday', shortEn: 'sat', ur: 'ہفتہ', label: 'ہفتہ Saturday' }
+    ];
+    return map[dayIdx] || map[1];
+}
+
+function matchesTodayRouteBeat(c) {
+    if (!c) return false;
+    const info = getTodayRouteDayInfo();
+    const combined = `${c.affiliatedBoard || ''} ${c.route || ''}`.toLowerCase();
+    if (!combined.trim()) return false;
+    if (combined.includes(info.en) || combined.includes(info.ur)) return true;
+    const wordTokens = combined.split(/[\s,/\-—()]+/);
+    if (wordTokens.includes(info.shortEn)) return true;
+    if (combined.includes('daily') || combined.includes('روزانہ')) return true;
+    return false;
+}
+
 function populateCustomerRouteFilter() {
     const sel = document.getElementById('custRouteFilter');
     if (!sel) return;
     const activeCat = getActiveCategoryId();
     const isWholesale = activeCat === 'wholesaler';
+    const isDistributor = activeCat === 'distributor';
     const isRestaurant = activeCat === 'restaurant';
     const routeSet = new Set();
     allCustomers.forEach(c => {
         if (c.route && String(c.route).trim()) routeSet.add(String(c.route).trim());
-        if ((isWholesale || isRestaurant) && c.affiliatedBoard && String(c.affiliatedBoard).trim()) {
+        if ((isWholesale || isDistributor || isRestaurant) && c.affiliatedBoard && String(c.affiliatedBoard).trim()) {
             routeSet.add(String(c.affiliatedBoard).trim());
         }
     });
@@ -397,9 +432,18 @@ function populateCustomerRouteFilter() {
     });
     const sorted = Array.from(routeSet).sort((a, b) => a.localeCompare(b));
     const prev = currentRouteFilter || sel.value || 'all';
-    sel.innerHTML = '<option value="all">🛣️ All Routes / PJP Beats</option>' +
+    const todayInfo = getTodayRouteDayInfo();
+    const todayCount = allCustomers.filter(c => matchesTodayRouteBeat(c)).length;
+    const todayOptionHtml = (isDistributor || isWholesale)
+        ? `<option value="__today_route__">📅 Today's Route / آج کا ہفتہ وار روٹ (${todayInfo.label} — ${todayCount} Shops)</option>`
+        : '';
+    sel.innerHTML = '<option value="all">🛣️ All Routes / Weekly PJP Beats (تمام روٹس)</option>' +
+        todayOptionHtml +
         sorted.map(r => `<option value="${r.replace(/"/g, '&quot;')}">🛣️ ${r}</option>`).join('');
-    if (prev !== 'all' && sorted.includes(prev)) {
+    if (prev === '__today_route__' && (isDistributor || isWholesale)) {
+        sel.value = '__today_route__';
+        currentRouteFilter = '__today_route__';
+    } else if (prev !== 'all' && sorted.includes(prev)) {
         sel.value = prev;
         currentRouteFilter = prev;
     } else {
@@ -591,6 +635,7 @@ function renderCustomers() {
 
     const activeCatId = getActiveCategoryId();
     const isWholesale = activeCatId === 'wholesaler';
+    const isDistributor = activeCatId === 'distributor';
     const isRest = activeCatId === 'restaurant';
     const isMedical = activeCatId === 'medical';
 
@@ -607,10 +652,14 @@ function renderCustomers() {
 
         // Route / PJP Beat / Delivery Zone Filter
         if (currentRouteFilter && currentRouteFilter !== 'all') {
-            const targetRoute = currentRouteFilter.toLowerCase().trim();
-            const cRoute = (c.route || '').toLowerCase().trim();
-            const cBeat = (isWholesale || isRest) ? (c.affiliatedBoard || '').toLowerCase().trim() : '';
-            if (cRoute !== targetRoute && cBeat !== targetRoute) return false;
+            if (currentRouteFilter === '__today_route__') {
+                if (!matchesTodayRouteBeat(c)) return false;
+            } else {
+                const targetRoute = currentRouteFilter.toLowerCase().trim();
+                const cRoute = (c.route || '').toLowerCase().trim();
+                const cBeat = (isWholesale || isDistributor || isRest) ? (c.affiliatedBoard || '').toLowerCase().trim() : '';
+                if (cRoute !== targetRoute && cBeat !== targetRoute) return false;
+            }
         }
 
         // Search Filter
@@ -714,8 +763,8 @@ function renderCustomers() {
                 </div>
                 <div class="customer-details">
                     ${c.mobile ? `<span>📱 ${c.mobile}</span>` : ''}
-                    ${c.focalPerson ? `<span style="color:#4f46e5; font-weight:600;">${activeCatId === 'mobile' ? '🤝 Guarantor/Ref:' : (isWholesale ? '🤝 Owner/Munshi:' : (isRest ? '🛵 Rider/Contact:' : (isMedical ? '👨‍⚕️ Doctor/Ref:' : '👔 Focal:')))} ${c.focalPerson}</span>` : ''}
-                    ${c.affiliatedBoard ? `<span style="background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:6px; font-weight:700;">${activeCatId === 'mobile' ? '📱 Specialty:' : (isWholesale ? '🛣️ PJP Beat:' : (isRest ? '📍 Delivery Zone:' : (isMedical ? '🩺 Specialty/Rx:' : '🏛️ Board:')))} ${c.affiliatedBoard}</span>` : ''}
+                    ${c.focalPerson ? `<span style="color:#4f46e5; font-weight:600;">${activeCatId === 'mobile' ? '🤝 Guarantor/Ref:' : (isDistributor ? '👤 Shop Owner/Buyer:' : (isWholesale ? '🤝 Owner/Munshi:' : (isRest ? '🛵 Rider/Contact:' : (isMedical ? '👨‍⚕️ Doctor/Ref:' : '👔 Focal:'))))} ${c.focalPerson}</span>` : ''}
+                    ${c.affiliatedBoard ? `<span style="background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:6px; font-weight:700;">${activeCatId === 'mobile' ? '📱 Specialty:' : (isDistributor ? '🗓️ Weekly Route (PJP):' : (isWholesale ? '🛣️ PJP Beat:' : (isRest ? '📍 Delivery Zone:' : (isMedical ? '🩺 Specialty/Rx:' : '🏛️ Board:'))))} ${c.affiliatedBoard}</span>` : ''}
                     ${c.address ? `<span>📍 ${c.address}</span>` : ''}
                     ${c.route ? `<span>🛣️ ${c.route}</span>` : ''}
                     ${c.city ? `<span>🏙️ ${c.city}</span>` : ''}
@@ -725,6 +774,7 @@ function renderCustomers() {
                 <div class="customer-details" style="margin-top:2px;">
                     ${c.paymentTerms ? `<span>📅 Terms: ${TERMS_LABELS[c.paymentTerms] || c.paymentTerms}</span>` : ''}
                     ${c.creditLimit ? `<span>💳 Limit: Rs ${Number(c.creditLimit).toLocaleString()}</span>` : ''}
+                    ${(parseFloat(c.creditLimit) > 0 && bal > parseFloat(c.creditLimit)) ? `<span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:1px 7px; border-radius:8px; font-size:11px; font-weight:800;">🚨 Over Credit Limit (+Rs ${Math.round(bal - parseFloat(c.creditLimit)).toLocaleString()})</span>` : ''}
                     ${c.previousBalance ? `<span>⏳ Opening: Rs ${Number(c.previousBalance).toLocaleString()}</span>` : ''}
                     ${c.ntn ? `<span style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; padding:1px 6px; border-radius:6px; font-weight:700;">🪪 CNIC/NTN: ${c.ntn}</span>` : ''}
                     ${c.fbrStatus ? `<span style="font-size:11px; font-weight:800; padding:1px 8px; border-radius:10px; ${c.fbrStatus === 'filer' ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'}">${c.fbrStatus === 'filer' ? '🟢 Filer (فائلر)' : '🔴 Non-Filer (نان فائلر)'}</span>` : ''}
@@ -848,9 +898,9 @@ if (custSubCatEl) {
         const val = this.value;
         const typeEl = document.getElementById('custType');
         if (typeEl && val) {
-            if (['school_college', 'sub_dealer', 'library_inst', 'teacher_tutor', 'repair_tech', 'corporate_inst', 'kiryana_retailer', 'superstore_mart', 'mandi_party', 'corporate_canteen', 'corporate_office', 'catering_event', 'clinic_hospital', 'doctor_prescriber', 'sub_chemist', 'panel_inst'].includes(val)) {
+            if (['school_college', 'sub_dealer', 'library_inst', 'teacher_tutor', 'repair_tech', 'corporate_inst', 'kiryana_retailer', 'superstore_mart', 'mandi_party', 'corporate_canteen', 'sub_distributor', 'bakery_confectionery', 'medical_cosmetic_shop', 'wholesale_dealer', 'corporate_office', 'catering_event', 'clinic_hospital', 'doctor_prescriber', 'sub_chemist', 'panel_inst'].includes(val)) {
                 typeEl.value = 'wholesale';
-            } else if (['student_parent', 'installment_cust', 'used_buyer_seller', 'general_cust', 'dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'chronic_patient'].includes(val)) {
+            } else if (['student_parent', 'installment_cust', 'used_buyer_seller', 'general_cust', 'cash_counter', 'dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'chronic_patient'].includes(val)) {
                 typeEl.value = 'retail';
             }
         }
@@ -1131,6 +1181,7 @@ function openCustomerHistory(custId, targetTab = 'ledger') {
     document.getElementById('modalCustName').innerHTML = `📜 Khata Ledger: <b>${c.name}</b>`;
     const activeCat = getActiveCategoryId();
     const isWholesale = activeCat === 'wholesaler';
+    const isDistributor = activeCat === 'distributor';
     const isMobile = activeCat === 'mobile';
     const isRest = activeCat === 'restaurant';
     const isMedical = activeCat === 'medical';
@@ -1139,9 +1190,9 @@ function openCustomerHistory(custId, targetTab = 'ledger') {
     const subParts = [
         c.shopName ? `🏪 <b>${c.shopName}</b>` : '',
         c.subCategory ? `<span style="color:#5b21b6; font-weight:700;">${getCustSubCategoryLabel(c.subCategory)}</span>` : '',
-        c.affiliatedBoard ? `${isMobile ? '📱' : (isWholesale ? '🛣️ PJP Beat:' : (isRest ? '📍 Zone:' : (isMedical ? '🩺' : '🏛️')))} ${c.affiliatedBoard}` : '',
+        c.affiliatedBoard ? `${isMobile ? '📱' : (isDistributor ? '🗓️ Weekly Route:' : (isWholesale ? '🛣️ PJP Beat:' : (isRest ? '📍 Zone:' : (isMedical ? '🩺' : '🏛️'))))} ${c.affiliatedBoard}` : '',
         (parseFloat(c.agreedDiscountPercent) > 0) ? `🏷️ Disc: <b>${c.agreedDiscountPercent}%</b>` : '',
-        c.focalPerson ? `${isRest ? '🛵' : (isMedical ? '👨‍⚕️' : (isMobile || isWholesale ? '🤝' : '👔'))} ${c.focalPerson}` : '',
+        c.focalPerson ? `${isRest ? '🛵' : (isMedical ? '👨‍⚕️' : (isDistributor ? '👤' : (isMobile || isWholesale ? '🤝' : '👔')))} ${c.focalPerson}` : '',
         c.mobile ? `📱 ${c.mobile}` : '',
         c.route ? `🛣️ ${c.route}` : '',
         c.city ? `🏙️ ${c.city}` : '',
@@ -2491,10 +2542,13 @@ window.openAddCustomCustomerSpecialtyModal = async function() {
     const catId = getActiveCategoryId();
     const isMobile = catId === 'mobile';
     const isWholesale = catId === 'wholesaler';
+    const isDistributor = catId === 'distributor';
     const isMedical = catId === 'medical';
     const isRest = catId === 'restaurant';
     const modalTitle = isMobile
         ? '➕ Add Custom Dealership / Brand Specialty'
+        : isDistributor
+        ? '➕ Add Custom Weekly Route Day / PJP Beat (نیا ہفتہ وار روٹ شامل کریں)'
         : isWholesale
         ? '➕ Add Custom PJP Route / Market Beat'
         : isMedical
@@ -2504,6 +2558,8 @@ window.openAddCustomCustomerSpecialtyModal = async function() {
         : '➕ Add Custom Board / Syllabus / Specialty';
     const modalLabel = isMobile
         ? 'Apna Brand, Accessories Line ya Repairing Specialty likhein (e.g. Own Brand Accessories, iPhone Specialist, Used Phones):'
+        : isDistributor
+        ? 'Apna Haftawar Route Day aur Market Area likhein (مثلاً: پیر Monday Route - Main Bazar & City Center):'
         : isWholesale
         ? 'Naya PJP Route / Market Beat ya Wholesale Zone likhein:'
         : isMedical
@@ -2513,6 +2569,8 @@ window.openAddCustomCustomerSpecialtyModal = async function() {
         : 'Naya Board / Publisher / Specialty likhein:';
     const modalPh = isMobile
         ? 'e.g. Own Brand Fast Chargers & Handsfree'
+        : isDistributor
+        ? 'e.g. پیر Monday Route — Main Bazar & Model Town'
         : isWholesale
         ? 'e.g. Thursday Beat - Grain Market & Ring Road'
         : isMedical
@@ -2719,7 +2777,10 @@ function createNewBillForThisCustomer() {
 // 🛣️ PRINT PJP ROUTE & MARKET RECOVERY KHATA SHEET
 // ============================================
 window.printWholesalePjpRouteSheet = function() {
-    const isWholesale = getActiveCategoryId() === 'wholesaler';
+    const activeCat = getActiveCategoryId();
+    const isWholesale = activeCat === 'wholesaler';
+    const isDistributor = activeCat === 'distributor';
+    const isRest = activeCat === 'restaurant';
     const filtered = allCustomers.filter(c => {
         if (currentFilter === 'due' && (c.balance || 0) <= 0) return false;
         if (currentFilter === 'clear' && (c.balance || 0) > 0) return false;
@@ -2730,10 +2791,14 @@ window.printWholesalePjpRouteSheet = function() {
             if (!isInst) return false;
         }
         if (currentRouteFilter && currentRouteFilter !== 'all') {
-            const targetRoute = currentRouteFilter.toLowerCase().trim();
-            const cRoute = (c.route || '').toLowerCase().trim();
-            const cBeat = isWholesale ? (c.affiliatedBoard || '').toLowerCase().trim() : '';
-            if (cRoute !== targetRoute && cBeat !== targetRoute) return false;
+            if (currentRouteFilter === '__today_route__') {
+                if (!matchesTodayRouteBeat(c)) return false;
+            } else {
+                const targetRoute = currentRouteFilter.toLowerCase().trim();
+                const cRoute = (c.route || '').toLowerCase().trim();
+                const cBeat = (isWholesale || isDistributor || isRest) ? (c.affiliatedBoard || '').toLowerCase().trim() : '';
+                if (cRoute !== targetRoute && cBeat !== targetRoute) return false;
+            }
         }
         if (currentSearch) {
             const hay = [
@@ -2754,15 +2819,25 @@ window.printWholesalePjpRouteSheet = function() {
     const agencyName = (myAgency && (myAgency.businessName || myAgency.name)) || 'NH POS Distribution';
     const agencyPhone = (myAgency && (myAgency.phone || myAgency.mobile)) || '';
     const agencyAddress = (myAgency && myAgency.address) || '';
-    const routeTitle = (currentRouteFilter && currentRouteFilter !== 'all') ? currentRouteFilter : 'All PJP Routes / Markets';
+    const todayInfo = getTodayRouteDayInfo();
+    const routeTitle = currentRouteFilter === '__today_route__'
+        ? `📅 Today's Weekly Route (${todayInfo.label})`
+        : ((currentRouteFilter && currentRouteFilter !== 'all') ? currentRouteFilter : 'All Weekly PJP Routes / Markets');
+    const sheetBannerTitle = isDistributor
+        ? '🚚 WEEKLY ROUTE (PJP) &amp; MARKET RECOVERY SHEET (ہفتہ وار روٹ اور ریکوری شیٹ)'
+        : '🛣️ PJP ROUTE &amp; RECOVERY SHEET';
 
     let totalDue = 0;
     const rowsHtml = filtered.map((c, idx) => {
         const bal = parseFloat(c.balance || 0);
+        const credLim = parseFloat(c.creditLimit || 0);
         if (bal > 0) totalDue += bal;
         const seg = getCustSubCategoryLabel(c.subCategory) || CUST_TYPE_LABELS[c.customerType] || '—';
         const terms = TERMS_LABELS[c.paymentTerms] || c.paymentTerms || 'Cash';
         const beat = [c.route, c.affiliatedBoard].filter(Boolean).join(' / ') || '—';
+        const limitStr = credLim > 0
+            ? `<br><small style="color:${bal > credLim ? '#dc2626; font-weight:700' : '#475569'};">Limit: Rs ${Math.round(credLim).toLocaleString()}${bal > credLim ? ' (OVER!)' : ''}</small>`
+            : '';
         return `
             <tr>
                 <td style="text-align:center;">${idx + 1}</td>
@@ -2770,7 +2845,7 @@ window.printWholesalePjpRouteSheet = function() {
                     <b>${c.shopName || c.name || 'Customer'}</b><br>
                     <small style="color:#475569;">${c.name || ''}${c.focalPerson ? ' • ' + c.focalPerson : ''}</small>
                 </td>
-                <td><small>${seg}<br>Terms: <b>${terms}</b>${c.agreedDiscountPercent > 0 ? ` (${c.agreedDiscountPercent}%)` : ''}</small></td>
+                <td><small>${seg}<br>Terms: <b>${terms}</b>${c.agreedDiscountPercent > 0 ? ` (T.O: ${c.agreedDiscountPercent}%)` : ''}${limitStr}</small></td>
                 <td>${c.mobile || '—'}</td>
                 <td>${beat}${c.assignedBookerName ? `<br><small style="color:#0369a1;">Booker: ${c.assignedBookerName}</small>` : ''}</td>
                 <td style="text-align:right; font-weight:800; color:${bal > 0 ? '#dc2626' : '#16a34a'};">Rs ${Math.round(bal).toLocaleString()}</td>
@@ -2784,12 +2859,12 @@ window.printWholesalePjpRouteSheet = function() {
     <html>
     <head>
         <meta charset="UTF-8">
-        <title>PJP Route &amp; Market Recovery Sheet — ${routeTitle}</title>
+        <title>Weekly Route (PJP) &amp; Market Recovery Sheet — ${routeTitle}</title>
         <style>
             @media print { @page { size: A4 portrait; margin: 8mm; } body { margin: 0; } }
             body { font-family: Arial, sans-serif; color: #0f172a; font-size: 11px; margin: 14px; }
             .hdr { display:flex; justify-content:space-between; border-bottom:2px solid #0284c7; padding-bottom:8px; margin-bottom:10px; }
-            .kpi { display:flex; gap:14px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; }
+            .kpi { display:flex; gap:14px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; flex-wrap:wrap; }
             table { width:100%; border-collapse:collapse; font-size:10.5px; }
             th { background:#e2e8f0; border:1px solid #475569; padding:6px 5px; text-align:left; }
             td { border:1px solid #94a3b8; padding:5px; vertical-align:top; }
@@ -2803,12 +2878,12 @@ window.printWholesalePjpRouteSheet = function() {
                 <div>${agencyAddress}${agencyPhone ? ' • Tel: ' + agencyPhone : ''}</div>
             </div>
             <div style="text-align:right;">
-                <div style="font-weight:900; font-size:13px; border:1.5px solid #0284c7; padding:3px 10px; background:#f0f9ff;">🛣️ PJP ROUTE &amp; RECOVERY SHEET</div>
+                <div style="font-weight:900; font-size:12.5px; border:1.5px solid #0284c7; padding:3px 10px; background:#f0f9ff;">${sheetBannerTitle}</div>
                 <div style="margin-top:4px;">Date: <b>${new Date().toLocaleDateString('en-GB')}</b></div>
             </div>
         </div>
         <div class="kpi">
-            <div>Route / Beat: <b>${routeTitle}</b></div>
+            <div>Weekly Route / Beat: <b>${routeTitle}</b></div>
             <div>Total Shops: <b>${filtered.length}</b></div>
             <div>Total Market Udhaar: <b style="color:#dc2626;">Rs ${Math.round(totalDue).toLocaleString()}</b></div>
         </div>
@@ -2817,9 +2892,9 @@ window.printWholesalePjpRouteSheet = function() {
                 <tr>
                     <th style="width:28px; text-align:center;">#</th>
                     <th>Shop / Party &amp; Owner</th>
-                    <th>Segment &amp; Terms</th>
+                    <th>Segment, Terms &amp; Limit</th>
                     <th>Mobile #</th>
-                    <th>PJP Beat / Booker</th>
+                    <th>Weekly Route (PJP) / Booker</th>
                     <th style="text-align:right;">Current Udhaar</th>
                     <th style="text-align:center;">Cash Recovered</th>
                     <th style="text-align:center;">Signature</th>

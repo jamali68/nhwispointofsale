@@ -47,8 +47,11 @@
     <!-- ===== ➕ ADD STAFF (BOOKER OR SUPPLIER) ===== -->
     <div class="panel-card">
         <div class="card-header">
-            <h2><i class="fas fa-user-plus"></i> Add New Field Staff (بکر یا ڈلیوری سپلائر)</h2>
-            <small class="header-note">Booker field se order le ga aur Supplier mall dukanon par deliver/wapas laye ga!</small>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <h2><i class="fas fa-user-plus"></i> Add New Field Staff (بکر یا ڈلیوری سپلائر)</h2>
+                <span id="ownerActiveCategoryBadge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:800;">🏢 Category Workspace</span>
+            </div>
+            <small class="header-note">Booker field se order le ga aur Supplier mall dukanon par deliver/wapas laye ga! (Har Category ke Bookers &amp; Suppliers alag mehfooz hote hain)</small>
         </div>
         <form id="addBookerForm" class="panel-form">
             <div class="form-row">
@@ -189,6 +192,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<!-- 🏢 BUSINESS CATEGORY & ISOLATED DATABASE ENGINE -->
+<script src="business-categories.js?v=5.6.6"></script>
 
 <script>
     // ⚠️ AAP KA CONFIG
@@ -256,7 +261,24 @@
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
             myAgency = agDoc.exists ? agDoc.data() : {};
         }
+        if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+            myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency || {});
+        }
+        if (window.BusinessCategories && typeof window.BusinessCategories.healMisassignedLegacyRecords === 'function') {
+            window.BusinessCategories.healMisassignedLegacyRecords(db, myAgencyId, myAgency).catch(() => {});
+        }
         document.getElementById('agencyName').innerText = myAgency.name || 'My Agency';
+
+        const activeCatId = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+            ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
+            : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'general');
+        const activeCatMeta = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+            ? (window.BusinessCategories.getById(activeCatId) || { id: activeCatId, icon: '🏢', nameEn: activeCatId })
+            : { id: activeCatId, icon: '🏢', nameEn: activeCatId };
+        const catBadgeEl = document.getElementById('ownerActiveCategoryBadge');
+        if (catBadgeEl) {
+            catBadgeEl.innerHTML = `${activeCatMeta.icon || '🏢'} ${activeCatMeta.nameEn || activeCatId} • ${myAgency.name || 'Workspace'}`;
+        }
 
         // Limits load (package se + customLimits priority)
         let pkgId = myAgency.packageId || 'free';
@@ -274,8 +296,25 @@
         loadBookers();
     });
 
+    function getActiveOwnerCategory() {
+        if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+            return window.BusinessCategories.resolveActiveCategory(myAgency, 'general');
+        }
+        return (myAgency && (myAgency.businessCategory || myAgency.businessType))
+            || localStorage.getItem('eb_active_business_category')
+            || localStorage.getItem('eb_active_category')
+            || 'general';
+    }
+
+    function matchesOwnerActiveCategory(rec) {
+        if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+            return window.BusinessCategories.matchesActiveCategoryRecord(rec, getActiveOwnerCategory(), myAgency);
+        }
+        return true;
+    }
+
     // ============================================
-    // 📋 STAFF LOAD (Bookers & Delivery Suppliers)
+    // 📋 STAFF LOAD (Bookers & Delivery Suppliers — Strictly Per-Category)
     // ============================================
     let allAgencyBookers = [];
 
@@ -288,19 +327,40 @@
                 .get();
 
             allAgencyBookers = [];
+            const seenIds = new Set();
             let activeCount = 0;
             snap.forEach(d => {
                 const data = d.data();
                 data.id = d.id;
-                if (data.status !== 'deleted' && (data.role === 'booker' || data.role === 'supplier' || data.role === 'delivery')) {
-                    allAgencyBookers.push(data);
-                    activeCount++;
+                if (data.status !== 'deleted' && (data.role === 'booker' || data.role === 'supplier' || data.role === 'delivery' || data.role === 'driver')) {
+                    if (matchesOwnerActiveCategory(data)) {
+                        allAgencyBookers.push(data);
+                        seenIds.add(data.id);
+                        activeCount++;
+                    }
                 }
             });
+
+            // Also check 'bookers' collection fallback filtered strictly by active category
+            try {
+                const bSnap = await db.collection('bookers').where('agencyId', '==', myAgencyId).get();
+                bSnap.forEach(d => {
+                    if (!seenIds.has(d.id)) {
+                        const data = d.data();
+                        data.id = d.id;
+                        if (data.status !== 'deleted' && matchesOwnerActiveCategory(data)) {
+                            allAgencyBookers.push(data);
+                            seenIds.add(data.id);
+                            activeCount++;
+                        }
+                    }
+                });
+            } catch (_) {}
+
             const maxAllowed = (myAgency && myAgency.customLimits && myAgency.customLimits.maxBookers) || (myLimits && myLimits.maxBookers) || 2;
             document.getElementById('bookerCount').innerText = activeCount;
             const badgeEl = document.getElementById('bookerLimitBadge');
-            if (badgeEl) badgeEl.innerText = `${activeCount} / ${maxAllowed} Active (Max Limit: ${maxAllowed})`;
+            if (badgeEl) badgeEl.innerText = `${activeCount} / ${maxAllowed} Active in this Category (Max Limit: ${maxAllowed})`;
 
             renderBookersList('');
 
@@ -328,9 +388,13 @@
         });
 
         if (filtered.length === 0) {
+            const activeCatId = getActiveOwnerCategory();
+            const catMeta = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+                ? (window.BusinessCategories.getById(activeCatId) || { icon: '🏢', nameEn: activeCatId })
+                : { icon: '🏢', nameEn: activeCatId };
             container.innerHTML = query 
                 ? '<div class="empty-state">🔍 Koi staff member match nahi hua!</div>'
-                : '<div class="empty-state">👥 Abhi koi field staff nahi hai.<br>Upar se pehla BOOKER ya DELIVERY SUPPLIER shamil karein!</div>';
+                : `<div class="empty-state">👥 Is category (<b>${catMeta.icon || '🏢'} ${catMeta.nameEn || activeCatId}</b>) mein abhi koi Order Booker ya Delivery Supplier nahi banaya gaya.<br>Upar form se is category ke liye pehla <b>BOOKER</b> ya <b>DELIVERY SUPPLIER</b> shamil karein!</div>`;
             return;
         }
 
@@ -515,6 +579,7 @@
             }
             try { await secondaryApp.delete(); } catch(e) {}
 
+            const activeCat = getActiveOwnerCategory();
             const staffObj = {
                 email: email,
                 name: name,
@@ -523,6 +588,8 @@
                 route: route || 'General Area',
                 loginMethod: 'password',
                 agencyId: myAgencyId,
+                businessCategory: activeCat,
+                categoryConfirmedByCreate: true,
                 permissions: {
                     instant: false,
                     stock: permStock,
@@ -869,8 +936,6 @@
     }
 </script>
 
-    <!-- 🏢 BUSINESS CATEGORY & ISOLATED DATABASE ENGINE -->
-<script src="business-categories.js?v=5.6.5"></script>
     <!-- 🧭 SIDEBAR SYSTEM -->
 <script src="sidebar.js"></script>
     

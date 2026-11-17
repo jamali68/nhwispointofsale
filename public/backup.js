@@ -53,7 +53,30 @@ const BACKUP_COLLECTIONS = [
     'damage_claims'
 ];
 
-function buildAgencyBackupPayload(agencyId, agencyData, collections = {}) {
+function getActiveBackupCategory(agencyObj = myAgency) {
+    if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+        return window.BusinessCategories.resolveActiveCategory(agencyObj, 'general');
+    }
+    return (agencyObj && (agencyObj.businessCategory || agencyObj.businessType))
+        || (typeof localStorage !== 'undefined' && (localStorage.getItem('eb_active_business_category') || localStorage.getItem('eb_active_category')))
+        || 'general';
+}
+
+function matchesBackupActiveCategory(rec, activeCat = getActiveBackupCategory(), agencyObj = myAgency) {
+    if (!rec || typeof rec !== 'object') return false;
+    if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+        return window.BusinessCategories.matchesActiveCategoryRecord(rec, activeCat, agencyObj);
+    }
+    const recCat = rec.businessCategory || rec.categoryType || '';
+    if (!recCat) return activeCat === 'general';
+    return recCat === activeCat;
+}
+
+function buildAgencyBackupPayload(agencyId, agencyData, collections = {}, explicitCategoryId = '') {
+    const activeCat = explicitCategoryId || getActiveBackupCategory(agencyData);
+    const catLabel = (window.BusinessCategories && typeof window.BusinessCategories.getLabel === 'function')
+        ? window.BusinessCategories.getLabel(activeCat)
+        : activeCat;
     const safeCol = (k) => Array.isArray(collections[k]) ? collections[k] : [];
     const stock = safeCol('stock');
     const customers = safeCol('customers');
@@ -68,10 +91,12 @@ function buildAgencyBackupPayload(agencyId, agencyData, collections = {}) {
 
     return {
         app: 'NH POS',
-        formatVersion: '2.0',
+        formatVersion: '2.1',
         exportDate: new Date().toISOString(),
         agencyId: agencyId || '',
         agencyName: (agencyData && agencyData.name) || 'Agency',
+        businessCategory: activeCat,
+        categoryLabel: catLabel,
         summary: {
             stockItems: stock.length,
             customers: customers.length,
@@ -166,7 +191,10 @@ auth.onAuthStateChanged(async (user) => {
 
         try {
             const agDoc = await db.collection('agencies').doc(myAgencyId).get();
-            myAgency = agDoc.exists ? { id: agDoc.id, ...agDoc.data() } : {};
+            myAgency = agDoc.exists ? { id: agDoc.id, ...agDoc.data() } : { id: myAgencyId };
+            if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+            }
             const h = document.getElementById('agencyNameHeader');
             if (h && myAgency.name) h.innerText = `🏢 ${myAgency.name}`;
         } catch (e) {}
@@ -195,30 +223,32 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// Update last backup date badge
+// Update last backup date badge (scoped per active category)
 function updateBackupStatusUI() {
     const badge = document.getElementById('backupStatusBadge');
-    const lastDate = localStorage.getItem(`eb_last_backup_date_${myAgencyId}`);
+    const activeCat = getActiveBackupCategory();
+    const lastDate = localStorage.getItem(`eb_last_backup_date_${myAgencyId}_${activeCat}`) || localStorage.getItem(`eb_last_backup_date_${myAgencyId}`);
 
     if (lastDate) {
         const d = new Date(lastDate);
         const daysAgo = Math.floor((new Date() - d) / (1000 * 60 * 60 * 24));
         if (daysAgo <= 3) {
             badge.className = 'backup-status-badge status-safe';
-            badge.innerHTML = `<i class="fas fa-check-circle"></i> Data Safe: Backed up ${d.toLocaleDateString()}`;
+            badge.innerHTML = `<i class="fas fa-check-circle"></i> Data Safe (${activeCat}): Backed up ${d.toLocaleDateString()}`;
         } else {
             badge.className = 'backup-status-badge status-warn';
-            badge.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Reminder: Last backup was ${daysAgo} days ago`;
+            badge.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Reminder (${activeCat}): Last backup was ${daysAgo} days ago`;
         }
     } else {
         badge.className = 'backup-status-badge status-warn';
-        badge.innerHTML = `<i class="fas fa-triangle-exclamation"></i> No Backup Taken Yet!`;
+        badge.innerHTML = `<i class="fas fa-triangle-exclamation"></i> No Backup Taken Yet (${activeCat})!`;
     }
 }
 
-// Load counts across all agency collections
+// Load counts across all agency collections isolated strictly to the active business category
 async function loadStatsCounts() {
     try {
+        const activeCat = getActiveBackupCategory();
         const safeGet = (col) => db.collection(col).where('agencyId', '==', myAgencyId).get().catch(() => ({ forEach: () => {} }));
         const [
             stockSnap, custSnap, billsSnap, moveSnap,
@@ -236,22 +266,27 @@ async function loadStatsCounts() {
             safeGet('damage_claims')
         ]);
 
-        const toList = (snap) => {
+        const toIsolatedList = (snap) => {
             const arr = [];
-            snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+            snap.forEach(d => {
+                const rec = { id: d.id, ...d.data() };
+                if (matchesBackupActiveCategory(rec, activeCat, myAgency)) {
+                    arr.push(rec);
+                }
+            });
             return arr;
         };
 
-        allStock = toList(stockSnap);
-        allCustomers = toList(custSnap);
-        allBills = toList(billsSnap);
-        allMovements = toList(moveSnap);
-        allOrders = toList(ordersSnap);
-        allExpenses = toList(expSnap);
-        allExpenseCategories = toList(expCatSnap);
-        allPayrollProfiles = toList(payrollSnap);
-        allStockReturns = toList(returnsSnap);
-        allDamageClaims = toList(claimsSnap);
+        allStock = toIsolatedList(stockSnap);
+        allCustomers = toIsolatedList(custSnap);
+        allBills = toIsolatedList(billsSnap);
+        allMovements = toIsolatedList(moveSnap);
+        allOrders = toIsolatedList(ordersSnap);
+        allExpenses = toIsolatedList(expSnap);
+        allExpenseCategories = toIsolatedList(expCatSnap);
+        allPayrollProfiles = toIsolatedList(payrollSnap);
+        allStockReturns = toIsolatedList(returnsSnap);
+        allDamageClaims = toIsolatedList(claimsSnap);
 
         document.getElementById('cntStock').innerText = allStock.length;
         document.getElementById('cntCustomers').innerText = allCustomers.length;
@@ -297,18 +332,19 @@ document.getElementById('btnDownloadBackup').addEventListener('click', async () 
         const blob = new Blob([jsonStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
 
+        const activeCat = getActiveBackupCategory();
         const safeName = ((myAgency && myAgency.name) || 'Agency').replace(/[^a-zA-Z0-9]/g, '_');
         const dateStr = new Date().toISOString().slice(0, 10);
-        const filename = `NHPOS_Backup_${safeName}_${dateStr}.json`;
+        const filename = `NHPOS_Backup_${safeName}_${activeCat}_${dateStr}.json`;
 
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
         a.click();
-        URL.revokeObjectURL(a);
+        URL.revokeObjectURL(url);
 
-        // Save last backup date
-        localStorage.setItem(`eb_last_backup_date_${myAgencyId}`, new Date().toISOString());
+        // Save last backup date (scoped per active category)
+        localStorage.setItem(`eb_last_backup_date_${myAgencyId}_${activeCat}`, new Date().toISOString());
         updateBackupStatusUI();
 
         btn.disabled = false;
@@ -423,19 +459,27 @@ async function executeRestore(data, mode) {
     });
 
     try {
+        const activeCat = getActiveBackupCategory();
         async function clearCollection(collectionName) {
             const snap = await db.collection(collectionName).where('agencyId', '==', myAgencyId).get();
             if (snap.empty) return;
-            const docs = snap.docs;
+            const docsToDelete = [];
+            snap.docs.forEach(docSnap => {
+                const rec = docSnap.data() || {};
+                if (matchesBackupActiveCategory(rec, activeCat, myAgency)) {
+                    docsToDelete.push(docSnap.ref);
+                }
+            });
+            if (docsToDelete.length === 0) return;
             const chunkSize = 400;
-            for (let i = 0; i < docs.length; i += chunkSize) {
+            for (let i = 0; i < docsToDelete.length; i += chunkSize) {
                 const batch = db.batch();
-                docs.slice(i, i + chunkSize).forEach(docSnap => batch.delete(docSnap.ref));
+                docsToDelete.slice(i, i + chunkSize).forEach(ref => batch.delete(ref));
                 await batch.commit();
             }
         }
 
-        // Safe batch writer (max 400 docs per batch)
+        // Safe batch writer (max 400 docs per batch, locked to active businessCategory)
         async function commitList(collectionName, items) {
             if (mode === 'clean') {
                 await clearCollection(collectionName);
@@ -451,6 +495,8 @@ async function executeRestore(data, mode) {
                     const cleanItem = { ...item };
                     delete cleanItem.id;
                     cleanItem.agencyId = myAgencyId; // force match current agency
+                    cleanItem.businessCategory = cleanItem.businessCategory || activeCat;
+                    cleanItem.categoryConfirmedByCreate = true;
                     batch.set(docRef, cleanItem, { merge: mode !== 'clean' });
                 });
                 await batch.commit();
@@ -507,29 +553,40 @@ function downloadCSV(filename, keys, rows) {
 
 // Export Stock CSV
 document.getElementById('btnExportStockCSV').addEventListener('click', () => {
-    const rows = allStock.map(s => ({
-        name: s.name || '',
-        category: s.category || 'General',
-        barcode: s.barcode || '',
-        qty: s.qty || 0,
-        unit: s.unit || 'Unit',
-        cost: s.purchaseRate || 0,
-        wholesaleRate: s.wholesaleRate || 0,
-        retailRate: s.retailRate || 0
-    }));
-    downloadCSV(`Stock_List_${myAgencyId}.csv`, ['name', 'category', 'barcode', 'qty', 'unit', 'cost', 'wholesaleRate', 'retailRate'], rows);
+    const activeCat = getActiveBackupCategory();
+    const rows = allStock.map(s => {
+        const ind = s.industryFields || {};
+        return {
+            name: s.name || '',
+            brandCompany: s.brandCompany || ind.brandCompany || s.supplierName || '',
+            category: s.category || 'General',
+            barcode: s.barcode || '',
+            qty: s.qty || 0,
+            unit: s.unit || 'Unit',
+            cartonPacking: s.cartonPacking || ind.cartonPacking || '',
+            cost: s.purchaseRate || 0,
+            tradePriceTP: s.tradePriceTP || ind.tradePriceTP || s.wholesaleRate || 0,
+            retailRate: s.retailRate || 0,
+            bonusSchemeRule: s.bonusSchemeRule || ind.bonusSchemeRule || '',
+            skuBatchCode: s.skuBatchCode || ind.skuBatchCode || s.batchNo || '',
+            expiryDate: s.expiryDate || ind.expiryDate || ''
+        };
+    });
+    downloadCSV(`Stock_List_${myAgencyId}_${activeCat}.csv`, ['name', 'brandCompany', 'category', 'barcode', 'qty', 'unit', 'cartonPacking', 'cost', 'tradePriceTP', 'retailRate', 'bonusSchemeRule', 'skuBatchCode', 'expiryDate'], rows);
 });
 
 // Export Customers CSV
 document.getElementById('btnExportCustCSV').addEventListener('click', () => {
+    const activeCat = getActiveBackupCategory();
     const rows = allCustomers.map(c => ({
         name: c.name || '',
         shopName: c.shopName || '',
+        segment: c.custSubCategory || c.subCategory || '',
+        weeklyRoutePJP: c.affiliatedBoard || c.route || '',
         mobile: c.mobile || '',
-        route: c.route || '',
         balance: c.balance || 0
     }));
-    downloadCSV(`Customers_Khata_${myAgencyId}.csv`, ['name', 'shopName', 'mobile', 'route', 'balance'], rows);
+    downloadCSV(`Customers_Khata_${myAgencyId}_${activeCat}.csv`, ['name', 'shopName', 'segment', 'weeklyRoutePJP', 'mobile', 'balance'], rows);
 });
 
 // Export Bills CSV

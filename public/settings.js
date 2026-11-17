@@ -542,7 +542,7 @@ async function lockExistingCategoryRecordsOnSwitch(agencyId, previousCategoryId)
         ? (window.BusinessCategories.getById(previousCategoryId)?.id || previousCategoryId)
         : String(previousCategoryId).toLowerCase().trim();
 
-    const collectionsToLock = ['stock', 'customers', 'bills', 'orders', 'damage_claims', 'expenses'];
+    const collectionsToLock = ['stock', 'customers', 'bills', 'orders', 'damage_claims', 'expenses', 'bookers', 'staff_payroll_profiles', 'stock_returns'];
     let lockedCount = 0;
 
     for (const colName of collectionsToLock) {
@@ -570,6 +570,25 @@ async function lockExistingCategoryRecordsOnSwitch(agencyId, previousCategoryId)
             console.warn(`Category lock warning on ${colName}:`, err);
         }
     }
+
+    try {
+        const uSnap = await db.collection('users').where('agencyId', '==', agencyId).get();
+        const staffRefs = [];
+        uSnap.forEach(d => {
+            const data = d.data() || {};
+            if (data.role === 'owner' || data.role === 'super-admin') return;
+            if (!data.businessCategory && !data.categoryWorkspace) {
+                staffRefs.push(d.ref);
+            }
+        });
+        for (let i = 0; i < staffRefs.length; i += 400) {
+            const batch = db.batch();
+            const chunk = staffRefs.slice(i, i + 400);
+            chunk.forEach(ref => batch.update(ref, { businessCategory: prevCat }));
+            await batch.commit();
+            lockedCount += chunk.length;
+        }
+    } catch (err) {}
     return lockedCount;
 }
 

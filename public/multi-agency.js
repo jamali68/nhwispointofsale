@@ -287,7 +287,12 @@ async function fetchBranchMetrics(agency) {
             db.collection('damage_claims').where('agencyId', '==', branchId).get().catch(() => ({ forEach: () => {} }))
         ]);
 
-        const branchCatId = agency.businessCategory || agency.businessType || agency.category || 'wholesaler';
+        if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+            agency = window.BusinessCategories.applyActiveCategoryProfile(agency);
+        }
+        const branchCatId = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+            ? window.BusinessCategories.resolveActiveCategory(agency, 'distributor')
+            : (agency.businessCategory || agency.businessType || agency.category || 'distributor');
         const matchesBranchCat = (rec) => {
             if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
                 return window.BusinessCategories.matchesActiveCategoryRecord(rec, branchCatId, agency);
@@ -339,10 +344,11 @@ async function fetchBranchMetrics(agency) {
             }
         });
 
-        // Active field staff count (bookers + suppliers)
+        // Active field staff count (bookers + suppliers) isolated per branch active category
         usersSnap.forEach(d => {
             const u = d.data();
             if (u.status !== 'deleted' && (u.role === 'booker' || u.role === 'supplier' || u.role === 'delivery')) {
+                if (!matchesBranchCat(u)) return;
                 bookersCount++;
             }
         });
@@ -370,10 +376,10 @@ async function fetchBranchMetrics(agency) {
         claimsSnap.forEach(d => {
             const c = d.data();
             if (!matchesBranchCat(c)) return;
-            const cDate = (c.incidentDate || (c.createdAt ? c.createdAt.slice(0, 10) : '')).slice(0, 10);
+            const cDate = (c.incidentDate || c.date || (c.createdAt ? c.createdAt.slice(0, 10) : '')).slice(0, 10);
             if (cDate && (cDate < range.start || cDate > range.end)) return;
-            const grossLoss = Number(c.totalLoss || (Number(c.qty || 0) * Number(c.purchaseRate || 0)));
-            const rec = Number(c.recoveredAmount || 0);
+            const grossLoss = Number(c.totalLoss || c.lossAmount || c.totalCost || c.amount || (Number(c.qty || 0) * Number(c.purchaseRate || 0)));
+            const rec = Number(c.recoveredAmount || c.settledAmount || 0);
             claimsNetLoss += Math.max(0, grossLoss - rec);
         });
 
@@ -791,16 +797,19 @@ document.getElementById('registerBranchBtn').addEventListener('click', async () 
     const allCats = (window.BusinessCategories && typeof window.BusinessCategories.getAll === 'function')
         ? window.BusinessCategories.getAll()
         : [
-            { id: 'distributor', icon: '🚚', name: 'Distributor & FMCG Agency' },
-            { id: 'wholesaler', icon: '📦', name: 'Wholesaler & Bulk Mandi' },
-            { id: 'books', icon: '📚', name: 'Book Depot & Stationery' },
-            { id: 'mobile', icon: '📱', name: 'Mobile Shop & Accessories' },
-            { id: 'medical', icon: '💊', name: 'Medical Store & Pharmacy' },
-            { id: 'general', icon: '🛒', name: 'General Store & Kiryana' }
+            { id: 'distributor', icon: '🚚', nameEn: 'Distributor & FMCG Agency', nameUr: 'ڈسٹری بیوٹر و ایف ایم سی جی ایجنسی' },
+            { id: 'wholesaler', icon: '📦', nameEn: 'Wholesaler & Bulk Mandi', nameUr: 'تھوک و منڈی کاروبار' },
+            { id: 'books', icon: '📚', nameEn: 'Book Depot & Stationery', nameUr: 'بک ڈپو و اسٹیشنری' },
+            { id: 'mobile', icon: '📱', nameEn: 'Mobile Shop & Accessories', nameUr: 'موبائل شاپ' },
+            { id: 'medical', icon: '💊', nameEn: 'Medical Store & Pharmacy', nameUr: 'میڈیکل اسٹور و فارمیسی' },
+            { id: 'restaurant', icon: '🍔', nameEn: 'Restaurant, Fast Food & Cafe', nameUr: 'ریسٹورنٹ و فاسٹ فوڈ' },
+            { id: 'general', icon: '🛒', nameEn: 'General Store & Kiryana', nameUr: 'جنرل اسٹور و کریانہ' }
         ];
-    const catOptionsHtml = allCats.map(c =>
-        `<option value="${c.id}" ${primaryCat === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`
-    ).join('');
+    const catOptionsHtml = allCats.map(c => {
+        const label = c.nameEn || c.name || c.id;
+        const ur = c.nameUr ? ` (${c.nameUr})` : '';
+        return `<option value="${c.id}" ${primaryCat === c.id ? 'selected' : ''}>${c.icon || '🏢'} ${label}${ur}</option>`;
+    }).join('');
     const { value: formValues } = await Swal.fire({
         title: '🏢 Register New Agency / Branch',
         html: `

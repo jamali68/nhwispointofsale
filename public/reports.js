@@ -210,10 +210,18 @@ function setupTabs() {
             booksBtn.innerHTML += ' <span style="background:#2563eb; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
         }
     }
-    if (whBtn && activeCat === 'wholesaler') {
-        whBtn.style.boxShadow = '0 0 0 2px #ea580c';
-        if (!whBtn.innerHTML.includes('Active')) {
-            whBtn.innerHTML += ' <span style="background:#ea580c; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
+    if (whBtn && (activeCat === 'wholesaler' || activeCat === 'distributor')) {
+        if (activeCat === 'distributor') {
+            whBtn.style.background = '#e0f2fe';
+            whBtn.style.color = '#0369a1';
+            whBtn.style.borderColor = '#7dd3fc';
+            whBtn.style.boxShadow = '0 0 0 2px #0284c7';
+            whBtn.innerHTML = '🚚 FMCG Agency, Weekly Route (PJP), Expiry &amp; Schemes (ڈسٹری بیوشن و ایف ایم سی جی رپورٹ) <span style="background:#0284c7; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
+        } else {
+            whBtn.style.boxShadow = '0 0 0 2px #ea580c';
+            if (!whBtn.innerHTML.includes('Active')) {
+                whBtn.innerHTML += ' <span style="background:#ea580c; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
+            }
         }
     }
     if (medBtn && activeCat === 'medical') {
@@ -375,7 +383,12 @@ async function loadAllReportData() {
         });
 
         rawUsers = [];
-        usersSnap.forEach(d => rawUsers.push({ id: d.id, ...d.data() }));
+        usersSnap.forEach(d => {
+            const u = { id: d.id, ...d.data() };
+            if (u.role === 'owner' || u.role === 'super-admin' || filterByCat(u)) {
+                rawUsers.push(u);
+            }
+        });
 
         rawStockReturns = [];
         returnsSnap.forEach(d => {
@@ -1816,7 +1829,7 @@ function renderWholesalerAnalyticsReport() {
 
         let claimsGross = 0, claimsRecovered = 0;
         rawDamageClaims.forEach(c => {
-            const gross = Number(c.lossAmount || c.totalCost || c.amount || 0);
+            const gross = Number(c.totalLoss || c.lossAmount || c.totalCost || c.amount || 0);
             const rec = Number(c.recoveredAmount || c.settledAmount || 0);
             claimsGross += gross;
             claimsRecovered += rec;
@@ -1824,8 +1837,8 @@ function renderWholesalerAnalyticsReport() {
                 sortOrder: -99999,
                 source: '📝 Damage/Expiry Claim',
                 itemName: c.itemName || c.productName || c.supplierName || 'Claim Entry',
-                batchOrClaim: c.claimNo || c.reason || c.claimType || 'Claim',
-                expiryDate: c.incidentDate || (c.createdAt || '').slice(0, 10) || '—',
+                batchOrClaim: c.voucherNo || c.claimNo || c.category || c.reason || c.claimType || 'Claim',
+                expiryDate: c.incidentDate || c.date || (c.createdAt || '').slice(0, 10) || '—',
                 statusLabel: rec >= gross && gross > 0 ? '🟢 Settled' : (rec > 0 ? '🟡 Partial Recovery' : '🔴 Pending Claim'),
                 qtyUnits: Number(c.qty || 0),
                 grossCost: gross,

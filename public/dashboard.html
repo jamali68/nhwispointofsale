@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <!-- 📱 Progressive Web App (PWA) Standards -->
-    <link rel="manifest" href="manifest.json?v=5.6.5">
+    <link rel="manifest" href="manifest.json?v=5.7.4">
     <meta name="theme-color" content="#f4f7f6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="NH POS">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.6.5">
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.6.5">
-    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.6.5">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5.7.4">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=5.7.4">
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=5.7.4">
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1127,7 +1127,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <!-- 🏢 BUSINESS CATEGORY & ISOLATED DATABASE ENGINE -->
-<script src="business-categories.js?v=5.6.5"></script>
+<script src="business-categories.js?v=5.7.4"></script>
 
 <script>
     const firebaseConfig = {
@@ -1140,11 +1140,23 @@
         measurementId: "G-QPCP7S5Q5L"
     };
 
+    try {
+        if (firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
+            firebase.firestore.setLogLevel('silent');
+        }
+    } catch (_) {}
+
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     const auth = firebase.auth();
     const db = firebase.firestore();
+    try {
+        if (!db.__nhSettingsApplied && typeof db.settings === 'function') {
+            db.__nhSettingsApplied = true;
+            db.settings({ experimentalAutoDetectLongPolling: true, merge: true });
+        }
+    } catch (_) {}
 
     // ⚡ Enable Firestore local persistence for 10x faster subsequent loads
     try {
@@ -1414,8 +1426,10 @@
             });
             allBookers = [];
             usersSnap.forEach(d => {
-                const u = d.data();
-                if (u.role === 'booker' && u.status !== 'deleted') allBookers.push({ id: d.id, ...u });
+                const u = { id: d.id, ...d.data() };
+                if (u.role === 'booker' && u.status !== 'deleted' && filterByCat(u)) {
+                    allBookers.push(u);
+                }
             });
 
             // Mirror check for 'orders' collection to ensure 100% synchronization
@@ -1658,6 +1672,23 @@
                 }
             }
         });
+
+        try {
+            const activeCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+                ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
+                : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'general');
+            if (myAgencyId) {
+                localStorage.setItem(`eb_low_stock_count_${myAgencyId}_${activeCat}`, String(lowStockCount));
+                localStorage.setItem(`eb_low_stock_count_${myAgencyId}`, String(lowStockCount));
+                localStorage.setItem(`eb_stock_cache_${myAgencyId}_${activeCat}`, JSON.stringify({
+                    items: allStock,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+            if (window.ebSidebar && typeof window.ebSidebar.syncBadge === 'function') {
+                window.ebSidebar.syncBadge();
+            }
+        } catch (_) {}
 
         // Khata & Overdue
         let totalKhata = 0, overdueKhata = 0;

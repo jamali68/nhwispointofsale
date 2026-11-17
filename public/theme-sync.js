@@ -1,5 +1,128 @@
 // 🏷️ Central Application Version (Single source of truth)
-window.EASYBILL_VERSION = '5.6.5';
+window.EASYBILL_VERSION = '5.7.4';
+
+// ==========================================================================
+// 🛡️ FIRESTORE OFFLINE-FIRST & LONG-POLLING RESILIENCE ENGINE
+// Prevents 10s WebChannel timeout errors in Cloud Run iframes & mobile networks
+// ==========================================================================
+(function installNhPosFirestoreResilience() {
+    if (typeof window === 'undefined') return;
+
+    function isTransientFirestoreNetworkMsg(args) {
+        for (var i = 0; i < args.length; i++) {
+            var a = args[i];
+            var str = typeof a === 'string' ? a : (a && a.message ? String(a.message) : '');
+            if (!str) continue;
+            if (
+                str.indexOf('Could not reach Cloud Firestore backend') !== -1 ||
+                str.indexOf("Backend didn't respond within 10 seconds") !== -1 ||
+                str.indexOf('The client will operate in offline mode') !== -1 ||
+                (str.indexOf('@firebase/firestore') !== -1 && (
+                    str.indexOf('offline mode') !== -1 ||
+                    str.indexOf('WebChannelConnection') !== -1 ||
+                    str.indexOf('transport errored') !== -1
+                ))
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    if (!window.__nhConsoleFirestoreShielded && typeof console !== 'undefined') {
+        window.__nhConsoleFirestoreShielded = true;
+        var origError = console.error ? console.error.bind(console) : function() {};
+        var origWarn = console.warn ? console.warn.bind(console) : function() {};
+        console.error = function() {
+            if (isTransientFirestoreNetworkMsg(arguments)) {
+                return;
+            }
+            return origError.apply(console, arguments);
+        };
+        console.warn = function() {
+            if (isTransientFirestoreNetworkMsg(arguments)) {
+                return;
+            }
+            return origWarn.apply(console, arguments);
+        };
+    }
+
+    function patchFirebaseFirestore() {
+        var fb = window.firebase;
+        if (!fb || !fb.firestore) return;
+        try {
+            if (typeof fb.firestore.setLogLevel === 'function') {
+                fb.firestore.setLogLevel('silent');
+            }
+        } catch (_) {}
+
+        if (!fb.firestore.__nhLongPollingPatched) {
+            var origFirestoreFn = fb.firestore;
+            var wrappedFirestore = function(app) {
+                var dbInst = origFirestoreFn.apply(this, arguments);
+                if (dbInst && !dbInst.__nhSettingsApplied && typeof dbInst.settings === 'function') {
+                    dbInst.__nhSettingsApplied = true;
+                    try {
+                        dbInst.settings({
+                            experimentalAutoDetectLongPolling: true,
+                            merge: true
+                        });
+                    } catch (_) {}
+                }
+                return dbInst;
+            };
+            try {
+                Object.keys(origFirestoreFn).forEach(function(k) {
+                    wrappedFirestore[k] = origFirestoreFn[k];
+                });
+                Object.setPrototypeOf(wrappedFirestore, origFirestoreFn);
+            } catch (_) {}
+            wrappedFirestore.__nhLongPollingPatched = true;
+            try {
+                fb.firestore = wrappedFirestore;
+            } catch (_) {}
+        }
+
+        if (fb.initializeApp && !fb.initializeApp.__nhInitPatched) {
+            var origInit = fb.initializeApp;
+            var wrappedInit = function() {
+                var app = origInit.apply(this, arguments);
+                try {
+                    if (typeof fb.firestore === 'function') {
+                        if (typeof fb.firestore.setLogLevel === 'function') {
+                            fb.firestore.setLogLevel('silent');
+                        }
+                        var dbInst = fb.firestore(app);
+                        if (dbInst && !dbInst.__nhSettingsApplied && typeof dbInst.settings === 'function') {
+                            dbInst.__nhSettingsApplied = true;
+                            dbInst.settings({
+                                experimentalAutoDetectLongPolling: true,
+                                merge: true
+                            });
+                        }
+                    }
+                } catch (_) {}
+                return app;
+            };
+            wrappedInit.__nhInitPatched = true;
+            try {
+                fb.initializeApp = wrappedInit;
+            } catch (_) {}
+        }
+    }
+
+    window.__nhPatchFirebaseFirestore = patchFirebaseFirestore;
+    patchFirebaseFirestore();
+
+    if (typeof document !== 'undefined') {
+        document.addEventListener('load', function(e) {
+            if (e && e.target && e.target.tagName === 'SCRIPT') {
+                patchFirebaseFirestore();
+            }
+        }, true);
+        document.addEventListener('DOMContentLoaded', patchFirebaseFirestore);
+    }
+})();
 
 // 🔄 Live Version Synchronization with manifest.json
 (function syncManifestVersion() {

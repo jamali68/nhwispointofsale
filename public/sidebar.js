@@ -7,9 +7,18 @@
 // ✅ Role-aware menu (Booker ko limited)
 // ============================================
 
-window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.6.5';
+window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
 
 (function initSidebar() {
+    if (typeof window.__nhPatchFirebaseFirestore === 'function') {
+        window.__nhPatchFirebaseFirestore();
+    } else if (window.firebase && window.firebase.firestore) {
+        try {
+            if (typeof window.firebase.firestore.setLogLevel === 'function') {
+                window.firebase.firestore.setLogLevel('silent');
+            }
+        } catch (_) {}
+    }
     // Inject dark-theme.css link dynamically if not present
     if (!document.getElementById('eb-dark-theme-style')) {
         const link = document.createElement('link');
@@ -1131,7 +1140,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.6.5';
                         ${isSuperAdmin ? '<span style="font-size:12px;">👑</span>' : ''}
                     </div>
                     <div class="eb-sidebar-agency" style="padding-left:0; font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agencyTitleText}</div>
-                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.6.5'}</div>
+                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.6.9'}</div>
                 </div>
             </div>
         </div>`;
@@ -1740,7 +1749,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.6.5';
         }
     }
 
-    // 6️⃣ 🔔 LOW STOCK BADGE SYNC
+    // 6️⃣ 🔔 LOW STOCK BADGE SYNC (Strictly Per Active Category — Hidden when 0 Low Stock)
     function syncLowStockBadge() {
         const badges = [
             document.getElementById('ebSidebarBellBadge'),
@@ -1748,38 +1757,107 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.6.5';
         ].filter(Boolean);
         if (badges.length === 0) return;
 
+        // Always hide badge first by default until active category low stock > 0 is confirmed
+        badges.forEach(b => {
+            b.innerText = '0';
+            b.style.display = 'none';
+        });
+
         const agencyId = myProfile.agencyId || localStorage.getItem('eb_active_agencyId');
         if (!agencyId) return;
 
-        // 1. Read cached count first (0 reads quota shield)
-        const cachedCount = localStorage.getItem(`eb_low_stock_count_${agencyId}`);
-        if (cachedCount && Number(cachedCount) > 0) {
-            badges.forEach(b => {
-                b.innerText = cachedCount;
-                b.style.display = 'block';
-            });
+        let agObj = window.__myAgencyData || myAgencyData || null;
+        if (!agObj) {
+            try {
+                const cachedAg = sessionStorage.getItem('eb_agency_data');
+                if (cachedAg) agObj = JSON.parse(cachedAg);
+            } catch (_) {}
         }
 
-        // 2. Also check stock cache
+        const activeCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+            ? window.BusinessCategories.resolveActiveCategory(agObj, 'general')
+            : ((agObj && (agObj.businessCategory || agObj.businessType))
+                || localStorage.getItem('eb_active_business_category')
+                || localStorage.getItem('eb_active_category')
+                || 'general');
+
+        const catCountKey = `eb_low_stock_count_${agencyId}_${activeCat}`;
+        const catCacheKey = `eb_stock_cache_${agencyId}_${activeCat}`;
+
+        // 1. Check category-specific stock cache first for exact real-time count
         try {
-            const raw = localStorage.getItem(`eb_stock_cache_${agencyId}`);
-            if (raw) {
-                const parsed = JSON.parse(raw);
+            const rawCatCache = localStorage.getItem(catCacheKey);
+            if (rawCatCache) {
+                const parsed = JSON.parse(rawCatCache);
                 if (Array.isArray(parsed.items)) {
                     let c = 0;
                     parsed.items.forEach(it => {
+                        if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                            if (!window.BusinessCategories.matchesActiveCategoryRecord(it, activeCat, agObj)) return;
+                        }
                         const q = Number(it.qty || 0);
                         const lim = it.lowStockLimit !== undefined ? Number(it.lowStockLimit) : 10;
                         if (q <= lim) c++;
                     });
+                    localStorage.setItem(catCountKey, String(c));
                     if (c > 0) {
                         badges.forEach(b => {
-                            b.innerText = c;
+                            b.innerText = String(c);
                             b.style.display = 'block';
                         });
-                        localStorage.setItem(`eb_low_stock_count_${agencyId}`, c);
                     } else {
-                        badges.forEach(b => b.style.display = 'none');
+                        badges.forEach(b => {
+                            b.innerText = '0';
+                            b.style.display = 'none';
+                        });
+                    }
+                    return;
+                }
+            }
+        } catch (e) {}
+
+        // 2. Fallback to category-specific cached count (if already computed by Dashboard / Alerts / Stock)
+        const cachedCatCount = localStorage.getItem(catCountKey);
+        if (cachedCatCount !== null) {
+            const num = Number(cachedCatCount);
+            if (Number.isFinite(num) && num > 0) {
+                badges.forEach(b => {
+                    b.innerText = String(num);
+                    b.style.display = 'block';
+                });
+            } else {
+                badges.forEach(b => {
+                    b.innerText = '0';
+                    b.style.display = 'none';
+                });
+            }
+            return;
+        }
+
+        // 3. Last resort: inspect general stock cache ONLY if filtered strictly by matchesActiveCategoryRecord
+        try {
+            const raw = localStorage.getItem(`eb_stock_cache_${agencyId}`);
+            if (raw && window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed.items)) {
+                    let c = 0;
+                    parsed.items.forEach(it => {
+                        if (!window.BusinessCategories.matchesActiveCategoryRecord(it, activeCat, agObj)) return;
+                        const q = Number(it.qty || 0);
+                        const lim = it.lowStockLimit !== undefined ? Number(it.lowStockLimit) : 10;
+                        if (q <= lim) c++;
+                    });
+                    localStorage.setItem(catCountKey, String(c));
+                    if (c > 0) {
+                        badges.forEach(b => {
+                            b.innerText = String(c);
+                            b.style.display = 'block';
+                        });
+                    } else {
+                        badges.forEach(b => {
+                            b.innerText = '0';
+                            b.style.display = 'none';
+                        });
                     }
                 }
             }

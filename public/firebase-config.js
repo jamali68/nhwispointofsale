@@ -15,19 +15,32 @@ const firebaseConfig = {
 };
 
 // Initialize if firebase is present on window
-if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-    // Offline persistence enable karo ta k internet na hone par bhi data safe rahay
+if (typeof firebase !== 'undefined') {
     try {
-        firebase.firestore().enablePersistence({ synchronizeTabs: true }).catch((err) => {
-            if (err.code === 'failed-precondition') {
-                console.warn('Firestore persistence failed: Multiple tabs open');
-            } else if (err.code === 'unimplemented') {
-                console.warn('Firestore persistence not supported by browser');
+        if (firebase.firestore && typeof firebase.firestore.setLogLevel === 'function') {
+            firebase.firestore.setLogLevel('silent');
+        }
+    } catch (_) {}
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+        try {
+            const dbInst = firebase.firestore();
+            if (dbInst && typeof dbInst.settings === 'function') {
+                dbInst.settings({
+                    experimentalAutoDetectLongPolling: true,
+                    merge: true
+                });
             }
-        });
-    } catch (e) {
-        console.warn('Offline persistence info:', e);
+            dbInst.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+                if (err.code === 'failed-precondition') {
+                    console.info('Firestore persistence: Multiple tabs open');
+                } else if (err.code === 'unimplemented') {
+                    console.info('Firestore persistence not supported by browser');
+                }
+            });
+        } catch (e) {
+            console.info('Offline persistence info:', e);
+        }
     }
 }
 

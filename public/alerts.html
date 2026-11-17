@@ -153,19 +153,24 @@
 <div class="panel-container" style="margin-top: 8px;">
 
     <!-- ===== 🔔 BROWSER PUSH NOTIFICATION SWITCH ===== -->
-    <div class="push-notify-box">
-        <div style="display:flex; align-items:center; gap:10px;">
+    <div class="push-notify-box" id="pushNotifyBox">
+        <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:220px;">
             <div style="font-size:24px;">📲</div>
             <div>
-                <div style="font-size:13px; font-weight:800; color:#15803d;">
-                    Browser &amp; Desktop Push Notifications
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="font-size:13px; font-weight:800; color:#15803d;">
+                        Browser &amp; Desktop Push Notifications
+                    </span>
+                    <span id="alertsActiveCategoryBadge" style="background:#dcfce7; color:#166534; border:1px solid #86efac; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:800;">
+                        🏢 Active Category
+                    </span>
                 </div>
-                <div style="font-size:11px; color:#166534;" id="pushStatusText">
-                    Enable push alerts to get notified whenever stock runs low during sales!
+                <div style="font-size:11.5px; color:#166534; margin-top:2px;" id="pushStatusText">
+                    Enable push alerts to get notified whenever stock runs low during sales in this category!
                 </div>
             </div>
         </div>
-        <button class="btn btn-sm" id="btnTogglePush" style="background:#15803d; color:#fff; font-size:12px;">
+        <button class="btn btn-sm" id="btnTogglePush" style="background:#15803d; color:#fff; font-size:12px; font-weight:700;">
             <i class="fas fa-bell"></i> Enable Push Alerts
         </button>
     </div>
@@ -257,10 +262,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <!-- 🏢 BUSINESS CATEGORIES REGISTRY -->
-<script src="business-categories.js"></script>
+<script src="business-categories.js?v=5.7.4"></script>
 <!-- 🧭 SIDEBAR SYSTEM -->
-<script src="sidebar.js"></script>
+<script src="sidebar.js?v=5.7.4"></script>
 <!-- 🔔 ALERTS CONTROLLER -->
-<script src="alerts.js"></script>
+<script src="alerts.js?v=5.7.4"></script>
 </body>
 </html>

@@ -470,6 +470,13 @@ function setupReturnReasonToggle() {
 // ============================================
 // 👥 LOAD & MANAGE FIELD STAFF (BOOKERS & SUPPLIERS)
 // ============================================
+function matchesDeliveryActiveCategory(rec) {
+    if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+        return window.BusinessCategories.matchesActiveCategoryRecord(rec, getActiveDeliveryCategory(), myAgency);
+    }
+    return true;
+}
+
 async function loadStaff() {
     try {
         // Query users by agencyId safely (avoids composite index requirement!)
@@ -478,8 +485,10 @@ async function loadStaff() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            if (data.status !== 'deleted' && (data.role === 'booker' || data.role === 'supplier' || data.role === 'delivery')) {
-                allStaff.push(data);
+            if (data.status !== 'deleted' && (data.role === 'booker' || data.role === 'supplier' || data.role === 'delivery' || data.role === 'driver')) {
+                if (matchesDeliveryActiveCategory(data)) {
+                    allStaff.push(data);
+                }
             }
         });
 
@@ -590,7 +599,9 @@ async function loadStock() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allStock.push(data);
+            if (matchesDeliveryActiveCategory(data)) {
+                allStock.push(data);
+            }
         });
     } catch (e) {
         console.error('Load stock error:', e);
@@ -696,25 +707,36 @@ async function loadOrders() {
 function listenForLiveOrders() {
     if (!myAgencyId) return;
 
-    // 1. Live listener on bills collection
+    // 1. Live listener on bills collection (strictly filtered by active business category)
     db.collection('bills')
         .where('agencyId', '==', myAgencyId)
         .onSnapshot(snap => {
             let changed = false;
             snap.docChanges().forEach(change => {
                 if (change.type === 'added') {
-                    const data = change.doc.data();
-                    data.id = change.doc.id;
+                    const raw = change.doc.data();
+                    if (!matchesDeliveryActiveCategory(raw)) return;
+                    const data = sanitizeOrder({ ...raw, id: change.doc.id });
                     if (!allOrders.some(o => o.id === data.id)) {
                         allOrders.unshift(data);
                         changed = true;
                     }
                 } else if (change.type === 'modified') {
-                    const data = change.doc.data();
-                    data.id = change.doc.id;
-                    const idx = allOrders.findIndex(o => o.id === data.id);
+                    const raw = change.doc.data();
+                    const idx = allOrders.findIndex(o => o.id === change.doc.id);
+                    if (!matchesDeliveryActiveCategory(raw)) {
+                        if (idx !== -1) {
+                            allOrders.splice(idx, 1);
+                            changed = true;
+                        }
+                        return;
+                    }
+                    const data = sanitizeOrder({ ...raw, id: change.doc.id });
                     if (idx !== -1) {
                         allOrders[idx] = data;
+                        changed = true;
+                    } else {
+                        allOrders.unshift(data);
                         changed = true;
                     }
                 } else if (change.type === 'removed') {
@@ -731,7 +753,7 @@ function listenForLiveOrders() {
             }
         }, err => console.warn('Live order listener warning:', err));
 
-    // 2. Live listener on orders collection for instant sync
+    // 2. Live listener on orders collection for instant sync (strictly filtered by active business category)
     try {
         db.collection('orders')
             .where('agencyId', '==', myAgencyId)
@@ -739,8 +761,9 @@ function listenForLiveOrders() {
                 let changed = false;
                 snap.docChanges().forEach(change => {
                     if (change.type === 'added') {
-                        const data = change.doc.data();
-                        data.id = change.doc.id;
+                        const raw = change.doc.data();
+                        if (!matchesDeliveryActiveCategory(raw)) return;
+                        const data = sanitizeOrder({ ...raw, id: change.doc.id });
                         if (!allOrders.some(o => o.id === data.id || (o.orderNo && o.orderNo === data.orderNo))) {
                             if (!data.billNo && data.orderNo) data.billNo = data.orderNo;
                             // Also mirror to bills
@@ -1050,6 +1073,8 @@ async function approveOrder(orderId) {
             const moveRef = db.collection('movements').doc();
             batch.set(moveRef, {
                 agencyId: myAgencyId,
+                businessCategory: getActiveDeliveryCategory(),
+                categoryConfirmedByCreate: true,
                 billNo: liveBillNo,
                 customerName: ord.customerName,
                 type: 'out',
@@ -1686,7 +1711,9 @@ async function loadReturns() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            allReturns.push(data);
+            if (matchesDeliveryActiveCategory(data)) {
+                allReturns.push(data);
+            }
         });
 
         renderReturnsTable();
@@ -1698,7 +1725,9 @@ async function loadReturns() {
             snap.forEach(d => {
                 const data = d.data();
                 data.id = d.id;
-                allReturns.push(data);
+                if (matchesDeliveryActiveCategory(data)) {
+                    allReturns.push(data);
+                }
             });
             allReturns.sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
             renderReturnsTable();
@@ -1932,8 +1961,11 @@ document.getElementById('stockReturnForm').addEventListener('submit', async func
         const dateStr = now.toLocaleDateString('en-PK', { day:'numeric', month:'short', year:'numeric' });
         const timeStr = now.toLocaleTimeString('en-PK', { hour:'2-digit', minute:'2-digit' });
 
+        const activeCat = getActiveDeliveryCategory();
         const returnDocData = {
             agencyId: myAgencyId,
+            businessCategory: activeCat,
+            categoryConfirmedByCreate: true,
             voucherNo: voucherNo,
             supplierId: supplierId,
             supplierName: supplierObj ? (supplierObj.name || supplierObj.email) : 'Delivery Salesman',
@@ -1982,6 +2014,8 @@ document.getElementById('stockReturnForm').addEventListener('submit', async func
         const moveRef = db.collection('movements').doc();
         batch.set(moveRef, {
             agencyId: myAgencyId,
+            businessCategory: activeCat,
+            categoryConfirmedByCreate: true,
             type: 'in',
             movementCategory: 'van_return',
             reason: 'Unsold Van Return - ' + finalReason,
@@ -2510,11 +2544,12 @@ function generateAndShowLoadingSheet(supplierId, orderIds, preferredSheetNo = ''
             return `${i.name} (${i.qty}${fq > 0 ? ` +${fq} Free` : ''})`;
         }).join(', ');
         const amt = Math.round(ord.billAmount || ord.grandTotal || 0).toLocaleString();
+        const routeBeatTag = ord.affiliatedBoard ? ` • 🗓️ ${ord.affiliatedBoard}` : '';
         return `
             <tr style="border-bottom:1px solid #e2e8f0; font-size:12px;">
                 <td style="padding:6px 8px; text-align:center;">${idx + 1}</td>
                 <td style="padding:6px 8px;"><b>${ord.billNo || ord.id.slice(0,8)}</b>${ord.loadFormNo ? `<br><small style="color:#6d28d9;">${ord.loadFormNo}</small>` : ''}</td>
-                <td style="padding:6px 8px;"><b>${ord.customerName}</b><br><small style="color:#64748b;">${ord.customerMobile || ord.customerRoute || ''}</small></td>
+                <td style="padding:6px 8px;"><b>${ord.customerName}</b><br><small style="color:#64748b;">${ord.customerMobile || ord.customerRoute || ''}${routeBeatTag}</small></td>
                 <td style="padding:6px 8px;">${itemsSummary}</td>
                 <td style="padding:6px 8px; text-align:right; font-weight:800; color:#10b981;">Rs ${amt}</td>
                 <td style="padding:6px 8px; text-align:center;"><span style="border-bottom:1px dashed #94a3b8; display:inline-block; width:60px;">&nbsp;</span></td>
@@ -2522,13 +2557,18 @@ function generateAndShowLoadingSheet(supplierId, orderIds, preferredSheetNo = ''
         `;
     }).join('');
 
+    const isDistributorSheet = getActiveDeliveryCategory() === 'distributor';
+    const sheetHeaderTitle = isDistributorSheet
+        ? '🚚 FMCG AGENCY VAN LOADING SHEET &amp; GODOWN GATE PASS (گاڑی لوڈنگ شیٹ و گودام گیٹ پاس)'
+        : '🚚 گاڑی لوڈنگ شیٹ و گودام گیٹ پاس (Van Loading Sheet &amp; Dispatch Gate Pass)';
+
     container.innerHTML = `
         <div style="border:2px solid #0284c7; border-radius:12px; padding:18px; background:#fff;">
             <!-- HEADER -->
             <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0284c7; padding-bottom:12px; margin-bottom:14px;">
                 <div>
                     <h2 style="margin:0 0 4px; font-size:20px; color:#0f172a;">${(myAgency && myAgency.name) || 'Our Distribution Agency'}</h2>
-                    <div style="font-size:14px; font-weight:800; color:#0284c7;">🚚 گاڑی لوڈنگ شیٹ و گودام گیٹ پاس (Van Loading Sheet &amp; Dispatch Gate Pass)</div>
+                    <div style="font-size:14px; font-weight:800; color:#0284c7;">${sheetHeaderTitle}</div>
                     <div style="font-size:12px; color:#64748b;">${(myAgency && myAgency.city) || 'Main Depot'}</div>
                 </div>
                 <div style="text-align:right; font-size:12px;">
@@ -2697,9 +2737,12 @@ document.getElementById('quickStaffForm').addEventListener('submit', async funct
         }
         secApp.delete();
 
-        // Save Firestore Staff Record
+        // Save Firestore Staff Record (Strictly isolated to active Category Workspace)
+        const activeCat = getActiveDeliveryCategory();
         const staffDoc = {
             agencyId: myAgencyId,
+            businessCategory: activeCat,
+            categoryConfirmedByCreate: true,
             name: name,
             email: email,
             mobile: mobile,
@@ -2718,6 +2761,9 @@ document.getElementById('quickStaffForm').addEventListener('submit', async funct
         };
 
         await db.collection('users').doc(uid).set(staffDoc);
+        try {
+            await db.collection('bookers').doc(uid).set(staffDoc);
+        } catch (_) {}
 
         staffDoc.id = uid;
         allStaff.push(staffDoc);
@@ -2748,17 +2794,20 @@ document.getElementById('quickStaffForm').addEventListener('submit', async funct
 function loadFromCache() {
     try {
         const agKey = myAgencyId || localStorage.getItem('eb_active_agencyId') || 'default_agency';
-        const cachedRaw = localStorage.getItem(`eb_cache_delivery_${agKey}`);
+        const catKey = getActiveDeliveryCategory();
+        const cachedRaw = localStorage.getItem(`eb_cache_delivery_${agKey}_${catKey}`);
         if (cachedRaw) {
             const parsed = JSON.parse(cachedRaw);
             if (parsed && Array.isArray(parsed.orders) && parsed.orders.length > 0) {
-                allOrders = parsed.orders;
-                if (Array.isArray(parsed.returns)) allReturns = parsed.returns;
+                allOrders = parsed.orders.filter(o => matchesDeliveryActiveCategory(o)).map(o => sanitizeOrder(o));
+                if (Array.isArray(parsed.returns)) {
+                    allReturns = parsed.returns.filter(r => matchesDeliveryActiveCategory(r));
+                }
                 updateKPIRibbon();
                 if (window.hideNHLoader) {
                     setTimeout(() => { window.hideNHLoader(); }, 150);
                 }
-                return true;
+                return allOrders.length > 0;
             }
         }
     } catch (e) {
@@ -2770,10 +2819,11 @@ function loadFromCache() {
 function saveToCache() {
     try {
         const agKey = myAgencyId || localStorage.getItem('eb_active_agencyId') || 'default_agency';
+        const catKey = getActiveDeliveryCategory();
         if (agKey && Array.isArray(allOrders)) {
-            localStorage.setItem(`eb_cache_delivery_${agKey}`, JSON.stringify({
-                orders: allOrders.slice(0, 300),
-                returns: allReturns ? allReturns.slice(0, 200) : []
+            localStorage.setItem(`eb_cache_delivery_${agKey}_${catKey}`, JSON.stringify({
+                orders: allOrders.filter(o => matchesDeliveryActiveCategory(o)).slice(0, 300),
+                returns: allReturns ? allReturns.filter(r => matchesDeliveryActiveCategory(r)).slice(0, 200) : []
             }));
         }
     } catch (e) {}
@@ -2921,10 +2971,14 @@ const DEFAULT_CLAIM_CATEGORIES = [
 
 function isClaimCategoryAllowedForAgency(catObj, activeCatId) {
     if (!catObj) return false;
+    if (catObj.businessCategory && String(catObj.businessCategory).toLowerCase() !== String(activeCatId || '').toLowerCase()) {
+        return false;
+    }
     const id = String(catObj.id || '').toLowerCase();
     if (id.startsWith('cat_mob_')) return activeCatId === 'mobile';
     if (id.startsWith('cat_rest_')) return activeCatId === 'restaurant';
     if (id.startsWith('cat_wh_')) return activeCatId === 'wholesaler';
+    if (id.startsWith('cat_dist_')) return activeCatId === 'distributor';
     if (id.startsWith('cat_med_')) return activeCatId === 'medical';
     if (id === 'cat_misprint' || id === 'cat_old_edition' || id.startsWith('cat_book_')) return activeCatId === 'books';
     return true;
@@ -3075,6 +3129,8 @@ window.saveNewCategory = async function() {
 
         const newDoc = {
             agencyId: myAgencyId,
+            businessCategory: getActiveDeliveryCategory(),
+            categoryConfirmedByCreate: true,
             name: catName,
             type: catType,
             icon: icon,
@@ -3772,6 +3828,8 @@ window.handleDamageClaimSubmit = async function(e) {
                     try {
                         await db.collection('movements').add({
                             agencyId: myAgencyId,
+                            businessCategory: getActiveDeliveryCategory(),
+                            categoryConfirmedByCreate: true,
                             stockId: stockId,
                             itemName: itemName,
                             type: 'out',

@@ -205,7 +205,7 @@ async function loadOperatingExpenses() {
         console.warn('Expenses load for profit warning:', e);
         try {
             const activeCat = getProfitActiveCategory();
-            const cached = localStorage.getItem(`eb_expenses_${myAgencyId}_${activeCat}`) || localStorage.getItem(`eb_expenses_${myAgencyId}`);
+            const cached = localStorage.getItem(`eb_expenses_${myAgencyId}_${activeCat}`);
             if (cached) rawOperatingExpenses = JSON.parse(cached);
         } catch (err) {}
     }
@@ -446,8 +446,34 @@ function calculateAndRenderProfit() {
     const monthsMap = {};
     // Customer-level map
     const customersMap = {};
-    // Reset Agency/Company-level map & seed with all active stock companies so even 0-sale agencies appear in comparison
+    // Reset Agency/Company-level map & seed with all active stock companies + saved custom Principal Companies so even 0-sale agencies appear in comparison
     window.__tempAgenciesMap = {};
+    try {
+        const activeCat = getProfitActiveCategory();
+        const savedBrandsRaw = localStorage.getItem(`eb_custom_brands_${myAgencyId}_${activeCat}`);
+        if (savedBrandsRaw) {
+            const savedBrands = JSON.parse(savedBrandsRaw);
+            if (Array.isArray(savedBrands)) {
+                savedBrands.forEach(bName => {
+                    const compName = String(bName || '').trim();
+                    if (!compName) return;
+                    if (!window.__tempAgenciesMap[compName]) {
+                        window.__tempAgenciesMap[compName] = {
+                            agencyName: compName,
+                            skuSet: new Set(),
+                            billSet: new Set(),
+                            unitsSold: 0,
+                            freeUnitsGiven: 0,
+                            totalSales: 0,
+                            totalCost: 0,
+                            stockItemsCount: 0,
+                            stockValue: 0
+                        };
+                    }
+                });
+            }
+        }
+    } catch (e) {}
     (rawStock || []).forEach(st => {
         const stInd = st.industryFields || {};
         const compName = String(

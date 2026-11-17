@@ -8,6 +8,68 @@
 // - Nayi category add karne ke liye sirf 1 naya object shamil karein — baqi code mehfooz rahega!
 // ==========================================================================
 
+(function ensureFirestoreLongPollingOnCategoryLoad() {
+    if (typeof window === 'undefined') return;
+    if (!window.__nhConsoleFirestoreShielded && typeof console !== 'undefined') {
+        window.__nhConsoleFirestoreShielded = true;
+        var isTransient = function(args) {
+            for (var i = 0; i < args.length; i++) {
+                var a = args[i];
+                var s = typeof a === 'string' ? a : (a && a.message ? String(a.message) : '');
+                if (!s) continue;
+                if (
+                    s.indexOf('Could not reach Cloud Firestore backend') !== -1 ||
+                    s.indexOf("Backend didn't respond within 10 seconds") !== -1 ||
+                    s.indexOf('The client will operate in offline mode') !== -1 ||
+                    (s.indexOf('@firebase/firestore') !== -1 && (
+                        s.indexOf('offline mode') !== -1 ||
+                        s.indexOf('WebChannelConnection') !== -1 ||
+                        s.indexOf('transport errored') !== -1
+                    ))
+                ) return true;
+            }
+            return false;
+        };
+        var origErr = console.error ? console.error.bind(console) : function() {};
+        var origWrn = console.warn ? console.warn.bind(console) : function() {};
+        console.error = function() { if (!isTransient(arguments)) return origErr.apply(console, arguments); };
+        console.warn = function() { if (!isTransient(arguments)) return origWrn.apply(console, arguments); };
+    }
+    if (typeof window.__nhPatchFirebaseFirestore === 'function') {
+        window.__nhPatchFirebaseFirestore();
+    }
+    var fb = window.firebase;
+    if (fb && fb.firestore) {
+        try {
+            if (typeof fb.firestore.setLogLevel === 'function') {
+                fb.firestore.setLogLevel('silent');
+            }
+        } catch (_) {}
+        if (fb.initializeApp && !fb.initializeApp.__nhInitPatched) {
+            var origInit = fb.initializeApp;
+            var wrappedInit = function() {
+                var app = origInit.apply(this, arguments);
+                try {
+                    if (typeof fb.firestore.setLogLevel === 'function') {
+                        fb.firestore.setLogLevel('silent');
+                    }
+                    var dbInst = fb.firestore(app);
+                    if (dbInst && !dbInst.__nhSettingsApplied && typeof dbInst.settings === 'function') {
+                        dbInst.__nhSettingsApplied = true;
+                        dbInst.settings({
+                            experimentalAutoDetectLongPolling: true,
+                            merge: true
+                        });
+                    }
+                } catch (_) {}
+                return app;
+            };
+            wrappedInit.__nhInitPatched = true;
+            try { fb.initializeApp = wrappedInit; } catch (_) {}
+        }
+    }
+})();
+
 const BUSINESS_CATEGORIES = [
     {
         id: 'books',
@@ -1380,18 +1442,270 @@ const BUSINESS_CATEGORIES = [
         nameUr: 'ڈسٹری بیوٹر و ایجنسی (ایف ایم سی جی)',
         icon: '🚚',
         status: 'active',
-        description: 'Authorized company distributors, delivery van routing, shop supply',
+        description: 'Authorized FMCG distribution agencies, biscuits/snacks/diapers/beverages supply, order booker PJP routes, van loading & company claims',
         subcategories: [
-            'کمپنی ایجنسی پروڈکٹس (Authorized Brand Products)',
-            'ڈسپیچ وین اسٹاک (Van Loading Stock)',
-            'ڈیمج و ایکسپائری کلیمز (Claims Stock)'
+            'بسکٹ، ویفرز و بیکری آئٹمز (Biscuits, Wafers & Bakery Division)',
+            'نمکو، چپس و اسنیکس ایجنسی (Nimko, Chips & Salty Snacks Agency)',
+            'بے بی ڈائپرز، پیمپرز و ہائیجین (Baby Diapers, Pampers & Hygiene Care)',
+            'مشروبات، جوسز و منرل واٹر (Beverages, Juices & Mineral Water)',
+            'صابن، سرف، شیمپو و ہوم کیئر (Soaps, Detergents & Home Care)',
+            'چائے، ملک پاؤڈر و بریک فاسٹ (Tea, Milk Powder & Breakfast Items)',
+            'کوکنگ آئل، گھی و مصالحہ جات (Cooking Oil, Ghee & Culinary Packs)',
+            'ٹوفیاں، چاکلیٹ و کنفیکشنری (Confectionery, Chocolates & Candies)',
+            'میڈیکیٹڈ، کاسمیٹکس و پرسنل کیئر (OTC Healthcare & Personal Care)',
+            'کمپنی اسکیم، بونس و وین لوڈ اسٹاک (Scheme, Bonus & Van Dispatch Stock)'
         ],
-        units: ['carton', 'bag', 'master_ctn', 'dozen', 'box'],
+        units: ['carton', 'master_ctn', 'box', 'dozen', 'packet', 'bundle', 'crate', 'bottle', 'pcs', 'unit'],
+        unitRulesByGroup: {
+            biscuits_snacks: ['carton', 'master_ctn', 'box', 'dozen', 'packet', 'bundle', 'pcs'],
+            diapers_hygiene: ['carton', 'master_ctn', 'bundle', 'packet', 'box', 'pcs'],
+            beverages_juices: ['crate', 'carton', 'master_ctn', 'dozen', 'bottle', 'pcs'],
+            home_personal_care: ['carton', 'master_ctn', 'dozen', 'box', 'packet', 'bottle', 'pcs'],
+            grocery_culinary: ['carton', 'master_ctn', 'box', 'packet', 'bundle', 'dozen', 'pcs'],
+            general: ['carton', 'master_ctn', 'box', 'dozen', 'packet', 'bundle', 'crate', 'bottle', 'pcs', 'unit']
+        },
         customFields: [
-            { id: 'companyAgency', label: 'پرنسپل کمپنی (Principal Company)', placeholder: 'Unilever, Nestlé, P&G, Reckitt', type: 'text' },
-            { id: 'cartonPcs', label: 'پیکنگ (Units per Carton)', placeholder: 'e.g. 24, 36, 48', type: 'text' }
+            {
+                id: 'itemSubType',
+                label: 'ایجنسی پروڈکٹ ڈویژن (FMCG Product Division)',
+                type: 'select',
+                options: [
+                    '',
+                    'Biscuits, Wafers & Bakery Pack (بسکٹ، ویفرز اور بیکری پیک)',
+                    'Nimko, Chips & Snacks Pack (نمکو، چپس اور اسنیکس پیک)',
+                    'Baby Diapers, Pampers & Hygiene (بے بی ڈائپرز اور ہائیجین پیک)',
+                    'Beverages, Juices & Water Crate (مشروبات، جوسز اور واٹر پیٹی)',
+                    'Soaps, Detergents & Home Care (صابن، سرف اور ہوم کیئر)',
+                    'Tea, Milk Powder & Culinary Pack (چائے، خشک دودھ اور مصالحہ پیک)',
+                    'Confectionery, Chocolates & Candies (ٹوفی، چاکلیٹ اور کنفیکشنری ڈبہ)',
+                    'Van Load / Promotional Scheme Pack (وین لوڈ اور اسکیم پرومو پیک)'
+                ]
+            },
+            {
+                id: 'brandCompany',
+                label: 'پرنسپل کمپنی / ایجنسی ڈویژن (Principal Agency / Division)',
+                placeholder: 'اپنی کمپنی یا ایجنسی منتخب کریں یا + بٹن سے شامل کریں',
+                type: 'text',
+                hasBrandActionButtons: true,
+                brandButtonsConfig: {
+                    primaryBtnLabel: '🚚 + New Principal Agency / Company',
+                    secondaryBtnLabel: '🏷️ + Sub-Agency / Own Line',
+                    otherBtnLabel: '📦 Other Agency (دیگر ایجنسی)',
+                    primaryModalTitle: '🚚 نئی پرنسپل کمپنی / ایجنسی شامل کریں (Add Principal Agency)',
+                    primaryModalDesc: 'آپ جس کمپنی یا فیکٹری کی ڈسٹری بیوشن چلا رہے ہیں اس کا نام درج کریں (یہ نام آپ کے اکاؤنٹ میں محفوظ رہے گا):',
+                    primaryPlaceholder: 'مثلاً: آپ کی اپنی پرنسپل کمپنی یا فیکٹری ڈسٹری بیوشن کا نام...',
+                    secondaryModalTitle: '🏷️ سب ایجنسی یا ذاتی پروڈکٹ لائن شامل کریں (Add Sub-Agency / Own Line)',
+                    secondaryModalDesc: 'اگر آپ کوئی لوکل ایجنسی، ہول سیل لائن یا اپنی ذاتی پیکنگ چلا رہے ہیں تو اس کا نام لکھیں:',
+                    secondaryPlaceholder: 'مثلاً: لوکل اسنیکس ایجنسی، ہول سیل ڈویژن، ذاتی برانڈ...',
+                    otherPrimaryDefault: 'Other Principal Agency (دیگر پرنسپل ایجنسی)',
+                    otherSecondaryDefault: 'Local / Sub-Distribution Line (لوکل ایجنسی لائن)'
+                },
+                suggestions: [
+                    'Biscuits & Bakery Division (بسکٹ و بیکری ایجنسی)',
+                    'Snacks, Chips & Nimko Agency (نمکو و اسنیکس ایجنسی)',
+                    'Baby Diapers & Hygiene Division (ڈائپرز و ہائیجین ایجنسی)',
+                    'Beverages, Juices & Water Agency (مشروبات و جوسز ایجنسی)',
+                    'Soaps, Detergents & Home Care (صابن و سرف ایجنسی)',
+                    'Tea, Dairy & Breakfast Division (چائے و ڈیری ایجنسی)',
+                    'Cooking Oil, Ghee & Spices Agency (آئل و مصالحہ ایجنسی)',
+                    'Confectionery, Candies & Chocolates (کنفیکشنری ایجنسی)',
+                    'Personal Care & OTC Cosmetics (کاسمیٹکس و پرسنل کیئر)',
+                    'Direct Factory / Regional Depot (ریجنل ڈپو / فیکٹری سپلائی)',
+                    'Local / Sub-Agency Distribution (سب ایجنسی و لوکل سپلائی)',
+                    'Other Principal Agency (دیگر کمپنی / ایجنسی)'
+                ]
+            },
+            {
+                id: 'cartonPacking',
+                label: 'ماسٹر کارٹن / باکس پیکنگ (Carton Packing Breakdown)',
+                placeholder: 'e.g. 12 Boxes x 24 Ticky Packs, 24 Family Packs/Ctn',
+                type: 'text',
+                suggestions: [
+                    '12 Boxes x 24 Ticky Packs (288 Pcs)',
+                    '24 Boxes x 12 Half-Rolls (288 Pcs)',
+                    '24 Family Packs / Master Carton',
+                    '48 Standard Packs / Master Carton',
+                    '72 Small Packs / Master Carton',
+                    '6 Jumbo Diaper Packs / Carton',
+                    '8 Economy Diaper Packs / Carton',
+                    '12 Bottles x 1.5 Liter / Crate',
+                    '24 Bottles x 500ml / Crate',
+                    '24 Jars / Counter Display Boxes per Carton',
+                    '12 Dozen (144 Pcs) Master Carton'
+                ]
+            },
+            {
+                id: 'packSize',
+                label: 'کارٹن میں کل ڈبے / پیکٹس (Units / Boxes per Carton)',
+                placeholder: 'مثلاً: 12 یا 24 یا 48 Boxes/Packs per Carton',
+                type: 'number'
+            },
+            {
+                id: 'retailMrp',
+                label: 'پرنٹڈ پرچون ریٹ (Printed Consumer MRP Rs)',
+                placeholder: 'e.g. Rs 20, Rs 50, Rs 100, Rs 1200 (Consumer Price)',
+                type: 'number'
+            },
+            {
+                id: 'tradePriceTP',
+                label: 'دکاندار ٹریڈ پرائس (Retailer Trade Price / TP Rs)',
+                placeholder: 'e.g. Rs 2150 per Carton / Rs 90 per Box (TP)',
+                type: 'number'
+            },
+            {
+                id: 'tradeOfferPercent',
+                label: 'ٹریڈ آفر / دکاندار ڈسکاؤنٹ % (Trade Offer / T.O %)',
+                placeholder: 'e.g. 2%, 5%, 8% (Extra Scheme Discount)',
+                type: 'number'
+            },
+            {
+                id: 'bonusSchemeRule',
+                label: 'کمپنی اسکیم و بونس آفر (Trade Scheme / Free Bonus Rule)',
+                placeholder: 'e.g. 12 + 1 Free, Rs 50 T.O per Carton, Display Slab',
+                type: 'text',
+                suggestions: [
+                    'No Scheme — Net Trade Price (بغیر اسکیم نیٹ TP)',
+                    '12 + 1 Free (Buy 12 Get 1 Free)',
+                    '10 + 1 Free Carton Scheme (10 پر 1 فری)',
+                    '5 + 1 Free Promo Offer (5 پر 1 فری)',
+                    '24 + 2 Free Master Carton Deal',
+                    'Rs 50 Trade Offer (T.O) per Carton',
+                    'Rs 100 Trade Offer (T.O) per Carton',
+                    '2% Extra Slab / Display Rebate',
+                    '5% Seasonal Launch Trade Offer'
+                ]
+            },
+            {
+                id: 'skuBatchCode',
+                label: 'کمپنی کوڈ / بیچ و لاٹ نمبر (SKU / Batch / Lot No)',
+                placeholder: 'e.g. SKU-104 / BATCH-26A',
+                type: 'text',
+                appliesToGroup: ['biscuits_snacks', 'diapers_hygiene', 'beverages_juices', 'home_personal_care', 'grocery_culinary', 'general']
+            },
+            {
+                id: 'expiryDate',
+                label: 'ایکسپائری تاریخ (Batch Expiry Date - FEFO)',
+                placeholder: 'YYYY-MM-DD',
+                type: 'date',
+                appliesToGroup: ['biscuits_snacks', 'diapers_hygiene', 'beverages_juices', 'home_personal_care', 'grocery_culinary', 'general']
+            },
+            {
+                id: 'vanRouteZone',
+                label: 'وین روٹ / گودام سیکشن (Van Load Zone / Godown Bay)',
+                placeholder: 'e.g. Van-1 City Route, Godown Bay-A, Cold Rack',
+                type: 'text',
+                suggestions: [
+                    'Main Agency Godown — Bay A (مین گودام اے)',
+                    'Main Agency Godown — Bay B (مین گودام بی)',
+                    'Van-1 (City & Main Bazar Supply)',
+                    'Van-2 (Colony & Superstore Supply)',
+                    'Van-3 (Outstation & Town Route)',
+                    'Scheme & Promotional Stock Rack (اسکیم اسٹاک ریک)',
+                    'Damage / Expiry Claim Quarantine Bay (کلیم و ایکسپائری کارنر)'
+                ]
+            }
         ],
-        quickTags: ['Agency', 'Cartons', 'Van Dispatch']
+        purchaseConfig: {
+            enableMrpDiscountCalc: true,
+            enableCartonPieceCalc: true,
+            allowEditionUpdateOnRestock: false,
+            helperTitle: '🚚 کمپنی انوائس، ٹریڈ پرائس (TP) اور ڈسٹری بیوٹر مارجن کیلکولیٹر (Principal Invoice & TP Margin)',
+            supplierLabel: '🏭 پرنسپل کمپنی / فیکٹری ڈپو (Principal Company / Regional Depot)',
+            supplierPlaceholder: 'کمپنی ڈپو یا فیکٹری سپلائر کا نام لکھیں...',
+            mrpLabel: '🏷️ ٹریڈ پرائس / پرنٹڈ ریٹ (TP / Printed Rate Rs)',
+            discountLabel: '📉 کمپنی ڈسٹری بیوٹر مارجن % (Distributor Margin %)',
+            wholesaleDiscountLabel: '🏪 سب ڈسٹری بیوٹر / دکاندار ٹریڈ آفر % (Retailer T.O %)',
+            invoiceLabel: '🧾 کمپنی انوائس / ٹی آر / بلٹی نمبر (Company Invoice / Bilty #)',
+            invoicePlaceholder: 'e.g. INV-9042 / TR-551 / GatePass #18',
+            defaultSuppliers: [
+                'Principal Factory Regional Depot (ریجنل کمپنی ڈپو)',
+                'Biscuits & Bakery Division Depot (بسکٹ و بیکری ڈپو)',
+                'Snacks & Nimko Factory Supply (نمکو و اسنیکس فیکٹری)',
+                'Baby Diapers & Hygiene Depot (ڈائپرز و ہائیجین ڈپو)',
+                'Beverages & Mineral Water Plant (مشروبات و واٹر پلانٹ)',
+                'Soaps & Home Care Distribution Hub (صابن و سرف ڈپو)',
+                'Culinary, Oil & Tea Division Depot (آئل و چائے ڈپو)',
+                'Central Wholesale & Sub-Agency Hub (مرکزی ٹریڈ حب)'
+            ]
+        },
+        stockReasons: {
+            in: [
+                { value: 'purchase', label: '🚚 Principal Company Invoice Inward (کمپنی سے نیا مال / بلٹی آمد)' },
+                { value: 'return', label: '🔄 Delivery Van Unsold Stock Return (ڈلیوری وین سے بچا ہوا مال واپسی)' },
+                { value: 'bonus_in', label: '🎁 Company Scheme / Free Bonus Cartons (کمپنی اسکیم و فری بونس کارٹن آمد)' },
+                { value: 'claim_replace_in', label: '🛡️ Company Damage/Expiry Replacement Received (کمپنی سے کلیم تبدیلی مال آمد)' },
+                { value: 'adjustment', label: '⚖️ Godown Physical Audit Adjustment (+) (گودام اسٹاک ایڈجسٹمنٹ)' }
+            ],
+            out: [
+                { value: 'sale', label: '🏪 Van Route / Booker Invoice Dispatch (آرڈر بکر وین سپلائی / فروخت)' },
+                { value: 'scheme_bonus_out', label: '🎁 Free Scheme / Trade Offer Issue to Retailer (دکاندار کو فری اسکیم / بونس جاری)' },
+                { value: 'damage', label: '⚠️ Expired / Damaged Stock Moved to Claim Bay (ایکسپائر یا ڈیمج مال کلیم ریک میں منتقل)' },
+                { value: 'return_out', label: '↩️ Principal Company Claim / Stock Return Out (کمپنی کو ایکسپائر/ڈیمج مال واپسی)' },
+                { value: 'sample_promo', label: '📢 Market Sampling / Display Promo Issue (مارکیٹ سیمپلنگ و پروموشن)' }
+            ]
+        },
+        customerConfig: {
+            pageSubtitle: 'Retail Kiryana Shops, Superstores, Sub-Distributors, Bakeries & Weekly Route (PJP) Credit Ledger',
+            addBtnLabel: 'ADD ROUTE SHOP / RETAILER',
+            panelTitle: '🚚 FMCG Distribution Weekly Route (PJP) & Retailer Profile (ہفتہ وار روٹ پلان اور دکان کی تفصیل)',
+            panelSub: 'پیر تا ہفتہ روٹ کا دن (Weekly Route / PJP Beat)، دکان کی قسم، ٹریڈ آفر ڈسکاؤنٹ % اور کریڈٹ لمٹ درج کریں',
+            typeSectionTitle: '🚚 FMCG Distribution Weekly Route (PJP) & Retailer Profile (ہفتہ وار روٹ اور دکان کی قسم)',
+            segmentLabel: '🏪 دکان / کسٹمر کی قسم (Retailer / Account Segment)',
+            subCategoryLabel: '🏪 دکان / کسٹمر کی قسم (Retailer / Account Segment)',
+            boardLabel: '🗓️ ہفتہ وار روٹ کا دن / علاقہ (Weekly Route Day / PJP Beat — پیر تا ہفتہ)',
+            boardClassLabel: '🗓️ ہفتہ وار روٹ کا دن / علاقہ (Weekly Route Day / PJP Beat — پیر تا ہفتہ)',
+            boardPlaceholder: 'مثلاً: پیر Monday Route - Main Bazar یا منگل Tuesday Route - Model Town',
+            boardClassPlaceholder: 'مثلاً: پیر Monday Route - Main Bazar یا منگل Tuesday Route - Model Town',
+            discountLabel: '📉 طے شدہ ٹریڈ آفر / سلیب ڈسکاؤنٹ % (Agreed Trade Offer / T.O %)',
+            instCodeLabel: '🔖 شاپ کوڈ / این ٹی این / روٹ نمبر (Shop Code / Route Seq #)',
+            instCodePlaceholder: 'e.g. RT1-045 or NTN-4455667',
+            focalLabel: '👤 دکاندار / پرچیزر کا نام و موبائل (Shop Owner / Buyer Name & Ref)',
+            focalPlaceholder: 'e.g. Haji Akram / Purchaser Bilal (0300-1234567)',
+            filterTabLabel: '🚚 Route Shops & Sub-Distributors',
+            segments: [
+                { value: '', label: '— دکان یا کسٹمر کی قسم منتخب کریں (Optional) —', defaultTier: '' },
+                { value: 'kiryana_retailer', label: '🏪 کریانہ و جنرل اسٹور (Retail Kiryana & General Store)', shortLabel: '🏪 Kiryana Shop', defaultTier: 'wholesale' },
+                { value: 'superstore_mart', label: '🛒 سپر اسٹور، مارٹ و کیش اینڈ کیری (Superstore / Modern Trade Mart)', shortLabel: '🛒 Superstore / Mart', defaultTier: 'wholesale' },
+                { value: 'sub_distributor', label: '🚛 سب ڈسٹری بیوٹر و تحصیل ایجنسی (Sub-Distributor / Town Agency)', shortLabel: '🚛 Sub-Distributor', defaultTier: 'wholesale' },
+                { value: 'bakery_confectionery', label: '🥐 بیکری، مٹھائی و اسنیکس شاپ (Bakery, Sweet Mart & Tuck Shop)', shortLabel: '🥐 Bakery / Tuck Shop', defaultTier: 'wholesale' },
+                { value: 'medical_cosmetic_shop', label: '👶 میڈیکل و ڈائپر/کاسمیٹکس اسٹور (Pharmacy, Diaper & Cosmetic Store)', shortLabel: '👶 Medical / Cosmetics', defaultTier: 'wholesale' },
+                { value: 'wholesale_dealer', label: '📦 تھوک ڈیلر و منڈی مرچنٹ (Wholesale Dealer / Bulk Buyer)', shortLabel: '📦 Wholesale Dealer', defaultTier: 'wholesale' },
+                { value: 'cash_counter', label: '💵 کاؤنٹر نقد گاہک (Direct Agency Cash Counter Sale)', shortLabel: '💵 Cash Sale', defaultTier: 'retail' }
+            ],
+            boardSuggestions: [
+                'پیر Monday Route — Main Bazar & City Center (پیر کا روٹ)',
+                'منگل Tuesday Route — Housing Colonies & Superstores (منگل کا روٹ)',
+                'بدھ Wednesday Route — Sub-Distributor & Town Belt (بدھ کا روٹ)',
+                'جمعرات Thursday Route — School Canteens, Bakeries & Marts (جمعرات کا روٹ)',
+                'جمعہ Friday Route — Highway, Adda & Mandi Shops (جمعہ کا روٹ)',
+                'ہفتہ Saturday Route — Cash Recovery & Special Supply (ہفتہ ریکوری روٹ)',
+                'روزانہ Daily Supply — Mega Marts & High-Volume Shops (روزانہ سپلائی)'
+            ]
+        },
+        returnReasons: [
+            { value: '🔄 Van Unsold / Undelivered Return (ڈلیوری وین سے ان سولڈ مال واپسی)', label: '🔄 Van Unsold / Undelivered Return (ڈلیوری وین سے ان سولڈ مال واپسی)' },
+            { value: '🏪 Shop Closed / Cash Not Ready on Route (دکان بند ہونے یا کیش نہ ہونے پر واپسی)', label: '🏪 Shop Closed / Cash Not Ready on Route (دکان بند ہونے یا کیش نہ ہونے پر واپسی)' },
+            { value: '⏳ Near-Expiry / Old Batch Lifting from Retailer (دکاندار سے نیئر ایکسپائری مال کی واپسی)', label: '⏳ Near-Expiry / Old Batch Lifting from Retailer (دکاندار سے نیئر ایکسپائری مال کی واپسی)' },
+            { value: '📦 Damaged Pack / Crushed Carton Replacement (پھٹا ہوا پیکٹ یا ڈیمج کارٹن تبدیلی)', label: '📦 Damaged Pack / Crushed Carton Replacement (پھٹا ہوا پیکٹ یا ڈیمج کارٹن تبدیلی)' },
+            { value: '❌ Booker Wrong Flavor / Pack Size Ordered (غلط فلیور یا سائز بک ہونے پر واپسی)', label: '❌ Booker Wrong Flavor / Pack Size Ordered (غلط فلیور یا سائز بک ہونے پر واپسی)' }
+        ],
+        claimCategories: [
+            { id: 'cat_dist_market_expiry', name: '⏳ Market Shelf Expiry & Old Batch Lifting Claim (مارکیٹ ایکسپائری کلیم)', type: 'expired', icon: 'fa-calendar-xmark', color: '#dc2626', desc: 'Expired biscuits, snacks, beverages or diapers lifted from retail shops for company replacement' },
+            { id: 'cat_dist_transit_damage', name: '🚚 Van Transit & Factory Bilty Damage Claim (ٹرانزٹ و کارٹن ڈیمج کلیم)', type: 'broken', icon: 'fa-truck-ramp-box', color: '#ea580c', desc: 'Crushed cartons, burst packets or leaking bottles during company bilty or van delivery' },
+            { id: 'cat_dist_short_supply', name: '📉 Factory Sealed Carton Inner Shortage (سیل بند کارٹن میں پیکٹ شارٹیج)', type: 'shortage', icon: 'fa-box-open', color: '#7c3aed', desc: 'Missing boxes or packets inside factory-sealed master cartons' },
+            { id: 'cat_dist_scheme_rebate', name: '🎁 Principal Trade Offer (T.O) & Scheme Rebate Claim (ٹریڈ آفر و اسکیم کلیم)', type: 'defect', icon: 'fa-gift', color: '#0284c7', desc: 'Free bonus units, trade offer discounts or display slab rebates receivable from principal company' },
+            { id: 'cat_dist_rodent_moisture', name: '🌧️ Godown Moisture / Pest / Seal Defect Claim (نمی یا پیکنگ سیل خرابی کلیم)', type: 'broken', icon: 'fa-triangle-exclamation', color: '#d97706', desc: 'Defective factory sealing, air leak in snacks/biscuits, or godown moisture damage' }
+        ],
+        expenseCategories: [
+            { id: 'cat_dist_van_fuel', name: 'Delivery Van Fuel / Diesel & Route Toll', urdu: 'ڈلیوری وین ڈیزل، فیول و ٹول ٹیکس', icon: 'fa-van-shuttle', color: '#0284c7', isDefault: true },
+            { id: 'cat_dist_booker_allowance', name: 'Order Booker TA/DA & Route Allowance (Bhatta)', urdu: 'آرڈر بکر روٹ الاؤنس و بھتہ (TA/DA)', icon: 'fa-route', color: '#059669', isDefault: true },
+            { id: 'cat_dist_loading_unloading', name: 'Godown Loading / Unloading Labor (Mazdoori)', urdu: 'گودام لوڈنگ و ان لوڈنگ مزدوری', icon: 'fa-people-carry-box', color: '#d97706', isDefault: true },
+            { id: 'cat_dist_godown_rent', name: 'Agency Warehouse / Cold Room Rent & Electricity', urdu: 'ایجنسی گودام کرایہ و بجلی خرچ', icon: 'fa-warehouse', color: '#3b82f6', isDefault: true },
+            { id: 'cat_dist_scheme_promo', name: 'Market Trade Promo / Merchandising Expense', urdu: 'مارکیٹ پروموشن و ڈسپلے اسکیم خرچ', icon: 'fa-gift', color: '#7c3aed', isDefault: true }
+        ],
+        thermalTermsEn: 'Please verify cartons, inner packs, batch expiry & free scheme items at delivery. Market expiry or damage claims will only be adjusted as per company policy on next route visit.',
+        thermalTermsUr: 'ڈلیوری وصول کرتے وقت کارٹن، اندرونی پیکنگ، ایکسپائری اور فری اسکیم چیک کر لیں۔ ایکسپائری یا ڈیمج کلیم کمپنی پالیسی کے مطابق اگلے روٹ وزٹ پر ایڈجسٹ کیا جائے گا۔',
+        quickTags: ['بسکٹ و بیکری', 'نمکو و اسنیکس', 'بے بی ڈائپرز', 'مشروبات و جوسز', 'صابن و ہوم کیئر', 'اسکیم و بونس']
     },
     {
         id: 'manufacturer',
@@ -1857,7 +2171,7 @@ const BusinessCategories = {
     },
 
     // Completed vs In-Progress vs Coming Soon category status registry
-    COMPLETED_CATEGORY_IDS: ['books', 'mobile', 'wholesaler', 'medical', 'restaurant'],
+    COMPLETED_CATEGORY_IDS: ['books', 'mobile', 'wholesaler', 'medical', 'restaurant', 'distributor'],
     IN_PROGRESS_CATEGORY_IDS: [],
 
     getCategoryDevStatus(id) {
@@ -2126,12 +2440,12 @@ const BusinessCategories = {
         const segments = this.getCustomerSegments(categoryId || 'books');
         const found = segments.find(s => s.value === segmentVal);
         if (found) return found.shortLabel || found.label;
-        const mobileSegments = this.getCustomerSegments('mobile');
-        const mobFallback = mobileSegments.find(s => s.value === segmentVal);
-        if (mobFallback) return mobFallback.shortLabel || mobFallback.label;
-        const booksSegments = this.getCustomerSegments('books');
-        const fallback = booksSegments.find(s => s.value === segmentVal);
-        return fallback ? (fallback.shortLabel || fallback.label) : segmentVal;
+        for (const cat of BUSINESS_CATEGORIES) {
+            const catSegs = (cat.customerConfig && Array.isArray(cat.customerConfig.segments)) ? cat.customerConfig.segments : [];
+            const match = catSegs.find(s => s.value === segmentVal);
+            if (match) return match.shortLabel || match.label;
+        }
+        return segmentVal;
     },
 
     getThermalTerms(categoryId, lang = 'en') {
@@ -2154,6 +2468,15 @@ const BusinessCategories = {
     getClaimCategories(categoryId) {
         const cat = this.getById(categoryId);
         return (cat && Array.isArray(cat.claimCategories)) ? cat.claimCategories : [];
+    },
+
+    getExpenseCategories(categoryId) {
+        const cat = this.getById(categoryId);
+        return (cat && Array.isArray(cat.expenseCategories)) ? cat.expenseCategories : [];
+    },
+
+    getActiveCategoryId(agencyObj = null, fallbackId = 'general') {
+        return this.resolveActiveCategory(agencyObj, fallbackId);
     },
 
     formatItemSubtitle(itemObj) {
@@ -2210,11 +2533,14 @@ const BusinessCategories = {
         if (imeiList.length > 0) parts.push(`IMEI: ${imeiList.join(' / ')}`);
         if (warr) parts.push(`Warranty: ${warr}`);
 
-        // Wholesaler & Pharmacy / Medical fields
+        // Wholesaler, Distributor & Pharmacy / Medical fields
         const cartonPack = itemObj.cartonPacking || ind.cartonPacking || '';
+        const retailMrp = Number(itemObj.retailMrp || ind.retailMrp || 0);
         const tradeTP = Number(itemObj.tradePriceTP || ind.tradePriceTP || 0);
+        const tradeOfferPct = Number(itemObj.tradeOfferPercent || ind.tradeOfferPercent || itemObj.tradeOfferDiscount || ind.tradeOfferDiscount || 0);
         const bonusRule = itemObj.bonusSchemeRule || ind.bonusSchemeRule || '';
         const skuCode = itemObj.skuBatchCode || ind.skuBatchCode || '';
+        const vanZone = itemObj.vanRouteZone || ind.vanRouteZone || '';
         const genericSalt = itemObj.genericFormula || ind.genericFormula || '';
         const dosageStr = itemObj.dosageStrength || ind.dosageStrength || '';
         const batchStr = itemObj.batchNo || ind.batchNo || '';
@@ -2224,12 +2550,15 @@ const BusinessCategories = {
         if (genericSalt) parts.push(`Formula: ${genericSalt}`);
         if (dosageStr) parts.push(dosageStr);
         if (cartonPack) parts.push(`Ctn: ${cartonPack}`);
+        if (retailMrp > 0) parts.push(`MRP: Rs ${retailMrp}`);
         if (tradeTP > 0) parts.push(`TP: Rs ${tradeTP}`);
+        if (tradeOfferPct > 0) parts.push(`T.O: ${tradeOfferPct}%`);
         if (bonusRule && !bonusRule.startsWith('No Scheme')) parts.push(`Scheme: ${bonusRule}`);
         if (batchStr) parts.push(`Batch: ${batchStr}`);
         if (skuCode) parts.push(`SKU: ${skuCode}`);
         if (expDate) parts.push(`Exp: ${expDate}`);
         if (rackStr) parts.push(`Rack: ${rackStr}`);
+        if (vanZone) parts.push(`Zone: ${vanZone}`);
 
         // Restaurant, Fast Food & Cafe fields
         const portion = itemObj.portionSize || ind.portionSize || '';
@@ -2533,6 +2862,9 @@ const BusinessCategories = {
         if (ind.classGrade || ind.publisherBoard || ind.isbnCode || ind.subjectAuthor || ind.pagesRuling) {
             return 'books';
         }
+        if (ind.vanRouteZone || ind.tradeOfferPercent || record.vanRouteZone) {
+            return 'distributor';
+        }
         if (ind.cartonPacking || ind.tradePriceTP || ind.bonusSchemeRule || ind.skuBatchCode || record.cartonPacking || record.tradePriceTP) {
             const agPri = this.getPrimaryCategoryOfAgency(agencyObj);
             if (agPri === 'distributor') return 'distributor';
@@ -2545,6 +2877,7 @@ const BusinessCategories = {
         if (['repair_tech', 'installment_cust', 'used_buyer_seller'].includes(seg)) return 'mobile';
         if (['clinic_hospital', 'doctor_prescriber', 'sub_chemist', 'panel_inst', 'chronic_patient'].includes(seg)) return 'medical';
         if (['dinein_regular', 'takeaway_cust', 'home_delivery', 'foodpanda_online', 'catering_event'].includes(seg)) return 'restaurant';
+        if (['kiryana_retailer', 'superstore_mart', 'sub_distributor', 'bakery_confectionery', 'medical_cosmetic_shop'].includes(seg)) return 'distributor';
         if (['mandi_party'].includes(seg)) return 'wholesaler';
 
         // 4. Check explicit tag ONLY if the agency has not switched categories, OR if explicitRaw matches homeCat
@@ -2589,7 +2922,7 @@ const BusinessCategories = {
     async healMisassignedLegacyRecords(db, agencyId, agencyObj = null) {
         if (!db || !agencyId || agencyId === 'super-admin-hq') return 0;
         const homeCat = this.getPrimaryCategoryOfAgency(agencyObj) || 'general';
-        const healFlagKey = `eb_legacy_healed_v565_${agencyId}_${homeCat}`;
+        const healFlagKey = `eb_legacy_healed_v566_${agencyId}_${homeCat}`;
         try {
             if (typeof localStorage !== 'undefined' && localStorage.getItem(healFlagKey) === 'done') {
                 return 0;
@@ -2597,7 +2930,7 @@ const BusinessCategories = {
         } catch (_) {}
 
         let repairedCount = 0;
-        const cols = ['stock', 'customers', 'bills', 'orders', 'damage_claims', 'expenses'];
+        const cols = ['stock', 'customers', 'bills', 'orders', 'damage_claims', 'expenses', 'bookers', 'staff_payroll_profiles', 'stock_returns'];
         for (const col of cols) {
             try {
                 const snap = await db.collection(col).where('agencyId', '==', agencyId).get();
@@ -2618,6 +2951,27 @@ const BusinessCategories = {
                 }
             } catch (e) {}
         }
+
+        // Also lock legacy Field Staff (Order Bookers & Delivery Suppliers) in 'users' collection to homeCat (never modifying owner/super-admin)
+        try {
+            const uSnap = await db.collection('users').where('agencyId', '==', agencyId).get();
+            const staffRefsToFix = [];
+            uSnap.forEach(d => {
+                const rec = d.data() || {};
+                if (rec.role === 'owner' || rec.role === 'super-admin') return;
+                if (rec.categoryConfirmedByCreate === true) return;
+                const resolved = this.resolveRecordCategory(rec, agencyObj, homeCat);
+                if (resolved === homeCat && rec.businessCategory !== homeCat) {
+                    staffRefsToFix.push(d.ref);
+                }
+            });
+            for (let i = 0; i < staffRefsToFix.length; i += 400) {
+                const batch = db.batch();
+                staffRefsToFix.slice(i, i + 400).forEach(r => batch.update(r, { businessCategory: homeCat }));
+                await batch.commit();
+                repairedCount += staffRefsToFix.slice(i, i + 400).length;
+            }
+        } catch (e) {}
 
         try {
             if (typeof localStorage !== 'undefined') {
@@ -2655,34 +3009,38 @@ const BusinessCategories = {
         );
         const hasReturnReasons = Array.isArray(cat.returnReasons) && cat.returnReasons.length > 0;
         const hasClaimCategories = Array.isArray(cat.claimCategories) && cat.claimCategories.length > 0;
+        const hasExpenseCategories = Array.isArray(cat.expenseCategories) && cat.expenseCategories.length > 0;
 
         const isMobile = cat.id === 'mobile';
         const hasImeiFields = !isMobile || ['imei1', 'imei2', 'imei3', 'imei4'].every(fid => fields.some(f => f.id === fid && f.isImeiField));
         const hasBrandActionButtons = fields.some(f => f.hasBrandActionButtons === true);
 
-        const readyForProduction = Boolean(
-            cat.status === 'active' &&
-            (cat.subcategories || []).length > 0 &&
-            (cat.units || []).length > 0 &&
-            fields.length > 0 &&
-            hasUnitRulesByGroup &&
-            hasPurchaseConfig &&
-            hasStockReasons &&
-            hasCustomerConfig &&
-            hasReturnReasons &&
-            hasClaimCategories &&
-            hasThermalTerms &&
-            hasImeiFields &&
-            hasBrandActionButtons
-        );
+        const missingKeys = [];
+        if (cat.status !== 'active') missingKeys.push('status');
+        if ((cat.subcategories || []).length === 0) missingKeys.push('subcategories');
+        if ((cat.units || []).length === 0) missingKeys.push('units');
+        if (fields.length === 0) missingKeys.push('customFields');
+        if (!hasUnitRulesByGroup) missingKeys.push('unitRulesByGroup');
+        if (!hasPurchaseConfig) missingKeys.push('purchaseConfig');
+        if (!hasStockReasons) missingKeys.push('stockReasons');
+        if (!hasCustomerConfig) missingKeys.push('customerConfig');
+        if (!hasReturnReasons) missingKeys.push('returnReasons');
+        if (!hasClaimCategories) missingKeys.push('claimCategories');
+        if (!hasThermalTerms) missingKeys.push('thermalTerms');
+        if (!hasImeiFields) missingKeys.push('imeiFields');
+        if (!hasBrandActionButtons) missingKeys.push('brandActionButtons');
+
+        const readyForProduction = missingKeys.length === 0;
 
         return {
             valid: true,
             readyForProduction,
+            missingKeys,
             id: cat.id,
             nameEn: cat.nameEn,
             nameUr: cat.nameUr,
             status: cat.status,
+            devStatus: this.COMPLETED_CATEGORY_IDS.includes(cat.id) ? 'complete' : (this.IN_PROGRESS_CATEGORY_IDS.includes(cat.id) ? 'working' : 'coming_soon'),
             subcategoriesCount: (cat.subcategories || []).length,
             unitsCount: (cat.units || []).length,
             customFieldsCount: fields.length,
@@ -2692,6 +3050,7 @@ const BusinessCategories = {
             hasCustomerConfig,
             hasReturnReasons,
             hasClaimCategories,
+            hasExpenseCategories,
             hasThermalTerms,
             hasImeiFields,
             hasBrandActionButtons

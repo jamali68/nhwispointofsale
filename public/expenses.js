@@ -45,6 +45,24 @@ let agencyStaffList = [];
 let agencyAllSalaryExpenses = [];
 let salaryMonthSalesMap = {};
 
+function getActiveExpenseCategory() {
+    if (window.BusinessCategories && typeof window.BusinessCategories.getActiveCategoryId === 'function') {
+        return window.BusinessCategories.getActiveCategoryId(myAgency);
+    }
+    return (myAgency && myAgency.businessCategory) || localStorage.getItem('eb_active_business_category') || 'general';
+}
+
+function matchesExpenseActiveCategory(rec) {
+    if (!rec) return false;
+    const activeCat = getActiveExpenseCategory();
+    if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+        return window.BusinessCategories.matchesActiveCategoryRecord(rec, activeCat, myAgency);
+    }
+    const recCat = rec.businessCategory || rec.categoryType || '';
+    if (!recCat) return activeCat === 'general';
+    return recCat === activeCat;
+}
+
 // ==========================================================================
 // 🏷️ STANDARD DEFAULT EXPENSE CATEGORIES (Requested by User)
 // ==========================================================================
@@ -164,10 +182,26 @@ auth.onAuthStateChanged(async (user) => {
 // 📂 1. CATEGORY MANAGEMENT
 // ==========================================================================
 async function loadCategories() {
-    expenseCategories = [...DEFAULT_CATEGORIES];
+    const activeCat = getActiveExpenseCategory();
+    const industryCatsRaw = (window.BusinessCategories && typeof window.BusinessCategories.getExpenseCategories === 'function')
+        ? (window.BusinessCategories.getExpenseCategories(activeCat) || [])
+        : [];
+    const industryCats = industryCatsRaw.map(c => ({
+        ...c,
+        isDefault: true,
+        isIndustryCategory: true
+    }));
+
+    const baseCategoryMap = new Map();
+    industryCats.forEach(c => baseCategoryMap.set(c.id, c));
+    DEFAULT_CATEGORIES.forEach(c => {
+        if (!baseCategoryMap.has(c.id)) baseCategoryMap.set(c.id, c);
+    });
+    const baseCategories = Array.from(baseCategoryMap.values());
+    expenseCategories = [...baseCategories];
 
     try {
-        // Fetch custom agency categories
+        // Fetch custom agency categories isolated by active business category
         const snap = await db.collection('expense_categories')
             .where('agencyId', '==', myAgencyId)
             .get();
@@ -176,20 +210,23 @@ async function loadCategories() {
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            customCats.push(data);
+            if (!matchesExpenseActiveCategory(data)) return;
+            if (!baseCategoryMap.has(data.id)) {
+                customCats.push(data);
+            }
         });
 
         // Merge custom categories
         if (customCats.length > 0) {
-            expenseCategories = [...DEFAULT_CATEGORIES, ...customCats];
+            expenseCategories = [...baseCategories, ...customCats];
         }
 
-        // Save local cache
-        localStorage.setItem(`eb_expense_cats_${myAgencyId}`, JSON.stringify(expenseCategories));
+        // Save local cache (scoped per active category)
+        localStorage.setItem(`eb_expense_cats_${myAgencyId}_${activeCat}`, JSON.stringify(expenseCategories));
     } catch (e) {
         console.warn('Could not load custom categories from cloud, loading cached:', e);
         try {
-            const cached = localStorage.getItem(`eb_expense_cats_${myAgencyId}`);
+            const cached = localStorage.getItem(`eb_expense_cats_${myAgencyId}_${activeCat}`);
             if (cached) expenseCategories = JSON.parse(cached);
         } catch (err) {}
     }
@@ -283,8 +320,11 @@ async function handleAddCategory(e) {
     if (saveBtn) saveBtn.disabled = true;
 
     try {
+        const activeCat = getActiveExpenseCategory();
         const newCatDoc = {
             agencyId: myAgencyId,
+            businessCategory: activeCat,
+            categoryConfirmedByCreate: true,
             name: name,
             urdu: urdu || '',
             icon: icon || 'fa-receipt',
@@ -297,7 +337,7 @@ async function handleAddCategory(e) {
         newCatDoc.id = docRef.id;
 
         expenseCategories.push(newCatDoc);
-        localStorage.setItem(`eb_expense_cats_${myAgencyId}`, JSON.stringify(expenseCategories));
+        localStorage.setItem(`eb_expense_cats_${myAgencyId}_${activeCat}`, JSON.stringify(expenseCategories));
 
         populateCategoryDropdowns();
         renderCategoryManagerList();
@@ -341,7 +381,7 @@ window.deleteCategory = async function(catId) {
         try {
             await db.collection('expense_categories').doc(catId).delete();
             expenseCategories = expenseCategories.filter(c => c.id !== catId);
-            localStorage.setItem(`eb_expense_cats_${myAgencyId}`, JSON.stringify(expenseCategories));
+            localStorage.setItem(`eb_expense_cats_${myAgencyId}_${getActiveExpenseCategory()}`, JSON.stringify(expenseCategories));
             populateCategoryDropdowns();
             renderCategoryManagerList();
             Swal.fire('Deleted!', 'Category removed.', 'success');
@@ -395,8 +435,8 @@ async function loadExpenses() {
     } catch (e) {
         console.warn('Expense fetch error, reading cached:', e);
         try {
-            const activeCat = window.BusinessCategories ? window.BusinessCategories.getActiveCategoryId(myAgency) : 'general';
-            const cached = localStorage.getItem(`eb_expenses_${myAgencyId}_${activeCat}`) || localStorage.getItem(`eb_expenses_${myAgencyId}`);
+            const activeCat = getActiveExpenseCategory();
+            const cached = localStorage.getItem(`eb_expenses_${myAgencyId}_${activeCat}`);
             if (cached) {
                 const parsed = JSON.parse(cached);
                 rawExpenses = parsed.filter(item => {
@@ -1174,8 +1214,8 @@ async function handleSaveExpense(e) {
             });
         }
 
-        // Cache update
-        localStorage.setItem(`eb_expenses_${myAgencyId}`, JSON.stringify(rawExpenses));
+        // Cache update (per active business category)
+        localStorage.setItem(`eb_expenses_${myAgencyId}_${activeCat}`, JSON.stringify(rawExpenses));
 
         closeExpenseModal();
         renderExpenseDashboard();
@@ -1213,7 +1253,7 @@ window.deleteExpense = async function(id) {
         try {
             await db.collection('expenses').doc(id).delete();
             rawExpenses = rawExpenses.filter(e => e.id !== id);
-            localStorage.setItem(`eb_expenses_${myAgencyId}`, JSON.stringify(rawExpenses));
+            localStorage.setItem(`eb_expenses_${myAgencyId}_${getActiveExpenseCategory()}`, JSON.stringify(rawExpenses));
             renderExpenseDashboard();
             Swal.fire('Deleted!', 'Expense removed successfully.', 'success');
         } catch (e) {
@@ -1638,6 +1678,7 @@ async function loadStaffPayrollContext() {
             const u = d.data();
             if (u.status === 'deleted') return;
             if (u.role === 'owner' || u.role === 'super-admin') return;
+            if (!matchesExpenseActiveCategory(u)) return;
             staffMap.set(d.id, {
                 id: d.id,
                 source: 'users',
@@ -1654,6 +1695,7 @@ async function loadStaffPayrollContext() {
         customStaffSnap.forEach(d => {
             const s = d.data();
             if (s.status === 'deleted') return;
+            if (!matchesExpenseActiveCategory(s)) return;
             staffMap.set(d.id, {
                 id: d.id,
                 source: 'staff_payroll_profiles',
@@ -1672,6 +1714,7 @@ async function loadStaffPayrollContext() {
         agencyAllSalaryExpenses = [];
         salExpSnap.forEach(d => {
             const e = { id: d.id, ...d.data() };
+            if (!matchesExpenseActiveCategory(e)) return;
             if (e.categoryId === 'cat_salary' || e.categoryId === 'cat_commission' || !!e.isSalaryPayroll) {
                 agencyAllSalaryExpenses.push(e);
             }
@@ -1681,6 +1724,7 @@ async function loadStaffPayrollContext() {
         billsSnap.forEach(d => {
             const b = d.data();
             if (b.orderStatus === 'cancelled') return;
+            if (!matchesExpenseActiveCategory(b)) return;
             const bDate = (b.date || (b.createdAt ? b.createdAt.slice(0, 10) : '')).slice(0, 7);
             if (bDate !== targetMonth) return;
             const amt = Number(b.billAmount || b.grandTotal || 0);
@@ -1903,6 +1947,8 @@ window.openAddPayrollStaffModal = async function() {
     try {
         await db.collection('staff_payroll_profiles').add({
             agencyId: myAgencyId,
+            businessCategory: getActiveExpenseCategory(),
+            categoryConfirmedByCreate: true,
             name: val.name,
             role: val.role,
             mobile: val.mobile,
@@ -2006,6 +2052,8 @@ window.openPayAdvanceModal = async function(staffId) {
     try {
         const expData = {
             agencyId: myAgencyId,
+            businessCategory: getActiveExpenseCategory(),
+            categoryConfirmedByCreate: true,
             categoryId: 'cat_salary',
             category: 'Staff Salaries & Wages',
             isSalaryPayroll: true,
@@ -2085,6 +2133,8 @@ window.openPaySalaryModal = async function(staffId) {
     try {
         const expData = {
             agencyId: myAgencyId,
+            businessCategory: getActiveExpenseCategory(),
+            categoryConfirmedByCreate: true,
             categoryId: 'cat_salary',
             category: 'Staff Salaries & Wages',
             isSalaryPayroll: true,

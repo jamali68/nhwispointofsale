@@ -647,7 +647,88 @@ function isWholesalerAgency() {
         const cat = window.BusinessCategories.getById(bt);
         if (cat) return cat.id === 'wholesaler';
     }
-    return bt === 'wholesaler' || bt === 'distributor' || bt === 'wholesale' || bt === 'agency' || bt === 'fmcg_distributor';
+    return bt === 'wholesaler' || bt === 'wholesale' || bt === 'mandi';
+}
+
+function isDistributorAgency() {
+    const bt = getActiveAgencyBusinessType();
+    if (window.BusinessCategories) {
+        const cat = window.BusinessCategories.getById(bt);
+        if (cat) return cat.id === 'distributor';
+    }
+    return bt === 'distributor' || bt === 'fmcg_distributor' || bt === 'distribution_agency' || bt === 'agency';
+}
+
+// Parse explicit scheme or FMCG Distributor industryFields (bonusSchemeRule + tradeOfferPercent)
+function parseDistributorSchemeRule(itemOrData) {
+    if (!itemOrData) {
+        return { hasScheme: false, schemeType: '', schemeMinQty: 0, schemeValue: 0, schemeLabel: '', tradeOfferPct: 0 };
+    }
+    const ind = (itemOrData.industryFields && typeof itemOrData.industryFields === 'object') ? itemOrData.industryFields : {};
+    const toPct = parseFloat(ind.tradeOfferPercent !== undefined ? ind.tradeOfferPercent : itemOrData.tradeOfferPct) || 0;
+    const ruleText = String(ind.bonusSchemeRule || itemOrData.promoDesc || '').trim();
+    const validRuleText = (ruleText && !ruleText.startsWith('No Scheme')) ? ruleText : '';
+
+    if (itemOrData.hasScheme === true || itemOrData.hasScheme === 'true') {
+        return {
+            hasScheme: true,
+            schemeType: itemOrData.schemeType || 'buy_x_get_y',
+            schemeMinQty: parseFloat(itemOrData.schemeMinQty) || 1,
+            schemeValue: parseFloat(itemOrData.schemeValue) || 1,
+            schemeLabel: itemOrData.schemeLabel || validRuleText || (toPct > 0 ? `${toPct}% T.O` : 'Active Scheme'),
+            tradeOfferPct: toPct
+        };
+    }
+
+    if (validRuleText) {
+        const buyGetMatch = validRuleText.match(/(\d+)\s*\+\s*(\d+)\s*free/i) || validRuleText.match(/buy\s*(\d+)\s*get\s*(\d+)/i);
+        if (buyGetMatch) {
+            return {
+                hasScheme: true,
+                schemeType: 'buy_x_get_y',
+                schemeMinQty: parseFloat(buyGetMatch[1]) || 12,
+                schemeValue: parseFloat(buyGetMatch[2]) || 1,
+                schemeLabel: validRuleText,
+                tradeOfferPct: toPct
+            };
+        }
+        const flatMatch = validRuleText.match(/rs\.?\s*(\d+(?:\.\d+)?)/i);
+        if (flatMatch) {
+            return {
+                hasScheme: true,
+                schemeType: 'flat_discount',
+                schemeMinQty: 1,
+                schemeValue: parseFloat(flatMatch[1]) || 50,
+                schemeLabel: validRuleText,
+                tradeOfferPct: toPct
+            };
+        }
+        const pctMatch = validRuleText.match(/(\d+(?:\.\d+)?)\s*%/);
+        if (pctMatch) {
+            const pVal = parseFloat(pctMatch[1]) || toPct || 2;
+            return {
+                hasScheme: true,
+                schemeType: 'percent_discount',
+                schemeMinQty: 1,
+                schemeValue: pVal,
+                schemeLabel: validRuleText,
+                tradeOfferPct: toPct > 0 ? toPct : pVal
+            };
+        }
+    }
+
+    if (toPct > 0) {
+        return {
+            hasScheme: true,
+            schemeType: 'percent_discount',
+            schemeMinQty: 1,
+            schemeValue: toPct,
+            schemeLabel: `${toPct}% Trade Offer (T.O)`,
+            tradeOfferPct: toPct
+        };
+    }
+
+    return { hasScheme: false, schemeType: '', schemeMinQty: 0, schemeValue: 0, schemeLabel: '', tradeOfferPct: 0 };
 }
 
 function isMedicalAgency() {
@@ -721,11 +802,14 @@ function formatStockIndustrySubtitle(s) {
     }
     if (ind.warrantyInfo) parts.push(`Warranty: ${ind.warrantyInfo}`);
     if (ind.cartonPacking) parts.push(`Ctn: ${ind.cartonPacking}`);
+    if (Number(ind.retailMrp) > 0) parts.push(`MRP: Rs ${ind.retailMrp}`);
     if (Number(ind.tradePriceTP) > 0) parts.push(`TP: Rs ${ind.tradePriceTP}`);
+    if (Number(ind.tradeOfferPercent) > 0) parts.push(`T.O: ${ind.tradeOfferPercent}%`);
     if (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme')) parts.push(`Scheme: ${ind.bonusSchemeRule}`);
     if (ind.skuBatchCode) parts.push(`SKU: ${ind.skuBatchCode}`);
     if (ind.batchNo) parts.push(`Batch: ${ind.batchNo}`);
     if (ind.expiryDate) parts.push(`Exp: ${ind.expiryDate}`);
+    if (ind.vanRouteZone) parts.push(`Zone: ${ind.vanRouteZone}`);
     if (ind.storageRack) parts.push(`Rack: ${ind.storageRack}`);
     const packSz = parseFloat(ind.packSize) || (s.unit === 'maund' ? 40 : 0);
     if (packSz > 1) {
@@ -741,12 +825,13 @@ function formatStockSuggestionMeta(s) {
     if (!s) return '';
     const ind = (s.industryFields && typeof s.industryFields === 'object') ? s.industryFields : {};
     const isWholesaleMode = isWholesalerAgency();
+    const isDistMode = isDistributorAgency();
     const isMedMode = isMedicalAgency();
     const isRestMode = isRestaurantAgency();
     const badges = [];
     if (ind.classGrade) badges.push(`🎓 ${ind.classGrade}`);
     if (ind.publisherBoard) badges.push(`🏛️ ${ind.publisherBoard}`);
-    if (ind.brandCompany) badges.push(`${isMedMode ? '🏥' : (isRestMode ? '👨‍🍳' : (isWholesaleMode ? '🏭' : '📱'))} ${ind.brandCompany}`);
+    if (ind.brandCompany) badges.push(`${isMedMode ? '🏥' : (isRestMode ? '👨‍🍳' : (isDistMode ? '🚚' : (isWholesaleMode ? '🏭' : '📱')))} ${ind.brandCompany}`);
     if (!ind.publisherBoard && !ind.brandCompany && s.supplierName) badges.push(`🏢 ${s.supplierName}`);
     if (ind.portionSize) badges.push(`📏 ${ind.portionSize}`);
     if (ind.spiceVariant) badges.push(`🌶️ ${ind.spiceVariant}`);
@@ -775,10 +860,13 @@ function formatStockSuggestionMeta(s) {
     }
     if (ind.warrantyInfo) badges.push(`🛡️ ${ind.warrantyInfo}`);
     if (ind.cartonPacking) badges.push(`📦 ${ind.cartonPacking}`);
+    if (Number(ind.retailMrp) > 0) badges.push(`🏷️ MRP: Rs ${Number(ind.retailMrp).toLocaleString()}`);
     if (Number(ind.tradePriceTP) > 0) badges.push(`💰 TP: Rs ${Number(ind.tradePriceTP).toLocaleString()}`);
+    if (Number(ind.tradeOfferPercent) > 0) badges.push(`📉 T.O: ${ind.tradeOfferPercent}%`);
     if (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme')) badges.push(`🎁 ${ind.bonusSchemeRule}`);
     if (ind.skuBatchCode) badges.push(`🔖 ${ind.skuBatchCode}`);
     if (ind.batchNo) badges.push(`💊 Batch: ${ind.batchNo}`);
+    if (ind.vanRouteZone) badges.push(`🛣️ ${ind.vanRouteZone}`);
     if (ind.storageRack) badges.push(`🗄️ ${ind.storageRack}`);
     if (ind.expiryDate) {
         const expInfo = classifyPosExpiryStatus(ind.expiryDate);
@@ -809,12 +897,13 @@ function matchesPosSearchAndFilters(s, rawQuery = '') {
     const isMobMode = isMobileShopAgency();
     const isBookMode = isBookDepotAgency();
     const isMedMode = isMedicalAgency() && !isBookMode && !isMobMode;
-    const isWhlMode = isWholesalerAgency() && !isBookMode && !isMobMode && !isMedMode;
-    const isRestMode = (isRestaurantAgency() || Boolean(ind.portionSize || ind.spiceVariant || ind.kitchenKOTZone || ind.dealContents)) && !isBookMode && !isMobMode && !isMedMode && !isWhlMode;
+    const isDistMode = isDistributorAgency() && !isBookMode && !isMobMode && !isMedMode;
+    const isWhlMode = isWholesalerAgency() && !isBookMode && !isMobMode && !isMedMode && !isDistMode;
+    const isRestMode = (isRestaurantAgency() || Boolean(ind.portionSize || ind.spiceVariant || ind.kitchenKOTZone || ind.dealContents)) && !isBookMode && !isMobMode && !isMedMode && !isWhlMode && !isDistMode;
 
     if (posActiveClassFilter !== 'all') {
         const targetPri = posActiveClassFilter.toLowerCase();
-        if (isMobMode || isWhlMode || isMedMode || isRestMode) {
+        if (isMobMode || isWhlMode || isDistMode || isMedMode || isRestMode) {
             const br = String(ind.brandCompany || s.supplierName || s.lastSupplier || '').trim().toLowerCase();
             if (br !== targetPri) return false;
         } else {
@@ -855,16 +944,19 @@ function matchesPosSearchAndFilters(s, rawQuery = '') {
                 const kot = String(ind.kitchenKOTZone || '').trim().toLowerCase();
                 if (pSize !== targetSec && sVar !== targetSec && kot !== targetSec) return false;
             }
-        } else if (isWhlMode) {
-            const schemeRule = String(ind.bonusSchemeRule || '').trim();
-            const hasActiveScheme = Boolean(s.hasScheme || (schemeRule && !schemeRule.startsWith('No Scheme')));
+        } else if (isDistMode || isWhlMode) {
+            const parsedScheme = parseDistributorSchemeRule(s);
             if (targetSec === '__active_scheme__') {
-                if (!hasActiveScheme) return false;
+                if (!parsedScheme.hasScheme) return false;
+            } else if (targetSec === '__near_expiry__') {
+                const expInfo = classifyPosExpiryStatus(ind.expiryDate || s.expiryDate);
+                if (expInfo.status !== 'expired' && expInfo.status !== 'critical' && expInfo.status !== 'warning') return false;
             } else {
                 const subGrp = String(ind.itemSubType || s.category || '').trim().toLowerCase();
-                const ruleLower = schemeRule.toLowerCase();
+                const ruleLower = String(ind.bonusSchemeRule || '').trim().toLowerCase();
                 const slabelLower = String(s.schemeLabel || '').trim().toLowerCase();
-                if (subGrp !== targetSec && ruleLower !== targetSec && slabelLower !== targetSec) {
+                const zoneLower = String(ind.vanRouteZone || '').trim().toLowerCase();
+                if (subGrp !== targetSec && ruleLower !== targetSec && slabelLower !== targetSec && zoneLower !== targetSec) {
                     return false;
                 }
             }
@@ -932,22 +1024,25 @@ function setupBookPosQuickFilterBar() {
     const explicitBook = isBookDepotAgency();
     const explicitMob = isMobileShopAgency();
     const explicitWhl = isWholesalerAgency();
+    const explicitDist = isDistributorAgency();
     const explicitMed = isMedicalAgency();
     const explicitRest = isRestaurantAgency();
-    const hasExplicitCat = explicitBook || explicitMob || explicitWhl || explicitMed || explicitRest;
+    const hasExplicitCat = explicitBook || explicitMob || explicitWhl || explicitDist || explicitMed || explicitRest;
 
     const hasBookItems = allMyStock.some(s => s.industryFields && (s.industryFields.classGrade || s.industryFields.publisherBoard || s.industryFields.isbnCode));
     const hasMobItems = allMyStock.some(s => s.industryFields && (s.industryFields.imei1 || (s.industryFields.brandCompany && s.industryFields.ptaStatus) || s.industryFields.ptaStatus || s.industryFields.modelVariant));
     const hasMedItems = allMyStock.some(s => s.industryFields && (s.industryFields.genericFormula || s.industryFields.batchNo || s.industryFields.dosageStrength));
+    const hasDistributorItems = allMyStock.some(s => s.industryFields && (s.industryFields.retailMrp || s.industryFields.tradeOfferPercent || s.industryFields.vanRouteZone));
     const hasWholesaleItems = allMyStock.some(s => s.industryFields && (s.industryFields.cartonPacking || s.industryFields.tradePriceTP || s.industryFields.bonusSchemeRule || s.industryFields.skuBatchCode));
     const hasRestaurantItems = allMyStock.some(s => s.industryFields && (s.industryFields.portionSize || s.industryFields.spiceVariant || s.industryFields.kitchenKOTZone || s.industryFields.dealContents));
 
     const isMobMode = hasExplicitCat ? explicitMob : hasMobItems;
     const isMedMode = hasExplicitCat ? explicitMed : (!isMobMode && hasMedItems);
-    const isWholesaleMode = hasExplicitCat ? explicitWhl : (!isMobMode && !isMedMode && hasWholesaleItems);
-    const isRestMode = hasExplicitCat ? explicitRest : (!isMobMode && !isMedMode && !isWholesaleMode && hasRestaurantItems);
+    const isDistributorMode = hasExplicitCat ? explicitDist : (!isMobMode && !isMedMode && hasDistributorItems);
+    const isWholesaleMode = hasExplicitCat ? explicitWhl : (!isMobMode && !isMedMode && !isDistributorMode && hasWholesaleItems);
+    const isRestMode = hasExplicitCat ? explicitRest : (!isMobMode && !isMedMode && !isDistributorMode && !isWholesaleMode && hasRestaurantItems);
 
-    if (!explicitBook && !hasBookItems && !isMobMode && !isWholesaleMode && !isMedMode && !isRestMode) {
+    if (!explicitBook && !hasBookItems && !isMobMode && !isDistributorMode && !isWholesaleMode && !isMedMode && !isRestMode) {
         if (bar) bar.style.display = 'none';
         if (bookerBar) bookerBar.style.display = 'none';
         if (catBar) catBar.style.display = 'none';
@@ -1061,6 +1156,73 @@ function setupBookPosQuickFilterBar() {
                 const o = document.createElement('option');
                 o.value = sf;
                 o.textContent = `🌶️ ${sf}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActivePublisherFilter;
+        });
+
+        addSetBtns.forEach(({ btn }) => { btn.style.display = 'none'; });
+    } else if (isDistributorMode && !isBookDepotAgency() && !isMobileShopAgency()) {
+        if (filterLbl) filterLbl.innerHTML = '🚚 FMCG Agency POS:';
+        if (btnRepairJob) btnRepairJob.style.display = 'none';
+        if (btnTradeIn) btnTradeIn.style.display = 'none';
+
+        const scanInp = document.getElementById('barcodeScanInput');
+        if (scanInp) scanInp.placeholder = 'Scan Barcode / SKU / Batch or search FMCG item, agency brand, carton packing, TP, MRP, bonus...';
+        const listInp = document.getElementById('listSearchInput');
+        if (listInp) listInp.placeholder = '🔍 Search FMCG product, principal agency, carton packing, TP, MRP, T.O % or scheme...';
+
+        const companies = new Set();
+        const divisionsSchemesZones = new Set();
+
+        // Include custom brands saved by this agency for distributor
+        try {
+            const rawSaved = localStorage.getItem(`eb_custom_brands_${myAgencyId || 'default'}_distributor`);
+            const savedList = rawSaved ? JSON.parse(rawSaved) : [];
+            if (Array.isArray(savedList)) {
+                savedList.forEach(b => {
+                    const cleanB = String(b || '').trim();
+                    if (cleanB) companies.add(cleanB);
+                });
+            }
+        } catch (e) {}
+
+        allMyStock.forEach(s => {
+            const ind = s.industryFields || {};
+            const comp = String(ind.brandCompany || s.supplierName || s.lastSupplier || '').trim();
+            const grp = String(ind.itemSubType || s.category || '').trim();
+            const sch = String(ind.bonusSchemeRule || s.schemeLabel || '').trim();
+            const zone = String(ind.vanRouteZone || '').trim();
+            if (comp) companies.add(comp);
+            if (grp) divisionsSchemesZones.add(grp);
+            if (sch && !sch.startsWith('No Scheme')) divisionsSchemesZones.add(sch);
+            if (zone) divisionsSchemesZones.add(zone);
+        });
+
+        if (!companies.has(posActiveClassFilter)) posActiveClassFilter = 'all';
+        if (posActivePublisherFilter !== '__active_scheme__' && posActivePublisherFilter !== '__near_expiry__' && !divisionsSchemesZones.has(posActivePublisherFilter)) {
+            posActivePublisherFilter = 'all';
+        }
+
+        clsSelects.forEach(sel => {
+            sel.innerHTML = '<option value="all">🚚 All Principal Agencies / تمام ایجنسیاں</option>';
+            companies.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c;
+                o.textContent = `🚚 ${c}`;
+                sel.appendChild(o);
+            });
+            sel.value = posActiveClassFilter;
+        });
+
+        pubSelects.forEach(sel => {
+            sel.innerHTML = `<option value="all">📦 All Divisions, Schemes &amp; Expiry</option>
+                <option value="__active_scheme__">🎁 Active Bonus / Trade Offer (T.O) Only</option>
+                <option value="__near_expiry__">⏳ Near-Expiry (≤90d) &amp; Expired Batch</option>`;
+            divisionsSchemesZones.forEach(gs => {
+                const o = document.createElement('option');
+                o.value = gs;
+                o.textContent = `📦 ${gs}`;
                 sel.appendChild(o);
             });
             sel.value = posActivePublisherFilter;
@@ -1205,7 +1367,7 @@ function setupBookPosQuickFilterBar() {
     }
 
     const syncAddSetBtnVisibility = () => {
-        if ((isMobMode || isWholesaleMode || isMedMode || isRestMode) && !isBookDepotAgency()) {
+        if ((isMobMode || isDistributorMode || isWholesaleMode || isMedMode || isRestMode) && !isBookDepotAgency()) {
             addSetBtns.forEach(({ btn }) => { btn.style.display = 'none'; });
             return;
         }
@@ -1811,6 +1973,149 @@ window.openRowImeiWarrantyModal = async function(rowId) {
                 industryFields: newInd
             }, rowId);
         }
+    }
+};
+
+// 🚚 Inline POS Row Carton / TP / MRP / Bonus / Trade Offer (T.O) Quick Editor for FMCG Distributor & Wholesaler
+window.openRowDistributorSchemeModal = async function(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    const nameInput = row.querySelector('.ir-name');
+    const qtyInput = row.querySelector('.ir-qty');
+    const rateInput = row.querySelector('.ir-rate');
+    const ctnInput = row.querySelector('.ir-ctn');
+    const boxInput = row.querySelector('.ir-box');
+    const pcsInput = row.querySelector('.ir-pcs');
+    const ctnSizeInput = row.querySelector('.ir-ctn-size');
+    const retailPriceInput = row.querySelector('.ir-retail-price');
+    const tpInput = row.querySelector('.ir-tp');
+    const bonusInput = row.querySelector('.ir-bonus');
+    const toInput = row.querySelector('.ir-to');
+    const promoDescInput = row.querySelector('.ir-promo-desc');
+
+    const stockId = nameInput ? nameInput.dataset.stockId : '';
+    const stockItem = stockId ? allMyStock.find(x => x.id === stockId) : null;
+    const curInd = (row.dataset.industryFieldsJson ? JSON.parse(row.dataset.industryFieldsJson) : (stockItem && stockItem.industryFields ? stockItem.industryFields : {})) || {};
+
+    const curCtn = ctnInput ? ctnInput.value : '';
+    const curBox = boxInput ? boxInput.value : (qtyInput ? qtyInput.value : '1');
+    const curPcs = pcsInput ? pcsInput.value : '';
+    const curCtnSz = (ctnSizeInput && ctnSizeInput.value) ? ctnSizeInput.value : (curInd.packSize || 12);
+    const curMrp = (retailPriceInput && retailPriceInput.value) ? retailPriceInput.value : (curInd.retailMrp || (stockItem && stockItem.retailRate) || '');
+    const curTp = (tpInput && tpInput.value) ? tpInput.value : (curInd.tradePriceTP || (rateInput ? rateInput.value : ''));
+    const curBonus = bonusInput ? bonusInput.value : '';
+    const curTo = toInput ? toInput.value : '';
+    const curPromo = (promoDescInput && promoDescInput.value) ? promoDescInput.value : (curInd.bonusSchemeRule || '');
+
+    const { value: updated } = await Swal.fire({
+        title: '🚚 Carton, TP/MRP & Trade Offer (T.O / Bonus)',
+        width: 540,
+        html: `
+            <div style="text-align:right; direction:rtl; font-size:12.5px; color:#1e293b;">
+                <div style="font-weight:800; color:#0284c7; margin-bottom:10px; background:#f0f9ff; padding:6px 10px; border-radius:8px; border:1px solid #bae6fd;">
+                    📦 آئٹم: ${nameInput ? nameInput.value : ''}
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:10px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px; font-size:11px;">📦 کارٹن (CTN)</label>
+                        <input id="rowDistCtn" type="number" min="0" step="1" class="swal2-input" value="${curCtn}" placeholder="0" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; text-align:center; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px; font-size:11px;">📥 بکس/ڈبے (Box)</label>
+                        <input id="rowDistBox" type="number" min="0" step="1" class="swal2-input" value="${curBox}" placeholder="1" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; text-align:center; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px; font-size:11px;">🔘 کھلے پیس (Pcs)</label>
+                        <input id="rowDistPcs" type="number" min="0" step="1" class="swal2-input" value="${curPcs}" placeholder="0" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; text-align:center; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px; font-size:11px;">📏 پیک سائز (Ctn Sz)</label>
+                        <input id="rowDistCtnSz" type="number" min="1" step="1" class="swal2-input" value="${curCtnSz}" placeholder="12" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; text-align:center; direction:ltr;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">🏷️ پرنٹڈ ریٹیل (Consumer MRP Rs)</label>
+                        <input id="rowDistMrp" type="number" min="0" step="0.01" class="swal2-input" value="${curMrp}" placeholder="e.g. 250" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12.5px; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">💰 ٹریڈ پرائس (Shopkeeper TP Rs)</label>
+                        <input id="rowDistTp" type="number" min="0" step="0.01" class="swal2-input" value="${curTp}" placeholder="e.g. 220" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12.5px; direction:ltr;">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">🎁 فری بونس یونٹس (Bonus Free Qty)</label>
+                        <input id="rowDistBonus" type="number" min="0" step="1" class="swal2-input" value="${curBonus}" placeholder="e.g. 1 (for 12+1)" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12.5px; direction:ltr;">
+                    </div>
+                    <div>
+                        <label style="font-weight:bold; display:block; margin-bottom:2px;">📉 ٹریڈ آفر رعایت (T.O Discount Rs)</label>
+                        <input id="rowDistTo" type="number" min="0" step="0.01" class="swal2-input" value="${curTo}" placeholder="e.g. 50" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12.5px; direction:ltr;">
+                    </div>
+                </div>
+                <div>
+                    <label style="font-weight:bold; display:block; margin-bottom:2px;">📝 اسکیم / پروموشن نوٹ (Scheme Note on Invoice)</label>
+                    <input id="rowDistPromo" class="swal2-input" value="${String(curPromo || '').replace(/"/g, '&quot;')}" placeholder="e.g. 12 + 1 Free / 2% Extra Slab" style="margin:0; width:100%; box-sizing:border-box; height:34px; font-size:12px; direction:ltr;">
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '✅ Update Row (لاگو کریں)',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#0284c7',
+        preConfirm: () => ({
+            ctn: document.getElementById('rowDistCtn')?.value || '',
+            box: document.getElementById('rowDistBox')?.value || '',
+            pcs: document.getElementById('rowDistPcs')?.value || '',
+            ctnSz: document.getElementById('rowDistCtnSz')?.value || '',
+            mrp: document.getElementById('rowDistMrp')?.value || '',
+            tp: document.getElementById('rowDistTp')?.value || '',
+            bonus: document.getElementById('rowDistBonus')?.value || '',
+            to: document.getElementById('rowDistTo')?.value || '',
+            promo: (document.getElementById('rowDistPromo')?.value || '').trim()
+        })
+    });
+
+    if (updated) {
+        if (ctnInput) ctnInput.value = updated.ctn;
+        if (boxInput) boxInput.value = updated.box;
+        if (pcsInput) pcsInput.value = updated.pcs;
+        if (ctnSizeInput && updated.ctnSz) ctnSizeInput.value = updated.ctnSz;
+        if (retailPriceInput && updated.mrp !== '') retailPriceInput.value = updated.mrp;
+        if (tpInput && updated.tp !== '') {
+            tpInput.value = updated.tp;
+            if (rateInput && activeRateTier === 'wholesale') rateInput.value = updated.tp;
+        }
+        if (bonusInput) {
+            bonusInput.value = updated.bonus;
+            bonusInput.dataset.manualOverride = 'true';
+        }
+        if (toInput) {
+            toInput.value = updated.to;
+            toInput.dataset.manualOverride = 'true';
+        }
+        if (promoDescInput) promoDescInput.value = updated.promo;
+
+        const newInd = { ...curInd };
+        if (updated.mrp !== '') newInd.retailMrp = parseFloat(updated.mrp) || 0;
+        if (updated.tp !== '') newInd.tradePriceTP = parseFloat(updated.tp) || 0;
+        if (updated.ctnSz !== '') newInd.packSize = parseFloat(updated.ctnSz) || 12;
+        if (updated.promo) newInd.bonusSchemeRule = updated.promo;
+        row.dataset.industryFieldsJson = JSON.stringify(newInd);
+
+        const rebuiltSub = formatStockIndustrySubtitle({ ...(stockItem || {}), industryFields: newInd });
+        row.dataset.itemSubtitle = rebuiltSub;
+        const hint = row.querySelector('.stock-hint');
+        if (hint) {
+            hint.style.display = 'inline-block';
+            hint.innerHTML = buildRowStockHintHtml({
+                ...(stockItem || { unit: row.dataset.unit || 'box', qty: 1 }),
+                itemSubtitle: rebuiltSub,
+                industryFields: newInd
+            }, rowId);
+        }
+        if (typeof row._updateRowCalc === 'function') row._updateRowCalc();
     }
 };
 
@@ -2530,9 +2835,9 @@ function selectCustomerObject(c) {
     if (catSuggest) catSuggest.classList.remove('show');
 
     // 🎯 AUTO-SELECT WHOLESALE vs RETAIL BASED ON CUSTOMER TYPE OR SEGMENT!
-    if (c.customerType === 'wholesale' || c.subCategory === 'school_college' || c.subCategory === 'sub_dealer' || c.subCategory === 'library_inst' || c.subCategory === 'repair_tech' || c.subCategory === 'corporate_inst' || c.subCategory === 'kiryana_retailer' || c.subCategory === 'superstore_mart' || c.subCategory === 'mandi_party' || c.subCategory === 'corporate_canteen' || c.subCategory === 'corporate_office' || c.subCategory === 'catering_event' || c.subCategory === 'clinic_hospital' || c.subCategory === 'doctor_prescriber' || c.subCategory === 'sub_chemist' || c.subCategory === 'panel_inst') {
+    if (c.customerType === 'wholesale' || c.subCategory === 'school_college' || c.subCategory === 'sub_dealer' || c.subCategory === 'library_inst' || c.subCategory === 'repair_tech' || c.subCategory === 'corporate_inst' || c.subCategory === 'kiryana_retailer' || c.subCategory === 'superstore_mart' || c.subCategory === 'mandi_party' || c.subCategory === 'sub_distributor' || c.subCategory === 'bakery_confectionery' || c.subCategory === 'medical_cosmetic_shop' || c.subCategory === 'wholesale_dealer' || c.subCategory === 'corporate_canteen' || c.subCategory === 'corporate_office' || c.subCategory === 'catering_event' || c.subCategory === 'clinic_hospital' || c.subCategory === 'doctor_prescriber' || c.subCategory === 'sub_chemist' || c.subCategory === 'panel_inst') {
         setRateTier('wholesale', true);
-    } else if (c.customerType === 'retail' || c.subCategory === 'student_parent' || c.subCategory === 'installment_cust' || c.subCategory === 'used_buyer_seller' || c.subCategory === 'dinein_regular' || c.subCategory === 'takeaway_cust' || c.subCategory === 'home_delivery' || c.subCategory === 'foodpanda_online' || c.subCategory === 'chronic_patient' || c.subCategory === 'general_cust') {
+    } else if (c.customerType === 'retail' || c.subCategory === 'student_parent' || c.subCategory === 'installment_cust' || c.subCategory === 'used_buyer_seller' || c.subCategory === 'dinein_regular' || c.subCategory === 'takeaway_cust' || c.subCategory === 'home_delivery' || c.subCategory === 'foodpanda_online' || c.subCategory === 'chronic_patient' || c.subCategory === 'general_cust' || c.subCategory === 'cash_counter') {
         setRateTier('retail', true);
     }
 
@@ -2556,6 +2861,7 @@ function selectCustomerObject(c) {
     const isMobMode = isMobileShopAgency();
     const isMedMode = isMedicalAgency();
     const isWhMode = isWholesalerAgency();
+    const isDistMode = isDistributorAgency();
     const isRestMode = typeof isRestaurantAgency === 'function' ? isRestaurantAgency() : false;
 
     // 🍔 If Restaurant mode & Fast Food Order Bar is present, gently auto-fill empty delivery/rider fields
@@ -2591,10 +2897,10 @@ function selectCustomerObject(c) {
         info += `<span class="c-chip" style="background:#ede9fe; color:#6d28d9; border:1px solid #ddd6fe; font-weight:800;">${segLabel}</span>`;
     }
     if (c.affiliatedBoard) {
-        info += `<span class="c-chip" style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd;">${isRestMode ? '📍' : (isMedMode ? '🩺' : (isWhMode ? '🛣️' : (isMobMode ? '📱' : '🏛️')))} ${c.affiliatedBoard}</span>`;
+        info += `<span class="c-chip" style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd;">${isRestMode ? '📍' : (isMedMode ? '🩺' : (isDistMode ? '🚚' : (isWhMode ? '🛣️' : (isMobMode ? '📱' : '🏛️'))))} ${c.affiliatedBoard}</span>`;
     }
     if (c.focalPerson) {
-        info += `<span class="c-chip" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">${isRestMode ? '🛵' : (isMedMode ? '👨‍⚕️' : (isWhMode || isMobMode ? '🤝' : '👔'))} ${c.focalPerson}</span>`;
+        info += `<span class="c-chip" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">${isRestMode ? '🛵' : (isMedMode ? '👨‍⚕️' : (isDistMode ? '👤' : (isWhMode || isMobMode ? '🤝' : '👔')))} ${c.focalPerson}</span>`;
     }
     if (agreedPct > 0) {
         info += `<span class="c-chip" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:800;">🏷️ Agreed Disc: ${agreedPct}%</span>`;
@@ -3429,7 +3735,8 @@ function handleScannedBarcode(rawCode) {
     playScanBeep();
     addItemToRows(matched);
 
-    const rate = activeRateTier === 'wholesale' ? (matched.wholesaleRate || matched.rate || 0) : (matched.retailRate || matched.rate || 0);
+    const indM = matched.industryFields || {};
+    const rate = activeRateTier === 'wholesale' ? (matched.wholesaleRate || indM.tradePriceTP || matched.rate || 0) : (matched.retailRate || indM.retailMrp || matched.rate || 0);
     if (statusEl) {
         statusEl.innerHTML = `✅ Added: <b>${matched.name}</b> (Rs ${rate})`;
     }
@@ -3542,15 +3849,17 @@ if (barcodeInput) {
 
         let html = '';
         matches.slice(0, 8).forEach(s => {
-            const rate = activeRateTier === 'wholesale' ? (s.wholesaleRate || s.rate || 0) : (s.retailRate || s.rate || 0);
-            const schemeTag = s.hasScheme ? `<span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold; margin-left:4px;">🎁 ${s.schemeLabel || 'Scheme'}</span>` : '';
+            const indS = s.industryFields || {};
+            const rate = activeRateTier === 'wholesale' ? (s.wholesaleRate || indS.tradePriceTP || s.rate || 0) : (s.retailRate || indS.retailMrp || s.rate || 0);
+            const effSch = parseDistributorSchemeRule(s);
+            const schemeTag = effSch.hasScheme ? `<span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold; margin-left:4px;">🎁 ${effSch.schemeLabel || 'Scheme'}</span>` : '';
             const thumb = s.photoUrl ? `<img src="${s.photoUrl}" style="width:24px; height:24px; border-radius:4px; object-fit:cover; margin-right:6px; vertical-align:middle;">` : '';
             const metaBadges = formatStockSuggestionMeta(s);
             html += `
             <div class="suggest-item" data-sid="${s.id}">
                 <b>${thumb}${s.name}</b> ${s.barcode ? `(${s.barcode})` : ''} ${schemeTag}<br>
                 <span class="s-sub">
-                    📦 Stock: <b>${s.qty || 0} ${UNIT_LBL(s.unit)}</b> | 💰 ${activeRateTier === 'wholesale' ? 'Wholesale' : 'Retail'}: Rs ${rate}
+                    📦 Stock: <b>${s.qty || 0} ${UNIT_LBL(s.unit)}</b> | 💰 ${activeRateTier === 'wholesale' ? 'TP / Wholesale' : 'MRP / Retail'}: Rs ${rate}
                 </span>
                 ${metaBadges}
             </div>`;
@@ -3584,7 +3893,7 @@ function buildRowStockHintHtml(stockItem, rowId = '') {
     const colorClass = qtyVal <= 0 ? 'stock-out' : (qtyVal <= 10 ? 'stock-low' : 'stock-ok');
     let hintContent = `Available: <span class="stock-badge ${colorClass}"><b>${qtyVal} ${UNIT_LBL(stockItem.unit)}</b></span>`;
     const sub = stockItem.itemSubtitle !== undefined ? stockItem.itemSubtitle : formatStockIndustrySubtitle(stockItem);
-    const iconPrefix = isMobileShopAgency() ? '📱' : (isMedicalAgency() ? '💊' : (isRestaurantAgency() ? '🍔' : (isWholesalerAgency() ? '📦' : '📚')));
+    const iconPrefix = isMobileShopAgency() ? '📱' : (isMedicalAgency() ? '💊' : (isRestaurantAgency() ? '🍔' : (isDistributorAgency() ? '🚚' : (isWholesalerAgency() ? '📦' : '📚'))));
     if (sub) {
         hintContent += ` <span style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:700;">${iconPrefix} ${sub}</span>`;
     }
@@ -3608,8 +3917,12 @@ function buildRowStockHintHtml(stockItem, rowId = '') {
     if (rowId && isRestaurantAgency()) {
         hintContent += ` <button type="button" onclick="openRowKitchenNoteModal('${rowId}')" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:5px; padding:1px 6px; font-size:9.5px; font-weight:800; cursor:pointer;" title="Customize Size, Spice Flavor, Add-ons & Kitchen KOT Note">✏️ Flavor / KOT Note</button>`;
     }
-    if (stockItem.hasScheme) {
-        hintContent += ` <span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 ${stockItem.schemeLabel || 'Scheme'}</span>`;
+    if (rowId && (isDistributorAgency() || isWholesalerAgency())) {
+        hintContent += ` <button type="button" onclick="openRowDistributorSchemeModal('${rowId}')" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:5px; padding:1px 6px; font-size:9.5px; font-weight:800; cursor:pointer;" title="Adjust Carton, Box, Pcs, TP/MRP & Bonus/T.O on this Bill Row">✏️ Carton / TP / Scheme</button>`;
+    }
+    const effScheme = parseDistributorSchemeRule(stockItem);
+    if (effScheme.hasScheme) {
+        hintContent += ` <span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 6px; border-radius:6px; font-size:10px; font-weight:bold;">🎁 ${effScheme.schemeLabel || 'Scheme'}</span>`;
     }
     return hintContent;
 }
@@ -3620,7 +3933,7 @@ function addItemToRows(stockItem) {
     if (medExp.status === 'expired') {
         Swal.fire({
             toast: true, position: 'top-end', icon: 'error',
-            title: `🚨 Expired Medicine Warning: ${stockItem.name} (${stockItem.industryFields.expiryDate})`,
+            title: `🚨 Expired Batch Warning: ${stockItem.name} (${stockItem.industryFields.expiryDate})`,
             showConfirmButton: false, timer: 3200
         });
     }
@@ -3639,9 +3952,13 @@ function addItemToRows(stockItem) {
 
     if (existingRow) {
         const qtyInp = existingRow.querySelector('.ir-qty');
+        const boxInp = existingRow.querySelector('.ir-box');
         const rateInp = existingRow.querySelector('.ir-rate');
         const currentQty = parseFloat(qtyInp.value) || 0;
         qtyInp.value = currentQty + 1;
+        if (boxInp && (!existingRow.querySelector('.ir-ctn')?.value)) {
+            boxInp.value = currentQty + 1;
+        }
         if (typeof existingRow._updateRowCalc === 'function') {
             existingRow._updateRowCalc();
         } else {
@@ -3656,12 +3973,14 @@ function addItemToRows(stockItem) {
     const ind = stockItem.industryFields || {};
     const rate = activeRateTier === 'wholesale' 
         ? (stockItem.wholesaleRate || ind.tradePriceTP || stockItem.rate || 0) 
-        : (stockItem.retailRate || stockItem.rate || 0);
+        : (stockItem.retailRate || ind.retailMrp || stockItem.rate || 0);
     const tpVal = ind.tradePriceTP || stockItem.wholesaleRate || stockItem.rate || rate;
+    const mrpVal = ind.retailMrp || stockItem.retailRate || stockItem.rate || rate;
     const itemSubtitle = stockItem.itemSubtitle !== undefined ? stockItem.itemSubtitle : formatStockIndustrySubtitle(stockItem);
     const packSz = parseFloat(ind.packSize) || (stockItem.unit === 'dozen' ? 12 : (stockItem.unit === 'ream' ? 500 : (stockItem.unit === 'maund' ? 40 : 0)));
     const skuVal = ind.imei1 || ind.isbnCode || ind.skuBatchCode || ind.batchNo || stockItem.barcode || stockItem.sku || '';
-    const promoText = stockItem.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '';
+    const effScheme = parseDistributorSchemeRule(stockItem);
+    const promoText = effScheme.schemeLabel || stockItem.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '';
 
     if (emptyRow) {
         const nameInput = emptyRow.querySelector('.ir-name');
@@ -3671,6 +3990,7 @@ function addItemToRows(stockItem) {
         const retInp = emptyRow.querySelector('.ir-retail-price');
         const boxInp = emptyRow.querySelector('.ir-box');
         const bonusInp = emptyRow.querySelector('.ir-bonus');
+        const toInp = emptyRow.querySelector('.ir-to');
         const promoInp = emptyRow.querySelector('.ir-promo-desc');
         const ctnSizeInp = emptyRow.querySelector('.ir-ctn-size');
         const skuInp = emptyRow.querySelector('.ir-sku');
@@ -3681,19 +4001,21 @@ function addItemToRows(stockItem) {
         nameInput.dataset.stockId = stockItem.id;
         emptyRow.dataset.itemSubtitle = itemSubtitle;
         emptyRow.dataset.unit = stockItem.unit || 'unit';
-        emptyRow.dataset.hasScheme = stockItem.hasScheme ? 'true' : 'false';
-        emptyRow.dataset.schemeType = stockItem.schemeType || '';
-        emptyRow.dataset.schemeMinQty = stockItem.schemeMinQty || '';
-        emptyRow.dataset.schemeValue = stockItem.schemeValue || '';
+        emptyRow.dataset.hasScheme = effScheme.hasScheme ? 'true' : 'false';
+        emptyRow.dataset.schemeType = effScheme.schemeType || '';
+        emptyRow.dataset.schemeMinQty = effScheme.schemeMinQty || '';
+        emptyRow.dataset.schemeValue = effScheme.schemeValue || '';
+        emptyRow.dataset.tradeOfferPct = effScheme.tradeOfferPct || '';
         if (stockItem.industryFields) {
             emptyRow.dataset.industryFieldsJson = JSON.stringify(stockItem.industryFields);
         }
         qtyInput.value = 1;
         rateInput.value = rate;
         if (tpInp) tpInp.value = tpVal;
-        if (retInp) retInp.value = stockItem.retailRate || stockItem.rate || rate;
+        if (retInp) retInp.value = mrpVal;
         if (boxInp) boxInp.value = 1;
         if (bonusInp) delete bonusInp.dataset.manualOverride;
+        if (toInp) delete toInp.dataset.manualOverride;
         if (promoInp && promoText) promoInp.value = promoText;
         if (ctnSizeInp && (stockItem.ctnSize || packSz > 1)) ctnSizeInp.value = stockItem.ctnSize || packSz;
         if (skuInp) skuInp.value = skuVal;
@@ -3716,14 +4038,15 @@ function addItemToRows(stockItem) {
         qty: 1,
         rate: rate,
         tradePrice: tpVal,
-        retailPrice: stockItem.retailRate || stockItem.rate || rate,
+        retailPrice: mrpVal,
         unit: stockItem.unit,
         availableQty: stockItem.qty || 0,
-        hasScheme: stockItem.hasScheme,
-        schemeType: stockItem.schemeType || '',
-        schemeMinQty: stockItem.schemeMinQty || '',
-        schemeValue: stockItem.schemeValue || '',
-        schemeLabel: stockItem.schemeLabel,
+        hasScheme: effScheme.hasScheme,
+        schemeType: effScheme.schemeType || '',
+        schemeMinQty: effScheme.schemeMinQty || '',
+        schemeValue: effScheme.schemeValue || '',
+        tradeOfferPct: effScheme.tradeOfferPct || 0,
+        schemeLabel: effScheme.schemeLabel || stockItem.schemeLabel,
         promoDesc: promoText,
         itemSubtitle: itemSubtitle,
         industryFields: stockItem.industryFields,
@@ -4113,10 +4436,12 @@ function addRow(data = {}) {
         if (data.stockId) nameInput.dataset.stockId = data.stockId;
         row.dataset.itemSubtitle = data.itemSubtitle || '';
         row.dataset.unit = data.unit || 'unit';
-        row.dataset.hasScheme = data.hasScheme ? 'true' : 'false';
-        row.dataset.schemeType = data.schemeType || '';
-        row.dataset.schemeMinQty = data.schemeMinQty || '';
-        row.dataset.schemeValue = data.schemeValue || '';
+        const effScheme = parseDistributorSchemeRule(data);
+        row.dataset.hasScheme = effScheme.hasScheme ? 'true' : 'false';
+        row.dataset.schemeType = effScheme.schemeType || '';
+        row.dataset.schemeMinQty = effScheme.schemeMinQty || '';
+        row.dataset.schemeValue = effScheme.schemeValue || '';
+        row.dataset.tradeOfferPct = effScheme.tradeOfferPct || '';
         if (data.industryFields) {
             row.dataset.industryFieldsJson = JSON.stringify(data.industryFields);
         }
@@ -4144,6 +4469,7 @@ function addRow(data = {}) {
         }
 
         const q = parseFloat(qtyInput.value) || 0;
+        const r = parseFloat(rateInput.value) || 0;
 
         // Auto-apply Buy-X-Get-Y free bonus qty unless manually overridden
         if (bonusInput && bonusInput.dataset.manualOverride !== 'true' && row.dataset.hasScheme === 'true' && row.dataset.schemeType === 'buy_x_get_y') {
@@ -4155,7 +4481,22 @@ function addRow(data = {}) {
             }
         }
 
-        const r = parseFloat(rateInput.value) || 0;
+        // Auto-apply FMCG Trade Offer (T.O %) or Flat Carton Trade Offer unless manually overridden
+        if (toInput && toInput.dataset.manualOverride !== 'true') {
+            const toPct = parseFloat(row.dataset.tradeOfferPct) || 0;
+            if (toPct > 0 && q > 0 && r > 0) {
+                const autoTo = (q * r * toPct) / 100;
+                toInput.value = autoTo > 0 ? autoTo.toFixed(2).replace(/\.00$/, '') : '';
+            } else if (row.dataset.hasScheme === 'true' && row.dataset.schemeType === 'flat_discount') {
+                const minQ = parseFloat(row.dataset.schemeMinQty) || 1;
+                const flatVal = parseFloat(row.dataset.schemeValue) || 0;
+                if (minQ > 0 && flatVal > 0) {
+                    const autoTo = q >= minQ ? Math.floor(q / minQ) * flatVal : 0;
+                    toInput.value = autoTo > 0 ? autoTo.toFixed(2).replace(/\.00$/, '') : '';
+                }
+            }
+        }
+
         const td = parseFloat(tdInput.value) || 0;
         const to = parseFloat(toInput.value) || 0;
         const sd = parseFloat(sdInput.value) || 0;
@@ -4183,12 +4524,18 @@ function addRow(data = {}) {
             updateRowCalc();
         });
     }
+    if (toInput) {
+        toInput.addEventListener('input', function() {
+            this.dataset.manualOverride = 'true';
+            updateRowCalc();
+        });
+    }
 
-    [qtyInput, rateInput, ctnInput, boxInput, pcsInput, ctnSizeInput, retailPriceInput, tpInput, tdInput, toInput, sdInput, taxInput, furtherTaxInput, advTaxInput, gstFreeInput, promoDescInput].forEach(inp => {
+    [qtyInput, rateInput, ctnInput, boxInput, pcsInput, ctnSizeInput, retailPriceInput, tpInput, tdInput, sdInput, taxInput, furtherTaxInput, advTaxInput, gstFreeInput, promoDescInput].forEach(inp => {
         if (inp) inp.addEventListener('input', updateRowCalc);
     });
 
-    // Stock Suggestions for inline row typing (supports Book Depot, Mobile Shop & Wholesaler Carton/TP/SKU)
+    // Stock Suggestions for inline row typing (supports Book Depot, Mobile Shop, Wholesaler & FMCG Distributor Carton/TP/MRP/T.O)
     nameInput.addEventListener('input', function() {
         const val = this.value.toLowerCase().trim();
         if (!val) { suggest.classList.remove('show'); return; }
@@ -4204,8 +4551,9 @@ function addRow(data = {}) {
         matches.slice(0, 8).forEach(s => {
             const stockColor = (s.qty || 0) <= 0 ? '#ef4444' : '#16a34a';
             const indS = s.industryFields || {};
-            const chosenRate = activeRateTier === 'wholesale' ? (s.wholesaleRate || indS.tradePriceTP || s.rate || 0) : (s.retailRate || s.rate || 0);
-            const schemeTag = s.hasScheme ? `<span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold; margin-left:4px;">🎁 ${s.schemeLabel || 'Scheme'}</span>` : '';
+            const chosenRate = activeRateTier === 'wholesale' ? (s.wholesaleRate || indS.tradePriceTP || s.rate || 0) : (s.retailRate || indS.retailMrp || s.rate || 0);
+            const effSch = parseDistributorSchemeRule(s);
+            const schemeTag = effSch.hasScheme ? `<span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:1px 5px; border-radius:6px; font-size:10px; font-weight:bold; margin-left:4px;">🎁 ${effSch.schemeLabel || 'Scheme'}</span>` : '';
             const thumb = s.photoUrl ? `<img src="${s.photoUrl}" style="width:22px; height:22px; border-radius:4px; object-fit:cover; margin-right:4px; vertical-align:middle;">` : '';
             const metaBadges = formatStockSuggestionMeta(s);
             html += `
@@ -4213,7 +4561,7 @@ function addRow(data = {}) {
                 <b>${thumb}${s.name}</b> ${s.barcode ? `[${s.barcode}]` : ''} ${schemeTag}<br>
                 <span class="s-sub">
                     📦 <b style="color:${stockColor};">${s.qty || 0} ${UNIT_LBL(s.unit)}</b> 
-                    | 💰 ${activeRateTier === 'wholesale' ? 'Wholesale' : 'Retail'}: Rs ${chosenRate}
+                    | 💰 ${activeRateTier === 'wholesale' ? 'TP / Wholesale' : 'MRP / Retail'}: Rs ${chosenRate}
                 </span>
                 ${metaBadges}
             </div>`;
@@ -4226,14 +4574,16 @@ function addRow(data = {}) {
                 const s = allMyStock.find(x => x.id === this.dataset.sid);
                 if (!s) return;
 
+                const effSch = parseDistributorSchemeRule(s);
                 nameInput.value = s.name;
                 nameInput.dataset.stockId = s.id;
                 row.dataset.itemSubtitle = formatStockIndustrySubtitle(s);
                 row.dataset.unit = s.unit || 'unit';
-                row.dataset.hasScheme = s.hasScheme ? 'true' : 'false';
-                row.dataset.schemeType = s.schemeType || '';
-                row.dataset.schemeMinQty = s.schemeMinQty || '';
-                row.dataset.schemeValue = s.schemeValue || '';
+                row.dataset.hasScheme = effSch.hasScheme ? 'true' : 'false';
+                row.dataset.schemeType = effSch.schemeType || '';
+                row.dataset.schemeMinQty = effSch.schemeMinQty || '';
+                row.dataset.schemeValue = effSch.schemeValue || '';
+                row.dataset.tradeOfferPct = effSch.tradeOfferPct || '';
                 if (s.industryFields) {
                     row.dataset.industryFieldsJson = JSON.stringify(s.industryFields);
                 }
@@ -4242,21 +4592,22 @@ function addRow(data = {}) {
                 const ind = s.industryFields || {};
                 const chosenRate = activeRateTier === 'wholesale' 
                     ? (s.wholesaleRate || ind.tradePriceTP || s.rate || 0) 
-                    : (s.retailRate || s.rate || 0);
+                    : (s.retailRate || ind.retailMrp || s.rate || 0);
                 rateInput.value = chosenRate;
 
                 const packSz = parseFloat(ind.packSize) || (s.unit === 'dozen' ? 12 : (s.unit === 'ream' ? 500 : (s.unit === 'maund' ? 40 : 0)));
 
                 // Auto-fill FMCG / Wholesale / Book Depot / Mobile Shop inputs
                 if (tpInput) tpInput.value = ind.tradePriceTP || s.wholesaleRate || s.rate || chosenRate;
-                if (retailPriceInput) retailPriceInput.value = s.retailRate || s.rate || chosenRate;
+                if (retailPriceInput) retailPriceInput.value = ind.retailMrp || s.retailRate || s.rate || chosenRate;
                 if (skuInput) skuInput.value = ind.imei1 || ind.isbnCode || ind.skuBatchCode || ind.batchNo || s.barcode || s.sku || (s.id ? s.id.slice(-6) : '');
                 if (catInput && s.category) catInput.value = s.category;
                 if (ctnSizeInput && (s.ctnSize || packSz > 1)) ctnSizeInpOrSize(ctnSizeInput, s.ctnSize || packSz);
                 if (boxInput) boxInput.value = 1;
                 if (bonusInput) delete bonusInput.dataset.manualOverride;
+                if (toInput) delete toInput.dataset.manualOverride;
                 if (promoDescInput) {
-                    promoDescInput.value = s.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '';
+                    promoDescInput.value = effSch.schemeLabel || s.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '';
                 }
 
                 suggest.classList.remove('show');
@@ -4268,7 +4619,7 @@ function addRow(data = {}) {
                 if (expWarn.status === 'expired') {
                     Swal.fire({
                         toast: true, position: 'top-end', icon: 'error',
-                        title: `🚨 Expired Medicine Warning: ${s.name} (${ind.expiryDate})`,
+                        title: `🚨 Expired Batch Warning: ${s.name} (${ind.expiryDate})`,
                         showConfirmButton: false, timer: 3200
                     });
                 }
@@ -4769,12 +5120,17 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
 
         // 2. Stock deductions & movements
         const movements = [];
+        const newlyLowItems = [];
         items.forEach(it => {
             if (!it.stockId) return;
             const s = allMyStock.find(x => x.id === it.stockId);
             if (!s) return;
 
             const newQty = (s.qty || 0) - it.qty;
+            const lim = s.lowStockLimit !== undefined ? Number(s.lowStockLimit) : 10;
+            if (newQty <= lim) {
+                newlyLowItems.push({ name: it.name || s.name, qty: newQty, limit: lim });
+            }
             batch.update(db.collection('stock').doc(it.stockId), {
                 qty: newQty,
                 updatedAt: new Date().toISOString()
@@ -4788,10 +5144,13 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
             });
         });
 
+        const activeCatForMove = getActiveBillCategory();
         if (movements.length > 0) {
             const moveRef = db.collection('movements').doc();
             batch.set(moveRef, {
                 agencyId: myAgencyId,
+                businessCategory: activeCatForMove,
+                categoryConfirmedByCreate: true,
                 billNo: liveBillNo,
                 customerName: customerName,
                 type: 'out',
@@ -4813,6 +5172,47 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
         }
 
         await batch.commit();
+
+        // Sync category low-stock badge & fire Push Alert if enabled for this category
+        try {
+            items.forEach(it => {
+                if (!it.stockId) return;
+                const s = allMyStock.find(x => x.id === it.stockId);
+                if (s) s.qty = (s.qty || 0) - it.qty;
+            });
+            let totalCatLow = 0;
+            allMyStock.forEach(st => {
+                const q = Number(st.qty || 0);
+                const l = st.lowStockLimit !== undefined ? Number(st.lowStockLimit) : 10;
+                if (q <= l) totalCatLow++;
+            });
+            localStorage.setItem(`eb_stock_cache_${myAgencyId}_${activeCatForMove}`, JSON.stringify({
+                items: allMyStock,
+                timestamp: new Date().toISOString()
+            }));
+            localStorage.setItem(`eb_low_stock_count_${myAgencyId}_${activeCatForMove}`, String(totalCatLow));
+            localStorage.setItem(`eb_low_stock_count_${myAgencyId}`, String(totalCatLow));
+            if (window.ebSidebar && typeof window.ebSidebar.syncBadge === 'function') {
+                window.ebSidebar.syncBadge();
+            }
+
+            const pushPref = localStorage.getItem(`eb_push_alerts_${myAgencyId}_${activeCatForMove}`);
+            const pushEnabled = pushPref === 'enabled' || (pushPref !== 'disabled' && ('Notification' in window) && Notification.permission === 'granted');
+            if (pushEnabled && newlyLowItems.length > 0) {
+                const msg = newlyLowItems.map(x => `${x.name} (${x.qty} left)`).join(', ');
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    try {
+                        new Notification('⚠️ NH POS — Low Stock Alert', {
+                            body: `Low stock reached: ${msg}`,
+                            icon: 'icon-192.png'
+                        });
+                    } catch (_) {}
+                }
+                if (window.ebSidebar && typeof window.ebSidebar.notifyToast === 'function') {
+                    window.ebSidebar.notifyToast('warning', `Low Stock Alert: ${msg}`, '🔔 Low Stock Warning');
+                }
+            }
+        } catch (_) {}
 
         showSuccessScreen(billData, false);
         if (saveBtn) saveBtn.disabled = false;
@@ -5530,7 +5930,8 @@ function initLanguageManager() {
 // 🎁 PRO SCHEME & OFFER CALCULATION ENGINE
 // ============================================
 function computeItemOffer(item, qty, rate, isUrdu) {
-    if (!item.hasScheme) {
+    const effSch = parseDistributorSchemeRule(item);
+    if (!effSch.hasScheme) {
         return {
             hasOffer: false,
             isUnlocked: false,
@@ -5540,66 +5941,86 @@ function computeItemOffer(item, qty, rate, isUrdu) {
         };
     }
 
+    const effType = effSch.schemeType || item.schemeType || 'buy_x_get_y';
+    const effMinQty = parseFloat(effSch.schemeMinQty || item.schemeMinQty) || 1;
+    const effVal = parseFloat(effSch.schemeValue || item.schemeValue) || 1;
+    const schemeTitle = effSch.schemeLabel || item.schemeLabel || (isUrdu ? 'خصوصی تجارتی آفر' : 'Special Trade Offer');
+
     // Determine target limit / threshold in Rupees
     let threshold = parseFloat(item.schemeMinAmount || item.schemeMinSpend);
     if (!threshold) {
-        if (item.schemeType === 'flat_discount' && parseFloat(item.schemeMinQty) >= 50) {
-            threshold = parseFloat(item.schemeMinQty);
-        } else if (item.schemeMinQty) {
-            threshold = (parseFloat(item.schemeMinQty) || 10) * (rate || 1);
+        if (effType === 'flat_discount' && effMinQty >= 50) {
+            threshold = effMinQty;
+        } else if (effMinQty > 0) {
+            threshold = effMinQty * (rate || 1);
         } else {
-            const m = (item.schemeLabel || '').match(/(?:rs\.?|pkr|on|\+)\s*(\d{3,6})/i) || (item.schemeLabel || '').match(/(\d{3,6})/);
+            const m = schemeTitle.match(/(?:rs\.?|pkr|on|\+)\s*(\d{3,6})/i) || schemeTitle.match(/(\d{3,6})/);
             threshold = m ? parseFloat(m[1]) : 2000;
         }
     }
-    if (threshold <= 0) threshold = 2000;
+    if (threshold <= 0) threshold = (effMinQty || 1) * (rate || 1);
 
     const currentSpend = (parseFloat(qty) || 0) * (rate || 0);
-    const isUnlocked = qty > 0 && currentSpend >= threshold;
+    const isUnlocked = qty > 0 && (qty >= effMinQty || currentSpend >= threshold);
 
     let discount = 0;
     let freeUnits = 0;
     let trackerText = '';
     let trackerClass = 'pending';
 
-    const schemeTitle = item.schemeLabel || (isUrdu ? 'خصوصی تجارتی آفر' : 'Special Trade Offer');
-
     if (qty === 0) {
         trackerClass = 'pending';
-        trackerText = isUrdu 
-            ? `کم از کم: Rs ${Math.round(threshold).toLocaleString()}` 
-            : `Min order: Rs ${Math.round(threshold).toLocaleString()}`;
-    } else if (currentSpend < threshold) {
+        if (effType === 'buy_x_get_y') {
+            trackerText = isUrdu
+                ? `کم از کم: ${effMinQty} یونٹس پر +${effVal} مفت`
+                : `Buy ${effMinQty} Get +${effVal} Free`;
+        } else {
+            trackerText = isUrdu 
+                ? `کم از کم: Rs ${Math.round(threshold).toLocaleString()}` 
+                : `Min order: Rs ${Math.round(threshold).toLocaleString()}`;
+        }
+    } else if (!isUnlocked) {
         // Pending: Not reached yet. No discount awarded!
-        const rem = threshold - currentSpend;
         trackerClass = 'pending';
-        trackerText = isUrdu 
-            ? `⚡ آفر کے لیے Rs ${Math.round(rem).toLocaleString()} باقی ہیں` 
-            : `⚡ Rs ${Math.round(rem).toLocaleString()} remaining for offer`;
+        if (effType === 'buy_x_get_y' && qty < effMinQty) {
+            const remUnits = effMinQty - qty;
+            trackerText = isUrdu
+                ? `⚡ آفر کے لیے مزید ${remUnits} یونٹس شامل کریں`
+                : `⚡ Add ${remUnits} more for +${effVal} Free`;
+        } else {
+            const rem = Math.max(1, threshold - currentSpend);
+            trackerText = isUrdu 
+                ? `⚡ آفر کے لیے Rs ${Math.round(rem).toLocaleString()} باقی ہیں` 
+                : `⚡ Rs ${Math.round(rem).toLocaleString()} remaining for offer`;
+        }
     } else {
         // Unlocked! Award benefit
         trackerClass = 'unlocked';
-        if (item.schemeType === 'buy_x_get_y') {
-            const minQ = parseFloat(item.schemeMinQty) || 10;
-            const sVal = parseFloat(item.schemeValue) || 1;
+        if (effType === 'buy_x_get_y') {
+            const minQ = effMinQty || 10;
+            const sVal = effVal || 1;
             freeUnits = Math.max(1, Math.floor(qty / minQ)) * sVal;
+            if (effSch.tradeOfferPct > 0) {
+                discount = (currentSpend * effSch.tradeOfferPct) / 100;
+            }
             trackerText = isUrdu 
                 ? `🎉 +${freeUnits} فری یونٹس لاگو!` 
                 : `🎉 +${freeUnits} Free Units Unlocked!`;
-        } else if (item.schemeType === 'flat_discount' || item.schemeType === 'cash_discount') {
-            const sVal = parseFloat(item.schemeValue) || 150;
-            discount = sVal;
+        } else if (effType === 'flat_discount' || effType === 'cash_discount') {
+            const minQ = effMinQty >= 50 ? 1 : (effMinQty || 1);
+            const sVal = effVal || 50;
+            discount = Math.max(1, Math.floor(qty / minQ)) * sVal;
             trackerText = isUrdu 
-                ? `🎉 Rs ${sVal} رعایت لاگو!` 
-                : `🎉 Rs ${sVal} Discount Applied!`;
-        } else if (item.schemeType === 'percent_discount') {
-            const pct = parseFloat(item.schemeValue) || 10;
+                ? `🎉 Rs ${Math.round(discount)} رعایت لاگو!` 
+                : `🎉 Rs ${Math.round(discount)} T.O Applied!`;
+        } else if (effType === 'percent_discount') {
+            const pct = effVal || 2;
             discount = (currentSpend * pct) / 100;
             trackerText = isUrdu 
                 ? `🎉 ${pct}% رعایت (Rs ${Math.round(discount)}) لاگو!` 
-                : `🎉 ${pct}% OFF (Rs ${Math.round(discount)}) Applied!`;
+                : `🎉 ${pct}% T.O (Rs ${Math.round(discount)}) Applied!`;
         } else {
-            const sVal = parseFloat(item.schemeValue) || 100;
+            const sVal = effVal || 100;
             discount = sVal;
             trackerText = isUrdu 
                 ? `🎉 آفر فعال! Rs ${sVal} رعایت` 
@@ -5649,7 +6070,7 @@ function renderInteractiveProductList() {
         }
         // Quick filter pills
         if (listFilterState.filter === 'offers') {
-            if (!item.hasScheme) return false;
+            if (!parseDistributorSchemeRule(item).hasScheme) return false;
         } else if (listFilterState.filter === 'booked') {
             if (!catCart[item.id] || catCart[item.id].qty <= 0) return false;
         }
@@ -5660,7 +6081,7 @@ function renderInteractiveProductList() {
     const countAllEl = document.getElementById('listFilterCountAll');
     if (countAllEl) countAllEl.innerText = allMyStock.length;
     const countOffersEl = document.getElementById('listFilterCountOffers');
-    if (countOffersEl) countOffersEl.innerText = allMyStock.filter(x => x.hasScheme).length;
+    if (countOffersEl) countOffersEl.innerText = allMyStock.filter(x => parseDistributorSchemeRule(x).hasScheme).length;
     const countBookedEl = document.getElementById('listFilterCountBooked');
     if (countBookedEl) countBookedEl.innerText = Object.values(catCart).filter(e => e.qty > 0).length;
 
@@ -5694,9 +6115,10 @@ function renderInteractiveProductList() {
             || (item.id && catCart[String(item.id)]) 
             || (item.name ? Object.values(catCart).find(e => e.item && e.item.name === item.name) : null);
         const qty = booked ? booked.qty : 0;
+        const ind = item.industryFields || {};
         const rate = activeRateTier === 'wholesale' 
-            ? (item.wholesaleRate || item.rate || 0) 
-            : (item.retailRate || item.rate || 0);
+            ? (item.wholesaleRate || ind.tradePriceTP || item.rate || 0) 
+            : (item.retailRate || ind.retailMrp || item.rate || 0);
 
         const offer = computeItemOffer(item, qty, rate, isUrdu);
         const cardClass = qty > 0 ? 'list-item-card booked' : 'list-item-card';
@@ -5853,9 +6275,10 @@ function bookListItem(stockId, qty = 1, optName = '') {
 
         const targetId = String(item.id || stockId);
 
+        const indIt = item.industryFields || {};
         const rate = activeRateTier === 'wholesale' 
-            ? (item.wholesaleRate || item.rate || 0) 
-            : (item.retailRate || item.rate || 0);
+            ? (item.wholesaleRate || indIt.tradePriceTP || item.rate || 0) 
+            : (item.retailRate || indIt.retailMrp || item.rate || 0);
 
         const isUrdu = getAppLanguage() === 'en-ur';
         const offer = computeItemOffer(item, qty, rate, isUrdu);
@@ -5958,9 +6381,10 @@ function syncCatCartToTotals() {
     let totalUnits = 0;
 
     Object.values(catCart).forEach(entry => {
+        const indE = (entry.item && entry.item.industryFields) || {};
         const rate = activeRateTier === 'wholesale' 
-            ? (entry.item.wholesaleRate || entry.item.rate || 0) 
-            : (entry.item.retailRate || entry.item.rate || 0);
+            ? (entry.item.wholesaleRate || indE.tradePriceTP || entry.item.rate || 0) 
+            : (entry.item.retailRate || indE.retailMrp || entry.item.rate || 0);
         entry.rate = rate;
         entry.total = entry.qty * rate;
 
@@ -6216,9 +6640,10 @@ function updateCatalogueRateTier() {
     // Update rates in cart for active items
     Object.keys(catCart).forEach(stockId => {
         const entry = catCart[stockId];
+        const indE = (entry.item && entry.item.industryFields) || {};
         const newRate = activeRateTier === 'wholesale' 
-            ? (entry.item.wholesaleRate || entry.item.rate || 0) 
-            : (entry.item.retailRate || entry.item.rate || 0);
+            ? (entry.item.wholesaleRate || indE.tradePriceTP || entry.item.rate || 0) 
+            : (entry.item.retailRate || indE.retailMrp || entry.item.rate || 0);
         entry.rate = newRate;
         entry.total = entry.qty * newRate;
     });
@@ -6664,9 +7089,10 @@ function renderCatalogueItem() {
     }
 
     // Price & Available Stock
+    const indItem = item.industryFields || {};
     const rate = activeRateTier === 'wholesale' 
-        ? (item.wholesaleRate || item.rate || 0) 
-        : (item.retailRate || item.rate || 0);
+        ? (item.wholesaleRate || indItem.tradePriceTP || item.rate || 0) 
+        : (item.retailRate || indItem.retailMrp || item.rate || 0);
     
     if (rateEl) rateEl.innerText = 'Rs ' + Number(rate).toLocaleString();
     if (unitEl) unitEl.innerText = ' / ' + UNIT_LBL(item.unit);
@@ -6686,16 +7112,18 @@ function renderCatalogueItem() {
     }
 
     // Scheme Section ("thora oper scroll karne per scheme nazar ayeen")
-    if (item.hasScheme) {
+    const effCatScheme = parseDistributorSchemeRule(item);
+    if (effCatScheme.hasScheme) {
         if (schemeCard) schemeCard.style.display = 'block';
         if (noSchemeCard) noSchemeCard.style.display = 'none';
-        if (schemeLabel) schemeLabel.innerText = item.schemeLabel || 'Special Scheme Active';
+        if (schemeLabel) schemeLabel.innerText = effCatScheme.schemeLabel || item.schemeLabel || 'Special Scheme Active';
 
         if (schemeTracker) {
-            const minQ = parseFloat(item.schemeMinQty) || 1;
-            const sVal = parseFloat(item.schemeValue) || 1;
+            const minQ = parseFloat(effCatScheme.schemeMinQty || item.schemeMinQty) || 1;
+            const sVal = parseFloat(effCatScheme.schemeValue || item.schemeValue) || 1;
+            const sType = effCatScheme.schemeType || item.schemeType || 'buy_x_get_y';
 
-            if (item.schemeType === 'buy_x_get_y') {
+            if (sType === 'buy_x_get_y') {
                 if (bookedQty === 0) {
                     schemeTracker.innerHTML = `✨ <b>آفر:</b> ہر <b>${minQ}</b> کی خریداری پر <b>${sVal} ${UNIT_LBL(item.unit)} مفت</b> ملیں گے!`;
                 } else if (bookedQty < minQ) {
@@ -6704,14 +7132,14 @@ function renderCatalogueItem() {
                     const freeUnits = Math.floor(bookedQty / minQ) * sVal;
                     schemeTracker.innerHTML = `🎉 <b>مبارک!</b> اس آرڈر میں <b>+${freeUnits} ${UNIT_LBL(item.unit)} مفت</b> شامل ہو گئے!`;
                 }
-            } else if (item.schemeType === 'flat_discount') {
+            } else if (sType === 'flat_discount') {
                 if (bookedQty >= minQ) {
                     const disc = Math.floor(bookedQty / minQ) * sVal;
                     schemeTracker.innerHTML = `🎉 <b>رعایت فعال!</b> کل <b>Rs ${disc}</b> کا خصوصی ڈسکاؤنٹ لاگو ہو چکا ہے۔`;
                 } else {
                     schemeTracker.innerHTML = `ℹ️ مزید <b>${minQ - bookedQty}</b> شامل کریں اور <b>Rs ${sVal} کی رعایت</b> حاصل کریں!`;
                 }
-            } else if (item.schemeType === 'percent_discount') {
+            } else if (sType === 'percent_discount') {
                 if (bookedQty >= minQ) {
                     schemeTracker.innerHTML = `🎉 <b>${sVal}% رعایت فعال!</b> خصوصی فیصد رعایت لاگو ہے۔`;
                 } else {
@@ -6745,22 +7173,28 @@ function updateCatItemQty(item, newQty) {
     }
 
     const qty = Math.max(0, parseFloat(newQty) || 0);
+    const indItem = item.industryFields || {};
     const rate = activeRateTier === 'wholesale' 
-        ? (item.wholesaleRate || item.rate || 0) 
-        : (item.retailRate || item.rate || 0);
+        ? (item.wholesaleRate || indItem.tradePriceTP || item.rate || 0) 
+        : (item.retailRate || indItem.retailMrp || item.rate || 0);
 
     if (qty > 0) {
         let freeQty = 0;
         let schemeDiscount = 0;
 
-        if (item.hasScheme) {
-            const minQ = parseFloat(item.schemeMinQty) || 1;
-            const sVal = parseFloat(item.schemeValue) || 1;
-            if (item.schemeType === 'buy_x_get_y') {
+        const effSch = parseDistributorSchemeRule(item);
+        if (effSch.hasScheme) {
+            const minQ = parseFloat(effSch.schemeMinQty) || 1;
+            const sVal = parseFloat(effSch.schemeValue) || 1;
+            const sType = effSch.schemeType || 'buy_x_get_y';
+            if (sType === 'buy_x_get_y') {
                 freeQty = Math.floor(qty / minQ) * sVal;
-            } else if (item.schemeType === 'flat_discount') {
+                if (effSch.tradeOfferPct > 0) {
+                    schemeDiscount = (qty * rate * effSch.tradeOfferPct) / 100;
+                }
+            } else if (sType === 'flat_discount') {
                 schemeDiscount = Math.floor(qty / minQ) * sVal;
-            } else if (item.schemeType === 'percent_discount') {
+            } else if (sType === 'percent_discount') {
                 if (qty >= minQ) {
                     schemeDiscount = (qty * rate * sVal) / 100;
                 }
@@ -6818,6 +7252,7 @@ function syncCatCartToTableRows() {
     entries.forEach(entry => {
         const it = entry.item || {};
         const ind = it.industryFields || {};
+        const effSch = parseDistributorSchemeRule(it);
         const packSz = parseFloat(ind.packSize) || (it.unit === 'dozen' ? 12 : (it.unit === 'ream' ? 500 : (it.unit === 'maund' ? 40 : 0)));
         addRow({
             name: it.name,
@@ -6825,17 +7260,18 @@ function syncCatCartToTableRows() {
             qty: entry.qty,
             rate: entry.rate,
             tradePrice: ind.tradePriceTP || it.wholesaleRate || entry.rate,
-            retailPrice: it.retailRate || it.rate || entry.rate,
+            retailPrice: ind.retailMrp || it.retailRate || it.rate || entry.rate,
             bonus: entry.freeQty || 0,
             to: entry.schemeDiscount || 0,
             unit: it.unit,
             availableQty: it.qty || 0,
-            hasScheme: it.hasScheme,
-            schemeType: it.schemeType || '',
-            schemeMinQty: it.schemeMinQty || '',
-            schemeValue: it.schemeValue || '',
-            schemeLabel: it.schemeLabel,
-            promoDesc: it.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '',
+            hasScheme: effSch.hasScheme,
+            schemeType: effSch.schemeType || '',
+            schemeMinQty: effSch.schemeMinQty || '',
+            schemeValue: effSch.schemeValue || '',
+            tradeOfferPct: effSch.tradeOfferPct || 0,
+            schemeLabel: effSch.schemeLabel || it.schemeLabel,
+            promoDesc: effSch.schemeLabel || it.schemeLabel || (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme') ? ind.bonusSchemeRule : '') || '',
             sku: ind.imei1 || ind.isbnCode || ind.skuBatchCode || it.barcode || it.sku || '',
             category: it.category || '',
             ctnSize: it.ctnSize || (packSz > 1 ? packSz : undefined),
