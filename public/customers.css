@@ -50,12 +50,21 @@ body {
     max-width: 1000px;
     width: 100%;
     box-sizing: border-box;
-    margin: 0 auto 12px;
+    margin: 0 auto 6px;
     position: sticky;
-    top: 65px;
+    top: 54px;
     z-index: 40;
     background: var(--bg);
     padding: 6px 0;
+}
+.customer-filters-panel {
+    max-width: 1000px;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 auto 12px;
+}
+input, select, textarea, .form-group {
+    scroll-margin-top: 135px;
 }
 .search-box {
     position: relative;

@@ -115,20 +115,31 @@ body {
 .stat-label { font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; margin-top: 3px; }
 
 /* ============================================
-   🔍 SEARCH + FILTERS (Sticky!)
+   🔍 SEARCH BAR ONLY (Sticky below Topbar!)
    ============================================ */
 .search-filter-bar {
     max-width: 1000px;
-    margin: 0 auto 15px;
+    margin: 0 auto 8px;
     position: sticky;
-    top: 65px;
+    top: 54px;
     z-index: 40;
     background: var(--bg);
     padding: 6px 0;
 }
 .search-box {
     position: relative;
-    margin-bottom: 8px;
+    margin-bottom: 0;
+}
+.stock-filters-panel {
+    max-width: 1000px;
+    margin: 0 auto 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+input, select, textarea, .form-group {
+    scroll-margin-top: 135px;
 }
 .search-box i {
     position: absolute;
@@ -376,7 +387,7 @@ body {
    ============================================ */
 @media print {
     body { background: #fff; padding: 0; }
-    .panel-topbar, .search-filter-bar, #addItemSection, .item-actions,
+    .panel-topbar, .search-filter-bar, .stock-filters-panel, #addItemSection, .item-actions,
     .filter-chips, #syncStockBtn, #exportStockBtn, #printStockBtn,
     #cacheStatusBadge, .toggle-arrow {
         display: none !important;

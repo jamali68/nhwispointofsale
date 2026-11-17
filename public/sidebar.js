@@ -577,6 +577,9 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
         .eb-sidebar-overlay.show { display: block; }
 
         /* ========== 🔝 UNIVERSAL SOLID STICKY TOPBAR (Dark Navy Sleek) ========== */
+        input, select, textarea, .form-group {
+            scroll-margin-top: 135px !important;
+        }
         .eb-universal-topbar {
             position: sticky;
             top: 0; left: 0; right: 0;
@@ -1975,6 +1978,26 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
     // Sync active sidebar option when URL hash or browser history changes
     window.addEventListener('hashchange', () => refreshActiveSidebarItem());
     window.addEventListener('popstate', () => refreshActiveSidebarItem());
+
+    // 🎯 Universal Required-Field Validation Scroll Fix (All Pages & All 27 Categories):
+    // Ensures that when any required input is empty ("Please fill in this field"),
+    // it smoothly scrolls to the center of the viewport instead of hiding behind the sticky topbar/search bar.
+    document.addEventListener('invalid', (e) => {
+        const target = e && e.target;
+        if (!target || typeof target.scrollIntoView !== 'function') return;
+        if (window.__ebInvalidFieldScrollLock) return;
+        window.__ebInvalidFieldScrollLock = true;
+        setTimeout(() => { window.__ebInvalidFieldScrollLock = false; }, 350);
+
+        const group = (typeof target.closest === 'function' && target.closest('.form-group')) || target;
+        setTimeout(() => {
+            try {
+                group.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch (_) {
+                try { target.scrollIntoView(); } catch (__) {}
+            }
+        }, 20);
+    }, true);
 
     window.ebSidebar = {
         toggle: toggleSidebar,

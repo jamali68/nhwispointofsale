@@ -113,31 +113,33 @@
         </div>
     </div>
 
-    <!-- ===== 🔍 SEARCH + CATEGORY + FILTERS (Sticky) ===== -->
+    <!-- ===== 🔍 STICKY SEARCH BAR ONLY (All Categories) ===== -->
     <div class="search-filter-bar">
         <div class="search-box">
             <i class="fas fa-search"></i>
             <input type="text" id="searchInput" placeholder="Search by item name, code, barcode, class, publisher or subject...">
         </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <select id="categoryFilter" style="padding:7px 12px; border:2px solid #e0e6e8; border-radius:18px; font-size:13px; font-weight:bold; background:#fff; outline:none; color:var(--primary);">
-                <option value="all">📂 All Categories</option>
+    </div>
+
+    <!-- ===== 📂 CATEGORY & QUICK FILTERS (Scrolls normally — Not Sticky) ===== -->
+    <div class="stock-filters-panel">
+        <select id="categoryFilter" style="padding:7px 12px; border:2px solid #e0e6e8; border-radius:18px; font-size:13px; font-weight:bold; background:#fff; outline:none; color:var(--primary);">
+            <option value="all">📂 All Categories</option>
+        </select>
+        <!-- 📚 Dynamic Industry Quick Filters (Class / Board / Publisher / Principal Agency) -->
+        <div id="industryQuickFilterBar" style="display:none; gap:8px; flex-wrap:wrap; align-items:center;">
+            <select id="industryFilterPrimary" style="padding:6px 10px; border:1.5px solid #bae6fd; border-radius:16px; font-size:12px; font-weight:bold; background:#f0f9ff; color:#0369a1; outline:none;">
+                <option value="all">🎓 All Classes / Grades</option>
             </select>
-            <!-- 📚 Dynamic Industry Quick Filters (Class / Board / Publisher for Book Depot) -->
-            <div id="industryQuickFilterBar" style="display:none; gap:8px; flex-wrap:wrap; align-items:center;">
-                <select id="industryFilterPrimary" style="padding:6px 10px; border:1.5px solid #bae6fd; border-radius:16px; font-size:12px; font-weight:bold; background:#f0f9ff; color:#0369a1; outline:none;">
-                    <option value="all">🎓 All Classes / Grades</option>
-                </select>
-                <select id="industryFilterSecondary" style="padding:6px 10px; border:1.5px solid #bae6fd; border-radius:16px; font-size:12px; font-weight:bold; background:#f0f9ff; color:#0369a1; outline:none;">
-                    <option value="all">🏛️ All Publishers / Brands</option>
-                </select>
-            </div>
-            <div class="filter-chips">
-                <button class="filter-chip active" data-filter="all">All Items</button>
-                <button class="filter-chip" data-filter="low">⚠️ Low Stock</button>
-                <button class="filter-chip" data-filter="out">💥 Out of Stock</button>
-                <button class="filter-chip" data-filter="instock">✅ In Stock</button>
-            </div>
+            <select id="industryFilterSecondary" style="padding:6px 10px; border:1.5px solid #bae6fd; border-radius:16px; font-size:12px; font-weight:bold; background:#f0f9ff; color:#0369a1; outline:none;">
+                <option value="all">🏛️ All Publishers / Brands</option>
+            </select>
+        </div>
+        <div class="filter-chips">
+            <button class="filter-chip active" data-filter="all">All Items</button>
+            <button class="filter-chip" data-filter="low">⚠️ Low Stock</button>
+            <button class="filter-chip" data-filter="out">💥 Out of Stock</button>
+            <button class="filter-chip" data-filter="instock">✅ In Stock</button>
         </div>
     </div>
 
