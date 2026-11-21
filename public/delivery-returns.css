@@ -536,29 +536,18 @@ body {
 }
 
 /* ============================================
-   🌐 LANGUAGE MODE TOGGLE (ENGLISH DEFAULT + MIX BILINGUAL)
+   🌐 LANGUAGE MODE TOGGLE (SYNCED WITH SIDEBAR & theme-sync.js)
    ============================================ */
-html[data-lang="en"] .ur-sub,
-html:not([data-lang="en-ur"]) .ur-sub {
-    display: none !important;
-}
 html[data-lang="en"] .ur-block,
 html:not([data-lang="en-ur"]) .ur-block {
     display: none !important;
 }
-html[data-lang="en-ur"] .ur-sub {
-    display: inline !important;
-    font-size: 0.9em;
-    opacity: 0.85;
-    margin-left: 4px;
-    font-family: inherit;
-}
 html[data-lang="en-ur"] .ur-block {
     display: block !important;
-    font-size: 0.9em;
+    font-size: 0.73em;
+    font-weight: 500;
+    line-height: 1.3;
     opacity: 0.85;
-    margin-top: 3px;
-    font-family: inherit;
+    margin-top: 2px;
+    font-family: 'Noto Nastaliq Urdu', 'Segoe UI', Tahoma, sans-serif;
 }
-
-

@@ -39,6 +39,73 @@ let activeClaimCategory = 'all';
 let lastCreatedVoucher = null;
 
 // ============================================
+// 🌐 UNIFIED BILINGUAL HELPERS (SYNCED WITH SIDEBAR & theme-sync.js)
+// ============================================
+function ebEscAttr(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function ebMix(en, ur, asBlock = false) {
+    if (!ur) return en;
+    return asBlock
+        ? `${en}<span class="eb-ur-block">${ur}</span>`
+        : `${en} <span class="eb-ur-sub">(${ur})</span>`;
+}
+
+function ebCompact(en, ur) {
+    if (!ur) return en;
+    return `${en}<span class="eb-ur-compact">${ur}</span>`;
+}
+
+function ebApplyBilingualDom(root) {
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(root || document);
+    }
+}
+
+function ebSplitBilingual(raw) {
+    const str = String(raw || '').trim();
+    const hasUrdu = /[\u0600-\u06FF]/.test(str);
+    if (!hasUrdu) return { en: str, ur: '', mix: str };
+
+    const m = str.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
+    if (m) {
+        const outer = m[1].trim();
+        const inner = m[2].trim();
+        const outerUr = /[\u0600-\u06FF]/.test(outer);
+        const innerUr = /[\u0600-\u06FF]/.test(inner);
+        if (innerUr && !outerUr) {
+            return { en: outer, ur: inner, mix: `${outer} (${inner})` };
+        }
+        if (outerUr && !innerUr) {
+            const prefMatch = outer.match(/^([^\u0600-\u06FFa-zA-Z0-9]*)/);
+            const prefix = prefMatch ? prefMatch[1] : '';
+            const urClean = outer.slice(prefix.length).trim();
+            const enFull = `${prefix}${inner}`.trim();
+            return { en: enFull, ur: urClean, mix: `${enFull} (${urClean})` };
+        }
+    }
+    return { en: str, ur: '', mix: str };
+}
+
+function ebFormatBilingualHtml(raw) {
+    const parts = ebSplitBilingual(raw);
+    return parts.ur ? ebMix(parts.en, parts.ur) : parts.en;
+}
+
+function ebOptionHtml(value, rawLabel, extraAttrs = '', prefix = '') {
+    const parts = ebSplitBilingual(rawLabel);
+    const enLbl = `${prefix}${parts.en}`;
+    const urLbl = parts.ur ? `${prefix}${parts.mix}` : enLbl;
+    const isMixMode = window.ebLang && typeof window.ebLang.isMix === 'function' ? window.ebLang.isMix() : false;
+    return `<option value="${ebEscAttr(value)}" data-eb-en="${ebEscAttr(enLbl)}" data-eb-ur="${ebEscAttr(urLbl)}" ${extraAttrs}>${ebEscAttr(isMixMode ? urLbl : enLbl)}</option>`;
+}
+
+// ============================================
 // 🛡️ UNIFIED ORDER STATUS & VALIDATION HELPERS
 // ============================================
 function isOrderPendingApproval(ord) {
@@ -185,9 +252,10 @@ auth.onAuthStateChanged(async (user) => {
             }
         }
 
-        // Initialize UI listeners
+        // Initialize UI listeners & Category-Dedicated UI
         setupTabs();
         setupFilters();
+        setupCategoryDeliveryUI();
         populateCategoryReturnReasons();
         setupReturnReasonToggle();
         setupModals();
@@ -374,12 +442,304 @@ function formatWholesaleQtySummary(qty, freeQty, unit, packSize) {
     return `${total} ${u} (1x${p})`;
 }
 
+function populateClaimUnitsDropdown(selectedUnit = '') {
+    const unitSel = document.getElementById('claimUnit');
+    if (!unitSel) return;
+
+    const catId = getActiveDeliveryCategory();
+    const units = (window.BusinessCategories && typeof window.BusinessCategories.getUnits === 'function')
+        ? (window.BusinessCategories.getUnits(catId) || [])
+        : [];
+
+    if (units.length > 0) {
+        unitSel.innerHTML = units.map(u => {
+            const val = String(u.value || u.label || 'pcs');
+            const lbl = String(u.label || u.value || 'Pcs');
+            return ebOptionHtml(val, lbl);
+        }).join('');
+        ebApplyBilingualDom(unitSel);
+    }
+
+    if (selectedUnit) {
+        const target = String(selectedUnit).toLowerCase().trim();
+        let matched = false;
+        for (let i = 0; i < unitSel.options.length; i++) {
+            const optVal = String(unitSel.options[i].value || '').toLowerCase().trim();
+            if (optVal === target) {
+                unitSel.selectedIndex = i;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched && selectedUnit) {
+            const extraOpt = document.createElement('option');
+            extraOpt.value = selectedUnit;
+            extraOpt.textContent = selectedUnit;
+            unitSel.appendChild(extraOpt);
+            unitSel.value = selectedUnit;
+        }
+    }
+}
+
+function setupCategoryDeliveryUI() {
+    const catId = getActiveDeliveryCategory();
+    const isMob = catId === 'mobile';
+
+    // 1. Strictly hide Mobile IMEI Warranty Claim Lookup Box for all non-mobile categories
+    const imeiLookupBox = document.getElementById('claimImeiLookupBox');
+    if (imeiLookupBox) {
+        imeiLookupBox.style.display = isMob ? 'block' : 'none';
+    }
+
+    // 2. Populate category-dedicated claim units (no Syllabus Set / Ream in non-book categories)
+    populateClaimUnitsDropdown();
+
+    // 3. Category-specific terminology map (English-first + compact bilingual Urdu spans)
+    const uiMap = {
+        restaurant: {
+            pageTitle: 'Kitchen Dispatch, Rider Delivery & Wastage Hub — NH POS',
+            kpi1Title: ebMix('KOT &amp; Rider Orders', 'کچن و رائیڈر آرڈرز'),
+            kpi1Sub: ebMix('Dine-In, Takeaway &amp; Delivery', 'ڈائن ان، ٹیک اوے و ڈلیوری'),
+            kpi2Title: ebMix('Out with Riders', 'رائیڈرز کے ساتھ'),
+            kpi2Sub: ebMix('Active rider deliveries', 'فعال رائیڈر ڈلیوریز'),
+            kpi3Title: ebMix('Delivered Parcels', 'ڈلیور پارسلز'),
+            kpi3Sub: ebMix('Completed food orders', 'مکمل فوڈ آرڈرز'),
+            kpi4Title: ebMix('Parcel Returns', 'پارسل واپسی'),
+            kpi4Sub: ebMix('0 Profit / 0 Loss returns', 'بغیر نفع نقصان واپسی'),
+            kpi5Title: ebMix('Kitchen Wastage &amp; Claims', 'کچن ضیاع و کلیم'),
+            tabOrders: '<i class="fas fa-motorcycle"></i> Rider Dispatch &amp; Orders <span class="ur-sub">(آرڈرز و رائیڈر)</span>',
+            tabClaims: '<i class="fas fa-fire"></i> 💥 Kitchen Wastage &amp; Claims <span class="ur-sub">(کچن ضیاع و کلیم)</span>',
+            tabReturns: '<i class="fas fa-undo"></i> Parcel Return Inward <span class="ur-sub">(پارسل واپسی)</span>',
+            tabHistory: '<i class="fas fa-history"></i> Return Records <span class="ur-sub">(ریکارڈز)</span>',
+            tabStaff: '<i class="fas fa-users-cog"></i> Waiters &amp; Riders <span class="ur-sub">(عملہ)</span>',
+            btnBookerHub: '<i class="fas fa-utensils"></i> KOT &amp; Orders Hub <span class="eb-ur-sub">(کچن ہب)</span>',
+            btnClaim: '<i class="fas fa-plus-circle"></i> + Kitchen Wastage / Claim <span class="ur-sub">(نقصان درج کریں)</span>',
+            btnReturn: '<i class="fas fa-box-open"></i> + Parcel Return <span class="ur-sub">(پارسل واپسی)</span>',
+            btnDispatch: '<i class="fas fa-motorcycle"></i> + Rider Dispatch <span class="ur-sub">(رائیڈر ڈسپیچ)</span>',
+            chipDispatched: '🛵 Out with Rider <span class="eb-ur-sub">(رائیڈر کے ساتھ)</span>',
+            chipReturned: '🔄 Cancelled / Returned Parcel <span class="eb-ur-sub">(منسوخ / واپسی)</span>',
+            colBill: ebMix('Order / KOT #', 'آرڈر / کے او ٹی'),
+            colCust: ebMix('Customer / Table #', 'گاہک / ٹیبل'),
+            colBooker: ebMix('Order Taker / Waiter', 'ویٹر / آرڈر ٹیکر'),
+            colSupplier: ebMix('Delivery Rider', 'ڈلیوری رائیڈر'),
+            orderSearchPhEn: 'Search by KOT/Bill #, Customer, Table #, or Rider...',
+            orderSearchPhUr: 'کے او ٹی / بل #، گاہک، ٹیبل یا رائیڈر تلاش کریں...',
+            returnSearchPhEn: 'Search by Voucher #, Rider, Waiter, or Customer...',
+            returnSearchPhUr: 'واؤچر #، رائیڈر، ویٹر یا گاہک تلاش کریں...',
+            claimSearchPhEn: 'Search by Dish, Raw Material, Voucher #, or Vendor...',
+            claimSearchPhUr: 'ڈش، خام مال، واؤچر # یا وینڈر تلاش کریں...',
+            claimProdPhEn: 'Type dish or kitchen item name...',
+            claimProdPhUr: 'ڈش یا کچن آئٹم کا نام ٹائپ کریں...',
+            claimSupPhEn: 'e.g. Frozen Meat Vendor / Bakery / Beverage Supplier',
+            claimSupPhUr: 'مثلاً فروزن چکن / بیکری / کولڈ ڈرنک وینڈر',
+            claimsBannerTitle: '<i class="fas fa-fire"></i> Kitchen Wastage &amp; Vendor Claims Hub <span class="eb-ur-sub">(کچن ضیاع، فروزن ایکسپائری و وینڈر کلیم)</span>'
+        },
+        medical: {
+            pageTitle: 'Pharmacy Delivery, Medicine Returns & Expiry Claims — NH POS',
+            kpi1Title: ebMix('Pharmacy Orders', 'فارمیسی آرڈرز'),
+            kpi1Sub: ebMix('Patient &amp; clinic orders', 'مریض و کلینک آرڈرز'),
+            kpi2Title: ebMix('Out for Delivery', 'راستے میں'),
+            kpi2Sub: ebMix('Active medicine deliveries', 'فعال ادویات ڈلیوری'),
+            kpi3Title: ebMix('Delivered Today', 'آج ڈلیور'),
+            kpi3Sub: ebMix('Patients &amp; clinics supplied', 'مریضوں و کلینکس کو ترسیل'),
+            kpi4Title: ebMix('Medicine Returns', 'دوائی واپسی'),
+            kpi4Sub: ebMix('0 Profit / 0 Loss items', 'بغیر نفع نقصان آئٹمز'),
+            kpi5Title: ebMix('Expired &amp; Batch Claims', 'ایکسپائری و بیچ کلیم'),
+            tabOrders: '<i class="fas fa-prescription-bottle-medical"></i> Medicine Dispatch &amp; Orders <span class="ur-sub">(آرڈرز و ڈلیوری)</span>',
+            tabClaims: '<i class="fas fa-capsules"></i> 💥 Expired &amp; Batch Claims <span class="ur-sub">(ایکسپائری و کمپنی کلیم)</span>',
+            tabReturns: '<i class="fas fa-undo"></i> Medicine Return Inward <span class="ur-sub">(دوائی واپسی)</span>',
+            tabHistory: '<i class="fas fa-history"></i> Return Records <span class="ur-sub">(ریکارڈز)</span>',
+            tabStaff: '<i class="fas fa-users-cog"></i> Salesmen &amp; Riders <span class="ur-sub">(عملہ)</span>',
+            btnBookerHub: '<i class="fas fa-clipboard-check"></i> Pharmacy Orders Hub <span class="eb-ur-sub">(فارمیسی ہب)</span>',
+            btnClaim: '<i class="fas fa-plus-circle"></i> + Record Expiry / Claim <span class="ur-sub">(ایکسپائری کلیم)</span>',
+            btnReturn: '<i class="fas fa-box-open"></i> + Medicine Return <span class="ur-sub">(دوائی واپسی)</span>',
+            btnDispatch: '<i class="fas fa-truck-medical"></i> + Delivery Challan <span class="ur-sub">(ڈلیوری چالان)</span>',
+            chipDispatched: '🚚 Out for Delivery <span class="eb-ur-sub">(راستے میں)</span>',
+            chipReturned: '🔄 Returned Medicine <span class="eb-ur-sub">(دوائی واپسی)</span>',
+            colBill: ebMix('Invoice / Prescription #', 'بل / نسخہ نمبر'),
+            colCust: ebMix('Patient / Clinic Name', 'مریض / کلینک'),
+            colBooker: ebMix('Pharmacist / Booker', 'فارماسسٹ / بکر'),
+            colSupplier: ebMix('Delivery Rider / Salesman', 'ڈلیوری رائیڈر'),
+            orderSearchPhEn: 'Search by Invoice #, Patient, Doctor, or Pharmacist...',
+            orderSearchPhUr: 'انوائس #، مریض، ڈاکٹر یا فارماسسٹ تلاش کریں...',
+            returnSearchPhEn: 'Search by Voucher #, Patient, Clinic, or Salesman...',
+            returnSearchPhUr: 'واؤچر #، مریض، کلینک یا سیلزمین تلاش کریں...',
+            claimSearchPhEn: 'Search by Medicine, Batch #, Voucher #, or Pharma Company...',
+            claimSearchPhUr: 'دوائی کا نام، بیچ نمبر، واؤچر # یا فارما کمپنی تلاش کریں...',
+            claimProdPhEn: 'Type medicine name, salt, or batch #...',
+            claimProdPhUr: 'دوائی کا نام، سالٹ یا بیچ نمبر ٹائپ کریں...',
+            claimSupPhEn: 'e.g. Getz Pharma / Abbott / Sami / Medicine Distributor',
+            claimSupPhUr: 'مثلاً گیٹز فارما / ایبٹ / سامی / میڈیسن ڈسٹری بیوٹر',
+            claimsBannerTitle: '<i class="fas fa-triangle-exclamation"></i> Expired Medicines &amp; Pharma Claims Hub <span class="eb-ur-sub">(ایکسپائرڈ ادویات و فارما کمپنی کلیم پورٹل)</span>'
+        },
+        mobile: {
+            pageTitle: 'Mobile Dispatch, Returns & Warranty Claims Hub — NH POS',
+            kpi1Title: ebMix('Customer &amp; Dealer Orders', 'گاہک و ڈیلر آرڈرز'),
+            kpi1Sub: ebMix('Booked mobile &amp; acc. orders', 'بک شدہ موبائل آرڈرز'),
+            kpi2Title: ebMix('Out for Delivery', 'راستے میں'),
+            kpi2Sub: ebMix('Active rider / dealer dispatches', 'فعال ڈلیوریز'),
+            kpi3Title: ebMix('Delivered Today', 'آج ڈلیور'),
+            kpi3Sub: ebMix('Customers &amp; dealers supplied', 'گاہکوں و ڈیلرز کو ترسیل'),
+            kpi4Title: ebMix('Handset / Acc. Returns', 'موبائل / اسیسری واپسی'),
+            kpi4Sub: ebMix('0 Profit / 0 Loss items', 'بغیر نفع نقصان آئٹمز'),
+            kpi5Title: ebMix('Warranty &amp; Damage Claims', 'وارنٹی و ڈیمج کلیم'),
+            tabOrders: '<i class="fas fa-mobile-screen-button"></i> Orders &amp; Dispatch <span class="ur-sub">(آرڈرز و ڈسپیچ)</span>',
+            tabClaims: '<i class="fas fa-shield-halved"></i> 💥 Warranty &amp; Damage Claims <span class="ur-sub">(وارنٹی و کلیم)</span>',
+            tabReturns: '<i class="fas fa-undo"></i> Handset / Acc. Return <span class="ur-sub">(مال واپسی)</span>',
+            tabHistory: '<i class="fas fa-history"></i> Return Records <span class="ur-sub">(ریکارڈز)</span>',
+            tabStaff: '<i class="fas fa-users-cog"></i> Sales Staff &amp; Riders <span class="ur-sub">(عملہ)</span>',
+            btnBookerHub: '<i class="fas fa-mobile-retro"></i> Orders &amp; Repair Hub <span class="eb-ur-sub">(آرڈرز و ریپئر ہب)</span>',
+            btnClaim: '<i class="fas fa-plus-circle"></i> + Warranty / Damage Claim <span class="ur-sub">(وارنٹی کلیم)</span>',
+            btnReturn: '<i class="fas fa-box-open"></i> + Handset / Acc. Return <span class="ur-sub">(مال واپسی)</span>',
+            btnDispatch: '<i class="fas fa-truck-loading"></i> + Delivery Challan <span class="ur-sub">(ڈلیوری چالان)</span>',
+            chipDispatched: '🚚 Out for Delivery <span class="eb-ur-sub">(راستے میں)</span>',
+            chipReturned: '🔄 Checking / Unsold Return <span class="eb-ur-sub">(چیکنگ / واپسی)</span>',
+            colBill: ebMix('Invoice / Order #', 'بل / آرڈر نمبر'),
+            colCust: ebMix('Customer / Dealer Shop', 'گاہک / ڈیلر'),
+            colBooker: ebMix('Salesperson / Booker', 'سیلزپرسن / بکر'),
+            colSupplier: ebMix('Delivery Rider / Salesman', 'ڈلیوری رائیڈر'),
+            orderSearchPhEn: 'Search by Bill #, Customer, Model, or IMEI...',
+            orderSearchPhUr: 'بل #، گاہک، ماڈل یا آئی ایم ای آئی تلاش کریں...',
+            returnSearchPhEn: 'Search by Voucher #, Dealer, Salesman, or Model...',
+            returnSearchPhUr: 'واؤچر #، ڈیلر، سیلزمین یا ماڈل تلاش کریں...',
+            claimSearchPhEn: 'Search by Model, IMEI, Voucher #, or Brand...',
+            claimSearchPhUr: 'ماڈل، آئی ایم ای آئی (IMEI)، واؤچر # یا برانڈ تلاش کریں...',
+            claimProdPhEn: 'Type mobile model, accessory, or barcode...',
+            claimProdPhUr: 'موبائل ماڈل، اسیسری یا بارکوڈ ٹائپ کریں...',
+            claimSupPhEn: 'e.g. Samsung / Infinix / Ronin / Service Center',
+            claimSupPhUr: 'مثلاً سام سنگ / انفینکس / رونن / سروس سینٹر',
+            claimsBannerTitle: '<i class="fas fa-shield-halved"></i> Mobile Warranty &amp; Claims Hub <span class="eb-ur-sub">(موبائل وارنٹی، پینل، بیٹری و اسیسریز کلیم)</span>'
+        },
+        books: {
+            pageTitle: 'Book Depot Supply, Unsold Returns & Publisher Claims — NH POS',
+            kpi1Title: ebMix('School &amp; Shop Orders', 'اسکول و دکان آرڈرز'),
+            kpi1Sub: ebMix('Field &amp; school book orders', 'اسکول و فیلڈ بک آرڈرز'),
+            kpi2Title: ebMix('Out for Supply', 'سپلائی پر'),
+            kpi2Sub: ebMix('Active supply dispatches', 'فعال سپلائی ڈسپیچ'),
+            kpi3Title: ebMix('Supplied Today', 'آج سپلائی شدہ'),
+            kpi3Sub: ebMix('Schools &amp; bookshops supplied', 'اسکولز و بک شاپس ترسیل'),
+            kpi4Title: ebMix('Unsold Book Returns', 'کتاب واپسی'),
+            kpi4Sub: ebMix('0 Profit / 0 Loss items', 'بغیر نفع نقصان آئٹمز'),
+            kpi5Title: ebMix('Misprint &amp; Edition Claims', 'مس پرنٹنگ و کلیم'),
+            tabOrders: '<i class="fas fa-book"></i> Supply Dispatch &amp; Orders <span class="ur-sub">(آرڈرز و سپلائی)</span>',
+            tabClaims: '<i class="fas fa-book-open"></i> 💥 Misprint &amp; Edition Claims <span class="ur-sub">(مس پرنٹنگ و کلیم)</span>',
+            tabReturns: '<i class="fas fa-undo"></i> Book &amp; Syllabus Return <span class="ur-sub">(کتاب واپسی)</span>',
+            tabHistory: '<i class="fas fa-history"></i> Return Records <span class="ur-sub">(ریکارڈز)</span>',
+            tabStaff: '<i class="fas fa-users-cog"></i> Bookers &amp; Suppliers <span class="ur-sub">(عملہ)</span>',
+            btnBookerHub: '<i class="fas fa-clipboard-check"></i> Booker Hub <span class="eb-ur-sub">(بکر ہب)</span>',
+            btnClaim: '<i class="fas fa-plus-circle"></i> + Misprint / Edition Claim <span class="ur-sub">(کلیم درج کریں)</span>',
+            btnReturn: '<i class="fas fa-box-open"></i> + Unsold Book Return <span class="ur-sub">(کتاب واپسی)</span>',
+            btnDispatch: '<i class="fas fa-truck-loading"></i> + Supply Challan <span class="ur-sub">(سپلائی چالان)</span>',
+            chipDispatched: '🚚 Out for Supply <span class="eb-ur-sub">(سپلائی پر)</span>',
+            chipReturned: '🔄 Session / Unsold Return <span class="eb-ur-sub">(سیشن / واپسی)</span>',
+            colBill: ebMix('Order / Bill #', 'آرڈر / بل نمبر'),
+            colCust: ebMix('School / Bookshop', 'اسکول / بک شاپ'),
+            colBooker: ebMix('Order Booker', 'آرڈر بکر'),
+            colSupplier: ebMix('Supply Salesman', 'سپلائی سیلزمین'),
+            orderSearchPhEn: 'Search by Bill #, School/Shop name, or Booker...',
+            orderSearchPhUr: 'بل #، اسکول / بک شاپ یا بکر تلاش کریں...',
+            returnSearchPhEn: 'Search by Voucher #, Publisher, Booker, or School/Shop...',
+            returnSearchPhUr: 'واؤچر #، پبلشر، بکر یا اسکول تلاش کریں...',
+            claimSearchPhEn: 'Search by Book, Stationery, Voucher #, or Publisher...',
+            claimSearchPhUr: 'کتاب، اسٹیشنری، واؤچر # یا پبلشر تلاش کریں...',
+            claimProdPhEn: 'Type book name, class, subject, or barcode...',
+            claimProdPhUr: 'کتاب کا نام، کلاس، مضمون یا بارکوڈ ٹائپ کریں...',
+            claimSupPhEn: 'e.g. Oxford / PTB / Gaba / Ilmi / Stationery Supplier',
+            claimSupPhUr: 'مثلاً آکسفورڈ / پی ٹی بی / گابا / علمی / اسٹیشنری سپلائر',
+            claimsBannerTitle: '<i class="fas fa-book-open"></i> Book Misprint &amp; Publisher Claims Hub <span class="eb-ur-sub">(مس پرنٹنگ، پرانے ایڈیشن و پبلشر کلیم)</span>'
+        }
+    };
+
+    const cfg = uiMap[catId];
+    if (!cfg) {
+        ebApplyBilingualDom(document);
+        return; // wholesaler & distributor use the default Van Dispatch / FMCG layout
+    }
+
+    if (cfg.pageTitle) document.title = cfg.pageTitle;
+    const setHtml = (id, html) => { const el = document.getElementById(id); if (el && html) el.innerHTML = html; };
+    const setPh = (id, en, ur) => {
+        const el = document.getElementById(id);
+        if (!el || !en) return;
+        el.setAttribute('data-eb-ph-en', en);
+        if (ur) el.setAttribute('data-eb-ph-ur', ur);
+        el.placeholder = en;
+    };
+
+    setHtml('delivKpiTitle1', cfg.kpi1Title);
+    setHtml('delivKpiSub1', cfg.kpi1Sub);
+    setHtml('delivKpiTitle2', cfg.kpi2Title);
+    setHtml('kpiDispatchedSub', cfg.kpi2Sub);
+    setHtml('delivKpiTitle3', cfg.kpi3Title);
+    setHtml('delivKpiSub3', cfg.kpi3Sub);
+    setHtml('delivKpiTitle4', cfg.kpi4Title);
+    setHtml('delivKpiSub4', cfg.kpi4Sub);
+    setHtml('delivKpiTitle5', cfg.kpi5Title);
+
+    setHtml('tabBtnOrders', cfg.tabOrders);
+    setHtml('tabBtnClaims', cfg.tabClaims);
+    setHtml('tabBtnReturns', cfg.tabReturns);
+    setHtml('tabBtnHistory', cfg.tabHistory);
+    setHtml('tabBtnStaff', cfg.tabStaff);
+
+    setHtml('btnLinkBookerHub', cfg.btnBookerHub);
+    setHtml('btnOpenClaimModal', cfg.btnClaim);
+    setHtml('btnOpenReturnModal', cfg.btnReturn);
+    setHtml('btnOpenDispatchModal', cfg.btnDispatch);
+
+    const dispChip = document.querySelector('#tabOrders .filter-chip[data-status="dispatched"]');
+    if (dispChip && cfg.chipDispatched) dispChip.innerHTML = cfg.chipDispatched;
+    const retChip = document.querySelector('#tabOrders .filter-chip[data-status="returned"]');
+    if (retChip && cfg.chipReturned) retChip.innerHTML = cfg.chipReturned;
+
+    setHtml('delivOrderColBill', cfg.colBill);
+    setHtml('delivOrderColCustomer', cfg.colCust);
+    setHtml('delivOrderColBooker', cfg.colBooker);
+    setHtml('delivOrderColSupplier', cfg.colSupplier);
+
+    setPh('orderSearchInput', cfg.orderSearchPhEn, cfg.orderSearchPhUr);
+    setPh('returnSearchInput', cfg.returnSearchPhEn, cfg.returnSearchPhUr);
+    setPh('claimSearchInput', cfg.claimSearchPhEn, cfg.claimSearchPhUr);
+    setPh('claimProductSearch', cfg.claimProdPhEn, cfg.claimProdPhUr);
+    setPh('claimSupplierName', cfg.claimSupPhEn, cfg.claimSupPhUr);
+
+    const claimsBannerH3 = document.querySelector('#tabClaims h3');
+    if (claimsBannerH3 && cfg.claimsBannerTitle) claimsBannerH3.innerHTML = cfg.claimsBannerTitle;
+
+    ebApplyBilingualDom(document);
+}
+
 function populateCategoryReturnReasons(selectedValue = '') {
     const sel = document.getElementById('retReasonSelect');
     if (!sel) return;
 
     const catId = getActiveDeliveryCategory();
-    const baseReasons = [
+    const baseReasonsByCategory = {
+        restaurant: [
+            'گاہک نے آرڈر منسوخ کر دیا (Customer Cancelled Order)',
+            'گاہک کا پتہ نہیں ملا / کال ریسیو نہیں کی (Customer Unreachable / Wrong Address)',
+            'ڈلیوری لیٹ ہونے پر پارسل واپس آ گیا (Late Delivery / Cold Food Refused)',
+            'غلط ڈش یا ڈیل پیک ہو گئی تھی (Wrong Dish / Deal Packed)',
+            'پیکنگ یا سوس لیک ہو گئی تھی (Packaging / Sauce Leaked in Transit)',
+            'کچن سے فالتو ڈش تیار ہو گئی تھی (Extra Kitchen Prep / Unsold Return)'
+        ],
+        medical: [
+            'ڈاکٹر نے نسخہ یا دوائی تبدیل کر دی (Doctor Changed Prescription / Medicine)',
+            'غلط ایم جی پوٹینسی یا برانڈ منتخب ہو گیا تھا (Wrong MG Potency / Brand Selected)',
+            'مریض کو کم مقدار درکار تھی / فالتو اسٹرپس واپسی (Excess Strips / Partial Return)',
+            'کلینک / فارمیسی بند تھی (Clinic / Pharmacy was Closed)',
+            'پیکنگ خراب یا ایکسپائری قریب تھی (Damaged Box / Short Expiry)'
+        ],
+        mobile: [
+            'گاہک نے ماڈل یا کلر تبدیل کر لیا (Customer Changed Model / Color Variant)',
+            'چیکنگ وارنٹی میں فالٹ نکلا (Fault Found in Checking Warranty)',
+            'غلط ماڈل کا کیس، چارجر یا اسیسری منگوائی تھی (Wrong Model Accessory / Case)',
+            'دکان دار / ڈیلر کے پاس رقم کم تھی (Short of Cash / Credit Refused)',
+            'پیکنگ یا باکس سیل خراب تھی (Damaged Box / Seal Issue)'
+        ]
+    };
+
+    const baseReasons = baseReasonsByCategory[catId] || [
         'دکان بند تھی (Shop was Closed)',
         'غلطی سے زیادہ ہو گیا / فالتو مال بچ گیا (Excess / Overloaded Stock)',
         'آرڈر زیادہ جنریٹ ہو گیا تھا (Order Quantity Generated in Excess)',
@@ -403,27 +763,37 @@ function populateCategoryReturnReasons(selectedValue = '') {
     } catch (e) { customSaved = []; }
 
     const allUnique = [];
-    // Put category-specific reasons + custom saved reasons right after the 6 universal reasons
     [...baseReasons, ...customSaved, ...catReasons].forEach(r => {
         if (r && !allUnique.includes(r)) allUnique.push(r);
     });
 
-    sel.innerHTML = '<option value="">-- واپسی کی وجہ منتخب کریں --</option>' +
-        allUnique.map((r, i) => `<option value="${r.replace(/"/g, '&quot;')}">${i + 1}. ${r}</option>`).join('') +
-        '<option value="other">✍️ دیگر وجہ (Other Reason)...</option>';
+    const prevVal = selectedValue || sel.value;
+    sel.innerHTML = '<option value="" data-eb-en="-- Select Return Reason --" data-eb-ur="-- Select Return Reason (واپسی کی وجہ منتخب کریں) --">-- Select Return Reason --</option>' +
+        allUnique.map((r, i) => ebOptionHtml(r, r, '', `${i + 1}. `)).join('') +
+        '<option value="other" data-eb-en="✍️ Other Reason..." data-eb-ur="✍️ Other Reason (دیگر وجہ)...">✍️ Other Reason...</option>';
 
-    if (selectedValue) {
-        sel.value = selectedValue;
+    if (prevVal) {
+        sel.value = prevVal;
     }
+    ebApplyBilingualDom(sel);
 }
 
 window.openAddCustomReturnReasonModal = async function() {
     const catId = getActiveDeliveryCategory();
+    const exampleMap = {
+        restaurant: 'مثلاً: کسٹمر نے پارسل منسوخ کر دیا (Customer Cancelled Parcel)',
+        medical: 'مثلاً: ڈاکٹر نے دوائی تبدیل کر دی (Doctor Changed Medicine)',
+        mobile: 'مثلاً: چیکنگ وارنٹی واپسی (Checking Warranty Return)',
+        books: 'مثلاً: سلیبس تبدیل ہو گیا (Syllabus Changed Return)',
+        distributor: 'مثلاً: روٹ دکان بند تھی (Route Shop Closed)',
+        wholesaler: 'مثلاً: بلک آرڈر ایڈجسٹمنٹ (Bulk Order Adjustment)'
+    };
+    const placeholderTxt = exampleMap[catId] || 'مثلاً: خصوصی وجہ درج کریں (Custom Return Reason)';
     const { value: newReason } = await Swal.fire({
         title: '➕ نئی واپسی کی وجہ شامل کریں (Add Custom Return Reason)',
-        html: `<div style="font-size:12.5px; color:#475569; margin-bottom:8px;">اپنے کاروبار کے مطابق مال واپسی کی نئی وجہ درج کریں (مثلاً: <b>PTA Block / Checking Return / Own Brand Exchange</b>):</div>`,
+        html: `<div style="font-size:12.5px; color:#475569; margin-bottom:8px;">اپنے کاروبار کے مطابق واپسی کی نئی وجہ درج کریں:</div>`,
         input: 'text',
-        inputPlaceholder: 'مثلاً: چیکنگ وارنٹی واپسی (Checking Warranty Return)',
+        inputPlaceholder: placeholderTxt,
         showCancelButton: true,
         confirmButtonText: '💾 شامل کریں (Save)',
         cancelButtonText: 'منسوخ',
@@ -513,18 +883,24 @@ function populateStaffSelectDropdowns() {
 
     supplierSelects.forEach(sel => {
         if (!sel) return;
-        sel.innerHTML = '<option value="">-- سپلائر منتخب کریں --</option>';
+        const prev = sel.value;
+        sel.innerHTML = '<option value="" data-eb-en="-- Select Supplier --" data-eb-ur="-- Select Supplier (سپلائر منتخب کریں) --">-- Select Supplier --</option>';
         suppliers.forEach(sp => {
             sel.innerHTML += `<option value="${sp.id}">${sp.name || sp.email} (${sp.mobile || 'No Mobile'}) - ${sp.route || 'General'}</option>`;
         });
+        if (prev) sel.value = prev;
+        ebApplyBilingualDom(sel);
     });
 
     bookerSelects.forEach(sel => {
         if (!sel) return;
-        sel.innerHTML = '<option value="">-- آرڈر بکر منتخب کریں --</option>';
+        const prev = sel.value;
+        sel.innerHTML = '<option value="" data-eb-en="-- Select Order Booker --" data-eb-ur="-- Select Order Booker (آرڈر بکر منتخب کریں) --">-- Select Order Booker --</option>';
         bookers.forEach(bk => {
             sel.innerHTML += `<option value="${bk.id}">${bk.name || bk.email} (${bk.mobile || 'No Mobile'}) - ${bk.route || 'General'}</option>`;
         });
+        if (prev) sel.value = prev;
+        ebApplyBilingualDom(sel);
     });
 }
 
@@ -534,7 +910,8 @@ function renderStaffTable() {
 
     if (allStaff.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:25px; color:#94a3b8;">
-            کوئی فیلڈ اسٹاف نہیں ملا۔ اوپر <b>+ Add Booker or Supplier</b> پر کلک کر کے شامل کریں۔
+            No field staff found. Click <b>+ Add Booker or Supplier</b> above to add one.
+            <span class="eb-ur-compact">کوئی فیلڈ اسٹاف نہیں ملا۔ نیا بکر یا سپلائر شامل کرنے کے لیے اوپر بٹن دبائیں۔</span>
         </td></tr>`;
         return;
     }
@@ -542,12 +919,12 @@ function renderStaffTable() {
     tbody.innerHTML = allStaff.map(st => {
         const isSupplier = st.role === 'supplier' || st.role === 'delivery';
         const roleBadge = isSupplier
-            ? `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:bold;">🚚 Delivery Supplier</span>`
-            : `<span style="background:#fef3c7; color:#b45309; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:bold;">📕 Order Booker</span>`;
+            ? `<span style="background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:bold;">🚚 ${ebMix('Delivery Supplier', 'ڈلیوری سپلائر')}</span>`
+            : `<span style="background:#fef3c7; color:#b45309; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:bold;">📕 ${ebMix('Order Booker', 'آرڈر بکر')}</span>`;
 
         const statusBadge = st.status === 'blocked'
-            ? `<span style="background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold;">🚫 Blocked</span>`
-            : `<span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold;">✅ Active</span>`;
+            ? `<span style="background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold;">🚫 ${ebMix('Blocked', 'بلاک')}</span>`
+            : `<span style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold;">✅ ${ebMix('Active', 'فعال')}</span>`;
 
         return `
             <tr>
@@ -565,11 +942,11 @@ function renderStaffTable() {
                 <td><b>${st.route || 'General Depot Area'}</b></td>
                 <td>${statusBadge}</td>
                 <td>
-                    <span style="font-size:12px; color:#64748b;">Active on Field</span>
+                    <span style="font-size:12px; color:#64748b;">${ebMix('Active on Field', 'فیلڈ میں فعال')}</span>
                 </td>
                 <td style="text-align:right;">
                     <button class="btn" onclick="toggleStaffBlock('${st.id}', '${st.status || 'active'}')" style="padding:4px 8px; font-size:11px; background:#f1f5f9; color:#475569; border-radius:6px; margin-right:4px;">
-                        ${st.status === 'blocked' ? 'Unblock' : 'Block'}
+                        ${st.status === 'blocked' ? ebMix('Unblock', 'ان بلاک') : ebMix('Block', 'بلاک')}
                     </button>
                     ${st.mobile ? `<a href="https://wa.me/${st.mobile.replace(/\D/g, '')}" target="_blank" class="btn" style="padding:4px 8px; font-size:11px; background:#10b981; color:#fff; border-radius:6px; text-decoration:none;"><i class="fab fa-whatsapp"></i></a>` : ''}
                 </td>
@@ -854,7 +1231,7 @@ function renderOrdersTable() {
 
     if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">
-            کوئی آرڈر نہیں ملا۔
+            ${ebMix('No orders found.', 'کوئی آرڈر نہیں ملا۔')}
         </td></tr>`;
         return;
     }
@@ -867,27 +1244,27 @@ function renderOrdersTable() {
         const canApprove = canUserApproveOrders();
 
         let badgeClass = 'badge-pending';
-        let badgeText = '⏳ Pending Dispatch';
+        let badgeText = `⏳ ${ebMix('Pending Dispatch', 'ڈسپیچ باقی')}`;
         let badgeStyle = '';
 
         if (isPendingApproval) {
             badgeClass = 'badge-pending';
             badgeText = isBooker
-                ? (canApprove ? '⏳ Pending Approval (Admin Allowed)' : '⏳ Pending Admin Approval (ایڈمن کی منظوری کا انتظار)')
-                : '⏳ Pending Approval (منظوری درکار)';
+                ? (canApprove ? `⏳ ${ebMix('Pending Approval (Allowed)', 'زیر منظوری')}` : `⏳ ${ebMix('Pending Admin Approval', 'ایڈمن منظوری کا انتظار')}`)
+                : `⏳ ${ebMix('Pending Approval', 'منظوری درکار')}`;
             badgeStyle = 'background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-weight:800;';
         } else if (dStat === 'dispatched') {
             badgeClass = 'badge-dispatched';
-            badgeText = '🚚 On Delivery Van';
+            badgeText = `🚚 ${ebMix('On Delivery Van', 'گاڑی پر')}`;
         } else if (dStat === 'delivered') {
             badgeClass = 'badge-delivered';
-            badgeText = '✅ Delivered';
+            badgeText = `✅ ${ebMix('Delivered', 'ڈلیور')}`;
         } else if (dStat === 'returned') {
             badgeClass = 'badge-returned';
-            badgeText = '🔄 Stock Returned';
+            badgeText = `🔄 ${ebMix('Stock Returned', 'مال واپس')}`;
         } else if (ord.orderStatus === 'approved') {
             badgeClass = 'badge-delivered';
-            badgeText = isBooker ? '✅ Approved by Admin (ایڈمن نے منظور کر لیا)' : '✅ Approved (منظور شدہ)';
+            badgeText = isBooker ? `✅ ${ebMix('Approved by Admin', 'ایڈمن نے منظور کر لیا')}` : `✅ ${ebMix('Approved', 'منظور شدہ')}`;
             badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-weight:bold;';
         }
 
@@ -919,48 +1296,48 @@ function renderOrdersTable() {
                     <span class="badge-status ${badgeClass}" style="${badgeStyle}">${badgeText}</span>
                 </td>
                 <td>
-                    ${ord.supplierName ? `<b style="color:#334155;"><i class="fas fa-truck"></i> ${ord.supplierName}</b>${ord.loadFormNo ? `<br><small style="color:#6d28d9; font-weight:700;">${ord.loadFormNo}</small>` : ''}` : '<span style="color:#94a3b8;">Not Assigned</span>'}
+                    ${ord.supplierName ? `<b style="color:#334155;"><i class="fas fa-truck"></i> ${ord.supplierName}</b>${ord.loadFormNo ? `<br><small style="color:#6d28d9; font-weight:700;">${ord.loadFormNo}</small>` : ''}` : `<span style="color:#94a3b8;">${ebMix('Not Assigned', 'مقرر نہیں')}</span>`}
                 </td>
                 <td style="text-align:right;">
                     <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
                         <button class="btn btn-sm" onclick="viewOrderDetails('${ord.id}')" style="background:#f1f5f9; color:#475569; border-radius:6px; font-size:11px; padding:4px 7px;" title="View Order Details">
-                            <i class="fas fa-eye"></i> View
+                            <i class="fas fa-eye"></i> ${ebMix('View', 'دیکھیں')}
                         </button>
 
                         <!-- Approval Actions -->
                         ${isPendingApproval ? `
                             ${canApprove ? `
                                 <button class="btn btn-sm" onclick="approveOrder('${ord.id}')" style="background:#10b981; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="Approve & Generate Bill">
-                                    <i class="fas fa-check"></i> Accept ${isBooker ? '<span style="font-size:9px;">(Allowed)</span>' : ''}
+                                    <i class="fas fa-check"></i> ${ebMix('Accept', 'منظور')} ${isBooker ? '<span style="font-size:9px;">(Allowed)</span>' : ''}
                                 </button>
                                 <button class="btn btn-sm" onclick="rejectOrder('${ord.id}')" style="background:#ef4444; color:#fff; border-radius:6px; font-size:11px; padding:4px 6px;" title="Reject Order">
                                     <i class="fas fa-times"></i>
                                 </button>
                             ` : `
-                                <span style="background:#fffbeb; border:1px solid #fde68a; color:#b45309; font-size:10.5px; font-weight:800; padding:3px 7px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;" title="Only Admin can approve field orders (Admin Not Allowed)">
-                                    <i class="fas fa-lock" style="color:#d97706;"></i> Admin Not Allowed
+                                <span style="background:#fffbeb; border:1px solid #fde68a; color:#b45309; font-size:10.5px; font-weight:800; padding:3px 7px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;" title="Only Admin can approve field orders">
+                                    <i class="fas fa-lock" style="color:#d97706;"></i> ${ebMix('Admin Only', 'صرف ایڈمن')}
                                 </span>
                             `}
                         ` : ''}
 
                         ${ord.orderStatus === 'approved' ? `
                             <button class="btn btn-sm" onclick="printOrderBillThermal('${ord.id}')" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; border-radius:6px; font-size:11px; padding:4px 7px; font-weight:bold;" title="Print 80mm/58mm Thermal POS Slip">
-                                🧾 Thermal
+                                🧾 ${ebMix('Thermal', 'تھرمل')}
                             </button>
                             <button class="btn btn-sm" onclick="printOrderBill('${ord.id}')" style="background:#0284c7; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px;" title="Print Customer Bill">
-                                <i class="fas fa-print"></i> Print
+                                <i class="fas fa-print"></i> ${ebMix('Print', 'پرنٹ')}
                             </button>
                         ` : ''}
 
                         ${dStat === 'dispatched' ? `
                             <button class="btn btn-sm" onclick="openLoadingSheetForOrder('${ord.id}')" style="background:#0284c7; color:#fff; border-radius:6px; font-size:11px; padding:4px 7px;" title="Print Loading Sheet &amp; Gate Pass">
-                                <i class="fas fa-file-invoice"></i> Sheet
+                                <i class="fas fa-file-invoice"></i> ${ebMix('Sheet', 'شیٹ')}
                             </button>
                             <button class="btn btn-sm" onclick="markOrderDelivered('${ord.id}')" style="background:#10b981; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px;" title="Mark as Delivered (Zero Return)">
-                                <i class="fas fa-check"></i> Delivered
+                                <i class="fas fa-check"></i> ${ebMix('Delivered', 'ڈلیور')}
                             </button>
-                            <button class="btn btn-sm" onclick="openReturnForOrder('${ord.id}')" style="background:#8b5cf6; color:#fff; border-radius:6px; font-size:11px; padding:4px 7px;" title="Record Unsold Return (مال واپسی)">
-                                <i class="fas fa-undo"></i> Return
+                            <button class="btn btn-sm" onclick="openReturnForOrder('${ord.id}')" style="background:#8b5cf6; color:#fff; border-radius:6px; font-size:11px; padding:4px 7px;" title="Record Unsold Return">
+                                <i class="fas fa-undo"></i> ${ebMix('Return', 'واپسی')}
                             </button>
                         ` : ''}
 
@@ -1214,10 +1591,10 @@ function viewOrderDetails(orderId) {
             <thead>
                 <tr style="background:#f1f5f9; text-align:left;">
                     <th style="padding:6px 8px; border:1px solid #cbd5e1;">#</th>
-                    <th style="padding:6px 8px; border:1px solid #cbd5e1;">Item Name</th>
-                    <th style="padding:6px 8px; border:1px solid #cbd5e1; text-align:center;">Qty</th>
-                    <th style="padding:6px 8px; border:1px solid #cbd5e1; text-align:right;">Rate</th>
-                    <th style="padding:6px 8px; border:1px solid #cbd5e1; text-align:right;">Total</th>
+                    <th style="padding:6px 8px; border:1px solid #cbd5e1;">${ebMix('Item Name', 'آئٹم')}</th>
+                    <th style="padding:6px 8px; border:1px solid #cbd5e1; text-align:center;">${ebMix('Qty', 'تعداد')}</th>
+                    <th style="padding:6px 8px; border:1px solid #cbd5e1; text-align:right;">${ebMix('Rate', 'ریٹ')}</th>
+                    <th style="padding:6px 8px; border:1px solid #cbd5e1; text-align:right;">${ebMix('Total', 'کل')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -1258,12 +1635,12 @@ function viewOrderDetails(orderId) {
                 <h4 style="margin:0 0 4px; font-size:16px; color:#0f172a;">🏪 ${ord.customerName || 'Customer'}</h4>
                 <div style="font-size:12px; color:#64748b;">
                     ${ord.customerMobile ? `📱 ${ord.customerMobile} &nbsp;|&nbsp; ` : ''}
-                    🛣️ Route: <b>${ord.customerRoute || 'General'}</b>
+                    🛣️ ${ebMix('Route', 'روٹ')}: <b>${ord.customerRoute || 'General'}</b>
                 </div>
             </div>
             <div style="text-align:right;">
                 <span style="font-size:11px; padding:3px 8px; border-radius:10px; font-weight:bold; ${isPending ? 'background:#fef3c7; color:#b45309;' : 'background:#dcfce7; color:#15803d;'}">
-                    ${isPending ? '⏳ Pending Approval' : '✅ Approved Bill'}
+                    ${isPending ? `⏳ ${ebMix('Pending Approval', 'زیر منظوری')}` : `✅ ${ebMix('Approved Bill', 'منظور شدہ بل')}`}
                 </span>
                 <div style="font-weight:bold; font-size:15px; margin-top:4px; color:#0284c7;">${ord.billNo || ord.id.slice(0,8)}</div>
                 ${ord.serviceModeLabel ? `<div style="font-size:11px; font-weight:800; color:#c2410c;">🍔 ${ord.serviceModeLabel}${ord.tableTokenNo ? ' • ' + ord.tableTokenNo : ''}</div>` : (ord.loadFormNo ? `<div style="font-size:11px; font-weight:800; color:#6d28d9;">🚚 ${ord.loadFormNo}</div>` : '')}
@@ -1271,16 +1648,16 @@ function viewOrderDetails(orderId) {
         </div>
 
         <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px; color:#475569; flex-wrap:wrap; gap:6px;">
-            <div><b>Order Booker:</b> 📕 ${ord.bookerName || 'Staff'}${ord.riderWaiterName ? ` &nbsp;|&nbsp; 🛵 <b>Rider / Waiter:</b> ${ord.riderWaiterName}` : ''}</div>
-            <div><b>Date:</b> 📅 ${ord.date || ord.createdAt?.slice(0,10) || ''} ${ord.time || ''}</div>
+            <div><b>${ebMix('Order Booker', 'آرڈر بکر')}:</b> 📕 ${ord.bookerName || 'Staff'}${ord.riderWaiterName ? ` &nbsp;|&nbsp; 🛵 <b>${ebMix('Rider / Waiter', 'رائیڈر / ویٹر')}:</b> ${ord.riderWaiterName}` : ''}</div>
+            <div><b>${ebMix('Date', 'تاریخ')}:</b> 📅 ${ord.date || ord.createdAt?.slice(0,10) || ''} ${ord.time || ''}</div>
         </div>
 
-        ${ord.kitchenOrderNote ? `<div style="background:#fff7ed; border:1px dashed #ea580c; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:12px; color:#9a3412;">👨‍🍳 <b>Kitchen / KOT Note:</b> ${ord.kitchenOrderNote}</div>` : ''}
+        ${ord.kitchenOrderNote ? `<div style="background:#fff7ed; border:1px dashed #ea580c; border-radius:8px; padding:6px 10px; margin-bottom:10px; font-size:12px; color:#9a3412;">👨‍🍳 <b>${ebMix('Kitchen / KOT Note', 'کچن نوٹ')}:</b> ${ord.kitchenOrderNote}</div>` : ''}
 
         ${itemsTable}
 
         <div style="margin-top:14px; padding:10px; background:#f8fafc; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
-            <div style="font-size:13px; color:#64748b;">Grand Total Payable:</div>
+            <div style="font-size:13px; color:#64748b;">${ebMix('Grand Total Payable', 'کل قابل ادا رقم')}:</div>
             <div style="font-size:18px; font-weight:800; color:#10b981;">Rs ${Math.round(ord.billAmount || ord.grandTotal || 0).toLocaleString()}</div>
         </div>
     `;
@@ -1754,7 +2131,7 @@ function renderReturnsTable() {
 
     if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">
-            کوئی واپسی مال ریکارڈ نہیں ملا۔
+            ${ebMix('No stock return records found.', 'کوئی واپسی مال ریکارڈ نہیں ملا۔')}
         </td></tr>`;
         return;
     }
@@ -1789,16 +2166,16 @@ function renderReturnsTable() {
                 </td>
                 <td>
                     <span style="background:#fef3c7; color:#92400e; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:700;">
-                        ${ret.reasonDetails || ret.reasonCategory || 'Unsold Return'}
+                        ${ebFormatBilingualHtml(ret.reasonDetails || ret.reasonCategory || 'Unsold Return')}
                     </span>
                 </td>
                 <td style="text-align:right;">
                     <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
                         <button class="btn-vyapar" onclick="printReturnVoucherThermal('${ret.id}')" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; padding:4px 8px; font-size:11px; font-weight:800;" title="Print 80mm/58mm Thermal Return Slip">
-                            🧾 Thermal
+                            🧾 ${ebMix('Thermal', 'تھرمل')}
                         </button>
                         <button class="btn-vyapar btn-vyapar-purple" onclick="viewReturnVoucher('${ret.id}')" style="padding:4px 10px; font-size:11px;">
-                            <i class="fas fa-receipt"></i> Voucher
+                            <i class="fas fa-receipt"></i> ${ebMix('Voucher', 'واؤچر')}
                         </button>
                     </div>
                 </td>
@@ -1817,7 +2194,7 @@ function addReturnItemRow(initialStockId = '', initialQty = 1) {
     row.className = 'return-item-row';
     row.id = rowId;
 
-    let options = '<option value="">-- پروڈکٹ منتخب کریں --</option>';
+    let options = '<option value="" data-eb-en="-- Select Product --" data-eb-ur="-- Select Product (پروڈکٹ منتخب کریں) --">-- Select Product --</option>';
     allStock.forEach(s => {
         const isSel = s.id === initialStockId ? 'selected' : '';
         const sub = getStockItemSubtitle(s);
@@ -1843,6 +2220,7 @@ function addReturnItemRow(initialStockId = '', initialQty = 1) {
     `;
 
     container.appendChild(row);
+    ebApplyBilingualDom(row);
 
     // Update unit label on select change
     const sel = row.querySelector('.ret-stock-sel');
@@ -2341,7 +2719,7 @@ function openDispatchModal() {
 
     const pendingOrders = allOrders.filter(o => (o.deliveryStatus || 'pending') === 'pending');
     if (pendingOrders.length === 0) {
-        list.innerHTML = '<div style="padding:15px; color:#94a3b8; text-align:center;">کوئی پینڈنگ آرڈر موجود نہیں ہے۔</div>';
+        list.innerHTML = '<div style="padding:15px; color:#94a3b8; text-align:center;">No pending orders available. <span class="eb-ur-sub">(کوئی پینڈنگ آرڈر موجود نہیں)</span></div>';
     } else {
         pendingOrders.forEach(ord => {
             const count = (ord.items && ord.items.length) || ord.itemCount || 0;
@@ -2429,7 +2807,7 @@ document.getElementById('btnConfirmDispatch').addEventListener('click', async fu
         }
 
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-truck"></i> Confirm Dispatch &amp; Generate Challan';
+        btn.innerHTML = '<i class="fas fa-truck"></i> Confirm Dispatch &amp; Generate Challan <span class="eb-ur-sub">(چالان بنائیں)</span>';
 
         closeDispatchModal();
         renderOrdersTable();
@@ -2440,7 +2818,7 @@ document.getElementById('btnConfirmDispatch').addEventListener('click', async fu
 
     } catch (e) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-truck"></i> Confirm Dispatch &amp; Generate Challan';
+        btn.innerHTML = '<i class="fas fa-truck"></i> Confirm Dispatch &amp; Generate Challan <span class="eb-ur-sub">(چالان بنائیں)</span>';
         Swal.fire('Error', e.message, 'error');
     }
 });
@@ -2532,7 +2910,7 @@ function generateAndShowLoadingSheet(supplierId, orderIds, preferredSheetNo = ''
             <td style="padding:6px 8px; text-align:center; font-weight:700; color:#334155;">${st.totalQty}</td>
             <td style="padding:6px 8px; text-align:center; font-weight:800; color:#a21caf;">${st.totalFreeQty > 0 ? `+${st.totalFreeQty}` : '—'}</td>
             <td style="padding:6px 8px; text-align:center; font-size:14px; font-weight:800; color:#0284c7;">${totalLoadText}</td>
-            <td style="padding:6px 8px; text-align:center; color:#64748b;">${st.orderCount} دکانیں</td>
+            <td style="padding:6px 8px; text-align:center; color:#64748b;">${st.orderCount} Shops <span class="eb-ur-sub">(دکانیں)</span></td>
             <td style="padding:6px 8px; text-align:center;"><input type="checkbox" checked style="width:16px; height:16px;"></td>
         </tr>
     `;
@@ -2559,8 +2937,8 @@ function generateAndShowLoadingSheet(supplierId, orderIds, preferredSheetNo = ''
 
     const isDistributorSheet = getActiveDeliveryCategory() === 'distributor';
     const sheetHeaderTitle = isDistributorSheet
-        ? '🚚 FMCG AGENCY VAN LOADING SHEET &amp; GODOWN GATE PASS (گاڑی لوڈنگ شیٹ و گودام گیٹ پاس)'
-        : '🚚 گاڑی لوڈنگ شیٹ و گودام گیٹ پاس (Van Loading Sheet &amp; Dispatch Gate Pass)';
+        ? '🚚 FMCG Agency Van Loading Sheet &amp; Godown Gate Pass <span class="eb-ur-sub">(گاڑی لوڈنگ شیٹ و گودام گیٹ پاس)</span>'
+        : '🚚 Van Loading Sheet &amp; Dispatch Gate Pass <span class="eb-ur-sub">(گاڑی لوڈنگ شیٹ و گودام گیٹ پاس)</span>';
 
     container.innerHTML = `
         <div style="border:2px solid #0284c7; border-radius:12px; padding:18px; background:#fff;">
@@ -2574,36 +2952,36 @@ function generateAndShowLoadingSheet(supplierId, orderIds, preferredSheetNo = ''
                 <div style="text-align:right; font-size:12px;">
                     <div><b>Load Form #:</b> <span style="font-size:15px; font-weight:800; color:#6d28d9;">${sheetNo}</span></div>
                     <div><b>Date:</b> ${dateStr} ${timeStr}</div>
-                    <div style="margin-top:4px;"><span style="background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:8px; font-weight:bold;">Active Dispatch</span></div>
+                    <div style="margin-top:4px;"><span style="background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:8px; font-weight:bold;">Active Dispatch <span class="eb-ur-sub">(روانہ)</span></span></div>
                 </div>
             </div>
 
             <!-- SUPPLIER INFO BANNER -->
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; margin-bottom:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:10px; font-size:12px;">
-                <div><b>ڈلیوری سپلائر:</b> <span style="color:#0f172a; font-weight:bold;">🚚 ${supName}</span></div>
-                <div><b>موبائل:</b> <span>${supMobile || '—'}</span></div>
-                <div><b>روٹ / علاقہ:</b> <span style="font-weight:bold; color:#0284c7;">📍 ${supRoute}</span></div>
-                <div><b>کل آرڈرز:</b> <span style="font-weight:800; color:#10b981;">${orders.length} دکانیں</span></div>
-                <div><b>کل بل رقم:</b> <span style="font-weight:800; color:#10b981;">Rs ${grandBillTotal.toLocaleString()}</span></div>
+                <div><b>Delivery Supplier <span class="eb-ur-sub">(سپلائر)</span>:</b> <span style="color:#0f172a; font-weight:bold;">🚚 ${supName}</span></div>
+                <div><b>Mobile <span class="eb-ur-sub">(موبائل)</span>:</b> <span>${supMobile || '—'}</span></div>
+                <div><b>Route / Area <span class="eb-ur-sub">(روٹ)</span>:</b> <span style="font-weight:bold; color:#0284c7;">📍 ${supRoute}</span></div>
+                <div><b>Total Orders <span class="eb-ur-sub">(کل آرڈرز)</span>:</b> <span style="font-weight:800; color:#10b981;">${orders.length} Shops <span class="eb-ur-sub">(دکانیں)</span></span></div>
+                <div><b>Total Bill Amount <span class="eb-ur-sub">(کل رقم)</span>:</b> <span style="font-weight:800; color:#10b981;">Rs ${grandBillTotal.toLocaleString()}</span></div>
             </div>
 
             <!-- SECTION 1: CONSOLIDATED WAREHOUSE STOCK TO LOAD -->
             <div style="margin-bottom:18px;">
                 <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                    <span>📦 1. گودام سے گاڑی میں لوڈ ہونے والے کل آئٹمز (Consolidated Warehouse Items)</span>
-                    <span style="font-size:12px; color:#0284c7; font-weight:bold;">کل آئٹمز: ${totalPieces}${totalFreePieces > 0 ? ` + ${totalFreePieces} Free` : ''}</span>
+                    <span>📦 1. Consolidated Warehouse Items <span class="eb-ur-sub">(گودام سے گاڑی میں لوڈ ہونے والے کل آئٹمز)</span></span>
+                    <span style="font-size:12px; color:#0284c7; font-weight:bold;">Total Items <span class="eb-ur-sub">(کل)</span>: ${totalPieces}${totalFreePieces > 0 ? ` + ${totalFreePieces} Free` : ''}</span>
                 </div>
                 <table style="width:100%; border-collapse:collapse; font-size:12px; border:1px solid #cbd5e1;">
                     <thead>
                         <tr style="background:#f1f5f9; text-align:left; border-bottom:2px solid #cbd5e1;">
                             <th style="padding:6px 8px; width:30px; text-align:center;">#</th>
-                            <th style="padding:6px 8px;">آئٹم کا نام (Product Name)</th>
-                            <th style="padding:6px 8px; width:70px; text-align:center;">یونٹ</th>
+                            <th style="padding:6px 8px;">Product Name <span class="eb-ur-sub">(آئٹم کا نام)</span></th>
+                            <th style="padding:6px 8px; width:70px; text-align:center;">Unit <span class="eb-ur-sub">(یونٹ)</span></th>
                             <th style="padding:6px 8px; width:70px; text-align:center;">Sale Qty</th>
                             <th style="padding:6px 8px; width:70px; text-align:center;">+Free</th>
-                            <th style="padding:6px 8px; width:115px; text-align:center;">کل تعداد برائے لوڈنگ</th>
-                            <th style="padding:6px 8px; width:80px; text-align:center;">دکانوں کی تعداد</th>
-                            <th style="padding:6px 8px; width:60px; text-align:center;">تصدیق</th>
+                            <th style="padding:6px 8px; width:115px; text-align:center;">Total Load <span class="eb-ur-sub">(کل لوڈنگ)</span></th>
+                            <th style="padding:6px 8px; width:80px; text-align:center;">Shops <span class="eb-ur-sub">(دکانیں)</span></th>
+                            <th style="padding:6px 8px; width:60px; text-align:center;">Check <span class="eb-ur-sub">(تصدیق)</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2615,17 +2993,17 @@ function generateAndShowLoadingSheet(supplierId, orderIds, preferredSheetNo = ''
             <!-- SECTION 2: SHOP DROP LIST & CASH TALLY -->
             <div style="margin-bottom:18px;">
                 <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:6px;">
-                    🏪 2. دکان وار ڈلیوری، مال اور کیش وصولی شیٹ (Shop-by-Shop Delivery Drop List)
+                    🏪 2. Shop-by-Shop Delivery Drop List <span class="eb-ur-sub">(دکان وار ڈلیوری اور کیش وصولی شیٹ)</span>
                 </div>
                 <table style="width:100%; border-collapse:collapse; font-size:12px; border:1px solid #cbd5e1;">
                     <thead>
                         <tr style="background:#f1f5f9; text-align:left; border-bottom:2px solid #cbd5e1;">
                             <th style="padding:6px 8px; width:30px; text-align:center;">#</th>
-                            <th style="padding:6px 8px; width:85px;">بل نمبر</th>
-                            <th style="padding:6px 8px; width:140px;">دکان / کسٹمر</th>
-                            <th style="padding:6px 8px;">مال کی تفصیل</th>
-                            <th style="padding:6px 8px; width:80px; text-align:right;">بل رقم</th>
-                            <th style="padding:6px 8px; width:80px; text-align:center;">وصولی دستخط</th>
+                            <th style="padding:6px 8px; width:85px;">Bill # <span class="eb-ur-sub">(بل نمبر)</span></th>
+                            <th style="padding:6px 8px; width:140px;">Shop / Customer <span class="eb-ur-sub">(دکان)</span></th>
+                            <th style="padding:6px 8px;">Items Summary <span class="eb-ur-sub">(مال کی تفصیل)</span></th>
+                            <th style="padding:6px 8px; width:80px; text-align:right;">Amount <span class="eb-ur-sub">(رقم)</span></th>
+                            <th style="padding:6px 8px; width:80px; text-align:center;">Sign <span class="eb-ur-sub">(دستخط)</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2638,13 +3016,13 @@ function generateAndShowLoadingSheet(supplierId, orderIds, preferredSheetNo = ''
             <div style="margin-top:20px; padding-top:14px; border-top:1px dashed #cbd5e1; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#475569;">
                 <div>
                     <div>_____________________________</div>
-                    <div style="font-weight:bold; margin-top:4px;">گودام انچارج / اسٹور کیپر دستخط</div>
-                    <small style="color:#94a3b8;">مال گاڑی میں گن کر لوڈ کروایا گیا</small>
+                    <div style="font-weight:bold; margin-top:4px;">Warehouse / Store Keeper Sign <span class="eb-ur-sub">(گودام انچارج دستخط)</span></div>
+                    <small style="color:#94a3b8;">Stock counted and loaded into van<span class="eb-ur-compact">مال گاڑی میں گن کر لوڈ کروایا گیا</span></small>
                 </div>
                 <div style="text-align:right;">
                     <div>_____________________________</div>
-                    <div style="font-weight:bold; margin-top:4px;">ڈلیوری سپلائر دستخط</div>
-                    <small style="color:#94a3b8;">مال بالکل ٹھیک اور پورا وصول پایا</small>
+                    <div style="font-weight:bold; margin-top:4px;">Delivery Supplier Sign <span class="eb-ur-sub">(ڈلیوری سپلائر دستخط)</span></div>
+                    <small style="color:#94a3b8;">Stock received in full &amp; good condition<span class="eb-ur-compact">مال بالکل ٹھیک اور پورا وصول پایا</span></small>
                 </div>
             </div>
         </div>
@@ -2772,7 +3150,7 @@ document.getElementById('quickStaffForm').addEventListener('submit', async funct
         renderStaffTable();
 
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Create Staff Account';
+        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Create Staff Account <span class="eb-ur-sub">(اکاؤنٹ بنائیں)</span>';
         closeAddStaffModal();
 
         Swal.fire({
@@ -2784,7 +3162,7 @@ document.getElementById('quickStaffForm').addEventListener('submit', async funct
     } catch (err) {
         console.error('Add staff failed:', err);
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Create Staff Account';
+        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Create Staff Account <span class="eb-ur-sub">(اکاؤنٹ بنائیں)</span>';
         Swal.fire('❌ Error', 'Staff account nahi ban saka: ' + (err.message || err.code), 'error');
     }
 });
@@ -2848,7 +3226,7 @@ function updateKPIRibbon() {
 
     let returnedUnits = 0;
     allReturns.forEach(r => returnedUnits += (r.totalUnitsCount || 0));
-    if (returnsEl) returnsEl.innerText = `${allReturns.length} (${returnedUnits} Items)`;
+    if (returnsEl) returnsEl.innerHTML = `${allReturns.length} (${returnedUnits} Items <span class="eb-ur-sub">/ آئٹمز</span>)`;
 }
 
 function renderHistoryAnalysis() {
@@ -2862,14 +3240,14 @@ function renderHistoryAnalysis() {
     });
 
     if (Object.keys(reasonCounts).length === 0) {
-        container.innerHTML = '<div style="color:#94a3b8; font-size:13px;">No returns recorded yet.</div>';
+        container.innerHTML = '<div style="color:#94a3b8; font-size:13px;">No returns recorded yet. <span class="eb-ur-sub">(ابھی کوئی واپسی ریکارڈ نہیں ہوئی)</span></div>';
         return;
     }
 
     container.innerHTML = Object.entries(reasonCounts).map(([cat, count]) => `
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
-            <div style="font-size:11px; color:#64748b; font-weight:700;">${cat}</div>
-            <div style="font-size:20px; font-weight:800; color:#7c3aed; margin-top:2px;">${count} Vouchers</div>
+            <div style="font-size:11px; color:#64748b; font-weight:700;">${ebFormatBilingualHtml(cat)}</div>
+            <div style="font-size:20px; font-weight:800; color:#7c3aed; margin-top:2px;">${count} Vouchers <span class="eb-ur-sub">(واؤچرز)</span></div>
         </div>
     `).join('');
 }
@@ -2889,7 +3267,7 @@ function setupSupplierRoleUI() {
         const routeEl = document.getElementById('supplierBannerRoute');
         const agEl = document.getElementById('supplierBannerAgency');
 
-        if (nameEl) nameEl.innerText = `خوش آمدید، ${myUser.name || 'Delivery Salesman'}!`;
+        if (nameEl) nameEl.innerHTML = `Welcome, ${myUser.name || 'Delivery Salesman'}! <span class="eb-ur-sub">(خوش آمدید)</span>`;
         if (routeEl) routeEl.innerText = myUser.route || 'General Delivery Area';
         if (agEl) agEl.innerText = (myAgency && myAgency.name) || 'Agency Depot';
 
@@ -2911,9 +3289,9 @@ function setupSupplierRoleUI() {
         const activeAmtEl = document.getElementById('supBannerActiveAmount');
         const delOrdEl = document.getElementById('supBannerDeliveredOrders');
 
-        if (activeOrdEl) activeOrdEl.innerText = `${myActiveOrders.length} آرڈرز`;
+        if (activeOrdEl) activeOrdEl.innerHTML = `${myActiveOrders.length} Orders <span class="eb-ur-sub">(آرڈرز)</span>`;
         if (activeAmtEl) activeAmtEl.innerText = `Rs ${Math.round(activeAmount).toLocaleString()}`;
-        if (delOrdEl) delOrdEl.innerText = `${myDeliveredOrders.length} دکانیں`;
+        if (delOrdEl) delOrdEl.innerHTML = `${myDeliveredOrders.length} Shops <span class="eb-ur-sub">(دکانیں)</span>`;
     } else {
         banner.style.display = 'none';
     }
@@ -3047,13 +3425,19 @@ function populateCategoryDropdowns() {
     const filterSel = document.getElementById('claimCategoryFilter');
 
     if (formSel) {
-        formSel.innerHTML = '<option value="">-- کیٹیگری منتخب کریں --</option>' + 
-            allClaimCategories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        const prevFormVal = formSel.value;
+        formSel.innerHTML = '<option value="" data-eb-en="-- Select Category --" data-eb-ur="-- Select Category (کیٹیگری منتخب کریں) --">-- Select Category --</option>' +
+            allClaimCategories.map(c => ebOptionHtml(c.name, c.name)).join('');
+        if (prevFormVal) formSel.value = prevFormVal;
+        ebApplyBilingualDom(formSel);
     }
 
     if (filterSel) {
-        filterSel.innerHTML = '<option value="all">تمام کیٹیگریز (All Categories)</option>' +
-            allClaimCategories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        const prevFilterVal = filterSel.value || activeClaimCategory || 'all';
+        filterSel.innerHTML = '<option value="all" data-eb-en="All Categories" data-eb-ur="All Categories (تمام کیٹیگریز)">All Categories</option>' +
+            allClaimCategories.map(c => ebOptionHtml(c.name, c.name)).join('');
+        filterSel.value = prevFilterVal;
+        ebApplyBilingualDom(filterSel);
     }
 }
 
@@ -3062,7 +3446,7 @@ function renderCategoriesList() {
     if (!container) return;
 
     if (allClaimCategories.length === 0) {
-        container.innerHTML = '<div style="padding:18px; text-align:center; color:#94a3b8; font-size:13px;">کوئی کیٹیگری موجود نہیں ہے۔</div>';
+        container.innerHTML = '<div style="padding:18px; text-align:center; color:#94a3b8; font-size:13px;">No categories found. <span class="eb-ur-sub">(کوئی کیٹیگری موجود نہیں)</span></div>';
         return;
     }
 
@@ -3073,21 +3457,21 @@ function renderCategoriesList() {
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:16px;"><i class="fas ${cat.icon || 'fa-tag'}" style="color:${cat.color || '#0284c7'};"></i></span>
                     <div>
-                        <b style="font-size:13px; color:#0f172a;">${cat.name}</b><br>
-                        <small style="color:#64748b;">${usageCount} کلیمز اندراج شدہ</small>
+                        <b style="font-size:13px; color:#0f172a;">${ebFormatBilingualHtml(cat.name)}</b><br>
+                        <small style="color:#64748b;">${usageCount} claims recorded <span class="eb-ur-sub">(کلیمز اندراج شدہ)</span></small>
                     </div>
                 </div>
                 <div style="display:flex; gap:6px;">
                     <button type="button" class="btn btn-sm" onclick="editCategory('${cat.id}')" style="background:#f1f5f9; color:#475569; padding:4px 8px; border-radius:6px; font-size:11px;" title="Edit Category">
-                        <i class="fas fa-edit"></i> نام بدلیں
+                        <i class="fas fa-edit"></i> Rename <span class="eb-ur-sub">(نام بدلیں)</span>
                     </button>
                     ${!cat.isDefault ? `
                         <button type="button" class="btn btn-sm" onclick="deleteCategory('${cat.id}')" style="background:#fee2e2; color:#b91c1c; padding:4px 8px; border-radius:6px; font-size:11px;" title="Delete Category">
-                            <i class="fas fa-trash-alt"></i> ڈیلیٹ
+                            <i class="fas fa-trash-alt"></i> Delete <span class="eb-ur-sub">(ڈیلیٹ)</span>
                         </button>
                     ` : `
                         <button type="button" class="btn btn-sm" onclick="editCategory('${cat.id}')" style="background:#fee2e2; color:#b91c1c; padding:4px 8px; border-radius:6px; font-size:11px;" title="Remove Category">
-                            <i class="fas fa-trash-alt"></i> ڈیلیٹ
+                            <i class="fas fa-trash-alt"></i> Delete <span class="eb-ur-sub">(ڈیلیٹ)</span>
                         </button>
                     `}
                 </div>
@@ -3316,7 +3700,7 @@ function renderClaimsTable() {
 
     if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:35px; color:#94a3b8;">
-            کوئی کلیم یا نقصان کا ریکارڈ نہیں ملا۔ نیا ریکارڈ درج کرنے کے لیے اوپر دیا گیا بٹن دبائیں۔
+            No damage or claim records found. Click the button above to record a new claim.<span class="eb-ur-compact">کوئی کلیم یا نقصان کا ریکارڈ نہیں ملا۔ نیا ریکارڈ درج کرنے کے لیے اوپر دیا گیا بٹن دبائیں۔</span>
         </td></tr>`;
         return;
     }
@@ -3326,23 +3710,23 @@ function renderClaimsTable() {
         const recoveredAmount = Math.round(c.recoveredAmount || 0);
         const remainingLoss = Math.round(c.remainingLoss !== undefined ? c.remainingLoss : Math.max(0, totalLoss - recoveredAmount));
 
-        let statusBadge = '<span class="badge-claim-pending">⏳ Pending <span class="ur-sub">(زیر التواء)</span></span>';
+        let statusBadge = '<span class="badge-claim-pending">⏳ Pending <span class="eb-ur-sub">(زیر التواء)</span></span>';
         if (c.status === 'recovered') {
-            statusBadge = '<span class="badge-claim-recovered">✅ Recovered <span class="ur-sub">(مکمل وصول)</span></span>';
+            statusBadge = '<span class="badge-claim-recovered">✅ Recovered <span class="eb-ur-sub">(مکمل وصول)</span></span>';
         } else if (c.status === 'partial') {
-            statusBadge = '<span class="badge-claim-partial">⚠️ Partial <span class="ur-sub">(جزوی وصول)</span></span>';
+            statusBadge = '<span class="badge-claim-partial">⚠️ Partial <span class="eb-ur-sub">(جزوی وصول)</span></span>';
         } else if (c.status === 'loss') {
-            statusBadge = '<span class="badge-claim-loss">❌ Net Loss <span class="ur-sub">(خالص نقصان)</span></span>';
+            statusBadge = '<span class="badge-claim-loss">❌ Net Loss <span class="eb-ur-sub">(خالص نقصان)</span></span>';
         }
 
-        let recoverySummaryHtml = `<span style="color:#94a3b8; font-size:11.5px;">Not Recovered Yet <span class="ur-block">(ابھی وصولی نہیں ہوئی)</span></span>`;
+        let recoverySummaryHtml = `<span style="color:#94a3b8; font-size:11.5px;">Not Recovered Yet <span class="eb-ur-block">(ابھی وصولی نہیں ہوئی)</span></span>`;
         if (recoveredAmount > 0) {
             recoverySummaryHtml = `
-                <b style="color:#15803d; font-size:12px;">Rec: Rs ${recoveredAmount.toLocaleString()} <span class="ur-sub">(وصول)</span></b><br>
-                ${remainingLoss > 0 ? `<small style="color:#ea580c; font-weight:700;">Rem. Loss: Rs ${remainingLoss.toLocaleString()} <span class="ur-sub">(باقی نقصان)</span></small>` : '<small style="color:#16a34a; font-weight:700;">100% Fully Recovered <span class="ur-sub">(مکمل وصول)</span></small>'}
+                <b style="color:#15803d; font-size:12px;">Rec: Rs ${recoveredAmount.toLocaleString()} <span class="eb-ur-sub">(وصول)</span></b><br>
+                ${remainingLoss > 0 ? `<small style="color:#ea580c; font-weight:700;">Rem. Loss: Rs ${remainingLoss.toLocaleString()} <span class="eb-ur-sub">(باقی نقصان)</span></small>` : '<small style="color:#16a34a; font-weight:700;">100% Fully Recovered <span class="eb-ur-sub">(مکمل وصول)</span></small>'}
             `;
         } else if (c.status === 'loss') {
-            recoverySummaryHtml = `<b style="color:#dc2626; font-size:12px;">Written Off Loss <span class="ur-block">(مسترد شدہ خالص نقصان)</span></b>`;
+            recoverySummaryHtml = `<b style="color:#dc2626; font-size:12px;">Written Off Loss <span class="eb-ur-block">(مسترد شدہ خالص نقصان)</span></b>`;
         }
 
         return `
@@ -3356,13 +3740,13 @@ function renderClaimsTable() {
                 </td>
                 <td>
                     <b style="color:#0f172a; font-size:13px;">${c.itemName}</b>
-                    ${c.imeiSerial ? `<div style="font-size:11px; color:#6d28d9; font-weight:800; font-family:monospace; margin-top:2px;">📱 IMEI/SN: ${c.imeiSerial}</div>` : ''}
+                    ${(getActiveDeliveryCategory() === 'mobile' && c.imeiSerial) ? `<div style="font-size:11px; color:#6d28d9; font-weight:800; font-family:monospace; margin-top:2px;">📱 IMEI/SN: ${c.imeiSerial}</div>` : ''}
                     ${(c.itemSubtitle || getStockItemSubtitle({ stockId: c.stockId, name: c.itemName })) ? `<div style="font-size:11px; color:#0284c7; font-weight:600; margin-top:2px;">${c.itemSubtitle || getStockItemSubtitle({ stockId: c.stockId, name: c.itemName })}</div>` : ''}
                     ${c.notes ? `<br><small style="color:#64748b;">${c.notes}</small>` : ''}
                 </td>
                 <td>
                     <span class="cat-badge">
-                        ${c.category || 'Damage'}
+                        ${ebFormatBilingualHtml(c.category || 'Damage')}
                     </span>
                 </td>
                 <td>
@@ -3373,7 +3757,7 @@ function renderClaimsTable() {
                     <b style="color:#dc2626; font-size:13px;">Rs ${totalLoss.toLocaleString()}</b>
                 </td>
                 <td>
-                    ${c.supplierName ? `<b style="color:#0284c7;"><i class="fas fa-building"></i> ${c.supplierName}</b>` : '<span style="color:#94a3b8;">Not Specified</span>'}
+                    ${c.supplierName ? `<b style="color:#0284c7;"><i class="fas fa-building"></i> ${c.supplierName}</b>` : '<span style="color:#94a3b8;">Not Specified <span class="eb-ur-sub">(نامعلوم)</span></span>'}
                 </td>
                 <td>
                     ${statusBadge}
@@ -3384,13 +3768,13 @@ function renderClaimsTable() {
                 <td style="text-align:right;">
                     <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
                         <button class="btn btn-sm" onclick="openClaimRecoveryModal('${c.id}')" style="background:#15803d; color:#fff; padding:5px 9px; border-radius:6px; font-size:11px; font-weight:bold;" title="Record Claim Recovery">
-                            <i class="fas fa-hand-holding-dollar"></i> Recover <span class="ur-sub">(وصول)</span>
+                            <i class="fas fa-hand-holding-dollar"></i> Recover <span class="eb-ur-sub">(وصول)</span>
                         </button>
                         <button class="btn btn-sm" onclick="printClaimVoucherThermal('${c.id}')" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; padding:5px 8px; border-radius:6px; font-size:11px; font-weight:800;" title="Print 80mm/58mm Thermal Claim Slip">
-                            🧾 Thermal
+                            🧾 Thermal <span class="eb-ur-sub">(پرچی)</span>
                         </button>
                         <button class="btn btn-sm" onclick="viewClaimVoucher('${c.id}')" style="background:#0284c7; color:#fff; padding:5px 8px; border-radius:6px; font-size:11px;" title="Print Official Voucher">
-                            <i class="fas fa-print"></i> Voucher <span class="ur-sub">(واؤچر)</span>
+                            <i class="fas fa-print"></i> Voucher <span class="eb-ur-sub">(واؤچر)</span>
                         </button>
                         <button class="btn btn-sm" onclick="openDamageClaimModal('${c.id}')" style="background:#f1f5f9; color:#475569; padding:5px 7px; border-radius:6px; font-size:11px;" title="Edit Claim">
                             <i class="fas fa-edit"></i>
@@ -3440,16 +3824,16 @@ function updateClaimsKPIRibbon() {
     const remLossEl = document.getElementById('claimKpiRemainingLoss');
     const pendingEl = document.getElementById('claimKpiPending');
 
-    if (countEl) countEl.innerText = `${totalItems} Records`;
-    if (unitsSub) unitsSub.innerText = `${Math.round(totalUnits)} Total Units`;
+    if (countEl) countEl.innerHTML = `${totalItems} Records <span class="eb-ur-sub">(ریکارڈز)</span>`;
+    if (unitsSub) unitsSub.innerHTML = `${Math.round(totalUnits)} Total Units <span class="eb-ur-sub">(کل یونٹس)</span>`;
     if (totalLossEl) totalLossEl.innerText = `Rs ${Math.round(totalGrossLoss).toLocaleString()}`;
     if (recoveredEl) recoveredEl.innerText = `Rs ${Math.round(totalRecovered).toLocaleString()}`;
     if (remLossEl) remLossEl.innerText = `Rs ${Math.round(totalRemainingLoss).toLocaleString()}`;
-    if (pendingEl) pendingEl.innerText = `${pendingCount} Pending`;
+    if (pendingEl) pendingEl.innerHTML = `${pendingCount} Pending <span class="eb-ur-sub">(زیر التواء)</span>`;
 
     if (recPercentEl) {
         const pct = totalGrossLoss > 0 ? Math.round((totalRecovered / totalGrossLoss) * 100) : 0;
-        recPercentEl.innerText = `${pct}% Recovered Successfully`;
+        recPercentEl.innerHTML = `${pct}% Recovered <span class="eb-ur-sub">(وصول شدہ)</span>`;
     }
 
     // Top Header KPI Card
@@ -3459,7 +3843,7 @@ function updateClaimsKPIRibbon() {
         headerClaimsLoss.innerText = `Rs ${Math.round(totalGrossLoss).toLocaleString()}`;
     }
     if (headerClaimsSub) {
-        headerClaimsSub.innerText = `Rs ${Math.round(totalRecovered).toLocaleString()} Recovered / ${pendingCount} Pending`;
+        headerClaimsSub.innerHTML = `Rs ${Math.round(totalRecovered).toLocaleString()} Recovered <span class="eb-ur-sub">(وصول)</span> / ${pendingCount} Pending <span class="eb-ur-sub">(بقیہ)</span>`;
     }
 }
 
@@ -3490,7 +3874,7 @@ function setupProductAutocomplete() {
         }).slice(0, 8);
 
         if (matches.length === 0) {
-            dropdown.innerHTML = `<div style="padding:10px; color:#94a3b8; font-size:12px;">کوئی آئٹم نہیں ملا۔ آپ نیا نام ٹائپ بھی کر سکتے ہیں۔</div>`;
+            dropdown.innerHTML = `<div style="padding:10px; color:#94a3b8; font-size:12px;">No item found. You can also type a new product name.<span class="eb-ur-compact">کوئی آئٹم نہیں ملا۔ آپ نیا نام ٹائپ بھی کر سکتے ہیں۔</span></div>`;
             dropdown.style.display = 'block';
             return;
         }
@@ -3503,9 +3887,9 @@ function setupProductAutocomplete() {
                     <div>
                         <b>${s.name}</b>
                         ${sub ? `<div style="font-size:11px; color:#0284c7; font-weight:600;">${sub}</div>` : '<br>'}
-                        <small style="color:#64748b;">موجودہ اسٹاک: ${s.qty || 0} ${s.unit || ''} | خرید ریٹ: Rs ${pRate}</small>
+                        <small style="color:#64748b;">Stock <span class="eb-ur-sub">(اسٹاک)</span>: ${s.qty || 0} ${s.unit || ''} | Cost <span class="eb-ur-sub">(خرید)</span>: Rs ${pRate}</small>
                     </div>
-                    <span style="font-size:11px; color:#0284c7; font-weight:bold;">منتخب کریں →</span>
+                    <span style="font-size:11px; color:#0284c7; font-weight:bold;">Select <span class="eb-ur-sub">(منتخب)</span> →</span>
                 </div>
             `;
         }).join('');
@@ -3549,7 +3933,7 @@ window.selectProductForClaim = function(stockId) {
     if (meta) {
         const sub = getStockItemSubtitle(s);
         meta.style.display = 'block';
-        meta.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981;"></i> موجودہ اسٹاک: <b>${s.qty || 0} ${s.unit || ''}</b> | خرید قیمت: <b>Rs ${pRate}</b>${sub ? ` | <span style="color:#0369a1;">${sub}</span>` : ''}`;
+        meta.innerHTML = `<i class="fas fa-check-circle" style="color:#10b981;"></i> Current Stock <span class="eb-ur-sub">(موجودہ اسٹاک)</span>: <b>${s.qty || 0} ${s.unit || ''}</b> | Cost Price <span class="eb-ur-sub">(خرید قیمت)</span>: <b>Rs ${pRate}</b>${sub ? ` | <span style="color:#0369a1;">${sub}</span>` : ''}`;
     }
 
     // Auto-fill supplier/publisher/brand name if empty
@@ -3631,7 +4015,7 @@ window.lookupSoldItemByImeiForClaim = function() {
 
         if (resEl) {
             resEl.style.display = 'block';
-            resEl.innerHTML = `✅ بل مل گیا! <b>Bill #${matchedBill.billNo || ''}</b> • گاہک: <b>${matchedBill.customerName || 'Walk-in'}</b> • تاریخ: <b>${matchedBill.date || ''}</b> • آئٹم: <b>${matchedItem.name}</b>`;
+            resEl.innerHTML = `✅ Bill Found <span class="eb-ur-sub">(بل مل گیا)</span>! <b>Bill #${matchedBill.billNo || ''}</b> • Customer <span class="eb-ur-sub">(گاہک)</span>: <b>${matchedBill.customerName || 'Walk-in'}</b> • Date <span class="eb-ur-sub">(تاریخ)</span>: <b>${matchedBill.date || ''}</b> • Item: <b>${matchedItem.name}</b>`;
         }
         recalcClaimLoss();
         return;
@@ -3648,14 +4032,14 @@ window.lookupSoldItemByImeiForClaim = function() {
         selectProductForClaim(stockMatch.id);
         if (resEl) {
             resEl.style.display = 'block';
-            resEl.innerHTML = `📦 انوینٹری اسٹاک میں مل گیا: <b>${stockMatch.name}</b> (موجودہ اسٹاک: ${stockMatch.qty || 0})`;
+            resEl.innerHTML = `📦 Found in Inventory Stock <span class="eb-ur-sub">(انوینٹری اسٹاک میں مل گیا)</span>: <b>${stockMatch.name}</b> (Stock <span class="eb-ur-sub">/ اسٹاک</span>: ${stockMatch.qty || 0})`;
         }
         return;
     }
 
     if (resEl) {
         resEl.style.display = 'block';
-        resEl.innerHTML = `<span style="color:#dc2626;">⚠️ اس IMEI (${imeiInp.value.trim()}) کا کوئی پرانا بل نہیں ملا، آپ دستی طور پر پروڈکٹ منتخب کر کے کلیم درج کر سکتے ہیں۔</span>`;
+        resEl.innerHTML = `<span style="color:#dc2626;">⚠️ No past bill found for IMEI (${imeiInp.value.trim()}). You can select the product manually.<span class="eb-ur-compact">اس IMEI کا کوئی پرانا بل نہیں ملا، آپ دستی طور پر پروڈکٹ منتخب کر کے کلیم درج کر سکتے ہیں۔</span></span>`;
     }
 };
 
@@ -3689,6 +4073,7 @@ window.openDamageClaimModal = function(claimId = null) {
     const imeiLookupBox = document.getElementById('claimImeiLookupBox');
     const isMobAgency = getActiveDeliveryCategory() === 'mobile';
     if (imeiLookupBox) imeiLookupBox.style.display = isMobAgency ? 'block' : 'none';
+    populateClaimUnitsDropdown();
 
     // Defaults
     const today = new Date().toISOString().slice(0, 10);
@@ -3697,19 +4082,19 @@ window.openDamageClaimModal = function(claimId = null) {
     if (claimId) {
         const c = allClaims.find(x => x.id === claimId);
         if (c) {
-            if (imeiLookupBox && c.imeiSerial) imeiLookupBox.style.display = 'block';
+            if (imeiLookupBox && isMobAgency && c.imeiSerial) imeiLookupBox.style.display = 'block';
             document.getElementById('claimEditId').value = c.id;
             document.getElementById('claimStockId').value = c.stockId || '';
             document.getElementById('claimProductSearch').value = c.itemName || '';
             if (document.getElementById('claimImeiInput')) {
-                document.getElementById('claimImeiInput').value = c.imeiSerial || '';
+                document.getElementById('claimImeiInput').value = isMobAgency ? (c.imeiSerial || '') : '';
             }
             document.getElementById('claimCategorySelect').value = c.category || '';
             document.getElementById('claimIncidentDate').value = c.incidentDate || today;
             document.getElementById('claimExpiryDate').value = c.expiryDate || '';
             document.getElementById('claimSupplierName').value = c.supplierName || '';
             document.getElementById('claimQty').value = c.qty || 1;
-            document.getElementById('claimUnit').value = c.unit || 'pcs';
+            populateClaimUnitsDropdown(c.unit || 'pcs');
             document.getElementById('claimPurchaseRate').value = c.purchaseRate || 0;
             document.getElementById('claimNotes').value = c.notes || '';
             document.getElementById('claimDeductStock').checked = false; // already saved
@@ -3760,7 +4145,7 @@ window.handleDamageClaimSubmit = async function(e) {
     const totalLoss = Math.round(qty * purchaseRate);
     const submitBtn = document.getElementById('btnSaveClaimSubmit');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> کلیم محفوظ ہو رہا ہے...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Claim... <span class="eb-ur-sub">(محفوظ ہو رہا ہے)</span>';
 
     try {
         const voucherNo = 'CLM-' + (allClaims.length + 1001);
@@ -3865,7 +4250,7 @@ window.handleDamageClaimSubmit = async function(e) {
         Swal.fire('Error', 'کلیم محفوظ نہیں ہو سکا: ' + err.message, 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> کلیم محفوظ کریں (Save Claim)';
+        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Save Claim <span class="eb-ur-sub">(کلیم محفوظ کریں)</span>';
     }
 };
 
@@ -3885,7 +4270,7 @@ window.openClaimRecoveryModal = function(claimId) {
     // Fill Summary
     document.getElementById('recSummaryVoucherNo').innerText = claim.voucherNo || claim.id.slice(0,8);
     document.getElementById('recSummaryItemName').innerText = claim.itemName;
-    document.getElementById('recSummaryCategory').innerText = claim.category || 'Damage';
+    document.getElementById('recSummaryCategory').innerHTML = ebFormatBilingualHtml(claim.category || 'Damage');
     document.getElementById('recSummaryOriginalClaim').innerText = `${claim.qty} ${claim.unit || 'pcs'} @ Rs ${claim.purchaseRate}`;
     document.getElementById('recSummaryTotalLoss').innerText = `Rs ${Math.round(claim.totalLoss).toLocaleString()}`;
     
@@ -3957,8 +4342,8 @@ function updateRecoveryStatusBanner(currentSettlementAmount) {
             <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:22px;">🎉</span>
                 <div>
-                    <b style="font-size:14px; color:#14532d;">مکمل کلیم وصولی (Recovered Successfully)!</b><br>
-                    <span>وصول شدہ رقم: <b>Rs ${grandRecovered.toLocaleString()}</b> / کل دعویٰ: <b>Rs ${totalClaimLoss.toLocaleString()}</b>۔ یہ کلیم 100% مکمل وصول شمار ہو گا۔</span>
+                    <b style="font-size:14px; color:#14532d;">Recovered Successfully! <span class="eb-ur-sub">(مکمل کلیم وصولی)</span></b><br>
+                    <span>Recovered: <b>Rs ${grandRecovered.toLocaleString()}</b> / Total Claim: <b>Rs ${totalClaimLoss.toLocaleString()}</b> — 100% Fully Settled.<span class="eb-ur-compact">وصول شدہ رقم: Rs ${grandRecovered.toLocaleString()} / کل دعویٰ: Rs ${totalClaimLoss.toLocaleString()}۔ یہ کلیم 100% مکمل وصول شمار ہو گا۔</span></span>
                 </div>
             </div>
         `;
@@ -3968,8 +4353,8 @@ function updateRecoveryStatusBanner(currentSettlementAmount) {
             <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:22px;">⚠️</span>
                 <div>
-                    <b style="font-size:14px; color:#9a3412;">جزوی وصولی (Partial Recovery):</b><br>
-                    <span>کمپنی سے وصول رقم: <b>Rs ${grandRecovered.toLocaleString()}</b> | بقیہ غیر وصول شدہ رقم: <b style="color:#dc2626;">Rs ${unrecoveredBalance.toLocaleString()}</b> بطور خالص نقصان (Net Loose) شمار ہو گی۔</span>
+                    <b style="font-size:14px; color:#9a3412;">Partial Recovery <span class="eb-ur-sub">(جزوی وصولی)</span>:</b><br>
+                    <span>Recovered: <b>Rs ${grandRecovered.toLocaleString()}</b> | Unrecovered Balance: <b style="color:#dc2626;">Rs ${unrecoveredBalance.toLocaleString()}</b> counted as Net Loss.<span class="eb-ur-compact">کمپنی سے وصول رقم: Rs ${grandRecovered.toLocaleString()} | بقیہ غیر وصول شدہ رقم: Rs ${unrecoveredBalance.toLocaleString()} بطور خالص نقصان شمار ہو گی۔</span></span>
                 </div>
             </div>
         `;
@@ -3996,7 +4381,7 @@ window.handleClaimRecoverySubmit = async function(e) {
 
     const submitBtn = document.getElementById('btnSaveRecoverySubmit');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> وصولی تصدیق ہو رہی ہے...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Confirming Recovery... <span class="eb-ur-sub">(وصولی تصدیق)</span>';
 
     try {
         const priorRecovered = parseFloat(activeClaimForRecovery.recoveredAmount) || 0;
@@ -4086,7 +4471,7 @@ window.handleClaimRecoverySubmit = async function(e) {
         Swal.fire('Error', 'وصولی محفوظ نہیں ہو سکی: ' + err.message, 'error');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> وصولی تصدیق کریں (Confirm Recovery)';
+        submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Recovery <span class="eb-ur-sub">(وصولی تصدیق)</span>';
     }
 };
 
@@ -4177,10 +4562,18 @@ window.viewClaimVoucher = function(claimId) {
     const recAmount = Math.round(claim.recoveredAmount || 0);
     const remaining = Math.round(claim.remainingLoss !== undefined ? claim.remainingLoss : Math.max(0, totalLoss - recAmount));
 
-    let statusText = 'Pending Settlement (زیر التواء کلیم)';
-    if (claim.status === 'recovered') statusText = '100% Recovered Successfully (مکمل وصول شدہ)';
-    else if (claim.status === 'partial') statusText = `Partially Recovered (Rs ${recAmount.toLocaleString()}) | Net Loss: Rs ${remaining.toLocaleString()}`;
-    else if (claim.status === 'loss') statusText = 'Written Off / Unrecoverable Loss (خالص نقصان)';
+    let statusText = 'Pending Settlement <span class="eb-ur-sub">(زیر التواء کلیم)</span>';
+    let statusPlainText = 'Pending Settlement';
+    if (claim.status === 'recovered') {
+        statusText = '100% Recovered Successfully <span class="eb-ur-sub">(مکمل وصول شدہ)</span>';
+        statusPlainText = '100% Recovered Successfully';
+    } else if (claim.status === 'partial') {
+        statusText = `Partially Recovered (Rs ${recAmount.toLocaleString()}) | Net Loss: Rs ${remaining.toLocaleString()}`;
+        statusPlainText = statusText;
+    } else if (claim.status === 'loss') {
+        statusText = 'Written Off / Unrecoverable Loss <span class="eb-ur-sub">(خالص نقصان)</span>';
+        statusPlainText = 'Written Off / Unrecoverable Loss';
+    }
 
     printArea.innerHTML = `
         <div style="max-width:540px; margin:0 auto; border:2px dashed #94a3b8; border-radius:12px; padding:20px; background:#fff; font-family:'Segoe UI', sans-serif;">
@@ -4188,7 +4581,7 @@ window.viewClaimVoucher = function(claimId) {
                 <h2 style="margin:0; font-size:20px; color:#0f172a; text-transform:uppercase;">${agencyName}</h2>
                 <div style="font-size:12px; color:#475569;">${agencyCity} ${agencyPhone ? `• Phone: ${agencyPhone}` : ''}</div>
                 <div style="margin-top:6px; display:inline-block; background:#dc2626; color:#fff; padding:3px 14px; border-radius:12px; font-size:12px; font-weight:800; letter-spacing:1px;">
-                    DAMAGE / EXPIRE CLAIM PASS (کلیم چالان)
+                    DAMAGE / EXPIRE CLAIM PASS <span class="eb-ur-sub">(کلیم چالان)</span>
                 </div>
             </div>
 
@@ -4200,7 +4593,7 @@ window.viewClaimVoucher = function(claimId) {
                 </div>
                 <div style="text-align:right;">
                     <b>Company/Supplier:</b> ${claim.supplierName || 'Distributor Desk'}<br>
-                    <b>Category:</b> ${claim.category || 'General Damage'}<br>
+                    <b>Category:</b> ${ebFormatBilingualHtml(claim.category || 'General Damage')}<br>
                     <b>Prepared By:</b> ${claim.createdByName || 'Store Keeper'}
                 </div>
             </div>
@@ -4274,7 +4667,7 @@ window.viewClaimVoucher = function(claimId) {
     const waBtn = document.getElementById('btnShareClaimWA');
     if (waBtn) {
         waBtn.onclick = function() {
-            const text = `*WARRANTY / DAMAGE CLAIM VOUCHER*\nAgency: ${agencyName}\nVoucher #: ${claim.voucherNo}\nProduct: ${claim.itemName}${claim.imeiSerial ? `\nIMEI/SN: ${claim.imeiSerial}` : ''}\nQty: ${claim.qty} ${claim.unit || 'pcs'}\nClaim Value: Rs ${totalLoss}\nStatus: ${statusText}\nRemaining Loss: Rs ${remaining}`;
+            const text = `*WARRANTY / DAMAGE CLAIM VOUCHER*\nAgency: ${agencyName}\nVoucher #: ${claim.voucherNo}\nProduct: ${claim.itemName}${claim.imeiSerial ? `\nIMEI/SN: ${claim.imeiSerial}` : ''}\nQty: ${claim.qty} ${claim.unit || 'pcs'}\nClaim Value: Rs ${totalLoss}\nStatus: ${statusPlainText}\nRemaining Loss: Rs ${remaining}`;
             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
         };
     }
@@ -4480,4 +4873,39 @@ window.exportClaimsCSV = function() {
     link.click();
     link.remove();
 };
+
+// ============================================
+// 🌐 LIVE LANGUAGE SYNC LISTENER (SIDEBAR CONTROLLED — OFFLINE READY)
+// ============================================
+if (!window.__ebDeliveryReturnsLangBound) {
+    window.__ebDeliveryReturnsLangBound = true;
+    window.addEventListener('eb-lang-changed', () => {
+        try {
+            ebApplyBilingualDom(document);
+            if (typeof setupCategoryDeliveryUI === 'function') setupCategoryDeliveryUI();
+            if (typeof populateStaffSelectDropdowns === 'function') populateStaffSelectDropdowns();
+            if (typeof populateCategoryReturnReasons === 'function') populateCategoryReturnReasons();
+            if (typeof populateCategoryDropdowns === 'function') populateCategoryDropdowns();
+            if (typeof updateKPIRibbon === 'function') updateKPIRibbon();
+            if (typeof updateClaimsKPIRibbon === 'function') updateClaimsKPIRibbon();
+            if (typeof setupSupplierRoleUI === 'function') setupSupplierRoleUI();
+            if (typeof renderOrdersTable === 'function') renderOrdersTable();
+            if (typeof renderReturnsTable === 'function') renderReturnsTable();
+            if (typeof renderClaimsTable === 'function') renderClaimsTable();
+            if (typeof renderHistoryAnalysis === 'function') renderHistoryAnalysis();
+            if (typeof renderStaffTable === 'function') renderStaffTable();
+            if (typeof renderCategoriesList === 'function') renderCategoriesList();
+            if (activeClaimForRecovery && typeof recalcRecoveryMath === 'function') recalcRecoveryMath();
+        } catch (langErr) {
+            console.warn('Delivery & Returns language sync warning:', langErr);
+        }
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => ebApplyBilingualDom(document));
+    } else {
+        ebApplyBilingualDom(document);
+    }
+}
+
 

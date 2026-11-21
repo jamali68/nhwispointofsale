@@ -61,23 +61,174 @@ function setupCategoryBookerUI() {
     const isMobile = catId === 'mobile';
     const isWholesale = catId === 'wholesaler';
     const isDistributor = catId === 'distributor';
+    const isRestaurant = catId === 'restaurant';
+    const isMedical = catId === 'medical';
+    const isBooks = catId === 'books';
 
     const repairBtn = document.getElementById('btnOpenRepairJobModal');
     if (repairBtn) {
         repairBtn.style.display = isMobile ? 'inline-flex' : 'none';
     }
+    if (typeof syncBookerOrdersGpsControls === 'function') {
+        syncBookerOrdersGpsControls();
+    }
+    const repairChip = document.getElementById('chipFilterRepairJobs');
+    if (repairChip) {
+        repairChip.style.display = isMobile ? 'inline-flex' : 'none';
+        if (!isMobile && activeFilter === 'repair_job') {
+            activeFilter = 'all';
+        }
+    }
+
     const vanLoadBtn = document.getElementById('btnOpenVanLoadSheet');
     if (vanLoadBtn) {
         vanLoadBtn.style.display = 'inline-flex';
         if (isWholesale || isDistributor) {
             vanLoadBtn.style.boxShadow = '0 0 0 2px #ddd6fe';
+        } else {
+            vanLoadBtn.style.boxShadow = 'none';
+        }
+        if (isRestaurant) {
+            vanLoadBtn.innerHTML = '<i class="fas fa-clipboard-list"></i> <span>🍳 Kitchen Prep / Dispatch Sheet <span class="eb-ur-sub">(کچن شیٹ)</span></span>';
+        } else {
+            vanLoadBtn.innerHTML = '<i class="fas fa-truck-loading"></i> <span>🚚 Van Load Sheet <span class="eb-ur-sub">(لوڈنگ شیٹ)</span></span>';
         }
     }
+
+    const bookNewLink = document.getElementById('btnBookNewOrderLink');
+    if (bookNewLink) {
+        if (isRestaurant) {
+            bookNewLink.innerHTML = '<i class="fas fa-utensils"></i> <span>New POS / KOT Order <span class="eb-ur-sub">(نیا آرڈر)</span></span>';
+        } else if (isMedical) {
+            bookNewLink.innerHTML = '<i class="fas fa-prescription-bottle-medical"></i> <span>New Pharmacy Order <span class="eb-ur-sub">(نیا بل)</span></span>';
+        } else if (isMobile) {
+            bookNewLink.innerHTML = '<i class="fas fa-mobile-screen"></i> <span>New Mobile Order <span class="eb-ur-sub">(کیٹلاگ)</span></span>';
+        } else {
+            bookNewLink.innerHTML = '<i class="fas fa-plus-circle"></i> <span>Book Order <span class="eb-ur-sub">(کیٹلاگ)</span></span>';
+        }
+    }
+
+    const delivLink = document.getElementById('btnGoDeliveryReturns');
+    if (delivLink) {
+        if (isRestaurant) {
+            delivLink.innerHTML = '<i class="fas fa-motorcycle"></i> <span>Home Delivery &amp; Riders <span class="eb-ur-sub">(ہوم ڈلیوری)</span></span>';
+        } else {
+            delivLink.innerHTML = '<i class="fas fa-truck-loading"></i> <span>Van Dispatch &amp; Returns <span class="eb-ur-sub">(ڈلیوری و واپسی)</span></span>';
+        }
+    }
+
+    const headEl = document.getElementById('agencyNameHeader');
+    if (headEl && !isUserBooker()) {
+        const agName = (myAgency && myAgency.name) ? myAgency.name : 'Agency';
+        if (isRestaurant) {
+            headEl.innerHTML = `🍔 ${agName} | Kitchen Queue, KOT &amp; Delivery Hub <span class="eb-ur-sub">(کچن اور ڈلیوری ہب)</span>`;
+        } else if (isMedical) {
+            headEl.innerHTML = `💊 ${agName} | Pharmacy &amp; Supply Orders Hub <span class="eb-ur-sub">(فارمیسی آرڈرز)</span>`;
+        } else if (isMobile) {
+            headEl.innerHTML = `📱 ${agName} | Dealer Orders &amp; Repair Lab Hub <span class="eb-ur-sub">(ڈیلر آرڈرز اور لیب)</span>`;
+        } else if (isBooks) {
+            headEl.innerHTML = `📚 ${agName} | School &amp; Bookshop Orders Hub <span class="eb-ur-sub">(اسکول و بک شاپ آرڈرز)</span>`;
+        } else if (isDistributor) {
+            headEl.innerHTML = `🚚 ${agName} | FMCG Agency Booking &amp; Dispatch Hub <span class="eb-ur-sub">(بکنگ اور ڈسپیچ)</span>`;
+        } else {
+            headEl.innerHTML = `🏢 ${agName} | Field Booking Operations <span class="eb-ur-sub">(فیلڈ بکنگ آپریشنز)</span>`;
+        }
+    }
+
+    // KPI Titles & Subtitles
+    const setElHtml = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    };
+    if (isRestaurant) {
+        setElHtml('kpiTitleTotalOrders', 'Total Kitchen &amp; POS Orders <span class="eb-ur-sub">(کل آرڈرز)</span>');
+        setElHtml('kpiTitleDispatched', 'Out with Rider <span class="eb-ur-sub">(رائیڈر کے ساتھ)</span>');
+        setElHtml('kpiSubDispatched', 'Home Delivery Riders <span class="eb-ur-sub">(ڈلیوری رائیڈرز)</span>');
+        setElHtml('kpiSubTotalValue', 'Gross food &amp; deal orders <span class="eb-ur-sub">(کل فوڈ آرڈرز)</span>');
+        setElHtml('ribbonHeaderTitle', 'Waiters, Order Takers &amp; Staff Activity Hub <span class="eb-ur-sub">(ویٹرز اور اسٹاف آرڈر کارکردگی)</span>');
+        setElHtml('btnPrintBookersSummary', '<i class="fas fa-print"></i> Print Staff Summary <span class="eb-ur-sub">(اسٹاف سمری پرنٹ)</span>');
+        setElHtml('lblFilterBooker', 'Waiter / Staff <span class="eb-ur-sub">(ویٹر)</span>:');
+        setElHtml('lblFilterRoute', 'Zone / Table <span class="eb-ur-sub">(ٹیبل/زون)</span>:');
+        setElHtml('thCustomerCol', 'Customer / Table / Zone <span class="eb-ur-sub">(گاہک / ٹیبل)</span>');
+        setElHtml('thBookerCol', 'Waiter / Order Staff <span class="eb-ur-sub">(ویٹر / اسٹاف)</span>');
+        setElHtml('thSupplierCol', 'Delivery Rider <span class="eb-ur-sub">(ڈلیوری رائیڈر)</span>');
+    } else if (isMedical) {
+        setElHtml('kpiTitleTotalOrders', 'Total Pharmacy Orders <span class="eb-ur-sub">(کل فارمیسی آرڈرز)</span>');
+        setElHtml('kpiTitleDispatched', 'Out for Supply <span class="eb-ur-sub">(سپلائی راستے میں)</span>');
+        setElHtml('kpiSubDispatched', 'Medical Supply Vans <span class="eb-ur-sub">(میڈیکل وینز)</span>');
+        setElHtml('kpiSubTotalValue', 'Gross medicine orders <span class="eb-ur-sub">(کل میڈیسن آرڈرز)</span>');
+        setElHtml('ribbonHeaderTitle', 'Medical Reps &amp; Order Staff Activity Hub <span class="eb-ur-sub">(میڈیکل ریپس اور بکرز کارکردگی)</span>');
+        setElHtml('btnPrintBookersSummary', '<i class="fas fa-print"></i> Print Daily Staff Summary <span class="eb-ur-sub">(اسٹاف سمری پرنٹ)</span>');
+        setElHtml('lblFilterBooker', 'Medical Rep <span class="eb-ur-sub">(ریپ)</span>:');
+        setElHtml('lblFilterRoute', 'Area / Zone <span class="eb-ur-sub">(علاقہ)</span>:');
+        setElHtml('thCustomerCol', 'Patient / Clinic / Store <span class="eb-ur-sub">(مریض / کلینک)</span>');
+        setElHtml('thBookerCol', 'Medical Rep / Booker <span class="eb-ur-sub">(میڈیکل ریپ)</span>');
+        setElHtml('thSupplierCol', 'Supply Rider / Van <span class="eb-ur-sub">(سپلائی وین)</span>');
+    } else if (isMobile) {
+        setElHtml('kpiTitleTotalOrders', 'Total Dealer &amp; Lab Orders <span class="eb-ur-sub">(کل آرڈرز و لیب)</span>');
+        setElHtml('kpiTitleDispatched', 'Out for Delivery <span class="eb-ur-sub">(راستے میں)</span>');
+        setElHtml('kpiSubDispatched', 'Dealer Supply / Riders <span class="eb-ur-sub">(ڈیلر سپلائی)</span>');
+        setElHtml('kpiSubTotalValue', 'Gross mobile &amp; lab value <span class="eb-ur-sub">(کل موبائل و لیب مالیت)</span>');
+        setElHtml('ribbonHeaderTitle', 'Salesmen &amp; Technicians Performance Hub <span class="eb-ur-sub">(سیلز مین اور ٹیکنیشن کارکردگی)</span>');
+        setElHtml('btnPrintBookersSummary', '<i class="fas fa-print"></i> Print Daily Staff Summary <span class="eb-ur-sub">(اسٹاف سمری پرنٹ)</span>');
+        setElHtml('lblFilterBooker', 'Salesman / Tech <span class="eb-ur-sub">(اسٹاف)</span>:');
+        setElHtml('lblFilterRoute', 'Market / Zone <span class="eb-ur-sub">(مارکیٹ)</span>:');
+        setElHtml('thCustomerCol', 'Customer / Sub-Dealer <span class="eb-ur-sub">(گاہک / ڈیلر)</span>');
+        setElHtml('thBookerCol', 'Salesman / Technician <span class="eb-ur-sub">(سیلز مین / ٹیکنیشن)</span>');
+        setElHtml('thSupplierCol', 'Delivery / Lab Status <span class="eb-ur-sub">(ڈلیوری / لیب)</span>');
+    } else if (isBooks) {
+        setElHtml('kpiTitleTotalOrders', 'Total School &amp; Shop Orders <span class="eb-ur-sub">(کل آرڈرز)</span>');
+        setElHtml('kpiTitleDispatched', 'Out on Delivery Van <span class="eb-ur-sub">(وین پر)</span>');
+        setElHtml('kpiSubDispatched', 'On Book Supply Vans <span class="eb-ur-sub">(سپلائی گاڑیاں)</span>');
+        setElHtml('kpiSubTotalValue', 'Gross syllabus &amp; book orders <span class="eb-ur-sub">(کل کتب آرڈرز)</span>');
+        setElHtml('ribbonHeaderTitle', 'School Reps &amp; Order Bookers Performance Hub <span class="eb-ur-sub">(اسکول نمائندگان و بکرز کارکردگی)</span>');
+        setElHtml('btnPrintBookersSummary', '<i class="fas fa-print"></i> Print Daily Bookers Summary <span class="eb-ur-sub">(روزانہ بکرز سمری)</span>');
+        setElHtml('lblFilterBooker', 'Booker / Rep <span class="eb-ur-sub">(بکر)</span>:');
+        setElHtml('lblFilterRoute', 'Route / Zone <span class="eb-ur-sub">(روٹ)</span>:');
+        setElHtml('thCustomerCol', 'School / Bookshop <span class="eb-ur-sub">(اسکول / بک شاپ)</span>');
+        setElHtml('thBookerCol', 'Order Booker / Rep <span class="eb-ur-sub">(آرڈر بکر)</span>');
+        setElHtml('thSupplierCol', 'Delivery Supplier <span class="eb-ur-sub">(ڈلیوری سپلائر)</span>');
+    } else {
+        setElHtml('kpiTitleTotalOrders', 'Total Field Orders <span class="eb-ur-sub">(کل آرڈرز)</span>');
+        setElHtml('kpiTitleDispatched', 'Out for Delivery <span class="eb-ur-sub">(راستے میں)</span>');
+        setElHtml('kpiSubDispatched', 'On Supplier Vans <span class="eb-ur-sub">(سپلائر گاڑیاں)</span>');
+        setElHtml('kpiSubTotalValue', 'Gross field booking <span class="eb-ur-sub">(کل فیلڈ بکنگ)</span>');
+        setElHtml('ribbonHeaderTitle', 'Order Bookers Performance &amp; Activity Hub <span class="eb-ur-sub">(تمام آرڈر بکرز کی کارکردگی و رپورٹس)</span>');
+        setElHtml('btnPrintBookersSummary', '<i class="fas fa-print"></i> Print Daily Bookers Summary <span class="eb-ur-sub">(روزانہ بکرز سمری)</span>');
+        setElHtml('lblFilterBooker', 'Booker <span class="eb-ur-sub">(بکر)</span>:');
+        setElHtml('lblFilterRoute', 'Route <span class="eb-ur-sub">(روٹ)</span>:');
+        setElHtml('thCustomerCol', 'Retailer / Shop <span class="eb-ur-sub">(دکاندار / ریٹیلر)</span>');
+        setElHtml('thBookerCol', 'Order Booker <span class="eb-ur-sub">(آرڈر بکر)</span>');
+        setElHtml('thSupplierCol', 'Delivery Supplier <span class="eb-ur-sub">(ڈلیوری سپلائر)</span>');
+    }
+
     const searchInp = document.getElementById('orderSearchInput');
-    if (searchInp && isDistributor) {
-        searchInp.placeholder = 'Search by Order/Bill #, Load Form #, Shop, Weekly Route (PJP), Principal Company, SKU...';
-    } else if (searchInp && isWholesale) {
-        searchInp.placeholder = 'Search by Order/Bill #, Load Form #, Shop, PJP Route, SKU, Product...';
+    if (searchInp) {
+        let phEn = 'Search by Order / Bill #, Customer, Phone, Staff or Item...';
+        let phUr = 'بل نمبر، گاہک، فون، اسٹاف یا آئٹم تلاش کریں';
+        if (isDistributor) {
+            phEn = 'Search by Order/Bill #, Load Form #, Shop, Weekly Route (PJP), Principal Company, SKU...';
+            phUr = 'آرڈر/بل، لوڈ فارم، دکان، روٹ یا کمپنی تلاش کریں';
+        } else if (isWholesale) {
+            phEn = 'Search by Order/Bill #, Load Form #, Shop, PJP Route, SKU, Product...';
+            phUr = 'بل، لوڈ فارم، دکان، روٹ یا آئٹم تلاش کریں';
+        } else if (isRestaurant) {
+            phEn = 'Search by Order/Bill #, Customer, Table/Token #, Service Mode, Waiter/Rider, Kitchen Note...';
+            phUr = 'بل، گاہک، ٹیبل/ٹوکن، ویٹر یا آئٹم تلاش کریں';
+        } else if (isMedical) {
+            phEn = 'Search by Order/Bill #, Patient/Clinic/Doctor, Medicine, Generic Formula, Batch #...';
+            phUr = 'بل، مریض/کلینک، دوا، فارمولا یا بیچ نمبر تلاش کریں';
+        } else if (isMobile) {
+            phEn = 'Search by Order/Bill #, Customer/Dealer, IMEI 1-4, Brand, Model, PTA Status, Repair Token #...';
+            phUr = 'بل، گاہک/ڈیلر، IMEI، ماڈل یا ریپئرنگ ٹوکن تلاش کریں';
+        } else if (isBooks) {
+            phEn = 'Search by Order/Bill #, School/Bookshop, Book Title, Class/Grade, Publisher, Board, ISBN...';
+            phUr = 'بل، اسکول/بک شاپ، کتاب، کلاس، پبلشر یا ISBN تلاش کریں';
+        }
+        searchInp.setAttribute('data-eb-ph-en', phEn);
+        searchInp.setAttribute('data-eb-ph-ur', phUr);
+        const isMix = window.ebLang && typeof window.ebLang.isMix === 'function' && window.ebLang.isMix();
+        searchInp.placeholder = isMix ? `${phEn} (${phUr})` : phEn;
     }
 }
 
@@ -143,10 +294,12 @@ function populateRouteFilterDropdown() {
     const catId = getActiveBookerCategory();
     const isWholesale = catId === 'wholesaler';
     const isDistributor = catId === 'distributor';
+    const isRestaurant = catId === 'restaurant';
     const routeSet = new Set();
     allOrders.forEach(o => {
         if (o.customerRoute && String(o.customerRoute).trim()) routeSet.add(String(o.customerRoute).trim());
-        if ((isWholesale || isDistributor) && o.affiliatedBoard && String(o.affiliatedBoard).trim()) routeSet.add(String(o.affiliatedBoard).trim());
+        if ((isWholesale || isDistributor || isRestaurant) && o.affiliatedBoard && String(o.affiliatedBoard).trim()) routeSet.add(String(o.affiliatedBoard).trim());
+        if (isRestaurant && o.tableTokenNo && String(o.tableTokenNo).trim()) routeSet.add(String(o.tableTokenNo).trim());
     });
     allStaff.forEach(s => {
         if (s.route && String(s.route).trim()) routeSet.add(String(s.route).trim());
@@ -154,12 +307,20 @@ function populateRouteFilterDropdown() {
     const sorted = Array.from(routeSet).sort((a, b) => a.localeCompare(b));
     const prev = activeRouteFilter || sel.value || 'all';
     const todayInfo = getTodayBookerRouteInfo();
+    const todayEn = `📅 Today's Route (${todayInfo.en})`;
+    const todayUr = `آج کا ہفتہ وار روٹ - ${todayInfo.ur}`;
     const todayOptHtml = (isDistributor || isWholesale)
-        ? `<option value="__today_route__">📅 Today's Route / آج کا ہفتہ وار روٹ (${todayInfo.ur} / ${todayInfo.en})</option>`
+        ? `<option value="__today_route__" data-eb-en="${todayEn}" data-eb-ur="${todayUr}">${todayEn}</option>`
         : '';
-    sel.innerHTML = '<option value="all">🛣️ All PJP Routes</option>' +
+    const allLblEn = isRestaurant ? '📍 All Delivery Zones / Tables' : '🛣️ All PJP Routes';
+    const allLblUr = isRestaurant ? 'تمام زونز / ٹیبلز' : 'تمام روٹس';
+    const itemIcon = isRestaurant ? '📍' : '🛣️';
+    sel.innerHTML = `<option value="all" data-eb-en="${allLblEn}" data-eb-ur="${allLblUr}">${allLblEn}</option>` +
         todayOptHtml +
-        sorted.map(r => `<option value="${r.replace(/"/g, '&quot;')}">🛣️ ${r}</option>`).join('');
+        sorted.map(r => `<option value="${r.replace(/"/g, '&quot;')}">${itemIcon} ${r}</option>`).join('');
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(sel);
+    }
     if (prev !== 'all' && (prev === '__today_route__' || sorted.includes(prev))) {
         sel.value = prev;
         activeRouteFilter = prev;
@@ -281,7 +442,7 @@ function setupRoleBasedUI() {
         if (advanceSettingsBtn) advanceSettingsBtn.style.display = 'none';
 
         if (headerTitle) {
-            headerTitle.innerHTML = `📋 My Field Orders &amp; Tracking <span style="font-size:11.5px; font-weight:normal; color:#64748b;">(${myUser.name || 'Order Booker'})</span>`;
+            headerTitle.innerHTML = `📋 My Field Orders &amp; Tracking <span class="eb-ur-sub">(میرے فیلڈ آرڈرز)</span> <span style="font-size:11.5px; font-weight:normal; color:#64748b;">(${myUser.name || 'Order Booker'})</span>`;
         }
 
         // Booker automatically defaults to their own orders
@@ -408,15 +569,17 @@ function initBookerShiftUI() {
         if (statusTextEl) {
             if (status.isShiftSynced) {
                 statusTextEl.style.color = '#34d399';
-                statusTextEl.innerText = '✅ 1 of 1 Refresh Used (Cached)';
+                statusTextEl.innerHTML = '✅ 1 of 1 Refresh Used (Cached) <span class="eb-ur-sub">(ریفریش مکمل)</span>';
             } else {
                 statusTextEl.style.color = '#38bdf8';
-                statusTextEl.innerText = '⚡ 1 Refresh Available';
+                statusTextEl.innerHTML = '⚡ 1 Refresh Available <span class="eb-ur-sub">(ریفریش دستیاب)</span>';
             }
         }
         if (netStatusEl) {
             const isOnline = navigator.onLine;
-            netStatusEl.innerText = isOnline ? 'Network: Online' : 'Network: Offline';
+            netStatusEl.innerHTML = isOnline
+                ? 'Network: Online <span class="eb-ur-sub">(آن لائن)</span>'
+                : 'Network: Offline <span class="eb-ur-sub">(آف لائن)</span>';
             netStatusEl.style.color = isOnline ? '#34d399' : '#f87171';
         }
         if (pendingCountEl) {
@@ -431,8 +594,16 @@ function initBookerShiftUI() {
     }
     update();
 
-    window.addEventListener('online', update);
+    window.addEventListener('online', () => {
+        update();
+        if (window.EB_GPS && typeof window.EB_GPS.syncOfflineCheckIns === 'function' && db && myAgencyId) {
+            window.EB_GPS.syncOfflineCheckIns(db, myAgencyId).catch(() => {});
+        }
+    });
     window.addEventListener('offline', update);
+    if (navigator.onLine && window.EB_GPS && typeof window.EB_GPS.syncOfflineCheckIns === 'function' && db && myAgencyId) {
+        window.EB_GPS.syncOfflineCheckIns(db, myAgencyId).catch(() => {});
+    }
 
     // 🔄 1. Refresh Catalog Button (Strict 1-per-shift limit + offline guard)
     if (quickSyncBtn) {
@@ -519,13 +690,32 @@ function initBookerShiftUI() {
 
             try {
                 let successCount = 0;
+                let latestUploadedGps = null;
                 for (const ord of pending) {
                     const docId = ord.id || ord.billNo || ('ORD-' + Date.now());
                     ord.isOffline = false;
                     ord.uploadedAt = new Date().toISOString();
                     await db.collection('orders').doc(docId).set(ord);
                     await db.collection('bills').doc(docId).set(ord).catch(() => {});
+                    if (ord.gpsLocation && Number.isFinite(Number(ord.gpsLocation.lat))) {
+                        if (!latestUploadedGps || Date.parse(ord.gpsLocation.capturedAt || 0) >= Date.parse(latestUploadedGps.capturedAt || 0)) {
+                            latestUploadedGps = {
+                                lat: ord.gpsLocation.lat,
+                                lng: ord.gpsLocation.lng,
+                                accuracy: ord.gpsLocation.accuracy,
+                                shopName: ord.customerShop || ord.customerShopName || ord.customerName || '',
+                                route: ord.customerRoute || ord.route || '',
+                                capturedAt: ord.gpsLocation.capturedAt || ord.createdAt || new Date().toISOString()
+                            };
+                        }
+                    }
                     successCount++;
+                }
+                if (latestUploadedGps && myUid) {
+                    db.collection('users').doc(myUid).set({ lastGpsLocation: latestUploadedGps }, { merge: true }).catch(() => {});
+                }
+                if (window.EB_GPS && typeof window.EB_GPS.syncOfflineCheckIns === 'function' && db && myAgencyId) {
+                    window.EB_GPS.syncOfflineCheckIns(db, myAgencyId).catch(() => {});
                 }
 
                 // Clear queue
@@ -570,27 +760,40 @@ async function loadStaff() {
         });
 
         // Populate Delivery Suppliers dropdown in Bulk Action bar
+        const catId = getActiveBookerCategory();
+        const isRest = catId === 'restaurant';
         const bulkSel = document.getElementById('bulkSupplierSelect');
         if (bulkSel) {
-            bulkSel.innerHTML = '<option value="">— Select Delivery Supplier —</option>';
+            bulkSel.innerHTML = isRest
+                ? '<option value="" data-eb-en="— Select Delivery Rider —" data-eb-ur="ڈلیوری رائیڈر منتخب کریں">— Select Delivery Rider —</option>'
+                : '<option value="" data-eb-en="— Select Delivery Supplier —" data-eb-ur="ڈلیوری سپلائر منتخب کریں">— Select Delivery Supplier —</option>';
             const suppliers = allStaff.filter(s => s.role === 'supplier' || s.role === 'driver' || s.role === 'delivery');
             suppliers.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.id;
-                opt.textContent = `🚚 ${s.name || s.email} (${s.route || 'General Depot Area'})`;
+                opt.textContent = `${isRest ? '🛵' : '🚚'} ${s.name || s.email} (${s.route || (isRest ? 'Delivery Zone' : 'General Depot Area')})`;
                 bulkSel.appendChild(opt);
             });
-            // Always provide Depot Van option for testing & internal dispatch
+            // Always provide Depot Van / In-House Rider option for testing & internal dispatch
             const depotOpt = document.createElement('option');
             depotOpt.value = 'self';
-            depotOpt.textContent = '🚚 Self / Agency Depot Van (ایجنسی گاڑی)';
+            const depotEn = isRest ? '🛵 Self / In-House Delivery Rider' : '🚚 Self / Agency Depot Van';
+            const depotUr = isRest ? 'اپنا ڈلیوری رائیڈر' : 'ایجنسی گاڑی';
+            depotOpt.setAttribute('data-eb-en', depotEn);
+            depotOpt.setAttribute('data-eb-ur', depotUr);
+            depotOpt.textContent = depotEn;
             bulkSel.appendChild(depotOpt);
+            if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+                window.ebLang.applyBilingualDom(bulkSel);
+            }
         }
 
         // Populate Booker Filter Select dropdown
         const bookerSel = document.getElementById('filterBookerSelect');
         if (bookerSel) {
-            bookerSel.innerHTML = '<option value="all">👥 All Order Bookers</option>';
+            bookerSel.innerHTML = isRest
+                ? '<option value="all" data-eb-en="👥 All Waiters / Order Staff" data-eb-ur="تمام ویٹرز / اسٹاف">👥 All Waiters / Order Staff</option>'
+                : '<option value="all" data-eb-en="👥 All Order Bookers" data-eb-ur="تمام آرڈر بکرز">👥 All Order Bookers</option>';
             const bookers = allStaff.filter(s => s.role === 'booker');
             bookers.forEach(b => {
                 const opt = document.createElement('option');
@@ -598,6 +801,9 @@ async function loadStaff() {
                 opt.textContent = `👤 ${b.name || b.email.split('@')[0]}`;
                 bookerSel.appendChild(opt);
             });
+            if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+                window.ebLang.applyBilingualDom(bookerSel);
+            }
         }
 
         renderBookerRibbon();
@@ -937,17 +1143,21 @@ function renderKPIRibbon() {
         const el = document.getElementById(id);
         if (el) el.innerText = val;
     };
+    const setHtml = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = val;
+    };
 
     setTxt('kpiTotalOrders', totalOrders);
-    setTxt('kpiTotalUnitsSub', `${Math.round(totalUnits).toLocaleString()} Total Units`);
+    setHtml('kpiTotalUnitsSub', `${Math.round(totalUnits).toLocaleString()} Total Units <span class="eb-ur-sub">(کل یونٹس)</span>`);
     setTxt('kpiTodayOrders', todayOrders);
-    setTxt('kpiTodayValueSub', `Rs ${Math.round(todayValue).toLocaleString()} Today`);
+    setHtml('kpiTodayValueSub', `Rs ${Math.round(todayValue).toLocaleString()} Today <span class="eb-ur-sub">(آج)</span>`);
     setTxt('kpiPendingApproval', pendingApproval);
-    setTxt('kpiPendingValueSub', `Rs ${Math.round(pendingApprovalValue).toLocaleString()} (${pendingApproval} Needs Action)`);
+    setHtml('kpiPendingValueSub', `Rs ${Math.round(pendingApprovalValue).toLocaleString()} (${pendingApproval} Needs Action <span class="eb-ur-sub">ایکشن</span>)`);
     setTxt('kpiApproved', approved);
-    setTxt('kpiApprovedValueSub', `Rs ${Math.round(approvedValue).toLocaleString()} (Ready for Van)`);
+    setHtml('kpiApprovedValueSub', `Rs ${Math.round(approvedValue).toLocaleString()} (Ready for Van <span class="eb-ur-sub">تیار</span>)`);
     setTxt('kpiPendingPrint', pendingPrint || approved);
-    setTxt('kpiPendingPrintSub', `${pendingPrint || approved} Bills to Print`);
+    setHtml('kpiPendingPrintSub', `${pendingPrint || approved} Bills to Print <span class="eb-ur-sub">(پرنٹ باقی)</span>`);
     setTxt('btnPendingPrintCount', pendingApproval);
     setTxt('kpiDispatched', dispatched);
     setTxt('kpiDelivered', delivered);
@@ -1028,13 +1238,20 @@ function renderBookerRibbon() {
         .filter(o => (o.date === todayPkStr) || (o.createdAt && o.createdAt.startsWith(todayStr)))
         .reduce((sum, o) => sum + (parseFloat(o.billAmount || o.grandTotal) || 0), 0);
 
+    const catId = getActiveBookerCategory();
+    const isRest = catId === 'restaurant';
+
     if (countEl) {
-        countEl.innerText = `${bookers.length} Registered Bookers | Today's Field Booking: Rs ${Math.round(totalTodayBooking).toLocaleString()}`;
+        countEl.innerHTML = isRest
+            ? `${bookers.length} Registered Waiters/Staff <span class="eb-ur-sub">(ویٹرز)</span> | Today's Orders: Rs ${Math.round(totalTodayBooking).toLocaleString()}`
+            : `${bookers.length} Registered Bookers <span class="eb-ur-sub">(بکرز)</span> | Today's Field Booking: Rs ${Math.round(totalTodayBooking).toLocaleString()}`;
     }
 
     if (bookers.length === 0) {
         container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:15px; color:#94a3b8; font-size:13px;">
-            کوئی آرڈر بکر رجسٹرڈ نہیں ہے۔ ایڈمن مینو سے اسٹاف میں آرڈر بکر شامل کریں۔
+            ${isRest
+                ? 'No waiter or order taker registered yet. Add waiters/staff from the Staff menu.<span class="eb-ur-compact">کوئی ویٹر یا آرڈر ٹیکر رجسٹرڈ نہیں ہے۔ اسٹاف مینو سے ویٹر / آرڈر اسٹاف شامل کریں۔</span>'
+                : 'No order booker registered yet. Add order bookers from the Staff &amp; Bookers menu.<span class="eb-ur-compact">کوئی آرڈر بکر رجسٹرڈ نہیں ہے۔ ایڈمن مینو سے اسٹاف میں آرڈر بکر شامل کریں۔</span>'}
         </div>`;
         return;
     }
@@ -1081,7 +1298,7 @@ function renderBookerRibbon() {
                         </div>
                         <div style="font-size:11px; font-weight:700; color:${levelColor};">${levelBadge} ${b.route ? `| 🛣️ ${b.route}` : ''}</div>
                         <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                            Today: <b>${todayOrders.length}</b> (Rs ${Math.round(todayAmt).toLocaleString()}) | Pending: <b style="color:#d97706;">${pendingCount}</b> | Approved: <b style="color:#10b981;">${approvedCount}</b>
+                            Today <span class="eb-ur-sub">(آج)</span>: <b>${todayOrders.length}</b> (Rs ${Math.round(todayAmt).toLocaleString()}) | Pending <span class="eb-ur-sub">(پینڈنگ)</span>: <b style="color:#d97706;">${pendingCount}</b> | Approved <span class="eb-ur-sub">(منظور)</span>: <b style="color:#10b981;">${approvedCount}</b>
                         </div>
                     </div>
                 </div>
@@ -1089,10 +1306,10 @@ function renderBookerRibbon() {
                     <div style="font-size:15px; font-weight:900; color:#10b981;">Rs ${Math.round(totalAmount).toLocaleString()}</div>
                     <div style="display:flex; gap:4px; align-items:center;">
                         <button type="button" class="btn btn-sm" onclick="event.stopPropagation(); printBookerDailySheet('${b.id}')" style="background:#e0f2fe; color:#0369a1; border:none; padding:3px 7px; border-radius:6px; font-size:10px; font-weight:bold; cursor:pointer;" title="Print Booker Daily Sheet">
-                            <i class="fas fa-print"></i> روزانہ شیٹ
+                            <i class="fas fa-print"></i> Daily Sheet <span class="eb-ur-sub">(روزانہ شیٹ)</span>
                         </button>
                         <span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; background:${isSelected ? '#0284c7' : '#f1f5f9'}; color:${isSelected ? '#fff' : '#475569'};">
-                            ${isSelected ? 'Filtered' : 'Filter'}
+                            ${isSelected ? 'Filtered <span class="eb-ur-sub">(فلٹر شدہ)</span>' : 'Filter <span class="eb-ur-sub">(فلٹر)</span>'}
                         </span>
                     </div>
                 </div>
@@ -1186,9 +1403,9 @@ function setupFilters() {
     const refBtn = document.getElementById('btnRefreshOrders');
     if (refBtn) {
         refBtn.addEventListener('click', async () => {
-            refBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            refBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing... <span class="eb-ur-sub">(تازہ ہو رہا ہے)</span>';
             await loadOrders();
-            refBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            refBtn.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Refresh <span class="eb-ur-sub">(تازہ کریں)</span></span>';
             Swal.fire({ toast: true, position: 'top-end', timer: 1500, icon: 'success', title: 'Orders synchronized!' });
         });
     }
@@ -1236,7 +1453,7 @@ function renderOrdersTable() {
             if (!matchesId && !matchesName) return false;
         }
 
-        // 2b. PJP Route Filter
+        // 2b. PJP Route / Zone / Table Filter
         if (activeRouteFilter !== 'all') {
             if (activeRouteFilter === '__today_route__') {
                 if (!matchesTodayBookerRoute(ord)) return false;
@@ -1244,8 +1461,9 @@ function renderOrdersTable() {
                 const targetRoute = activeRouteFilter.toLowerCase().trim();
                 const oRoute = (ord.customerRoute || '').toLowerCase().trim();
                 const catNow = getActiveBookerCategory();
-                const oBeat = ((catNow === 'wholesaler' || catNow === 'distributor') ? (ord.affiliatedBoard || '') : '').toLowerCase().trim();
-                if (oRoute !== targetRoute && oBeat !== targetRoute) return false;
+                const oBeat = ((catNow === 'wholesaler' || catNow === 'distributor' || catNow === 'restaurant') ? (ord.affiliatedBoard || '') : '').toLowerCase().trim();
+                const oTable = (catNow === 'restaurant' ? (ord.tableTokenNo || '') : '').toLowerCase().trim();
+                if (oRoute !== targetRoute && oBeat !== targetRoute && oTable !== targetRoute) return false;
             }
         }
 
@@ -1306,13 +1524,13 @@ function renderOrdersTable() {
 
     const sumLabel = document.getElementById('tableSummaryLabel');
     if (sumLabel) {
-        sumLabel.innerHTML = `📦 Showing <b>${filtered.length}</b> Field Orders (${activeFilter.replace('_', ' ').toUpperCase()})`;
+        sumLabel.innerHTML = `📦 Showing <b>${filtered.length}</b> Field Orders (${activeFilter.replace('_', ' ').toUpperCase()}) <span class="eb-ur-sub">(کل ${filtered.length} آرڈرز)</span>`;
     }
 
     if (filtered.length === 0) {
-        let emptyMsg = 'کوئی فیلڈ آرڈر نہیں ملا۔ اوپر سے فلٹر یا تلاش تبدیل کریں۔';
+        let emptyMsg = 'No field orders found. Try changing the filter or search query.<span class="eb-ur-compact">کوئی فیلڈ آرڈر نہیں ملا۔ اوپر سے فلٹر یا تلاش تبدیل کریں۔</span>';
         if (activeFilter === 'pending_approval') {
-            emptyMsg = '🎉 اس وقت منظوری کے لیے کوئی نیا آرڈر پینڈنگ نہیں ہے (تمام آرڈرز مکمل اور منظور شدہ ہیں)!';
+            emptyMsg = '🎉 No new orders pending approval right now — all orders are processed!<span class="eb-ur-compact">اس وقت منظوری کے لیے کوئی نیا آرڈر پینڈنگ نہیں ہے (تمام آرڈرز مکمل اور منظور شدہ ہیں)!</span>';
         }
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:35px; color:#94a3b8; font-size:14px;">
             <i class="fas fa-inbox" style="font-size:36px; margin-bottom:10px; display:block; color:#cbd5e1;"></i>
@@ -1329,30 +1547,30 @@ function renderOrdersTable() {
         const canApprove = canUserApproveOrders();
 
         let badgeClass = 'badge-pending';
-        let badgeText = '⏳ Pending Dispatch';
+        let badgeText = '⏳ Pending Dispatch <span class="eb-ur-sub">(ڈسپیچ باقی)</span>';
         let badgeStyle = '';
 
         if (isPendingApproval) {
             badgeClass = 'badge-pending';
             badgeText = isBooker 
-                ? (canApprove ? '⏳ Pending Approval (Admin Allowed)' : '⏳ Pending Admin Approval (ایڈمن کی منظوری کا انتظار)')
-                : '⏳ Pending Approval (منظوری درکار)';
+                ? (canApprove ? '⏳ Pending Approval <span class="eb-ur-sub">(منظوری کی اجازت)</span>' : '⏳ Pending Admin Approval <span class="eb-ur-sub">(ایڈمن کی منظوری کا انتظار)</span>')
+                : '⏳ Pending Approval <span class="eb-ur-sub">(منظوری درکار)</span>';
             badgeStyle = 'background:#fef3c7; color:#b45309; border:1.5px solid #fde68a; font-weight:800;';
         } else if (dStat === 'dispatched') {
             badgeClass = 'badge-dispatched';
-            badgeText = '🚚 On Delivery Van';
+            badgeText = '🚚 On Delivery Van <span class="eb-ur-sub">(وین پر)</span>';
         } else if (dStat === 'delivered') {
             badgeClass = 'badge-delivered';
-            badgeText = '✅ Delivered';
+            badgeText = '✅ Delivered <span class="eb-ur-sub">(ڈلیور شدہ)</span>';
         } else if (ord.orderStatus === 'rejected') {
             badgeClass = 'badge-returned';
-            badgeText = '❌ Rejected / Cancelled';
+            badgeText = '❌ Rejected / Cancelled <span class="eb-ur-sub">(منسوخ)</span>';
             badgeStyle = 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;';
         } else if (ord.orderStatus === 'approved') {
             badgeClass = 'badge-delivered';
             badgeText = isBooker 
-                ? '✅ Approved by Admin (ایڈمن نے منظور کر لیا)' 
-                : '✅ Approved (منظور شدہ)';
+                ? '✅ Approved by Admin <span class="eb-ur-sub">(ایڈمن نے منظور کیا)</span>' 
+                : '✅ Approved <span class="eb-ur-sub">(منظور شدہ)</span>';
             badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-weight:bold;';
         }
 
@@ -1360,16 +1578,16 @@ function renderOrdersTable() {
         if (isRepairJob) {
             const rStat = ord.repairStatus || 'in_lab';
             if (rStat === 'ready') {
-                badgeText = '✅ Ready for Pickup (تیار ہے)';
+                badgeText = '✅ Ready for Pickup <span class="eb-ur-sub">(تیار ہے)</span>';
                 badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:800;';
             } else if (rStat === 'delivered') {
-                badgeText = '🎉 Repair Delivered (حوالے شدہ)';
+                badgeText = '🎉 Repair Delivered <span class="eb-ur-sub">(حوالے شدہ)</span>';
                 badgeStyle = 'background:#dbeafe; color:#1d4ed8; border:1px solid #93c5fd; font-weight:800;';
             } else if (rStat === 'returned_unrepaired') {
-                badgeText = '↩️ Returned Unrepaired (واپس)';
+                badgeText = '↩️ Returned Unrepaired <span class="eb-ur-sub">(واپس)</span>';
                 badgeStyle = 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:800;';
             } else {
-                badgeText = '🛠️ In Repair Lab (لیب میں ہے)';
+                badgeText = '🛠️ In Repair Lab <span class="eb-ur-sub">(لیب میں ہے)</span>';
                 badgeStyle = 'background:#f0fdfa; color:#0f766e; border:1.5px solid #5eead4; font-weight:800;';
             }
         }
@@ -1383,6 +1601,11 @@ function renderOrdersTable() {
         const activeCat = getActiveBookerCategory();
         const isWholesaleCat = activeCat === 'wholesaler';
         const isDistributorCat = activeCat === 'distributor';
+        const isRestaurantCat = activeCat === 'restaurant';
+
+        if (dStat === 'dispatched' && isRestaurantCat) {
+            badgeText = '🛵 Out with Rider <span class="eb-ur-sub">(رائیڈر کے ساتھ)</span>';
+        }
 
         return `
             <tr>
@@ -1391,7 +1614,7 @@ function renderOrdersTable() {
                 </td>
                 <td>
                     <b style="font-size:14px; color:${isRepairJob ? '#0f766e' : '#0284c7'}; cursor:pointer;" onclick="viewOrderDetails('${ord.id}')">${billDisplay}</b><br>
-                    <small style="color:#64748b;">${isRepairJob ? '🛠️ Repairing Token' : (ord.serviceModeLabel ? `🍔 ${ord.serviceModeLabel}` : (ord.orderType === 'field_order' ? '📱 Field Booker' : '🧾 Counter Sale'))}</small>
+                    <small style="color:#64748b;">${isRepairJob ? '🛠️ Repairing Token' : (ord.serviceModeLabel ? `🍔 ${ord.serviceModeLabel}` : (ord.orderType === 'field_order' ? (isRestaurantCat ? '🍽️ Waiter / KOT Order' : '📱 Field Booker') : '🧾 Counter Sale'))}</small>
                     ${ord.tableTokenNo ? `<div style="margin-top:2px;"><span style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🍽️ ${ord.tableTokenNo}</span></div>` : (ord.loadFormNo ? `<div style="margin-top:2px;"><span style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe; padding:1px 5px; border-radius:4px; font-size:10px; font-weight:800;">🚚 ${ord.loadFormNo}</span></div>` : '')}
                 </td>
                 <td>
@@ -1399,14 +1622,14 @@ function renderOrdersTable() {
                     <small style="color:#64748b;">${ord.time || ''}</small>
                 </td>
                 <td>
-                    <b>${ord.customerName || 'Counter Sale'}</b> ${ord.customerShop ? `<span style="color:#64748b;">(${ord.customerShop})</span>` : ''}
+                    <b>${ord.customerName || (isRestaurantCat ? 'Walk-in Guest' : 'Counter Sale')}</b> ${ord.customerShop ? `<span style="color:#64748b;">(${ord.customerShop})</span>` : ''}
                     ${ord.customerSubCategory && window.BusinessCategories ? `<span style="font-size:10px; background:#ede9fe; color:#5b21b6; padding:1px 6px; border-radius:6px; font-weight:700;">${window.BusinessCategories.getCustomerSegmentLabel(activeCat, ord.customerSubCategory)}</span>` : ''}<br>
-                    <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}${ord.affiliatedBoard ? ` | ${isDistributorCat ? '🗓️ Weekly Route (PJP):' : (isWholesaleCat ? '🛣️ PJP:' : (activeCat === 'restaurant' ? '📍 Zone:' : '🏷️'))} ${ord.affiliatedBoard}` : ''}</small>
+                    <small style="color:#64748b;">${ord.customerMobile ? `📱 ${ord.customerMobile}` : ''} ${ord.customerRoute ? `| 🛣️ ${ord.customerRoute}` : ''}${ord.affiliatedBoard ? ` | ${isDistributorCat ? '🗓️ Weekly Route (PJP):' : (isWholesaleCat ? '🛣️ PJP:' : (isRestaurantCat ? '📍 Zone:' : '🏷️'))} ${ord.affiliatedBoard}` : ''}</small>
                     ${ord.kitchenOrderNote ? `<div style="font-size:11px; color:#9a3412; font-weight:700; margin-top:2px;">👨‍🍳 KOT: ${ord.kitchenOrderNote}</div>` : ''}
                     ${isRepairJob && ord.repairDeviceModel ? `<div style="font-size:11px; color:#0f766e; font-weight:700; margin-top:2px;">📱 ${ord.repairDeviceModel} ${ord.repairImei ? `(IMEI: ${ord.repairImei})` : ''}</div>` : ''}
                 </td>
                 <td>
-                    <span style="color:${isRepairJob ? '#0f766e' : '#0284c7'}; font-weight:800;"><i class="fas ${isRepairJob ? 'fa-user-cog' : 'fa-user-edit'}"></i> ${ord.repairTechnician || ord.bookerName || 'Staff Booker'}</span><br>
+                    <span style="color:${isRepairJob ? '#0f766e' : '#0284c7'}; font-weight:800;"><i class="fas ${isRepairJob ? 'fa-user-cog' : 'fa-user-edit'}"></i> ${ord.repairTechnician || ord.riderWaiterName || ord.bookerName || (isRestaurantCat ? 'Cashier / Waiter' : 'Staff Booker')}</span><br>
                     <small style="color:#94a3b8;">${isRepairJob ? (ord.repairEstDelivery ? `Est: ${ord.repairEstDelivery}` : 'Repair Lab') : (ord.bookerMobile || '')}</small>
                 </td>
                 <td>
@@ -1420,17 +1643,17 @@ function renderOrdersTable() {
                 <td>
                     ${isRepairJob ? `
                         <button type="button" class="btn btn-sm" onclick="updateRepairJobStatus('${ord.id}')" style="background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; border-radius:6px; font-size:11px; padding:3px 8px; font-weight:800; cursor:pointer;" title="Update Repairing Lab Status">
-                            <i class="fas fa-sync-alt"></i> Lab Status
+                            <i class="fas fa-sync-alt"></i> Lab Status <span class="eb-ur-sub">(لیب)</span>
                         </button>
                     ` : (ord.supplierName ? `
-                        <div style="cursor:pointer;" onclick="openAssignSupplierModal('${ord.id}')" title="Click to change assigned supplier / van">
-                            <b style="color:#0284c7;"><i class="fas fa-truck"></i> ${ord.supplierName}</b><br>
-                            <span style="font-size:10px; color:#10b981; font-weight:800;">● ${ord.deliveryStatus === 'delivered' ? 'Delivered' : 'Dispatched'}</span>
+                        <div style="cursor:pointer;" onclick="openAssignSupplierModal('${ord.id}')" title="Click to change assigned ${isRestaurantCat ? 'delivery rider' : 'supplier / van'}">
+                            <b style="color:#0284c7;"><i class="fas ${isRestaurantCat ? 'fa-motorcycle' : 'fa-truck'}"></i> ${ord.supplierName}</b><br>
+                            <span style="font-size:10px; color:#10b981; font-weight:800;">● ${ord.deliveryStatus === 'delivered' ? 'Delivered <span class="eb-ur-sub">(ڈلیور)</span>' : 'Dispatched <span class="eb-ur-sub">(روانہ)</span>'}</span>
                             ${ord.loadFormNo ? `<div style="font-size:10px; color:#6d28d9; font-weight:700;">${ord.loadFormNo}</div>` : ''}
                         </div>
                     ` : `
-                        <button type="button" class="btn btn-sm" onclick="openAssignSupplierModal('${ord.id}')" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:6px; font-size:11px; padding:3px 7px; cursor:pointer;" title="Assign to Delivery Supplier / Van">
-                            <i class="fas fa-truck"></i> + Assign Van
+                        <button type="button" class="btn btn-sm" onclick="openAssignSupplierModal('${ord.id}')" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:6px; font-size:11px; padding:3px 7px; cursor:pointer;" title="Assign to ${isRestaurantCat ? 'Delivery Rider' : 'Delivery Supplier / Van'}">
+                            <i class="fas ${isRestaurantCat ? 'fa-motorcycle' : 'fa-truck'}"></i> ${isRestaurantCat ? '+ Assign Rider <span class="eb-ur-sub">(رائیڈر)</span>' : '+ Assign Van <span class="eb-ur-sub">(وین)</span>'}
                         </button>
                     `)}
                 </td>
@@ -1438,21 +1661,21 @@ function renderOrdersTable() {
                     <div style="display:flex; justify-content:flex-end; gap:4px; flex-wrap:wrap;">
                         <!-- Details View -->
                         <button type="button" class="btn btn-sm" onclick="viewOrderDetails('${ord.id}')" style="background:#f1f5f9; color:#475569; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="View Order Details">
-                            <i class="fas fa-eye"></i> View
+                            <i class="fas fa-eye"></i> View <span class="eb-ur-sub">(تفصیل)</span>
                         </button>
 
                         <!-- Approval Actions -->
                         ${isPendingApproval ? `
                             ${canApprove ? `
                                 <button type="button" class="btn btn-sm" onclick="approveOrder('${ord.id}')" style="background:#10b981; color:#fff; border-radius:6px; font-size:11px; padding:4px 9px; font-weight:bold;" title="Accept, Deduct Stock &amp; Assign">
-                                    <i class="fas fa-check"></i> Accept ${isBooker ? '<span style="font-size:9px; opacity:0.9;">(Allowed)</span>' : ''}
+                                    <i class="fas fa-check"></i> Accept <span class="eb-ur-sub">(منظور)</span> ${isBooker ? '<span style="font-size:9px; opacity:0.9;">(Allowed)</span>' : ''}
                                 </button>
                                 <button type="button" class="btn btn-sm" onclick="rejectOrder('${ord.id}')" style="background:#ef4444; color:#fff; border-radius:6px; font-size:11px; padding:4px 7px;" title="Reject Order">
                                     <i class="fas fa-times"></i>
                                 </button>
                             ` : `
                                 <span style="background:#fffbeb; border:1px solid #fde68a; color:#b45309; font-size:10.5px; font-weight:800; padding:3px 7px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;" title="Only Admin can approve field orders (Admin Not Allowed)">
-                                    <i class="fas fa-lock" style="color:#d97706;"></i> Admin Not Allowed
+                                    <i class="fas fa-lock" style="color:#d97706;"></i> Admin Not Allowed <span class="eb-ur-sub">(ایڈمن مجاز)</span>
                                 </span>
                             `}
                         ` : ''}
@@ -1460,22 +1683,29 @@ function renderOrdersTable() {
                         <!-- Print Customer Bill & 1-Click Thermal Slip -->
                         ${isRepairJob ? `
                             <button type="button" class="btn btn-sm" onclick="printRepairJobThermalToken('${ord.id}')" style="background:#0f766e; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:800;" title="Print 80mm / 58mm Thermal Repairing Token Slip">
-                                <i class="fas fa-receipt"></i> 🧾 Token
+                                <i class="fas fa-receipt"></i> 🧾 Token <span class="eb-ur-sub">(ٹوکن)</span>
                             </button>
                         ` : ''}
                         ${ord.orderStatus === 'approved' ? `
-                            <button type="button" class="btn btn-sm" onclick="printOrderThermalBill('${ord.id}')" style="background:#7c3aed; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="1-Click 80mm / 58mm Thermal POS Slip (تھرمل پرچی)">
-                                <i class="fas fa-receipt"></i> 🧾 Thermal
+                            <button type="button" class="btn btn-sm" onclick="printOrderThermalBill('${ord.id}')" style="background:#7c3aed; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="1-Click 80mm / 58mm Thermal POS Slip">
+                                <i class="fas fa-receipt"></i> 🧾 Thermal <span class="eb-ur-sub">(تھرمل)</span>
                             </button>
                             <button type="button" class="btn btn-sm" onclick="printOrderBill('${ord.id}')" style="background:#0284c7; color:#fff; border-radius:6px; font-size:11px; padding:4px 9px; font-weight:bold;" title="Print Official Customer Bill">
-                                <i class="fas fa-print"></i> Print
+                                <i class="fas fa-print"></i> Print <span class="eb-ur-sub">(پرنٹ)</span>
                             </button>
                         ` : ''}
 
                         <!-- Dispatch on Van if Approved but not yet dispatched -->
                         ${(!isRepairJob && ord.orderStatus === 'approved' && (!ord.supplierName || ord.deliveryStatus === 'pending')) ? `
                             <button type="button" class="btn btn-sm" onclick="openAssignSupplierModal('${ord.id}')" style="background:#7c3aed; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="Dispatch on Van / Assign Supplier">
-                                <i class="fas fa-truck-loading"></i> Dispatch
+                                <i class="fas fa-truck-loading"></i> Dispatch <span class="eb-ur-sub">(ڈسپیچ)</span>
+                            </button>
+                        ` : ''}
+
+                        <!-- GPS Location Map Pin (If order was GPS-tagged) -->
+                        ${(ord.gpsLocation && Number.isFinite(Number(ord.gpsLocation.lat))) ? `
+                            <button type="button" class="btn btn-sm" onclick="openOrderGpsPin('${ord.id}')" style="background:#0f766e; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="View Order Booking GPS Pin on Google Maps">
+                                <i class="fas fa-location-dot"></i> Map <span class="eb-ur-sub">(نقشہ)</span>
                             </button>
                         ` : ''}
 
@@ -1493,6 +1723,179 @@ function renderOrdersTable() {
 
     updateBulkOrdersBar();
 }
+
+// ============================================
+// 📍 OPTIONAL ENTERPRISE GPS CONTROLS & LIVE GOOGLE MAPS RADAR
+// ============================================
+function syncBookerOrdersGpsControls() {
+    const checkInBtn = document.getElementById('btnBookerGpsCheckIn');
+    const liveMapBtn = document.getElementById('btnAdminLiveGpsMap');
+    if (!window.EB_GPS || typeof window.EB_GPS.getEffectiveGpsPolicy !== 'function') return;
+
+    const policy = window.EB_GPS.getEffectiveGpsPolicy(myAgency, myUser);
+    const active = Boolean(policy && policy.superAdminUnlocked && policy.agencyEnabled);
+
+    if (checkInBtn) {
+        checkInBtn.style.display = (active && !policy.ownerOrAdmin) ? 'inline-flex' : 'none';
+    }
+    if (liveMapBtn) {
+        liveMapBtn.style.display = (active && policy.ownerOrAdmin) ? 'inline-flex' : 'none';
+    }
+}
+
+window.addEventListener('eb-gps-ready', () => {
+    syncBookerOrdersGpsControls();
+    if (navigator.onLine && window.EB_GPS && typeof window.EB_GPS.syncOfflineCheckIns === 'function' && db && myAgencyId) {
+        window.EB_GPS.syncOfflineCheckIns(db, myAgencyId).catch(() => {});
+    }
+});
+
+window.openOrderGpsPin = function(orderId) {
+    if (!window.EB_GPS) return;
+    const ord = (allOrders || []).find(o => o.id === orderId);
+    if (!ord || !ord.gpsLocation || !Number.isFinite(Number(ord.gpsLocation.lat))) return;
+
+    window.EB_GPS.openLiveMapModal({
+        title: `Order #${ord.billNo || ord.orderNo || ''} — GPS Location`,
+        agencyName: (myAgency && myAgency.name) || '',
+        pins: [{
+            id: 'ord_' + ord.id,
+            label: `${ord.bookerName || 'Booker'} • ${ord.billNo || ord.orderNo || 'Order'}`,
+            subLabel: `Route: ${ord.customerRoute || 'General'}`,
+            role: 'order',
+            lat: Number(ord.gpsLocation.lat),
+            lng: Number(ord.gpsLocation.lng),
+            accuracy: ord.gpsLocation.accuracy,
+            capturedAt: ord.gpsLocation.capturedAt || ord.createdAt,
+            shopName: ord.customerShop || ord.customerShopName || ord.customerName || '',
+            route: ord.customerRoute || ord.route || '',
+            mobile: ord.bookerMobile || ord.customerMobile || '',
+            amount: Number(ord.billAmount || ord.grandTotal || 0)
+        }],
+        focusPinId: 'ord_' + ord.id
+    });
+};
+
+window.openBookerOrdersLiveMap = async function() {
+    if (!window.EB_GPS) return;
+    const pins = [];
+
+    // 1. Add all non-expired GPS-tagged orders currently loaded
+    (allOrders || []).forEach(ord => {
+        if (ord.gpsLocation && Number.isFinite(Number(ord.gpsLocation.lat))) {
+            pins.push({
+                id: 'ord_' + ord.id,
+                label: `${ord.bookerName || 'Booker'} • ${ord.billNo || ord.orderNo || ''}`,
+                subLabel: ord.customerRoute ? `Route: ${ord.customerRoute}` : 'Order Location',
+                role: 'order',
+                lat: Number(ord.gpsLocation.lat),
+                lng: Number(ord.gpsLocation.lng),
+                accuracy: ord.gpsLocation.accuracy,
+                capturedAt: ord.gpsLocation.capturedAt || ord.createdAt,
+                shopName: ord.customerShop || ord.customerShopName || ord.customerName || '',
+                route: ord.customerRoute || ord.route || '',
+                mobile: ord.bookerMobile || '',
+                amount: Number(ord.billAmount || ord.grandTotal || 0)
+            });
+        }
+    });
+
+    // 2. Add recent shop check-ins from gpsCheckins (30-day retention)
+    if (typeof window.EB_GPS.fetchRecentCheckInPins === 'function' && db && myAgencyId) {
+        const checkInPins = await window.EB_GPS.fetchRecentCheckInPins(db, myAgencyId, 50);
+        checkInPins.forEach(p => pins.push(p));
+    }
+
+    // 3. Add staff last live GPS check-in pins at top
+    try {
+        if (db && myAgencyId) {
+            const staffSnap = await db.collection('users').where('agencyId', '==', myAgencyId).get();
+            staffSnap.forEach(doc => {
+                const u = doc.data();
+                if (u.lastGpsLocation && Number.isFinite(Number(u.lastGpsLocation.lat))) {
+                    pins.unshift({
+                        id: 'staff_' + doc.id,
+                        label: `${u.name || u.email || 'Staff'} (Live Ping)`,
+                        subLabel: u.route ? `Route: ${u.route}` : 'Field Staff',
+                        role: (u.role === 'supplier' || u.role === 'delivery' || u.role === 'driver') ? 'supplier' : 'booker',
+                        lat: Number(u.lastGpsLocation.lat),
+                        lng: Number(u.lastGpsLocation.lng),
+                        accuracy: u.lastGpsLocation.accuracy,
+                        capturedAt: u.lastGpsLocation.capturedAt,
+                        shopName: u.lastGpsLocation.shopName || '',
+                        route: u.lastGpsLocation.route || u.route || '',
+                        mobile: u.mobile || '',
+                        note: u.lastGpsLocation.note || ''
+                    });
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('Live GPS staff pins note:', e.message);
+    }
+
+    window.EB_GPS.openLiveMapModal({
+        title: 'Live Order Bookers, Check-Ins & Field Orders GPS Map',
+        agencyName: (myAgency && myAgency.name) || '',
+        pins
+    });
+};
+
+window.performBookerShopCheckIn = async function() {
+    if (!window.EB_GPS || typeof window.EB_GPS.recordLiveCheckIn !== 'function') return;
+    const policy = window.EB_GPS.getEffectiveGpsPolicy(myAgency, myUser);
+    if (!policy || !policy.superAdminUnlocked || !policy.agencyEnabled) {
+        Swal.fire('🔒 GPS Disabled', 'GPS Live Location is currently turned OFF for this agency.', 'info');
+        return;
+    }
+
+    const { value: formVals } = await Swal.fire({
+        title: '📍 Live Shop GPS Check-In',
+        html: `
+            <div style="text-align:left; font-size:13px;">
+                <label style="font-weight:700; display:block; margin-bottom:4px;">🏪 Shop / Customer Name:</label>
+                <input id="swalGpsShop" class="swal2-input" style="margin:0 0 10px 0; width:100%; box-sizing:border-box;" placeholder="e.g. Bismillah General Store">
+                <label style="font-weight:700; display:block; margin-bottom:4px;">📝 Visit Note (Optional):</label>
+                <input id="swalGpsNote" class="swal2-input" style="margin:0; width:100%; box-sizing:border-box;" placeholder="e.g. Shop visited, recovery collected">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '📍 Capture GPS & Check-In',
+        confirmButtonColor: '#10b981',
+        preConfirm: () => ({
+            shopName: (document.getElementById('swalGpsShop')?.value || '').trim(),
+            note: (document.getElementById('swalGpsNote')?.value || '').trim()
+        })
+    });
+    if (!formVals) return;
+
+    const escapeSafe = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    Swal.fire({ title: 'Capturing Live GPS Coordinates...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const res = await window.EB_GPS.recordLiveCheckIn({
+            db,
+            agencyId: myAgencyId,
+            activeCat: getActiveBookerCategory(),
+            userProfile: Object.assign({ uid: myUid }, myUser || {}),
+            shopName: formVals.shopName || 'Field Visit',
+            route: (myUser && myUser.route) || '',
+            note: formVals.note || ''
+        });
+        if (!res.ok) {
+            Swal.fire('⚠️ Check-In Cancelled', res.error || 'GPS capture cancelled.', 'warning');
+            return;
+        }
+        const safeShop = escapeSafe(formVals.shopName || 'Shop Visit');
+        Swal.fire({
+            icon: 'success',
+            title: res.savedOffline ? '📥 Check-In Saved Offline (Queued)!' : '✅ Live Shop Check-In Saved!',
+            html: `<div style="font-size:13px;">📍 <b>${safeShop}</b><br>Coords: <code>${res.gps.lat}, ${res.gps.lng}</code> (±${res.gps.accuracy}m)${res.savedOffline ? '<br><small style="color:#b45309;">Internet offline — will auto-sync to cloud when connected.</small>' : ''}</div>`,
+            confirmButtonColor: '#10b981'
+        });
+    } catch (err) {
+        Swal.fire('❌ GPS Error', err.message || 'Location capture failed.', 'error');
+    }
+};
 
 // ============================================
 // 🔢 BILL NUMBER GENERATION HELPER
@@ -1968,7 +2371,7 @@ function viewOrderDetails(orderId) {
     const actionsEl = document.getElementById('modalOrderActions');
 
     if (titleEl) {
-        titleEl.innerHTML = `Order Details: <b>${ord.billNo || ord.orderNo || ord.id}</b>`;
+        titleEl.innerHTML = `Order Details <span class="eb-ur-sub">(آرڈر کی تفصیل)</span>: <b>${ord.billNo || ord.orderNo || ord.id}</b>`;
     }
 
     const isPending = isOrderPendingApproval(ord);
@@ -1978,10 +2381,10 @@ function viewOrderDetails(orderId) {
             <thead>
                 <tr style="background:#f1f5f9; text-align:left;">
                     <th style="padding:8px; border:1px solid #cbd5e1;">#</th>
-                    <th style="padding:8px; border:1px solid #cbd5e1;">Product</th>
-                    <th style="padding:8px; border:1px solid #cbd5e1; text-align:center;">Qty</th>
-                    <th style="padding:8px; border:1px solid #cbd5e1; text-align:right;">Rate</th>
-                    <th style="padding:8px; border:1px solid #cbd5e1; text-align:right;">Total</th>
+                    <th style="padding:8px; border:1px solid #cbd5e1;">Product <span class="eb-ur-sub">(آئٹم)</span></th>
+                    <th style="padding:8px; border:1px solid #cbd5e1; text-align:center;">Qty <span class="eb-ur-sub">(تعداد)</span></th>
+                    <th style="padding:8px; border:1px solid #cbd5e1; text-align:right;">Rate <span class="eb-ur-sub">(ریٹ)</span></th>
+                    <th style="padding:8px; border:1px solid #cbd5e1; text-align:right;">Total <span class="eb-ur-sub">(ٹوٹل)</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -2026,43 +2429,43 @@ function viewOrderDetails(orderId) {
     body.innerHTML = `
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:13px; margin-bottom:12px;">
             <div style="background:#f8fafc; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0;">
-                <div>👤 <b>Customer:</b> ${ord.customerName || 'Counter Sale'} ${ord.customerShop ? `(${ord.customerShop})` : ''}</div>
-                <div>📱 <b>Mobile:</b> ${ord.customerMobile || '—'}</div>
-                <div>🛣️ <b>Route:</b> ${ord.customerRoute || '—'}</div>
+                <div>👤 <b>Customer <span class="eb-ur-sub">(گاہک)</span>:</b> ${ord.customerName || 'Counter Sale'} ${ord.customerShop ? `(${ord.customerShop})` : ''}</div>
+                <div>📱 <b>Mobile <span class="eb-ur-sub">(موبائل)</span>:</b> ${ord.customerMobile || '—'}</div>
+                <div>🛣️ <b>Route <span class="eb-ur-sub">(روٹ)</span>:</b> ${ord.customerRoute || '—'}</div>
                 ${segBadge}
-                <div>💰 <b>Customer Khata Balance:</b> Rs ${(ord.previousBalance || 0).toLocaleString()}</div>
+                <div>💰 <b>Customer Khata Balance <span class="eb-ur-sub">(سابقہ بقایا)</span>:</b> Rs ${(ord.previousBalance || 0).toLocaleString()}</div>
             </div>
             <div style="background:#f8fafc; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0;">
-                <div>📕 <b>Order Booker:</b> <span style="color:#0284c7; font-weight:bold;">${ord.bookerName || 'Staff'}</span></div>
-                <div>📅 <b>Date:</b> ${ord.date || ord.createdAt?.slice(0,10)} (${ord.time || ''})</div>
-                <div>🏷️ <b>Order Type:</b> ${ord.serviceModeLabel ? `🍔 ${ord.serviceModeLabel}` : (ord.orderType || 'Field Booking')}${ord.agreedDiscountPercent ? ` (Disc: ${ord.agreedDiscountPercent}%)` : ''}</div>
+                <div>📕 <b>Order Booker <span class="eb-ur-sub">(بکر)</span>:</b> <span style="color:#0284c7; font-weight:bold;">${ord.bookerName || 'Staff'}</span></div>
+                <div>📅 <b>Date <span class="eb-ur-sub">(تاریخ)</span>:</b> ${ord.date || ord.createdAt?.slice(0,10)} (${ord.time || ''})</div>
+                <div>🏷️ <b>Order Type <span class="eb-ur-sub">(قسم)</span>:</b> ${ord.serviceModeLabel ? `🍔 ${ord.serviceModeLabel}` : (ord.orderType || 'Field Booking')}${ord.agreedDiscountPercent ? ` (Disc: ${ord.agreedDiscountPercent}%)` : ''}</div>
                 ${ord.tableTokenNo ? `<div>🍽️ <b>Table / Token / Addr:</b> <span style="color:#c2410c; font-weight:800;">${ord.tableTokenNo}</span></div>` : ''}
                 ${ord.riderWaiterName ? `<div>🛵 <b>Rider / Waiter:</b> <span style="color:#0369a1; font-weight:700;">${ord.riderWaiterName}</span></div>` : ''}
-                <div>🚚 <b>Assigned Supplier:</b> ${ord.supplierName || 'Not Assigned'}</div>
+                <div>🚚 <b>Assigned Supplier <span class="eb-ur-sub">(سپلائر)</span>:</b> ${ord.supplierName || 'Not Assigned'}</div>
                 ${ord.loadFormNo && ord.loadFormNo !== ord.tableTokenNo ? `<div>📋 <b>Load Form #:</b> <span style="color:#6d28d9; font-weight:800;">${ord.loadFormNo}</span></div>` : ''}
             </div>
         </div>
 
         ${ord.kitchenOrderNote ? `
             <div style="background:#fff7ed; border:1px dashed #ea580c; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:#9a3412;">
-                👨‍🍳 <b>Kitchen / KOT Note:</b> ${ord.kitchenOrderNote}
+                👨‍🍳 <b>Kitchen / KOT Note <span class="eb-ur-sub">(کچن نوٹ)</span>:</b> ${ord.kitchenOrderNote}
             </div>
         ` : ''}
 
         ${ord.bookerNotes ? `
             <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:8px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:#92400e;">
-                📝 <b>Booker Delivery Instructions:</b> ${ord.bookerNotes}
+                📝 <b>Booker Delivery Instructions <span class="eb-ur-sub">(ہدایات)</span>:</b> ${ord.bookerNotes}
             </div>
         ` : ''}
 
         ${itemsTable}
 
         <div style="margin-top:14px; text-align:right; font-size:14px; line-height:1.8;">
-            <div>Items Subtotal: <b>Rs ${(ord.subTotal || ord.billAmount || 0).toFixed(2)}</b></div>
-            ${ord.discount ? `<div style="color:#15803d;">Discounts: -Rs ${(ord.discount).toFixed(2)}</div>` : ''}
-            ${ord.previousBalance ? `<div style="color:#b45309;">Previous Khata Balance: +Rs ${(ord.previousBalance).toFixed(2)}</div>` : ''}
+            <div>Items Subtotal <span class="eb-ur-sub">(سب ٹوٹل)</span>: <b>Rs ${(ord.subTotal || ord.billAmount || 0).toFixed(2)}</b></div>
+            ${ord.discount ? `<div style="color:#15803d;">Discounts <span class="eb-ur-sub">(رعایت)</span>: -Rs ${(ord.discount).toFixed(2)}</div>` : ''}
+            ${ord.previousBalance ? `<div style="color:#b45309;">Previous Khata Balance <span class="eb-ur-sub">(سابقہ کھاتہ)</span>: +Rs ${(ord.previousBalance).toFixed(2)}</div>` : ''}
             <div style="font-size:18px; font-weight:900; color:#0f172a; border-top:2px solid #e2e8f0; padding-top:6px;">
-                Grand Total: <span style="color:#10b981;">Rs ${(ord.grandTotal || ord.billAmount || 0).toFixed(2)}</span>
+                Grand Total <span class="eb-ur-sub">(کل رقم)</span>: <span style="color:#10b981;">Rs ${(ord.grandTotal || ord.billAmount || 0).toFixed(2)}</span>
             </div>
         </div>
     `;
@@ -2074,31 +2477,31 @@ function viewOrderDetails(orderId) {
         ${isPending ? `
             ${canApprove ? `
                 <button type="button" onclick="closeOrderDetailsModal(); approveOrder('${ord.id}')" class="btn" style="background:#10b981; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                    <i class="fas fa-check"></i> Accept &amp; Generate Bill
+                    <i class="fas fa-check"></i> Accept &amp; Generate Bill <span class="eb-ur-sub">(منظور کریں)</span>
                 </button>
                 <button type="button" onclick="closeOrderDetailsModal(); rejectOrder('${ord.id}')" class="btn" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                    <i class="fas fa-times"></i> Reject
+                    <i class="fas fa-times"></i> Reject <span class="eb-ur-sub">(منسوخ)</span>
                 </button>
             ` : `
                 <div style="font-size:12px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:8px;">
-                    <i class="fas fa-lock" style="color:#d97706;"></i> <b>Admin Not Allowed:</b> یہ آرڈر ایڈمن کی منظوری کا منتظر ہے (Pending Admin Approval)۔
+                    <i class="fas fa-lock" style="color:#d97706;"></i> <span><b>Admin Not Allowed:</b> This order is waiting for Admin approval. <span class="eb-ur-sub">(ایڈمن کی منظوری کا منتظر ہے)</span></span>
                 </div>
             `}
         ` : ''}
         ${isRepairJob ? `
             <button type="button" onclick="printRepairJobThermalToken('${ord.id}')" class="btn" style="background:#0f766e; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                <i class="fas fa-receipt"></i> 🧾 Print Repair Token Slip
+                <i class="fas fa-receipt"></i> 🧾 Print Repair Token Slip <span class="eb-ur-sub">(ریپئرنگ ٹوکن)</span>
             </button>
             <button type="button" onclick="closeOrderDetailsModal(); updateRepairJobStatus('${ord.id}')" class="btn" style="background:#d97706; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                <i class="fas fa-sync-alt"></i> Update Lab Status
+                <i class="fas fa-sync-alt"></i> Update Lab Status <span class="eb-ur-sub">(لیب سٹیٹس)</span>
             </button>
         ` : ''}
         ${ord.orderStatus === 'approved' ? `
             <button type="button" onclick="printOrderThermalBill('${ord.id}')" class="btn" style="background:#7c3aed; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                <i class="fas fa-receipt"></i> 🧾 Print Thermal Slip (80mm/58mm)
+                <i class="fas fa-receipt"></i> 🧾 Print Thermal Slip <span class="eb-ur-sub">(تھرمل پرچی)</span>
             </button>
             <button type="button" onclick="printOrderBill('${ord.id}')" class="btn" style="background:#0284c7; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                <i class="fas fa-print"></i> Print Customer Bill
+                <i class="fas fa-print"></i> Print Customer Bill <span class="eb-ur-sub">(بل پرنٹ)</span>
             </button>
         ` : ''}
     `;

@@ -1,12 +1,13 @@
 // ==========================================================================
-// 🚀 NH POS — TURBO SERVICE WORKER (v5.7.4)
+// 🚀 NH POS — TURBO SERVICE WORKER (v5.8.21)
 // ✅ Ultra-lean App Shell pre-caching (No network choke on install)
 // ✅ Dynamic Subpath & Scope resolution (GitHub Pages /nhsm/ & Netlify root)
 // ✅ Instant Stale-While-Revalidate caching for lightning-fast loads
 // ✅ Zero lag navigation with fast fallback & Anti-Corruption Guard
 // ==========================================================================
 
-const CACHE_NAME = 'nhpos-pwa-v5.7.4-live';
+const SW_VERSION = '5.8.21';
+const CACHE_NAME = `nhpos-pwa-v${SW_VERSION}-live`;
 
 // Complete Offline & Instant App Shell (All modules precached for 0ms transitions)
 const RELATIVE_SHELL_ASSETS = [
@@ -53,6 +54,7 @@ const RELATIVE_SHELL_ASSETS = [
   'settings.js',
   'backup.html',
   'backup.js',
+  'gps-tracker.js',
   'alerts.html',
   'alerts.js',
   'profile.html',
@@ -86,7 +88,7 @@ self.addEventListener('install', (event) => {
       const promises = targetAssets.map((assetUrl) => {
         const req = new Request(assetUrl, { cache: 'reload' });
         return cache.add(req).catch((err) => {
-          console.warn(`[PWA SW v5.7.4] Pre-cache skipped for ${assetUrl}:`, err.message);
+          console.warn(`[PWA SW v${SW_VERSION}] Pre-cache skipped for ${assetUrl}:`, err.message);
         });
       });
       await Promise.all(promises);
@@ -102,11 +104,17 @@ self.addEventListener('activate', (event) => {
     caches.keys().then(async (keys) => {
       await Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => {
-          console.log('[PWA SW v5.7.4] Purged outdated cache:', key);
+          console.log(`[PWA SW v${SW_VERSION}] Purged outdated cache:`, key);
           return caches.delete(key);
         })
       );
       await self.clients.claim();
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      clientList.forEach((client) => {
+        try {
+          client.postMessage({ type: 'SW_VERSION', version: SW_VERSION, cacheName: CACHE_NAME });
+        } catch (_) {}
+      });
     })
   );
 });
@@ -117,8 +125,10 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Bypass internal dev bundling paths & external auth APIs
+  // Bypass service worker self-checks, internal dev bundling paths & external auth APIs
   if (
+    url.pathname.endsWith('/sw.js') ||
+    url.pathname === '/sw.js' ||
     url.pathname.startsWith('/@') ||
     url.pathname.startsWith('/src/') ||
     url.pathname.startsWith('/node_modules/') ||
@@ -136,8 +146,8 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
       (async () => {
-        // 🚀 Instant load from cache (0ms lag)
-        const cached = await caches.match(event.request);
+        // 🚀 Instant load from cache (0ms lag — matches both exact and query-string URLs offline)
+        const cached = (await caches.match(event.request)) || (await caches.match(event.request, { ignoreSearch: true }));
         if (cached) {
           // Revalidate in background without blocking UI
           fetch(event.request)
@@ -190,7 +200,7 @@ self.addEventListener('fetch', (event) => {
   // B. Static Assets (JS, CSS, Images, Fonts): Anti-Corruption Guard
   event.respondWith(
     (async () => {
-      const cachedResponse = await caches.match(event.request);
+      const cachedResponse = (await caches.match(event.request)) || (await caches.match(event.request, { ignoreSearch: true }));
       if (cachedResponse) {
         const ct = cachedResponse.headers.get('content-type') || '';
         // If an HTML fallback was incorrectly stored for a script/stylesheet, delete it immediately
@@ -234,9 +244,19 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// 4️⃣ Background Sync / Push Skip Waiting
+// 4️⃣ Background Sync / Push Skip Waiting / Live Version Handshake
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (!event.data) return;
+  if (event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+    return;
+  }
+  if (event.data.type === 'GET_VERSION') {
+    const payload = { type: 'SW_VERSION', version: SW_VERSION, cacheName: CACHE_NAME };
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage(payload);
+    } else if (event.source && typeof event.source.postMessage === 'function') {
+      event.source.postMessage(payload);
+    }
   }
 });

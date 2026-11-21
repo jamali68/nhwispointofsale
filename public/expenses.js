@@ -45,6 +45,94 @@ let agencyStaffList = [];
 let agencyAllSalaryExpenses = [];
 let salaryMonthSalesMap = {};
 
+// ==========================================================================
+// 🌐 UNIFIED BILINGUAL HELPERS (SYNCED WITH SIDEBAR & theme-sync.js)
+// ==========================================================================
+function ebIsMix() {
+    return !!(window.ebLang && typeof window.ebLang.isMix === 'function' && window.ebLang.isMix());
+}
+
+function ebT(en, urMix) {
+    return ebIsMix() ? (urMix || en) : en;
+}
+
+function ebEscAttr(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function ebMix(en, ur, asBlock = false) {
+    if (!ur) return en;
+    return asBlock
+        ? `${en}<span class="eb-ur-block">${ur}</span>`
+        : `${en} <span class="eb-ur-sub">(${ur})</span>`;
+}
+
+function ebCompact(en, ur) {
+    if (!ur) return en;
+    return `${en}<span class="eb-ur-compact">${ur}</span>`;
+}
+
+function ebApplyBilingualDom(root) {
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(root || document);
+    }
+}
+
+function ebSetPh(el, en, ur) {
+    if (!el) return;
+    el.setAttribute('data-eb-ph-en', en || '');
+    el.setAttribute('data-eb-ph-ur', ur || en || '');
+    el.placeholder = ebIsMix() ? (ur || en || '') : (en || '');
+}
+
+function ebSplitBilingual(raw) {
+    const str = String(raw || '').trim();
+    const hasUrdu = /[\u0600-\u06FF]/.test(str);
+    if (!hasUrdu) return { en: str, ur: '', mix: str };
+    const m = str.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
+    if (m) {
+        const outer = m[1].trim();
+        const inner = m[2].trim();
+        const outerUr = /[\u0600-\u06FF]/.test(outer);
+        const innerUr = /[\u0600-\u06FF]/.test(inner);
+        if (innerUr && !outerUr) return { en: outer, ur: inner, mix: `${outer} (${inner})` };
+        if (outerUr && !innerUr) return { en: inner, ur: outer, mix: `${inner} (${outer})` };
+    }
+    const stripped = str.replace(/\([^()]*[\u0600-\u06FF][^()]*\)/g, ' ').replace(/[\u0600-\u06FF]+[\u0600-\u06FF\s/،۔\-–—]*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    return { en: stripped || str, ur: str, mix: str };
+}
+
+function ebBilingualizeSelectOptions(selectEl) {
+    if (!selectEl) return;
+    const isMixMode = ebIsMix();
+    Array.from(selectEl.options || []).forEach(opt => {
+        if (!opt.hasAttribute('data-eb-en')) {
+            const raw = opt.textContent || '';
+            const parts = ebSplitBilingual(raw);
+            opt.setAttribute('data-eb-en', parts.en);
+            opt.setAttribute('data-eb-ur', (parts.ur && parts.en !== parts.ur) ? parts.mix : parts.en);
+        }
+        opt.textContent = isMixMode
+            ? (opt.getAttribute('data-eb-ur') || opt.getAttribute('data-eb-en') || opt.textContent)
+            : (opt.getAttribute('data-eb-en') || opt.textContent);
+    });
+}
+
+function ebRefreshStaticSelects() {
+    [
+        'expenseFilterPayMode',
+        'expenseSortSelect',
+        'salaryStatusFilter',
+        'expPayMethod',
+        'newCatIcon',
+        'newCatColor'
+    ].forEach(id => ebBilingualizeSelectOptions(document.getElementById(id)));
+}
+
 function getActiveExpenseCategory() {
     if (window.BusinessCategories && typeof window.BusinessCategories.getActiveCategoryId === 'function') {
         return window.BusinessCategories.getActiveCategoryId(myAgency);
@@ -64,24 +152,289 @@ function matchesExpenseActiveCategory(rec) {
 }
 
 // ==========================================================================
-// 🏷️ STANDARD DEFAULT EXPENSE CATEGORIES (Requested by User)
+// 🏷️ UNIVERSAL BASE EXPENSE CATEGORIES (Clean across all business types)
 // ==========================================================================
 const DEFAULT_CATEGORIES = [
     { id: 'cat_electricity', name: 'Electricity Bills', urdu: 'بجلی کا بل', icon: 'fa-bolt', color: '#eab308', isDefault: true },
-    { id: 'cat_water', name: 'Water Bill', urdu: 'پانی کا بل', icon: 'fa-faucet-drip', color: '#06b6d4', isDefault: true },
-    { id: 'cat_fuel', name: 'Fuel Bill', urdu: 'فیول / پٹرول خرچ', icon: 'fa-gas-pump', color: '#f97316', isDefault: true },
-    { id: 'cat_guests', name: 'Guests Bill', urdu: 'مہمان نوازی / چائے پانی', icon: 'fa-mug-hot', color: '#8b5cf6', isDefault: true },
-    { id: 'cat_rent', name: 'Shop / Warehouse Rent', urdu: 'دکان / گودام کرایہ', icon: 'fa-building', color: '#3b82f6', isDefault: true },
+    { id: 'cat_water', name: 'Water / Utilities Bill', urdu: 'پانی و یوٹیلیٹی بل', icon: 'fa-faucet-drip', color: '#06b6d4', isDefault: true },
+    { id: 'cat_rent', name: 'Shop / Premises Rent', urdu: 'دکان / بلڈنگ کرایہ', icon: 'fa-building', color: '#3b82f6', isDefault: true },
     { id: 'cat_salary', name: 'Staff Salaries & Wages', urdu: 'ملازمین تنخواہ و پیشگی', icon: 'fa-user-tie', color: '#10b981', isDefault: true },
-    { id: 'cat_commission', name: 'Booker & Driver Commission', urdu: 'کمیشن و ٹارگٹ بونس', icon: 'fa-award', color: '#059669', isDefault: true },
-    { id: 'cat_van_diesel', name: 'Delivery Van Maintenance & Toll', urdu: 'وین مرمت و ٹول ٹیکس', icon: 'fa-van-shuttle', color: '#0284c7', isDefault: true },
-    { id: 'cat_loading_labor', name: 'Loading / Unloading Mazdoori', urdu: 'لوڈنگ و ان لوڈنگ مزدوری', icon: 'fa-people-carry-box', color: '#d97706', isDefault: true },
+    { id: 'cat_guests', name: 'Tea, Refreshment & Guests', urdu: 'مہمان نوازی / چائے پانی', icon: 'fa-mug-hot', color: '#8b5cf6', isDefault: true },
     { id: 'cat_packaging', name: 'Packaging & Supplies', urdu: 'پیکنگ و ضروری سامان', icon: 'fa-box-archive', color: '#6366f1', isDefault: true },
     { id: 'cat_maintenance', name: 'Maintenance & Repairs', urdu: 'مرمت و دیکھ بھال', icon: 'fa-screwdriver-wrench', color: '#ec4899', isDefault: true },
-    { id: 'cat_transport', name: 'Transport & Carriage', urdu: 'کرایہ مال / ٹرانسپورٹ', icon: 'fa-truck', color: '#14b8a6', isDefault: true },
     { id: 'cat_internet', name: 'Internet & Phone Bills', urdu: 'انٹرنیٹ و موبائل خرچ', icon: 'fa-wifi', color: '#0284c7', isDefault: true },
     { id: 'cat_misc', name: 'Other Miscellaneous', urdu: 'متفرق اخراجات', icon: 'fa-receipt', color: '#64748b', isDefault: true }
 ];
+
+function isSalaryOrCommissionCategory(catId = '', expObj = null) {
+    if (expObj && expObj.isSalaryPayroll) return true;
+    const id = String(catId || (expObj && expObj.categoryId) || '').toLowerCase();
+    return id === 'cat_salary' ||
+        id === 'cat_commission' ||
+        id.includes('salary') ||
+        id.includes('payroll') ||
+        id.includes('wages') ||
+        id.includes('commission') ||
+        id.includes('tada');
+}
+
+function getCategoryExpensesUiMeta(catId) {
+    const id = catId || getActiveExpenseCategory();
+    const map = {
+        restaurant: {
+            pageTitleIcon: '<i class="fas fa-utensils" style="color: #ef4444; font-size: 24px;"></i>',
+            pageTitleEn: 'Restaurant, Kitchen &amp; Rider Expenses',
+            pageTitleUr: 'ریسٹورنٹ اخراجات',
+            pageSubEn: 'Complete accounting for kitchen gas cylinders, disposable packing, rider fuel, electricity &amp; chef/waiter payroll',
+            pageSubUr: 'کچن گیس سلنڈر، ڈسپوزایبل پیکنگ، ڈلیوری رائیڈر فیول، بجلی اور شیف/ویٹر تنخواہوں کا مکمل حساب',
+            addStaffBtnEn: '+ Add Chef / Waiter / Delivery Rider',
+            addStaffBtnUr: 'شیف / ویٹر / رائیڈر شامل کریں',
+            payrollTitleIcon: '<i class="fas fa-utensils" style="color:#059669;"></i>',
+            payrollTitleEn: 'Kitchen, Dining &amp; Delivery Staff Payroll',
+            payrollTitleUr: 'شیف، ویٹر اور رائیڈر تنخواہیں',
+            payrollSubEn: 'Monthly salary, delivery bonus, advance (peshgi) &amp; salary slips for chefs, waiters &amp; food riders',
+            payrollSubUr: 'ہیڈ شیف، کچن اسٹاف، ویٹرز اور فوڈ ڈلیوری رائیڈرز کی ماہانہ تنخواہ، ڈلیوری بونس، پیشگی اور سیلری سلپ',
+            payrollColRoute: 'Station / Zone',
+            payrollColRouteUr: 'اسٹیشن / زون',
+            payrollColSales: 'Orders / Sales',
+            payrollColSalesUr: 'آرڈرز / سیلز',
+            expTitlePh: 'e.g. Commercial LPG Gas Cylinder, 200 Burger Boxes, Rider Bike Fuel',
+            expPaidToPh: 'e.g. Sui Gas / LPG Dealer, Packaging Mart, Shell Petrol Pump',
+            newCatNamePh: 'e.g. Kitchen Exhaust Cleaning',
+            newCatUrduPhEn: 'e.g. Urdu label (optional)',
+            newCatUrduPhUr: 'مثلاً: کچن ایگزاسٹ صفائی',
+            addStaffModalTitleEn: '➕ Add Kitchen / Dining / Delivery Staff',
+            addStaffModalTitleUr: 'کچن / ڈائننگ / ڈلیوری اسٹاف شامل کریں',
+            defaultStaffDept: 'Kitchen / Dining Hall',
+            allowanceLabelEn: 'Fixed Food / Bike Fuel Allowance (Rs)',
+            allowanceLabelUr: 'خوراک / بائیک فیول الاؤنس',
+            commLabelEn: 'Order / Delivery Bonus % (Optional)',
+            commLabelUr: 'آرڈر / ڈلیوری بونس %',
+            staffRoles: [
+                { value: 'chef', en: '👨‍🍳 Head Chef / Kitchen Cook', ur: 'شیف / کاریگر' },
+                { value: 'fastfood_cook', en: '🍔 Fast Food / Pizza / BBQ Master', ur: 'فاسٹ فوڈ / پیزا ماسٹر' },
+                { value: 'waiter', en: '🍽️ Waiter / Captain', ur: 'ویٹر / ٹیبل سروس' },
+                { value: 'rider', en: '🛵 Food Delivery Rider', ur: 'ڈلیوری رائیڈر' },
+                { value: 'manager', en: '💼 Cashier / Floor Manager', ur: 'کیشیئر / منیجر' },
+                { value: 'helper', en: '🧹 Kitchen Helper / Dishwasher', ur: 'کچن ہیلپر' }
+            ]
+        },
+        medical: {
+            pageTitleIcon: '<i class="fas fa-prescription-bottle-medical" style="color: #ef4444; font-size: 24px;"></i>',
+            pageTitleEn: 'Pharmacy &amp; Clinic Expenses Manager',
+            pageTitleUr: 'فارمیسی اخراجات',
+            pageSubEn: 'Complete accounting for cold-chain/fridge electricity, drug license, short-book courier, rent &amp; pharmacist payroll',
+            pageSubUr: 'کولڈ چین/فریج بجلی بل، ڈرگ لائسنس، شارٹ بک کورئیر، دکان کرایہ اور فارماسسٹ/ڈسپنسر تنخواہوں کا حساب',
+            addStaffBtnEn: '+ Add Pharmacist / Dispenser / Staff',
+            addStaffBtnUr: 'فارماسسٹ / ڈسپنسر شامل کریں',
+            payrollTitleIcon: '<i class="fas fa-user-md" style="color:#059669;"></i>',
+            payrollTitleEn: 'Pharmacy &amp; Counter Staff Payroll',
+            payrollTitleUr: 'فارماسسٹ اور اسٹاف تنخواہیں',
+            payrollSubEn: 'Monthly salary, counter incentive, advance (peshgi) &amp; salary slips for pharmacists, dispensers &amp; riders',
+            payrollSubUr: 'فارماسسٹ، ڈسپنسر، کاؤنٹر سیلزمین اور ہوم ڈلیوری رائیڈر کی ماہانہ تنخواہ، انسینٹو، پیشگی اور سیلری سلپ',
+            payrollColRoute: 'Counter / Section',
+            payrollColRouteUr: 'کاؤنٹر / سیکشن',
+            payrollColSales: 'Counter Sales',
+            payrollColSalesUr: 'کاؤنٹر سیلز',
+            expTitlePh: 'e.g. Chiller/Fridge Electricity Bill, Drug License Renewal, Medicine Polybags',
+            expPaidToPh: 'e.g. LESCO/KE, DRAP Office, Pharma Courier',
+            newCatNamePh: 'e.g. Cold Chain Generator Fuel',
+            newCatUrduPhEn: 'e.g. Urdu label (optional)',
+            newCatUrduPhUr: 'مثلاً: فریج جنریٹر فیول',
+            addStaffModalTitleEn: '➕ Add Pharmacy / Counter Staff',
+            addStaffModalTitleUr: 'فارمیسی / کاؤنٹر اسٹاف شامل کریں',
+            defaultStaffDept: 'Pharmacy Counter',
+            allowanceLabelEn: 'Fixed Duty / Conveyance Allowance (Rs)',
+            allowanceLabelUr: 'ڈیوٹی / کنوینس الاؤنس',
+            commLabelEn: 'Counter Sales Incentive % (Optional)',
+            commLabelUr: 'کاؤنٹر سیلز انسینٹو %',
+            staffRoles: [
+                { value: 'pharmacist', en: '💊 Qualified Pharmacist', ur: 'فارماسسٹ' },
+                { value: 'dispenser', en: '🧪 Dispenser / Counter Salesman', ur: 'ڈسپنسر' },
+                { value: 'rider', en: '🛵 Medicine Home Delivery Rider', ur: 'میڈیسن ڈلیوری رائیڈر' },
+                { value: 'accountant', en: '💼 Cashier / Computer Operator', ur: 'کیشیئر / آپریٹر' },
+                { value: 'helper', en: '🧹 Store Helper / Cleaner', ur: 'اسٹور ہیلپر' }
+            ]
+        },
+        mobile: {
+            pageTitleIcon: '<i class="fas fa-mobile-screen-button" style="color: #ef4444; font-size: 24px;"></i>',
+            pageTitleEn: 'Mobile Shop &amp; Repair Lab Expenses',
+            pageTitleUr: 'موبائل شاپ اخراجات',
+            pageSubEn: 'Complete accounting for repair lab tools, soldering supplies, shop rent, electricity &amp; technician/sales payroll',
+            pageSubUr: 'ریپئرنگ لیب ٹولز، سولڈرنگ سامان، دکان کرایہ، بجلی اور ٹیکنیشن/سیلزمین تنخواہوں کا مکمل حساب',
+            addStaffBtnEn: '+ Add Technician / Sales / Recovery Staff',
+            addStaffBtnUr: 'ٹیکنیشن / سیلز اسٹاف شامل کریں',
+            payrollTitleIcon: '<i class="fas fa-screwdriver-wrench" style="color:#059669;"></i>',
+            payrollTitleEn: 'Technicians &amp; Showroom Staff Payroll',
+            payrollTitleUr: 'ٹیکنیشن اور اسٹاف تنخواہیں',
+            payrollSubEn: 'Monthly salary, commission, advance (peshgi) &amp; salary slips for mobile technicians, salesmen &amp; recovery staff',
+            payrollSubUr: 'موبائل ریپئرنگ ٹیکنیشن، کاؤنٹر سیلزمین اور قسط ریکوری عملے کی تنخواہ، کمیشن، پیشگی اور سیلری سلپ',
+            payrollColRoute: 'Lab / Counter',
+            payrollColRouteUr: 'لیب / کاؤنٹر',
+            payrollColSales: 'Sales / Repair Jobs',
+            payrollColSalesUr: 'سیلز / ریپئر جابز',
+            expTitlePh: 'e.g. LCD Separator Machine Parts, Plaza Maintenance, Shop Electricity',
+            expPaidToPh: 'e.g. Hafeez Center Union, Tool Supplier, LESCO',
+            newCatNamePh: 'e.g. Software Dongle / Box Renewal',
+            newCatUrduPhEn: 'e.g. Urdu label (optional)',
+            newCatUrduPhUr: 'مثلاً: سافٹ ویئر ڈونگل تجدید',
+            addStaffModalTitleEn: '➕ Add Mobile Showroom / Repair Lab Staff',
+            addStaffModalTitleUr: 'موبائل شوروم / ریپئر لیب اسٹاف شامل کریں',
+            defaultStaffDept: 'Mobile Showroom / Lab',
+            allowanceLabelEn: 'Fixed Mobile / Fuel Allowance (Rs)',
+            allowanceLabelUr: 'موبائل / فیول الاؤنس',
+            commLabelEn: 'Handset / Repairing Commission %',
+            commLabelUr: 'ہینڈ سیٹ / ریپئرنگ کمیشن %',
+            staffRoles: [
+                { value: 'technician', en: '🛠️ Mobile Hardware / Software Technician', ur: 'موبائل ٹیکنیشن' },
+                { value: 'salesman', en: '📱 Handset & Accessories Salesman', ur: 'سیلزمین' },
+                { value: 'recovery', en: '🛵 Installment (Qist) Recovery Officer', ur: 'قسط ریکوری آفیسر' },
+                { value: 'manager', en: '💼 Cashier / Shop Manager', ur: 'کیشیئر / منیجر' },
+                { value: 'helper', en: '🧹 Shop Helper / Office Boy', ur: 'شاپ ہیلپر' }
+            ]
+        },
+        books: {
+            pageTitleIcon: '<i class="fas fa-book-open" style="color: #ef4444; font-size: 24px;"></i>',
+            pageTitleEn: 'Book Depot &amp; Stationery Expenses',
+            pageTitleUr: 'بک ڈپو اخراجات',
+            pageSubEn: 'Complete accounting for school sampling, book binding, bilty freight, shop rent &amp; salesman payroll',
+            pageSubUr: 'اسکول سیمپلنگ، کتب بائنڈنگ، کارگو بلٹی کرایہ، دکان کرایہ اور سیلزمین تنخواہوں کا مکمل حساب',
+            addStaffBtnEn: '+ Add Salesman / Binder / Depot Staff',
+            addStaffBtnUr: 'سیلزمین / بائنڈر / اسٹاف شامل کریں',
+            payrollTitleIcon: '<i class="fas fa-book-reader" style="color:#059669;"></i>',
+            payrollTitleEn: 'Book Depot &amp; School Rep Payroll',
+            payrollTitleUr: 'سیلزمین اور اسٹاف تنخواہیں',
+            payrollSubEn: 'Monthly salary, commission, advance (peshgi) &amp; salary slips for counter salesmen, school reps, binders &amp; depot staff',
+            payrollSubUr: 'کاؤنٹر سیلزمین، اسکول سپلائی نمائندے، بائنڈر اور گودام عملے کی تنخواہ، کمیشن، پیشگی اور سیلری سلپ',
+            payrollColRoute: 'Counter / School Zone',
+            payrollColRouteUr: 'کاؤنٹر / اسکول زون',
+            payrollColSales: 'Zone / Counter Sales',
+            payrollColSalesUr: 'زون / کاؤنٹر سیلز',
+            expTitlePh: 'e.g. Urdu Bazar Bilty Freight, School Specimen Copies, Binding Glue & Tape',
+            expPaidToPh: 'e.g. Goods Transport Co, Binding House, LESCO',
+            newCatNamePh: 'e.g. School Season Packing Cartons',
+            newCatUrduPhEn: 'e.g. Urdu label (optional)',
+            newCatUrduPhUr: 'مثلاً: اسکول سیزن پیکنگ کارٹن',
+            addStaffModalTitleEn: '➕ Add Book Depot / Stationery Staff',
+            addStaffModalTitleUr: 'بک ڈپو / اسٹیشنری اسٹاف شامل کریں',
+            defaultStaffDept: 'Book Depot / Counter',
+            allowanceLabelEn: 'Fixed School Visit / TA Allowance (Rs)',
+            allowanceLabelUr: 'اسکول وزٹ / سفر الاؤنس',
+            commLabelEn: 'Book / School Order Commission %',
+            commLabelUr: 'کتاب / اسکول آرڈر کمیشن %',
+            staffRoles: [
+                { value: 'salesman', en: '🎒 Counter Salesman', ur: 'کاؤنٹر سیلزمین' },
+                { value: 'booker', en: '📕 School Order Rep / Booker', ur: 'اسکول آرڈر بکر' },
+                { value: 'binder', en: '📦 Book Binder / Packing Staff', ur: 'بائنڈر / پیکنگ' },
+                { value: 'accountant', en: '💼 Cashier / Munshi', ur: 'کیشیئر / منشی' },
+                { value: 'helper', en: '🧹 Depot Helper / Loader', ur: 'ڈپو ہیلپر' }
+            ]
+        },
+        wholesaler: {
+            pageTitleIcon: '<i class="fas fa-boxes-stacked" style="color: #ef4444; font-size: 24px;"></i>',
+            pageTitleEn: 'Wholesale Mandi &amp; Godown Expenses',
+            pageTitleUr: 'ہول سیل اخراجات',
+            pageSubEn: 'Complete accounting for palledari labor, bardana &amp; sutli, loader freight, godown rent &amp; munshi/staff payroll',
+            pageSubUr: 'پلے داری مزدوری، باردانہ و ستلی، لوڈر کرایہ، گودام کرایہ اور منشی/عملے کی تنخواہوں کا مکمل حساب',
+            addStaffBtnEn: '+ Add Palledar / Driver / Mandi Staff',
+            addStaffBtnUr: 'پلے دار / ڈرائیور / اسٹاف شامل کریں',
+            payrollTitleIcon: '<i class="fas fa-user-tie" style="color:#059669;"></i>',
+            payrollTitleEn: 'Mandi, Godown &amp; Booker Payroll',
+            payrollTitleUr: 'منشی، بکر اور گودام عملہ تنخواہیں',
+            payrollSubEn: 'Monthly salary, commission, advance (peshgi) &amp; salary slips for mandi munshi, order bookers, drivers &amp; palledars',
+            payrollSubUr: 'منڈی منشی، آرڈر بکر، لوڈر ڈرائیور اور پلے دار عملے کی ماہانہ تنخواہ، کمیشن، پیشگی اور سیلری سلپ',
+            payrollColRoute: 'Mandi Route / Godown',
+            payrollColRouteUr: 'منڈی روٹ / گودام',
+            payrollColSales: 'Month Mandi Sales',
+            payrollColSalesUr: 'ماہانہ منڈی سیلز',
+            expTitlePh: 'e.g. 100 Bags Unloading Palledari, PP Torey & Sutli, Godown Electricity',
+            expPaidToPh: 'e.g. Labor Jamadar, Bardana Store, WAPDA',
+            newCatNamePh: 'e.g. Mandi Gate Pass & Weighbridge',
+            newCatUrduPhEn: 'e.g. Urdu label (optional)',
+            newCatUrduPhUr: 'مثلاً: منڈی پرچی و کانٹا تول فیس',
+            addStaffModalTitleEn: '➕ Add Wholesale Mandi / Godown Staff',
+            addStaffModalTitleUr: 'ہول سیل منڈی / گودام اسٹاف شامل کریں',
+            defaultStaffDept: 'Mandi / Godown',
+            allowanceLabelEn: 'Fixed Route / Food Allowance (Rs)',
+            allowanceLabelUr: 'روٹ / خوراک الاؤنس',
+            commLabelEn: 'Wholesale Recovery / Sales Comm %',
+            commLabelUr: 'ہول سیل ریکوری / سیلز کمیشن %',
+            staffRoles: [
+                { value: 'loader', en: '📦 Palledar / Godown Loader', ur: 'پلے دار / لوڈر' },
+                { value: 'driver', en: '🚛 Loader / Delivery Driver', ur: 'لوڈر / ڈلیوری ڈرائیور' },
+                { value: 'booker', en: '📕 Wholesale Order Booker', ur: 'ہول سیل آرڈر بکر' },
+                { value: 'accountant', en: '💼 Mandi Munshi / Accountant', ur: 'منڈی منشی / اکاؤنٹنٹ' },
+                { value: 'manager', en: '🏢 Godown Incharge', ur: 'گودام انچارج' }
+            ]
+        },
+        distributor: {
+            pageTitleIcon: '<i class="fas fa-truck-fast" style="color: #ef4444; font-size: 24px;"></i>',
+            pageTitleEn: 'Distribution Agency, Van &amp; Route Expenses',
+            pageTitleUr: 'ڈسٹری بیوشن اخراجات',
+            pageSubEn: 'Complete accounting for supply van diesel, toll tax, booker TA/DA, godown labor &amp; sales team payroll/commission',
+            pageSubUr: 'سپلائی وین ڈیزل، ٹول ٹیکس، بکر ٹی اے ڈی اے، گودام مزدوری اور سیلز ٹیم کی تنخواہوں و کمیشن کا حساب',
+            addStaffBtnEn: '+ Add Godown / Van Driver / Agency Staff',
+            addStaffBtnUr: 'گودام / وین ڈرائیور / اسٹاف شامل کریں',
+            payrollTitleIcon: '<i class="fas fa-user-tie" style="color:#059669;"></i>',
+            payrollTitleEn: 'Order Bookers, Van Drivers &amp; Godown Payroll',
+            payrollTitleUr: 'بکر، ڈرائیور اور اسٹاف تنخواہیں',
+            payrollSubEn: 'Monthly salary, sales commission, advance deductions &amp; salary slips for order bookers, van drivers &amp; godown staff',
+            payrollSubUr: 'آرڈر بکر، ڈلیوری سپلائر، وین ڈرائیور اور گودام عملے کی تنخواہ، سیلز کمیشن، پیشگی کٹوتی اور سیلری سلپ',
+            payrollColRoute: 'PJP Route / Dept',
+            payrollColRouteUr: 'روٹ / شعبہ',
+            payrollColSales: 'Month Route Sales',
+            payrollColSalesUr: 'ماہانہ روٹ سیلز',
+            expTitlePh: 'e.g. Route Van Diesel 25L, Booker Daily TA/DA, Container Unloading Labor',
+            expPaidToPh: 'e.g. PSO Petrol Pump, Motorway Toll, Godown Jamadar',
+            newCatNamePh: 'e.g. Van Tyre & Oil Change',
+            newCatUrduPhEn: 'e.g. Urdu label (optional)',
+            newCatUrduPhUr: 'مثلاً: سپلائی وین آئل اور ٹائر تبدیلی',
+            addStaffModalTitleEn: '➕ Add Agency / Van / Godown Staff',
+            addStaffModalTitleUr: 'ایجنسی / وین / گودام اسٹاف شامل کریں',
+            defaultStaffDept: 'Agency / Godown',
+            allowanceLabelEn: 'Fixed TA/DA / Fuel Allowance (Rs)',
+            allowanceLabelUr: 'ٹی اے ڈی اے / فیول الاؤنس',
+            commLabelEn: 'Sales / Recovery Commission %',
+            commLabelUr: 'سیلز / ریکوری کمیشن %',
+            staffRoles: [
+                { value: 'driver', en: '🚛 Delivery Van Driver', ur: 'ڈلیوری وین ڈرائیور' },
+                { value: 'loader', en: '📦 Godown Loader / Helper', ur: 'گودام لوڈر / ہیلپر' },
+                { value: 'accountant', en: '💼 Agency Munshi / Accountant', ur: 'ایجنسی منشی / اکاؤنٹنٹ' },
+                { value: 'manager', en: '🏢 Warehouse Manager', ur: 'ویئرہاؤس منیجر' },
+                { value: 'staff', en: '👤 Office Boy / Security Guard', ur: 'آفس بوائے / گارڈ' }
+            ]
+        }
+    };
+    return map[id] || map.books;
+}
+
+function applyCategoryExpensesUI() {
+    const activeCat = getActiveExpenseCategory();
+    const meta = getCategoryExpensesUiMeta(activeCat);
+    const titleEl = document.getElementById('expensePageMainTitle');
+    if (titleEl && meta.pageTitleEn) {
+        titleEl.innerHTML = `${meta.pageTitleIcon} <span>${ebMix(meta.pageTitleEn, meta.pageTitleUr)}</span>`;
+    }
+    const subEl = document.getElementById('expensePageMainSub');
+    if (subEl && meta.pageSubEn) {
+        subEl.innerHTML = ebCompact(meta.pageSubEn, meta.pageSubUr);
+    }
+    const addStaffBtn = document.getElementById('btnAddPayrollStaff');
+    if (addStaffBtn && meta.addStaffBtnEn) {
+        addStaffBtn.innerHTML = `<i class="fas fa-user-plus"></i> ${ebMix(meta.addStaffBtnEn, meta.addStaffBtnUr)}`;
+    }
+    const expTitleInp = document.getElementById('expTitle');
+    if (expTitleInp && meta.expTitlePh) expTitleInp.placeholder = meta.expTitlePh;
+    const expPaidToInp = document.getElementById('expPaidTo');
+    if (expPaidToInp && meta.expPaidToPh) expPaidToInp.placeholder = meta.expPaidToPh;
+    const newCatNameInp = document.getElementById('newCatName');
+    if (newCatNameInp && meta.newCatNamePh) newCatNameInp.placeholder = meta.newCatNamePh;
+    const newCatUrduInp = document.getElementById('newCatUrdu');
+    if (newCatUrduInp) ebSetPh(newCatUrduInp, meta.newCatUrduPhEn || 'e.g. Urdu label (optional)', meta.newCatUrduPhUr || meta.newCatUrduPhEn);
+    ebApplyBilingualDom(document);
+    ebRefreshStaticSelects();
+    updateViewTitles();
+}
 
 // ==========================================================================
 // 🛡️ AUTH GUARD & INITIALIZATION
@@ -107,8 +460,8 @@ auth.onAuthStateChanged(async (user) => {
             if (!p.expenses && !p.reports) {
                 Swal.fire({
                     icon: 'warning',
-                    title: '🔒 Access Restricted',
-                    text: 'Aap ke paas Expenses module dekhne ki ijazat nahi hai!',
+                    title: ebT('🔒 Access Restricted', '🔒 Access Restricted (اجازت محدود ہے)'),
+                    text: ebT('You do not have permission to view the Expenses module.', 'You do not have permission to view Expenses. (آپ کو اخراجات دیکھنے کی اجازت نہیں)'),
                     confirmButtonColor: '#ef4444'
                 }).then(() => window.location.href = 'dashboard.html');
                 return;
@@ -139,6 +492,8 @@ auth.onAuthStateChanged(async (user) => {
         } catch (e) {
             myAgency = {};
         }
+
+        applyCategoryExpensesUI();
 
         // Apply default preset: This Month
         salaryMonth = getPktToday().slice(0, 7);
@@ -173,7 +528,7 @@ auth.onAuthStateChanged(async (user) => {
         if (window.hideNHLoader) window.hideNHLoader();
         const container = document.getElementById('expenseTableContainer');
         if (container) {
-            container.innerHTML = `<div class="empty-state" style="color:#ef4444;"><i class="fas fa-triangle-exclamation"></i> Error loading expenses: ${e.message}</div>`;
+            container.innerHTML = `<div class="empty-state" style="color:#ef4444;"><i class="fas fa-triangle-exclamation"></i> ${ebMix('Error loading expenses', 'اخراجات لوڈ کرنے میں خرابی')}: ${e.message}</div>`;
         }
     }
 });
@@ -194,8 +549,18 @@ async function loadCategories() {
 
     const baseCategoryMap = new Map();
     industryCats.forEach(c => baseCategoryMap.set(c.id, c));
+    // Only append universal fallback categories if their concept isn't already covered by industryCats
+    const existingNamesLower = new Set(industryCats.map(c => String(c.name || '').toLowerCase()));
     DEFAULT_CATEGORIES.forEach(c => {
-        if (!baseCategoryMap.has(c.id)) baseCategoryMap.set(c.id, c);
+        const isDuplicateConcept =
+            (c.id === 'cat_electricity' && Array.from(existingNamesLower).some(n => n.includes('electric'))) ||
+            (c.id === 'cat_rent' && Array.from(existingNamesLower).some(n => n.includes('rent'))) ||
+            (c.id === 'cat_salary' && Array.from(existingNamesLower).some(n => n.includes('salar') || n.includes('wages'))) ||
+            (c.id === 'cat_packaging' && Array.from(existingNamesLower).some(n => n.includes('packag') || n.includes('dispos') || n.includes('bardana'))) ||
+            (c.id === 'cat_maintenance' && Array.from(existingNamesLower).some(n => n.includes('mainten') || n.includes('repair')));
+        if (!baseCategoryMap.has(c.id) && !isDuplicateConcept) {
+            baseCategoryMap.set(c.id, c);
+        }
     });
     const baseCategories = Array.from(baseCategoryMap.values());
     expenseCategories = [...baseCategories];
@@ -238,22 +603,31 @@ async function loadCategories() {
 function populateCategoryDropdowns() {
     const select = document.getElementById('expCategorySelect');
     const filterSelect = document.getElementById('expenseFilterCategory');
+    const isMix = ebIsMix();
 
     if (select) {
-        select.innerHTML = expenseCategories.map(c => `
-            <option value="${c.id}" data-name="${c.name}">
-                ${c.name} ${c.urdu ? '(' + c.urdu + ')' : ''}
-            </option>
-        `).join('');
+        const prevExpVal = select.value;
+        select.innerHTML = expenseCategories.map(c => {
+            const labelEn = c.name || '';
+            const labelUr = c.urdu ? `${labelEn} (${c.urdu})` : labelEn;
+            return `<option value="${ebEscAttr(c.id)}" data-name="${ebEscAttr(labelEn)}" data-eb-en="${ebEscAttr(labelEn)}" data-eb-ur="${ebEscAttr(labelUr)}">${isMix ? labelUr : labelEn}</option>`;
+        }).join('');
+        if (prevExpVal && Array.from(select.options).some(o => o.value === prevExpVal)) {
+            select.value = prevExpVal;
+        }
     }
 
     if (filterSelect) {
         const currentVal = filterSelect.value || 'all';
+        const allEn = 'All Categories';
+        const allUr = 'All Categories (تمام کیٹیگریز)';
         filterSelect.innerHTML = `
-            <option value="all">All Categories (تمام کیٹیگریز)</option>
-            ${expenseCategories.map(c => `
-                <option value="${c.id}">${c.name}</option>
-            `).join('')}
+            <option value="all" data-eb-en="${ebEscAttr(allEn)}" data-eb-ur="${ebEscAttr(allUr)}">${isMix ? allUr : allEn}</option>
+            ${expenseCategories.map(c => {
+                const labelEn = c.name || '';
+                const labelUr = c.urdu ? `${labelEn} (${c.urdu})` : labelEn;
+                return `<option value="${ebEscAttr(c.id)}" data-eb-en="${ebEscAttr(labelEn)}" data-eb-ur="${ebEscAttr(labelUr)}">${isMix ? labelUr : labelEn}</option>`;
+            }).join('')}
         `;
         filterSelect.value = currentVal;
     }
@@ -264,10 +638,11 @@ function renderCategoryManagerList() {
     if (!container) return;
 
     if (expenseCategories.length === 0) {
-        container.innerHTML = '<p style="color:#94a3b8; font-size:12px;">No categories available.</p>';
+        container.innerHTML = `<p style="color:#94a3b8; font-size:12px;">${ebMix('No categories available.', 'کوئی کیٹیگری دستیاب نہیں۔')}</p>`;
         return;
     }
 
+    const isMix = ebIsMix();
     container.innerHTML = expenseCategories.map(c => {
         const isDef = !!c.isDefault;
         return `
@@ -278,18 +653,18 @@ function renderCategoryManagerList() {
                     </span>
                     <div>
                         <div style="font-weight:700; color:#1e293b;">${c.name}</div>
-                        ${c.urdu ? `<div style="font-size:11px; color:#64748b;">${c.urdu}</div>` : ''}
+                        ${isMix && c.urdu ? `<div style="font-size:11px; color:#64748b;">${c.urdu}</div>` : ''}
                     </div>
                 </div>
 
                 <div>
                     ${isDef ? `
                         <span style="font-size:10px; background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:10px; font-weight:700;">
-                            Default
+                            ${ebMix('Default', 'ڈیفالٹ')}
                         </span>
                     ` : `
-                        <button type="button" class="btn btn-sm" onclick="deleteCategory('${c.id}')" style="background:#fee2e2; color:#b91c1c; border:none; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;" title="Delete Custom Category">
-                            <i class="fas fa-trash"></i> Delete
+                        <button type="button" class="btn btn-sm" onclick="deleteCategory('${c.id}')" style="background:#fee2e2; color:#b91c1c; border:none; padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;" title="${ebT('Delete Custom Category', 'Delete Custom Category (کیٹیگری حذف کریں)')}">
+                            <i class="fas fa-trash"></i> ${ebMix('Delete', 'حذف')}
                         </button>
                     `}
                 </div>
@@ -306,13 +681,13 @@ async function handleAddCategory(e) {
     const color = document.getElementById('newCatColor').value;
 
     if (!name) {
-        Swal.fire('Required', 'Please enter a category name.', 'warning');
+        Swal.fire(ebT('Required', 'Required (لازمی)'), ebT('Please enter a category name.', 'Please enter a category name. (کیٹیگری کا نام لکھیں)'), 'warning');
         return;
     }
 
     // Check duplicate
     if (expenseCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
-        Swal.fire('Duplicate', 'This category already exists.', 'info');
+        Swal.fire(ebT('Duplicate', 'Duplicate (پہلے سے موجود)'), ebT('This category already exists.', 'This category already exists. (یہ کیٹیگری پہلے سے موجود ہے)'), 'info');
         return;
     }
 
@@ -350,15 +725,15 @@ async function handleAddCategory(e) {
 
         Swal.fire({
             icon: 'success',
-            title: 'Category Created!',
-            text: `Category "${name}" successfully added.`,
+            title: ebT('Category Created!', 'Category Created! (کیٹیگری بن گئی)'),
+            text: ebT(`Category "${name}" successfully added.`, `Category "${name}" added. (کیٹیگری "${name}" شامل کر دی گئی)`),
             timer: 1500,
             showConfirmButton: false
         });
 
     } catch (err) {
         console.error('Add category error:', err);
-        Swal.fire('Error', 'Failed to save category: ' + err.message, 'error');
+        Swal.fire(ebT('Error', 'Error (خرابی)'), ebT('Failed to save category: ', 'Failed to save category (محفوظ نہ ہو سکی): ') + err.message, 'error');
     } finally {
         if (saveBtn) saveBtn.disabled = false;
     }
@@ -369,12 +744,13 @@ window.deleteCategory = async function(catId) {
     if (!cat || cat.isDefault) return;
 
     const res = await Swal.fire({
-        title: `Delete "${cat.name}"?`,
-        text: 'This will remove the category from your list.',
+        title: ebT(`Delete "${cat.name}"?`, `Delete "${cat.name}"? (کیا حذف کریں؟)`),
+        text: ebT('This will remove the category from your list.', 'This will remove the category from your list. (یہ کیٹیگری فہرست سے ہٹ جائے گی)'),
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
-        confirmButtonText: 'Yes, Delete'
+        confirmButtonText: ebT('Yes, Delete', 'Yes, Delete (ہاں، حذف کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)')
     });
 
     if (res.isConfirmed) {
@@ -384,9 +760,9 @@ window.deleteCategory = async function(catId) {
             localStorage.setItem(`eb_expense_cats_${myAgencyId}_${getActiveExpenseCategory()}`, JSON.stringify(expenseCategories));
             populateCategoryDropdowns();
             renderCategoryManagerList();
-            Swal.fire('Deleted!', 'Category removed.', 'success');
+            Swal.fire(ebT('Deleted!', 'Deleted! (حذف ہو گئی)'), ebT('Category removed.', 'Category removed. (کیٹیگری ہٹا دی گئی)'), 'success');
         } catch (e) {
-            Swal.fire('Error', 'Failed to delete: ' + e.message, 'error');
+            Swal.fire(ebT('Error', 'Error (خرابی)'), ebT('Failed to delete: ', 'Failed to delete (حذف نہ ہو سکی): ') + e.message, 'error');
         }
     }
 };
@@ -400,7 +776,7 @@ async function loadExpenses() {
         container.innerHTML = `
             <div style="text-align:center; padding:40px; color:#94a3b8;">
                 <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
-                <p style="margin-top:10px;">Loading expenses for ${dateStart} to ${dateEnd}...</p>
+                <p style="margin-top:10px;">${ebMix(`Loading expenses for ${dateStart} to ${dateEnd}...`, 'اخراجات لوڈ ہو رہے ہیں...')}</p>
             </div>
         `;
     }
@@ -494,12 +870,14 @@ function calculateAndRenderKPIs() {
     });
 
     const topCatObj = expenseCategories.find(c => c.id === topCatId || c.name === topCatId);
-    const topCatName = topCatObj ? topCatObj.name : (topCatAmount > 0 ? topCatId : 'None');
+    const topCatHtml = topCatObj
+        ? (topCatObj.urdu ? ebMix(topCatObj.name, topCatObj.urdu) : topCatObj.name)
+        : (topCatAmount > 0 ? topCatId : ebMix('None', 'کوئی نہیں'));
     const topCatPct = totalExp > 0 ? ((topCatAmount / totalExp) * 100).toFixed(1) : '0';
 
     // Staff Salaries & Commissions Total in Period
     const salaryTotal = rawExpenses
-        .filter(e => e.categoryId === 'cat_salary' || e.categoryId === 'cat_commission' || !!e.isSalaryPayroll)
+        .filter(e => isSalaryOrCommissionCategory(e.categoryId, e))
         .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     const opsTotal = Math.max(0, totalExp - salaryTotal);
 
@@ -520,16 +898,16 @@ function calculateAndRenderKPIs() {
     const elSalSub = document.getElementById('kpiSalarySub');
 
     if (elTotal) elTotal.innerText = `Rs ${totalExp.toLocaleString()}`;
-    if (elCount) elCount.innerText = `${count} Vouchers (${dateStart} to ${dateEnd})`;
+    if (elCount) elCount.innerHTML = `${count} ${ebMix('Vouchers', 'واؤچرز')} (${dateStart} ${ebMix('to', 'تک')} ${dateEnd})`;
     if (elToday) elToday.innerText = `Rs ${todayTotal.toLocaleString()}`;
-    if (elTodayCount) elTodayCount.innerText = `${todayExps.length} Vouchers Today`;
+    if (elTodayCount) elTodayCount.innerHTML = `${todayExps.length} ${ebMix('Vouchers Today', 'آج کے واؤچرز')}`;
     if (elMonth) elMonth.innerText = `Rs ${monthTotal.toLocaleString()}`;
-    if (elTopCat) elTopCat.innerText = topCatName;
-    if (elTopCatAmt) elTopCatAmt.innerText = `Rs ${topCatAmount.toLocaleString()} (${topCatPct}% of Total)`;
+    if (elTopCat) elTopCat.innerHTML = topCatHtml;
+    if (elTopCatAmt) elTopCatAmt.innerHTML = `Rs ${topCatAmount.toLocaleString()} (${topCatPct}% ${ebMix('of Total', 'کل کا')})`;
     if (elAvg) elAvg.innerText = `Rs ${avgExpense.toLocaleString()}`;
-    if (elActiveCats) elActiveCats.innerText = `${Object.keys(catTotals).length} Categories Active`;
+    if (elActiveCats) elActiveCats.innerHTML = `${Object.keys(catTotals).length} ${ebMix('Categories Active', 'فعال کیٹیگریز')}`;
     if (elSal) elSal.innerText = `Rs ${salaryTotal.toLocaleString()}`;
-    if (elSalSub) elSalSub.innerText = `Operations: Rs ${opsTotal.toLocaleString()}`;
+    if (elSalSub) elSalSub.innerHTML = `${ebMix('Operations', 'دیگر اخراجات')}: Rs ${opsTotal.toLocaleString()}`;
 }
 
 // ==========================================================================
@@ -605,10 +983,10 @@ function renderAllExpensesTable(items, container) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-wallet" style="font-size:36px; color:#cbd5e1; margin-bottom:12px;"></i>
-                <h3>No Expenses Recorded</h3>
-                <p>No expense vouchers found for the selected date range and filters.</p>
+                <h3>${ebMix('No Expenses Recorded', 'کوئی خرچ درج نہیں')}</h3>
+                <p>${ebCompact('No expense vouchers found for the selected date range and filters.', 'منتخب تاریخ اور فلٹرز کے مطابق کوئی اخراجات واؤچر نہیں ملا۔')}</p>
                 <button type="button" class="btn btn-sm" onclick="openExpenseModal()" style="background:#ef4444; color:#fff; margin-top:10px;">
-                    <i class="fas fa-plus"></i> Record First Expense
+                    <i class="fas fa-plus"></i> ${ebMix('Record First Expense', 'پہلا خرچ درج کریں')}
                 </button>
             </div>
         `;
@@ -638,7 +1016,7 @@ function renderAllExpensesTable(items, container) {
                 </td>
                 <td>
                     <span class="expense-cat-badge" style="background:${cat.color}15; color:${cat.color}; border:1px solid ${cat.color}35;">
-                        <i class="fas ${cat.icon}"></i> ${cat.name}
+                        <i class="fas ${cat.icon}"></i> ${cat.urdu ? ebMix(cat.name, cat.urdu) : cat.name}
                     </span>
                 </td>
                 <td>
@@ -653,13 +1031,13 @@ function renderAllExpensesTable(items, container) {
                     Rs ${(Number(e.amount) || 0).toLocaleString()}
                 </td>
                 <td style="text-align:center; white-space:nowrap;">
-                    <button class="btn btn-sm" onclick="editExpense('${e.id}')" style="background:#f1f5f9; color:#0284c7; padding:4px 8px; border-radius:6px;" title="Edit Expense">
+                    <button class="btn btn-sm" onclick="editExpense('${e.id}')" style="background:#f1f5f9; color:#0284c7; padding:4px 8px; border-radius:6px;" title="${ebT('Edit Expense', 'Edit Expense (ترمیم)')}">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm" onclick="printSingleVoucher('${e.id}')" style="background:#f1f5f9; color:#475569; padding:4px 8px; border-radius:6px; margin:0 2px;" title="Print Voucher">
+                    <button class="btn btn-sm" onclick="printSingleVoucher('${e.id}')" style="background:#f1f5f9; color:#475569; padding:4px 8px; border-radius:6px; margin:0 2px;" title="${ebT('Print Voucher', 'Print Voucher (واؤچر پرنٹ)')}">
                         <i class="fas fa-print"></i>
                     </button>
-                    <button class="btn btn-sm" onclick="deleteExpense('${e.id}')" style="background:#fee2e2; color:#ef4444; padding:4px 8px; border-radius:6px;" title="Delete Expense">
+                    <button class="btn btn-sm" onclick="deleteExpense('${e.id}')" style="background:#fee2e2; color:#ef4444; padding:4px 8px; border-radius:6px;" title="${ebT('Delete Expense', 'Delete Expense (حذف کریں)')}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -672,14 +1050,14 @@ function renderAllExpensesTable(items, container) {
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Date</th>
-                    <th>Voucher #</th>
-                    <th>Category</th>
-                    <th>Description</th>
-                    <th>Paid To / Vendor</th>
-                    <th>Payment Mode</th>
-                    <th style="text-align:right;">Amount (Rs.)</th>
-                    <th style="text-align:center; width:110px;">Actions</th>
+                    <th>${ebMix('Date', 'تاریخ')}</th>
+                    <th>${ebMix('Voucher #', 'واؤچر #')}</th>
+                    <th>${ebMix('Category', 'کیٹیگری')}</th>
+                    <th>${ebMix('Description', 'تفصیل')}</th>
+                    <th>${ebMix('Paid To / Vendor', 'وصول کنندہ')}</th>
+                    <th>${ebMix('Payment Mode', 'ادائیگی موڈ')}</th>
+                    <th style="text-align:right;">${ebMix('Amount (Rs.)', 'رقم')}</th>
+                    <th style="text-align:center; width:110px;">${ebMix('Actions', 'عمل')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -688,7 +1066,7 @@ function renderAllExpensesTable(items, container) {
             <tfoot>
                 <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1;">
                     <td colspan="7" style="text-align:right; font-size:13px; color:#1e293b;">
-                        TOTAL EXPENSES (${items.length} Entries):
+                        ${ebMix('TOTAL EXPENSES', 'کل اخراجات')} (${items.length} ${ebMix('Entries', 'اندراجات')}):
                     </td>
                     <td style="text-align:right; font-size:15px; color:#b91c1c; font-weight:900;">
                         Rs ${totalAmt.toLocaleString()}
@@ -725,10 +1103,11 @@ function renderCategoryBreakdownTable(items, container) {
     activeTableData = list;
 
     if (list.length === 0) {
-        container.innerHTML = `<div class="empty-state">No category expense records found.</div>`;
+        container.innerHTML = `<div class="empty-state">${ebMix('No category expense records found.', 'کیٹیگری کے مطابق کوئی خرچ نہیں ملا۔')}</div>`;
         return;
     }
 
+    const isMix = ebIsMix();
     const rows = list.map((item, idx) => {
         const cat = expenseCategories.find(c => c.id === item.id || c.name === item.id) || {
             name: item.id,
@@ -749,7 +1128,7 @@ function renderCategoryBreakdownTable(items, container) {
                         </span>
                         <div>
                             <div style="font-weight:800; font-size:13px; color:#0f172a;">${cat.name}</div>
-                            ${cat.urdu ? `<div style="font-size:11px; color:#64748b;">${cat.urdu}</div>` : ''}
+                            ${isMix && cat.urdu ? `<div style="font-size:11px; color:#64748b;">${cat.urdu}</div>` : ''}
                         </div>
                     </div>
                 </td>
@@ -779,11 +1158,11 @@ function renderCategoryBreakdownTable(items, container) {
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Category Name</th>
-                    <th style="text-align:right;">Vouchers</th>
-                    <th style="text-align:right;">Avg / Voucher</th>
-                    <th>Share of Total</th>
-                    <th style="text-align:right;">Total Amount (Rs.)</th>
+                    <th>${ebMix('Category Name', 'کیٹیگری نام')}</th>
+                    <th style="text-align:right;">${ebMix('Vouchers', 'واؤچرز')}</th>
+                    <th style="text-align:right;">${ebMix('Avg / Voucher', 'اوسط / واؤچر')}</th>
+                    <th>${ebMix('Share of Total', 'کل حصہ')}</th>
+                    <th style="text-align:right;">${ebMix('Total Amount (Rs.)', 'کل رقم')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -792,7 +1171,7 @@ function renderCategoryBreakdownTable(items, container) {
             <tfoot>
                 <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1;">
                     <td colspan="5" style="text-align:right; font-size:13px; color:#1e293b;">
-                        TOTAL ACROSS ALL CATEGORIES:
+                        ${ebMix('TOTAL ACROSS ALL CATEGORIES', 'تمام کیٹیگریز کا کل')}:
                     </td>
                     <td style="text-align:right; font-size:15px; color:#b91c1c; font-weight:900;">
                         Rs ${totalExp.toLocaleString()}
@@ -832,7 +1211,7 @@ function renderDayBreakdownTable(items, container) {
     activeTableData = list;
 
     if (list.length === 0) {
-        container.innerHTML = `<div class="empty-state">No daily expenses found.</div>`;
+        container.innerHTML = `<div class="empty-state">${ebMix('No daily expenses found.', 'روزانہ اخراجات کا کوئی ریکارڈ نہیں ملا۔')}</div>`;
         return;
     }
 
@@ -844,7 +1223,7 @@ function renderDayBreakdownTable(items, container) {
             if (item.catAmounts[cId] > topAmt) {
                 topAmt = item.catAmounts[cId];
                 const cObj = expenseCategories.find(c => c.id === cId || c.name === cId);
-                topCat = cObj ? cObj.name : cId;
+                topCat = cObj ? (cObj.urdu ? ebMix(cObj.name, cObj.urdu) : cObj.name) : cId;
             }
         });
 
@@ -888,11 +1267,11 @@ function renderDayBreakdownTable(items, container) {
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Date</th>
-                    <th style="text-align:right;">Vouchers</th>
-                    <th>Top Expense of Day</th>
-                    <th style="text-align:right;">Share %</th>
-                    <th style="text-align:right;">Daily Total (Rs.)</th>
+                    <th>${ebMix('Date', 'تاریخ')}</th>
+                    <th style="text-align:right;">${ebMix('Vouchers', 'واؤچرز')}</th>
+                    <th>${ebMix('Top Expense of Day', 'دن کا سب سے بڑا خرچ')}</th>
+                    <th style="text-align:right;">${ebMix('Share %', 'حصہ %')}</th>
+                    <th style="text-align:right;">${ebMix('Daily Total (Rs.)', 'روزانہ کل')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -901,7 +1280,7 @@ function renderDayBreakdownTable(items, container) {
             <tfoot>
                 <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1;">
                     <td colspan="5" style="text-align:right; font-size:13px; color:#1e293b;">
-                        TOTAL ACROSS ALL DAYS:
+                        ${ebMix('TOTAL ACROSS ALL DAYS', 'تمام دنوں کا کل')}:
                     </td>
                     <td style="text-align:right; font-size:15px; color:#b91c1c; font-weight:900;">
                         Rs ${totalExp.toLocaleString()}
@@ -948,7 +1327,7 @@ function renderWeeklyBreakdownTable(items, container) {
     activeTableData = list;
 
     if (list.length === 0) {
-        container.innerHTML = `<div class="empty-state">No weekly expenses found.</div>`;
+        container.innerHTML = `<div class="empty-state">${ebMix('No weekly expenses found.', 'ہفتہ وار اخراجات کا کوئی ریکارڈ نہیں ملا۔')}</div>`;
         return;
     }
 
@@ -958,7 +1337,7 @@ function renderWeeklyBreakdownTable(items, container) {
             <tr>
                 <td style="font-size:12px; font-weight:700; color:#475569;">${idx + 1}</td>
                 <td style="font-weight:800; color:#0f172a; font-size:13px;">
-                    Week ${item.weekNum}, ${item.year} (${item.weekKey})
+                    ${ebMix('Week', 'ہفتہ')} ${item.weekNum}, ${item.year} (${item.weekKey})
                 </td>
                 <td style="text-align:right; font-weight:700; color:#0f172a;">
                     ${item.count}
@@ -978,10 +1357,10 @@ function renderWeeklyBreakdownTable(items, container) {
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Week Period</th>
-                    <th style="text-align:right;">Vouchers</th>
-                    <th style="text-align:right;">Share %</th>
-                    <th style="text-align:right;">Weekly Total (Rs.)</th>
+                    <th>${ebMix('Week Period', 'ہفتہ')}</th>
+                    <th style="text-align:right;">${ebMix('Vouchers', 'واؤچرز')}</th>
+                    <th style="text-align:right;">${ebMix('Share %', 'حصہ %')}</th>
+                    <th style="text-align:right;">${ebMix('Weekly Total (Rs.)', 'ہفتہ وار کل')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -990,7 +1369,7 @@ function renderWeeklyBreakdownTable(items, container) {
             <tfoot>
                 <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1;">
                     <td colspan="4" style="text-align:right; font-size:13px; color:#1e293b;">
-                        TOTAL ACROSS ALL WEEKS:
+                        ${ebMix('TOTAL ACROSS ALL WEEKS', 'تمام ہفتوں کا کل')}:
                     </td>
                     <td style="text-align:right; font-size:15px; color:#b91c1c; font-weight:900;">
                         Rs ${totalExp.toLocaleString()}
@@ -1026,7 +1405,7 @@ function renderMonthlyBreakdownTable(items, container) {
     activeTableData = list;
 
     if (list.length === 0) {
-        container.innerHTML = `<div class="empty-state">No monthly expenses found.</div>`;
+        container.innerHTML = `<div class="empty-state">${ebMix('No monthly expenses found.', 'ماہانہ اخراجات کا کوئی ریکارڈ نہیں ملا۔')}</div>`;
         return;
     }
 
@@ -1064,10 +1443,10 @@ function renderMonthlyBreakdownTable(items, container) {
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Month & Year</th>
-                    <th style="text-align:right;">Vouchers</th>
-                    <th style="text-align:right;">Share %</th>
-                    <th style="text-align:right;">Monthly Total (Rs.)</th>
+                    <th>${ebMix('Month & Year', 'مہینہ اور سال')}</th>
+                    <th style="text-align:right;">${ebMix('Vouchers', 'واؤچرز')}</th>
+                    <th style="text-align:right;">${ebMix('Share %', 'حصہ %')}</th>
+                    <th style="text-align:right;">${ebMix('Monthly Total (Rs.)', 'ماہانہ کل')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -1076,7 +1455,7 @@ function renderMonthlyBreakdownTable(items, container) {
             <tfoot>
                 <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1;">
                     <td colspan="4" style="text-align:right; font-size:13px; color:#1e293b;">
-                        TOTAL ACROSS ALL MONTHS:
+                        ${ebMix('TOTAL ACROSS ALL MONTHS', 'تمام مہینوں کا کل')}:
                     </td>
                     <td style="text-align:right; font-size:15px; color:#b91c1c; font-weight:900;">
                         Rs ${totalExp.toLocaleString()}
@@ -1090,10 +1469,25 @@ function renderMonthlyBreakdownTable(items, container) {
 // ==========================================================================
 // ➕ 5. RECORD / EDIT EXPENSE CONTROLLER
 // ==========================================================================
+function updateExpenseModalHeaderAndBtn() {
+    const titleEl = document.getElementById('modalExpenseTitle');
+    const idEl = document.getElementById('expDocId');
+    const saveBtn = document.getElementById('btnSaveExpense');
+    const isEdit = !!(idEl && idEl.value);
+
+    if (titleEl) {
+        titleEl.innerHTML = isEdit
+            ? `<i class="fas fa-edit" style="color:#0284c7;"></i> <span>${ebMix('Edit Expense', 'خرچ تبدیل کریں')}</span>`
+            : `<i class="fas fa-plus-circle" style="color:#ef4444;"></i> <span>${ebMix('Record Expense', 'نیا خرچ درج کریں')}</span>`;
+    }
+    if (saveBtn && !saveBtn.disabled) {
+        saveBtn.innerHTML = `<i class="fas fa-save"></i> <span>${ebMix('Save Expense', 'محفوظ کریں')}</span>`;
+    }
+}
+
 window.openExpenseModal = function(editId = null) {
     const modal = document.getElementById('modalAddExpense');
     const form = document.getElementById('formExpense');
-    const titleEl = document.getElementById('modalExpenseTitle');
     const idEl = document.getElementById('expDocId');
 
     if (!modal || !form) return;
@@ -1102,7 +1496,6 @@ window.openExpenseModal = function(editId = null) {
         const exp = rawExpenses.find(e => e.id === editId);
         if (!exp) return;
 
-        titleEl.innerHTML = '<i class="fas fa-edit" style="color:#0284c7;"></i> Edit Expense (خرچ تبدیل کریں)';
         idEl.value = editId;
 
         document.getElementById('expCategorySelect').value = exp.categoryId || exp.category || 'cat_misc';
@@ -1114,12 +1507,12 @@ window.openExpenseModal = function(editId = null) {
         document.getElementById('expReceiptNo').value = exp.receiptNo || exp.voucherNo || '';
         document.getElementById('expNotes').value = exp.notes || '';
     } else {
-        titleEl.innerHTML = '<i class="fas fa-plus-circle" style="color:#ef4444;"></i> Record Expense (نیا خرچ درج کریں)';
         form.reset();
         idEl.value = '';
         document.getElementById('expDate').value = getPktToday();
     }
 
+    updateExpenseModalHeaderAndBtn();
     modal.style.display = 'flex';
 };
 
@@ -1145,18 +1538,18 @@ async function handleSaveExpense(e) {
     const notes = document.getElementById('expNotes').value.trim();
 
     if (!amount || amount <= 0) {
-        Swal.fire('Invalid Amount', 'Please enter a valid expense amount.', 'warning');
+        Swal.fire(ebT('Invalid Amount', 'Invalid Amount (غلط رقم)'), ebT('Please enter a valid expense amount.', 'Please enter a valid expense amount. (درست رقم درج کریں)'), 'warning');
         return;
     }
     if (!title) {
-        Swal.fire('Required', 'Please enter a title/description.', 'warning');
+        Swal.fire(ebT('Required', 'Required (لازمی)'), ebT('Please enter a title/description.', 'Please enter a title/description. (خرچ کی تفصیل لکھیں)'), 'warning');
         return;
     }
 
     const saveBtn = document.getElementById('btnSaveExpense');
     if (saveBtn) {
         saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${ebMix('Saving...', 'محفوظ ہو رہا ہے...')}`;
     }
 
     try {
@@ -1191,8 +1584,8 @@ async function handleSaveExpense(e) {
 
             Swal.fire({
                 icon: 'success',
-                title: 'Updated!',
-                text: 'Expense updated successfully.',
+                title: ebT('Updated!', 'Updated! (اپڈیٹ ہو گیا)'),
+                text: ebT('Expense updated successfully.', 'Expense updated successfully. (خرچ کامیابی سے اپڈیٹ ہو گیا)'),
                 timer: 1500,
                 showConfirmButton: false
             });
@@ -1207,7 +1600,7 @@ async function handleSaveExpense(e) {
 
             Swal.fire({
                 icon: 'success',
-                title: 'Expense Recorded!',
+                title: ebT('Expense Recorded!', 'Expense Recorded! (خرچ درج ہو گیا)'),
                 html: `<b>${title}</b><br>Rs ${amount.toLocaleString()} (${catName})`,
                 timer: 1800,
                 showConfirmButton: false
@@ -1222,11 +1615,11 @@ async function handleSaveExpense(e) {
 
     } catch (err) {
         console.error('Save expense error:', err);
-        Swal.fire('Error', 'Failed to save expense: ' + err.message, 'error');
+        Swal.fire(ebT('Error', 'Error (خرابی)'), ebT('Failed to save expense: ', 'Failed to save expense (محفوظ نہ ہو سکا): ') + err.message, 'error');
     } finally {
         if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Expense (محفوظ کریں)';
+            updateExpenseModalHeaderAndBtn();
         }
     }
 }
@@ -1240,13 +1633,14 @@ window.deleteExpense = async function(id) {
     if (!exp) return;
 
     const res = await Swal.fire({
-        title: 'Delete Expense Voucher?',
+        title: ebT('Delete Expense Voucher?', 'Delete Expense Voucher? (واؤچر حذف کریں؟)'),
         html: `<b>${exp.title || exp.description}</b><br>Rs ${(Number(exp.amount) || 0).toLocaleString()}`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#64748b',
-        confirmButtonText: 'Yes, Delete Voucher'
+        confirmButtonText: ebT('Yes, Delete Voucher', 'Yes, Delete Voucher (ہاں، حذف کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)')
     });
 
     if (res.isConfirmed) {
@@ -1255,9 +1649,9 @@ window.deleteExpense = async function(id) {
             rawExpenses = rawExpenses.filter(e => e.id !== id);
             localStorage.setItem(`eb_expenses_${myAgencyId}_${getActiveExpenseCategory()}`, JSON.stringify(rawExpenses));
             renderExpenseDashboard();
-            Swal.fire('Deleted!', 'Expense removed successfully.', 'success');
+            Swal.fire(ebT('Deleted!', 'Deleted! (حذف ہو گیا)'), ebT('Expense removed successfully.', 'Expense removed successfully. (خرچ کامیابی سے حذف ہو گیا)'), 'success');
         } catch (e) {
-            Swal.fire('Error', 'Failed to delete: ' + e.message, 'error');
+            Swal.fire(ebT('Error', 'Error (خرابی)'), ebT('Failed to delete: ', 'Failed to delete (حذف نہ ہو سکا): ') + e.message, 'error');
         }
     }
 };
@@ -1342,7 +1736,7 @@ function printFullReport() {
 // ==========================================================================
 function exportToCSV() {
     if (!activeTableData || activeTableData.length === 0) {
-        Swal.fire('No Data', 'No expenses available to export in current view.', 'info');
+        Swal.fire(ebT('No Data', 'No Data (کوئی ڈیٹا نہیں)'), ebT('No expenses available to export in current view.', 'No expenses available to export. (اس ویو میں ایکسپورٹ کے لیے کوئی ڈیٹا نہیں)'), 'info');
         return;
     }
 
@@ -1530,7 +1924,7 @@ function setupEventListeners() {
             const sVal = document.getElementById('expenseDateStart').value;
             const eVal = document.getElementById('expenseDateEnd').value;
             if (!sVal || !eVal) {
-                Swal.fire('Notice', 'Please choose both start and end dates.', 'info');
+                Swal.fire(ebT('Notice', 'Notice (اطلاع)'), ebT('Please choose both start and end dates.', 'Please choose both start and end dates. (برائے مہربانی شروع اور اختتام کی تاریخ منتخب کریں)'), 'info');
                 return;
             }
             dateStart = sVal;
@@ -1625,37 +2019,40 @@ function updateViewTitles() {
     const subEl = document.getElementById('expenseViewSubTitle');
     if (!titleEl || !subEl) return;
 
+    const meta = getCategoryExpensesUiMeta(getActiveExpenseCategory());
+
     if (currentView === 'all') {
-        titleEl.innerHTML = '<i class="fas fa-list-check" style="color:#ef4444;"></i> Detailed Expenses Vouchers';
-        subEl.innerText = 'تاریخ وار تمام ادائیگیوں اور واؤچرز کی مکمل تفصیل';
+        titleEl.innerHTML = `<i class="fas fa-list-check" style="color:#ef4444;"></i> ${ebMix('Detailed Expenses Vouchers', 'مکمل اخراجات واؤچرز')}`;
+        subEl.innerHTML = ebCompact('Date-wise list of all recorded payments and vouchers', 'تاریخ وار تمام ادائیگیوں اور واؤچرز کی مکمل تفصیل');
     } else if (currentView === 'category') {
-        titleEl.innerHTML = '<i class="fas fa-chart-pie" style="color:#6366f1;"></i> Category-wise Expenses Breakdown';
-        subEl.innerText = 'کیٹیگری وار کل خرچ، فیصد تناسب اور واؤچرز کی تعداد';
+        titleEl.innerHTML = `<i class="fas fa-chart-pie" style="color:#6366f1;"></i> ${ebMix('Category-wise Expenses Breakdown', 'کیٹیگری وار اخراجات')}`;
+        subEl.innerHTML = ebCompact('Total spending, percentage share &amp; voucher count by category', 'کیٹیگری وار کل خرچ، فیصد تناسب اور واؤچرز کی تعداد');
     } else if (currentView === 'day') {
-        titleEl.innerHTML = '<i class="fas fa-calendar-day" style="color:#f59e0b;"></i> Day-wise Daily Expenses';
-        subEl.innerText = 'ہر دن کا کل خرچ، واؤچرز اور دن کا سب سے بڑا خرچ';
+        titleEl.innerHTML = `<i class="fas fa-calendar-day" style="color:#f59e0b;"></i> ${ebMix('Day-wise Daily Expenses', 'روزانہ اخراجات')}`;
+        subEl.innerHTML = ebCompact('Daily expense totals, voucher counts &amp; top expense of each day', 'ہر دن کا کل خرچ، واؤچرز اور دن کا سب سے بڑا خرچ');
     } else if (currentView === 'weekly') {
-        titleEl.innerHTML = '<i class="fas fa-calendar-week" style="color:#8b5cf6;"></i> Weekly Expenses Summary';
-        subEl.innerText = 'ہفتہ وار اخراجات کی تفصیل اور اوسط';
+        titleEl.innerHTML = `<i class="fas fa-calendar-week" style="color:#8b5cf6;"></i> ${ebMix('Weekly Expenses Summary', 'ہفتہ وار اخراجات')}`;
+        subEl.innerHTML = ebCompact('Weekly spending breakdown and percentage share', 'ہفتہ وار اخراجات کی تفصیل اور اوسط');
     } else if (currentView === 'monthly') {
-        titleEl.innerHTML = '<i class="fas fa-calendar-alt" style="color:#3b82f6;"></i> Monthly Expenses Overview';
-        subEl.innerText = 'ماہانہ اخراجات کا تاریخی جائزہ اور موازنہ';
+        titleEl.innerHTML = `<i class="fas fa-calendar-alt" style="color:#3b82f6;"></i> ${ebMix('Monthly Expenses Overview', 'ماہانہ اخراجات کا جائزہ')}`;
+        subEl.innerHTML = ebCompact('Historical monthly spending overview and comparison', 'ماہانہ اخراجات کا تاریخی جائزہ اور موازنہ');
     } else if (currentView === 'salary') {
-        titleEl.innerHTML = '<i class="fas fa-user-tie" style="color:#059669;"></i> Staff Salaries, Commission &amp; Advance (Peshgi) Manager';
-        subEl.innerText = 'آرڈر بکر، ڈلیوری سپلائر، ڈرائیور اور گودام عملے کی تنخواہ، سیلز کمیشن، پیشگی کٹوتی اور سیلری سلپ';
+        const icon = meta.payrollTitleIcon || '<i class="fas fa-user-tie" style="color:#059669;"></i>';
+        titleEl.innerHTML = `${icon} ${ebMix(meta.payrollTitleEn || 'Staff Salaries, Commission &amp; Advance (Peshgi) Manager', meta.payrollTitleUr || 'اسٹاف تنخواہیں اور پیشگی')}`;
+        subEl.innerHTML = ebCompact(meta.payrollSubEn || 'Monthly staff salaries, commissions, advance deductions &amp; salary slips', meta.payrollSubUr || 'عملے کی تنخواہ، کمیشن، پیشگی کٹوتی اور سیلری سلپ');
     }
 }
 
 function getPaymentBadge(mode) {
     const m = (mode || 'cash').toLowerCase();
     if (m === 'bank') {
-        return '<span class="pay-mode-badge" style="background:#e0f2fe; color:#0369a1;"><i class="fas fa-building-columns"></i> Bank</span>';
+        return `<span class="pay-mode-badge" style="background:#e0f2fe; color:#0369a1;"><i class="fas fa-building-columns"></i> ${ebMix('Bank', 'بینک')}</span>`;
     } else if (m === 'wallet') {
-        return '<span class="pay-mode-badge" style="background:#fef3c7; color:#b45309;"><i class="fas fa-mobile-screen"></i> Wallet</span>';
+        return `<span class="pay-mode-badge" style="background:#fef3c7; color:#b45309;"><i class="fas fa-mobile-screen"></i> ${ebMix('Wallet', 'والٹ')}</span>`;
     } else if (m === 'cheque') {
-        return '<span class="pay-mode-badge" style="background:#f3e8ff; color:#7e22ce;"><i class="fas fa-money-check"></i> Cheque</span>';
+        return `<span class="pay-mode-badge" style="background:#f3e8ff; color:#7e22ce;"><i class="fas fa-money-check"></i> ${ebMix('Cheque', 'چیک')}</span>`;
     }
-    return '<span class="pay-mode-badge" style="background:#dcfce7; color:#15803d;"><i class="fas fa-money-bill-1"></i> Cash</span>';
+    return `<span class="pay-mode-badge" style="background:#dcfce7; color:#15803d;"><i class="fas fa-money-bill-1"></i> ${ebMix('Cash', 'کیش')}</span>`;
 }
 
 // ==========================================================================
@@ -1664,6 +2061,7 @@ function getPaymentBadge(mode) {
 async function loadStaffPayrollContext() {
     const targetMonth = salaryMonth || getPktToday().slice(0, 7);
     salaryMonth = targetMonth;
+    const meta = getCategoryExpensesUiMeta(getActiveExpenseCategory());
 
     try {
         const [usersSnap, customStaffSnap, salExpSnap, billsSnap] = await Promise.all([
@@ -1685,7 +2083,7 @@ async function loadStaffPayrollContext() {
                 name: u.name || u.email || 'Staff Member',
                 role: u.role || 'staff',
                 mobile: u.mobile || '',
-                route: u.route || 'General Depot',
+                route: u.route || meta.defaultStaffDept || 'General',
                 baseSalary: Number(u.baseSalary || 0),
                 commissionPct: Number(u.commissionPct || 0),
                 fixedAllowance: Number(u.fixedAllowance || 0)
@@ -1699,10 +2097,10 @@ async function loadStaffPayrollContext() {
             staffMap.set(d.id, {
                 id: d.id,
                 source: 'staff_payroll_profiles',
-                name: s.name || 'Depot Staff',
+                name: s.name || 'Staff Member',
                 role: s.role || 'helper',
                 mobile: s.mobile || '',
-                route: s.route || 'Godown / Van',
+                route: s.route || meta.defaultStaffDept || 'General',
                 baseSalary: Number(s.baseSalary || 0),
                 commissionPct: Number(s.commissionPct || 0),
                 fixedAllowance: Number(s.fixedAllowance || 0)
@@ -1715,7 +2113,7 @@ async function loadStaffPayrollContext() {
         salExpSnap.forEach(d => {
             const e = { id: d.id, ...d.data() };
             if (!matchesExpenseActiveCategory(e)) return;
-            if (e.categoryId === 'cat_salary' || e.categoryId === 'cat_commission' || !!e.isSalaryPayroll) {
+            if (isSalaryOrCommissionCategory(e.categoryId, e)) {
                 agencyAllSalaryExpenses.push(e);
             }
         });
@@ -1740,14 +2138,51 @@ async function loadStaffPayrollContext() {
     }
 }
 
-function getStaffRoleLabel(role) {
+function getStaffRolePair(role) {
     const r = String(role || '').toLowerCase();
-    if (r === 'booker') return '📕 Order Booker';
-    if (r === 'supplier' || r === 'delivery') return '🚚 Delivery Supplier';
-    if (r === 'driver') return '🚛 Van Driver';
-    if (r === 'loader' || r === 'helper') return '📦 Godown Loader / Helper';
-    if (r === 'accountant' || r === 'manager') return '💼 Manager / Munshi';
-    return `👤 ${role || 'Staff'}`;
+    const activeCat = getActiveExpenseCategory();
+    if (r === 'chef') return { en: '👨‍🍳 Head Chef / Cook', ur: 'شیف / کاریگر' };
+    if (r === 'fastfood_cook') return { en: '🍔 Fast Food / Grill Master', ur: 'فاسٹ فوڈ ماسٹر' };
+    if (r === 'waiter') return { en: '🍽️ Waiter / Captain', ur: 'ویٹر / کیپٹن' };
+    if (r === 'rider') return { en: '🛵 Delivery Rider', ur: 'ڈلیوری رائیڈر' };
+    if (r === 'pharmacist') return { en: '💊 Pharmacist', ur: 'فارماسسٹ' };
+    if (r === 'dispenser') return { en: '🧪 Dispenser / Counter', ur: 'ڈسپنسر' };
+    if (r === 'technician') return { en: '🛠️ Mobile Technician', ur: 'موبائل ٹیکنیشن' };
+    if (r === 'salesman') return activeCat === 'mobile'
+        ? { en: '📱 Showroom Salesman', ur: 'شوروم سیلزمین' }
+        : { en: '🎒 Counter Salesman', ur: 'کاؤنٹر سیلزمین' };
+    if (r === 'recovery') return { en: '🛵 Recovery Officer', ur: 'ریکوری آفیسر' };
+    if (r === 'binder') return { en: '📦 Book Binder / Packer', ur: 'بائنڈر / پیکر' };
+    if (r === 'booker') return activeCat === 'restaurant'
+        ? { en: '🍽️ Order Taker / Waiter', ur: 'آرڈر ٹیکر / ویٹر' }
+        : (activeCat === 'books'
+            ? { en: '📕 School Rep / Booker', ur: 'اسکول آرڈر بکر' }
+            : { en: '📕 Order Booker', ur: 'آرڈر بکر' });
+    if (r === 'supplier' || r === 'delivery') return activeCat === 'restaurant'
+        ? { en: '🛵 Food Delivery Rider', ur: 'فوڈ ڈلیوری رائیڈر' }
+        : (activeCat === 'medical'
+            ? { en: '🛵 Medicine Rider', ur: 'میڈیسن رائیڈر' }
+            : { en: '🚚 Delivery Supplier', ur: 'ڈلیوری سپلائر' });
+    if (r === 'driver') return activeCat === 'restaurant'
+        ? { en: '🛵 Delivery Rider', ur: 'ڈلیوری رائیڈر' }
+        : { en: '🚛 Van / Loader Driver', ur: 'وین / لوڈر ڈرائیور' };
+    if (r === 'loader' || r === 'helper') {
+        if (activeCat === 'restaurant') return { en: '🧹 Kitchen Helper', ur: 'کچن ہیلپر' };
+        if (activeCat === 'medical' || activeCat === 'mobile') return { en: '🧹 Store Helper', ur: 'اسٹور ہیلپر' };
+        if (activeCat === 'wholesaler') return { en: '📦 Palledar / Loader', ur: 'پلے دار / لوڈر' };
+        return { en: '📦 Godown Loader / Helper', ur: 'گودام لوڈر / ہیلپر' };
+    }
+    if (r === 'accountant' || r === 'manager') return { en: '💼 Cashier / Manager', ur: 'کیشیئر / منیجر' };
+    return { en: `👤 ${role || 'Staff'}`, ur: 'اسٹاف' };
+}
+
+function getStaffRoleLabel(role) {
+    return getStaffRolePair(role).en;
+}
+
+function getStaffRoleLabelHtml(role) {
+    const pair = getStaffRolePair(role);
+    return ebMix(pair.en, pair.ur);
 }
 
 function buildPayrollRows() {
@@ -1766,7 +2201,7 @@ function buildPayrollRows() {
             .filter(e => e.salaryType === 'advance')
             .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-        const salaryPaidVouchers = staffMonthVouchers.filter(e => e.salaryType === 'monthly_salary' || (!e.salaryType && e.categoryId === 'cat_salary'));
+        const salaryPaidVouchers = staffMonthVouchers.filter(e => e.salaryType === 'monthly_salary' || (!e.salaryType && isSalaryOrCommissionCategory(e.categoryId, e)));
         const salaryPaidAmt = salaryPaidVouchers.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
         const grossPay = (Number(st.baseSalary) || 0) + (Number(st.fixedAllowance) || 0) + commAmt;
@@ -1792,6 +2227,7 @@ function buildPayrollRows() {
 
 function renderStaffSalaryPayrollTable(container) {
     let rows = buildPayrollRows();
+    const meta = getCategoryExpensesUiMeta(getActiveExpenseCategory());
 
     if (salaryStatusFilter === 'paid') rows = rows.filter(r => r.isPaid);
     else if (salaryStatusFilter === 'pending') rows = rows.filter(r => !r.isPaid);
@@ -1815,17 +2251,20 @@ function renderStaffSalaryPayrollTable(container) {
 
     const sumPill = document.getElementById('salarySummaryPill');
     if (sumPill) {
-        sumPill.innerHTML = `Staff: ${rows.length} &bull; Gross: Rs ${totalPayrollGross.toLocaleString()} &bull; Peshgi: Rs ${totalAdvances.toLocaleString()} &bull; Paid: Rs ${totalPaidFinal.toLocaleString()} &bull; Pending: <span style="color:#b91c1c;">Rs ${totalRemaining.toLocaleString()}</span>`;
+        sumPill.innerHTML = `${ebMix('Staff', 'عملہ')}: ${rows.length} &bull; ${ebMix('Gross', 'مجموعی')}: Rs ${totalPayrollGross.toLocaleString()} &bull; ${ebMix('Peshgi', 'پیشگی')}: Rs ${totalAdvances.toLocaleString()} &bull; ${ebMix('Paid', 'ادا شدہ')}: Rs ${totalPaidFinal.toLocaleString()} &bull; ${ebMix('Pending', 'باقی')}: <span style="color:#b91c1c;">Rs ${totalRemaining.toLocaleString()}</span>`;
     }
 
     if (rows.length === 0) {
+        const addBtnHtml = meta.addStaffBtnEn
+            ? `<i class="fas fa-user-plus"></i> ${ebMix(meta.addStaffBtnEn, meta.addStaffBtnUr)}`
+            : `<i class="fas fa-user-plus"></i> ${ebMix('+ Add Staff Member', 'نیا اسٹاف شامل کریں')}`;
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-user-tie" style="font-size:36px; color:#cbd5e1; margin-bottom:12px;"></i>
-                <h3>No Staff Found for Payroll (${salaryMonth})</h3>
-                <p>Staff &amp; Bookers mein member add karein ya "+ Add Godown / Driver / Office Staff" button use karein.</p>
+                <h3>${ebMix(`No Staff Found for Payroll (${salaryMonth})`, 'تنخواہ کے لیے کوئی اسٹاف نہیں ملا')}</h3>
+                <p>${ebCompact('Add team members in Staff &amp; Bookers or use the button below to add payroll staff.', 'اسٹاف و بکر میں ممبر شامل کریں یا نیچے دیے گئے بٹن سے نیا اسٹاف شامل کریں۔')}</p>
                 <button type="button" class="btn btn-sm" onclick="openAddPayrollStaffModal()" style="background:#0284c7; color:#fff; margin-top:8px;">
-                    <i class="fas fa-user-plus"></i> + Add Godown / Driver Staff
+                    ${addBtnHtml}
                 </button>
             </div>`;
         return;
@@ -1836,16 +2275,16 @@ function renderStaffSalaryPayrollTable(container) {
             <td style="font-size:12px; font-weight:700; color:#475569;">${idx + 1}</td>
             <td>
                 <div style="font-weight:800; color:#0f172a; font-size:13px;">${r.name}</div>
-                <div style="font-size:11px; color:#475569;">${r.roleLabel}${r.mobile ? ' • ' + r.mobile : ''}</div>
+                <div style="font-size:11px; color:#475569;">${getStaffRoleLabelHtml(r.role)}${r.mobile ? ' • ' + r.mobile : ''}</div>
             </td>
             <td style="font-size:12px; color:#334155;">${r.route}</td>
             <td style="text-align:right; font-weight:700; color:#0369a1;">
                 Rs ${Math.round(r.monthSales).toLocaleString()}
-                ${r.commissionPct > 0 ? `<br><small style="color:#059669;">@${r.commissionPct}% Comm.</small>` : ''}
+                ${r.commissionPct > 0 ? `<br><small style="color:#059669;">@${r.commissionPct}% ${ebMix('Comm.', 'کمیشن')}</small>` : ''}
             </td>
             <td style="text-align:right; font-weight:700;">
                 Rs ${Math.round(r.baseSalary).toLocaleString()}
-                ${r.fixedAllowance > 0 ? `<br><small style="color:#64748b;">+Allow: Rs ${r.fixedAllowance.toLocaleString()}</small>` : ''}
+                ${r.fixedAllowance > 0 ? `<br><small style="color:#64748b;">+${ebMix('Allow', 'الاؤنس')}: Rs ${r.fixedAllowance.toLocaleString()}</small>` : ''}
             </td>
             <td style="text-align:right; font-weight:700; color:#059669;">Rs ${Math.round(r.commissionAmt).toLocaleString()}</td>
             <td style="text-align:right; font-weight:700; color:#d97706;">Rs ${Math.round(r.advancesPaid).toLocaleString()}</td>
@@ -1854,24 +2293,24 @@ function renderStaffSalaryPayrollTable(container) {
             </td>
             <td style="text-align:center;">
                 ${r.isPaid
-                    ? `<span style="background:#dcfce7; color:#15803d; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:800;">✅ PAID</span>`
-                    : `<span style="background:#fef3c7; color:#b45309; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:800;">⏳ PENDING</span>`
+                    ? `<span style="background:#dcfce7; color:#15803d; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:800;">✅ ${ebMix('PAID', 'ادا شدہ')}</span>`
+                    : `<span style="background:#fef3c7; color:#b45309; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:800;">⏳ ${ebMix('PENDING', 'باقی')}</span>`
                 }
             </td>
             <td style="text-align:right; white-space:nowrap;">
-                <button class="btn btn-sm" onclick="openStaffSalaryConfigModal('${r.id}')" style="background:#f1f5f9; color:#334155; padding:4px 8px; border-radius:6px;" title="Set Base Salary & Commission %">
-                    <i class="fas fa-gear"></i> Setup
+                <button class="btn btn-sm" onclick="openStaffSalaryConfigModal('${r.id}')" style="background:#f1f5f9; color:#334155; padding:4px 8px; border-radius:6px;" title="${ebT('Set Base Salary & Commission %', 'Set Base Salary & Commission % (تنخواہ سیٹ اپ)')}">
+                    <i class="fas fa-gear"></i> ${ebMix('Setup', 'سیٹ اپ')}
                 </button>
-                <button class="btn btn-sm" onclick="openPayAdvanceModal('${r.id}')" style="background:#fef3c7; color:#b45309; padding:4px 8px; border-radius:6px;" title="Give Salary Advance / Peshgi">
-                    <i class="fas fa-hand-holding-dollar"></i> Peshgi
+                <button class="btn btn-sm" onclick="openPayAdvanceModal('${r.id}')" style="background:#fef3c7; color:#b45309; padding:4px 8px; border-radius:6px;" title="${ebT('Give Salary Advance / Peshgi', 'Give Salary Advance (پیشگی دیں)')}">
+                    <i class="fas fa-hand-holding-dollar"></i> ${ebMix('Peshgi', 'پیشگی')}
                 </button>
                 ${!r.isPaid ? `
-                    <button class="btn btn-sm" onclick="openPaySalaryModal('${r.id}')" style="background:#059669; color:#fff; padding:4px 9px; border-radius:6px; font-weight:bold;" title="Pay Final Monthly Salary">
-                        <i class="fas fa-check"></i> Pay
+                    <button class="btn btn-sm" onclick="openPaySalaryModal('${r.id}')" style="background:#059669; color:#fff; padding:4px 9px; border-radius:6px; font-weight:bold;" title="${ebT('Pay Final Monthly Salary', 'Pay Final Monthly Salary (تنخواہ ادا کریں)')}">
+                        <i class="fas fa-check"></i> ${ebMix('Pay', 'ادائیگی')}
                     </button>
                 ` : ''}
-                <button class="btn btn-sm" onclick="printSalarySlip('${r.id}')" style="background:#e0f2fe; color:#0369a1; padding:4px 8px; border-radius:6px;" title="Print Salary Slip">
-                    <i class="fas fa-print"></i> Slip
+                <button class="btn btn-sm" onclick="printSalarySlip('${r.id}')" style="background:#e0f2fe; color:#0369a1; padding:4px 8px; border-radius:6px;" title="${ebT('Print Salary Slip', 'Print Salary Slip (سلپ پرنٹ)')}">
+                    <i class="fas fa-print"></i> ${ebMix('Slip', 'سلپ')}
                 </button>
             </td>
         </tr>
@@ -1882,24 +2321,24 @@ function renderStaffSalaryPayrollTable(container) {
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Staff Member</th>
-                    <th>Route / Dept</th>
-                    <th style="text-align:right;">Month Sales</th>
-                    <th style="text-align:right;">Base + Allow</th>
-                    <th style="text-align:right;">Comm.</th>
-                    <th style="text-align:right;">Peshgi Cut</th>
-                    <th style="text-align:right;">Net Payable / Paid</th>
-                    <th style="text-align:center;">Status</th>
-                    <th style="text-align:right;">Actions</th>
+                    <th>${ebMix('Staff Member', 'اسٹاف ممبر')}</th>
+                    <th>${ebMix(meta.payrollColRoute || 'Route / Dept', meta.payrollColRouteUr || 'روٹ / شعبہ')}</th>
+                    <th style="text-align:right;">${ebMix(meta.payrollColSales || 'Month Sales', meta.payrollColSalesUr || 'ماہانہ سیلز')}</th>
+                    <th style="text-align:right;">${ebMix('Base + Allow', 'تنخواہ + الاؤنس')}</th>
+                    <th style="text-align:right;">${ebMix('Comm. / Bonus', 'کمیشن / بونس')}</th>
+                    <th style="text-align:right;">${ebMix('Peshgi Cut', 'پیشگی کٹوتی')}</th>
+                    <th style="text-align:right;">${ebMix('Net Payable / Paid', 'خالص ادائیگی')}</th>
+                    <th style="text-align:center;">${ebMix('Status', 'اسٹیٹس')}</th>
+                    <th style="text-align:right;">${ebMix('Actions', 'عمل')}</th>
                 </tr>
             </thead>
             <tbody>${trs}</tbody>
             <tfoot>
                 <tr style="background:#f8fafc; font-weight:bold; border-top:2px solid #cbd5e1;">
-                    <td colspan="6" style="text-align:right; font-size:13px;">PAYROLL TOTALS (${salaryMonth}):</td>
+                    <td colspan="6" style="text-align:right; font-size:13px;">${ebMix('PAYROLL TOTALS', 'کل تنخواہیں')} (${salaryMonth}):</td>
                     <td style="text-align:right; color:#d97706;">Rs ${totalAdvances.toLocaleString()}</td>
-                    <td style="text-align:right; font-size:14px; color:#047857; font-weight:900;">Paid: Rs ${totalPaidFinal.toLocaleString()}</td>
-                    <td colspan="2" style="text-align:right; color:#b91c1c; font-size:12px;">Pending: Rs ${totalRemaining.toLocaleString()}</td>
+                    <td style="text-align:right; font-size:14px; color:#047857; font-weight:900;">${ebMix('Paid', 'ادا شدہ')}: Rs ${totalPaidFinal.toLocaleString()}</td>
+                    <td colspan="2" style="text-align:right; color:#b91c1c; font-size:12px;">${ebMix('Pending', 'باقی')}: Rs ${totalRemaining.toLocaleString()}</td>
                 </tr>
             </tfoot>
         </table>
@@ -1907,36 +2346,46 @@ function renderStaffSalaryPayrollTable(container) {
 }
 
 window.openAddPayrollStaffModal = async function() {
+    const activeCat = getActiveExpenseCategory();
+    const meta = getCategoryExpensesUiMeta(activeCat);
+    const roleOptionsHtml = (meta.staffRoles || []).map(r => {
+        const label = ebT(r.en, r.ur ? `${r.en} (${r.ur})` : r.en);
+        return `<option value="${ebEscAttr(r.value)}">${label}</option>`;
+    }).join('');
+
     const { value: val } = await Swal.fire({
-        title: '➕ Add Godown / Driver / Office Staff',
+        title: ebT(meta.addStaffModalTitleEn || '➕ Add Staff Member', `${meta.addStaffModalTitleEn || '➕ Add Staff Member'} (${meta.addStaffModalTitleUr || 'اسٹاف شامل کریں'})`),
         html: `
             <div style="text-align:left; font-size:13px;">
-                <label><b>Staff Name *</b></label>
+                <label><b>${ebMix('Staff Name *', 'اسٹاف کا نام')}</b></label>
                 <input id="psName" class="swal2-input" placeholder="e.g. Muhammad Usman" style="margin-top:4px; margin-bottom:8px;">
-                <label><b>Designation / Role *</b></label>
+                <label><b>${ebMix('Designation / Role *', 'عہدہ / ذمہ داری')}</b></label>
                 <select id="psRole" class="swal2-input" style="margin-top:4px; margin-bottom:8px;">
-                    <option value="driver">🚛 Delivery Van Driver</option>
-                    <option value="loader">📦 Godown Loader / Helper</option>
-                    <option value="accountant">💼 Munshi / Accountant</option>
-                    <option value="manager">🏢 Warehouse Manager</option>
-                    <option value="staff">👤 Office Boy / Guard</option>
+                    ${roleOptionsHtml}
                 </select>
-                <label><b>Mobile</b></label>
+                <label><b>${ebMix('Department / Station / Route', 'شعبہ / اسٹیشن / روٹ')}</b></label>
+                <input id="psDept" class="swal2-input" value="${ebEscAttr(meta.defaultStaffDept || 'General')}" style="margin-top:4px; margin-bottom:8px;">
+                <label><b>${ebMix('Mobile', 'موبائل نمبر')}</b></label>
                 <input id="psMobile" class="swal2-input" placeholder="03001234567" style="margin-top:4px; margin-bottom:8px;">
-                <label><b>Monthly Base Salary (Rs) *</b></label>
+                <label><b>${ebMix('Monthly Base Salary (Rs) *', 'ماہانہ بنیادی تنخواہ')}</b></label>
                 <input id="psSalary" type="number" class="swal2-input" placeholder="e.g. 25000" value="25000" style="margin-top:4px;">
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Save Staff',
+        confirmButtonText: ebT('Save Staff', 'Save Staff (محفوظ کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: '#0284c7',
         preConfirm: () => {
             const name = document.getElementById('psName').value.trim();
             const baseSalary = Number(document.getElementById('psSalary').value) || 0;
-            if (!name) { Swal.showValidationMessage('Staff Name lazmi hai!'); return false; }
+            if (!name) {
+                Swal.showValidationMessage(ebT('Staff Name is required!', 'Staff Name is required! (اسٹاف کا نام لازمی ہے)'));
+                return false;
+            }
             return {
                 name,
                 role: document.getElementById('psRole').value,
+                route: document.getElementById('psDept').value.trim() || meta.defaultStaffDept || 'General',
                 mobile: document.getElementById('psMobile').value.trim(),
                 baseSalary
             };
@@ -1947,12 +2396,12 @@ window.openAddPayrollStaffModal = async function() {
     try {
         await db.collection('staff_payroll_profiles').add({
             agencyId: myAgencyId,
-            businessCategory: getActiveExpenseCategory(),
+            businessCategory: activeCat,
             categoryConfirmedByCreate: true,
             name: val.name,
             role: val.role,
             mobile: val.mobile,
-            route: 'Agency / Godown',
+            route: val.route,
             baseSalary: val.baseSalary,
             commissionPct: 0,
             fixedAllowance: 0,
@@ -1962,30 +2411,32 @@ window.openAddPayrollStaffModal = async function() {
         });
         await loadStaffPayrollContext();
         renderCurrentViewTable();
-        Swal.fire({ toast: true, position: 'top-end', timer: 1600, showConfirmButton: false, icon: 'success', title: 'Staff added to Payroll!' });
+        Swal.fire({ toast: true, position: 'top-end', timer: 1600, showConfirmButton: false, icon: 'success', title: ebT('Staff added to Payroll!', 'Staff added! (اسٹاف شامل ہو گیا)') });
     } catch (e) {
-        Swal.fire('Error', e.message, 'error');
+        Swal.fire(ebT('Error', 'Error (خرابی)'), e.message, 'error');
     }
 };
 
 window.openStaffSalaryConfigModal = async function(staffId) {
     const st = agencyStaffList.find(s => s.id === staffId);
     if (!st) return;
+    const meta = getCategoryExpensesUiMeta(getActiveExpenseCategory());
 
     const { value: val } = await Swal.fire({
-        title: `⚙️ Salary Setup: ${st.name}`,
+        title: `${ebT('⚙️ Salary Setup', '⚙️ Salary Setup (تنخواہ سیٹ اپ)')}: ${st.name}`,
         html: `
             <div style="text-align:left; font-size:13px;">
-                <label><b>Monthly Base Salary (Rs)</b></label>
+                <label><b>${ebMix('Monthly Base Salary (Rs)', 'ماہانہ بنیادی تنخواہ')}</b></label>
                 <input id="cfgBaseSal" type="number" class="swal2-input" value="${st.baseSalary || 0}" style="margin-top:4px; margin-bottom:10px;">
-                <label><b>Fixed TA/DA / Fuel Allowance (Rs)</b></label>
+                <label><b>${ebMix(meta.allowanceLabelEn || 'Fixed Allowance (Rs)', meta.allowanceLabelUr || 'مقررہ الاؤنس')}</b></label>
                 <input id="cfgAllow" type="number" class="swal2-input" value="${st.fixedAllowance || 0}" style="margin-top:4px; margin-bottom:10px;">
-                <label><b>Sales Commission % (for Bookers/Suppliers)</b></label>
+                <label><b>${ebMix(meta.commLabelEn || 'Sales Commission %', meta.commLabelUr || 'سیلز کمیشن %')}</b></label>
                 <input id="cfgComm" type="number" step="0.1" class="swal2-input" value="${st.commissionPct || 0}" style="margin-top:4px;">
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Save Salary Config',
+        confirmButtonText: ebT('Save Salary Config', 'Save Salary Config (محفوظ کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: '#059669',
         preConfirm: () => ({
             baseSalary: Number(document.getElementById('cfgBaseSal').value) || 0,
@@ -2005,9 +2456,9 @@ window.openStaffSalaryConfigModal = async function(staffId) {
         });
         await loadStaffPayrollContext();
         renderCurrentViewTable();
-        Swal.fire({ toast: true, position: 'top-end', timer: 1600, showConfirmButton: false, icon: 'success', title: 'Salary config saved!' });
+        Swal.fire({ toast: true, position: 'top-end', timer: 1600, showConfirmButton: false, icon: 'success', title: ebT('Salary config saved!', 'Salary config saved! (محفوظ ہو گیا)') });
     } catch (e) {
-        Swal.fire('Error', e.message, 'error');
+        Swal.fire(ebT('Error', 'Error (خرابی)'), e.message, 'error');
     }
 };
 
@@ -2016,29 +2467,33 @@ window.openPayAdvanceModal = async function(staffId) {
     if (!st) return;
 
     const { value: val } = await Swal.fire({
-        title: `💵 Pay Advance (پیشگی): ${st.name}`,
+        title: `${ebT('💵 Pay Advance', '💵 Pay Advance (پیشگی ادائیگی)')}: ${st.name}`,
         html: `
             <div style="text-align:left; font-size:13px;">
-                <label><b>Payroll Month</b></label>
+                <label><b>${ebMix('Payroll Month', 'تنخواہ کا مہینہ')}</b></label>
                 <input id="advMonth" type="month" class="swal2-input" value="${salaryMonth}" style="margin-top:4px; margin-bottom:8px;">
-                <label><b>Advance / Peshgi Amount (Rs) *</b></label>
+                <label><b>${ebMix('Advance / Peshgi Amount (Rs) *', 'پیشگی رقم')}</b></label>
                 <input id="advAmt" type="number" class="swal2-input" placeholder="e.g. 5000" style="margin-top:4px; margin-bottom:8px;">
-                <label><b>Payment Mode</b></label>
+                <label><b>${ebMix('Payment Mode', 'ادائیگی کا طریقہ')}</b></label>
                 <select id="advMode" class="swal2-input" style="margin-top:4px; margin-bottom:8px;">
-                    <option value="cash">Cash (نقد)</option>
-                    <option value="bank">Bank Transfer</option>
-                    <option value="wallet">JazzCash / EasyPaisa</option>
+                    <option value="cash">${ebT('Cash', 'Cash (نقد)')}</option>
+                    <option value="bank">${ebT('Bank Transfer', 'Bank Transfer (بینک)')}</option>
+                    <option value="wallet">${ebT('JazzCash / EasyPaisa', 'JazzCash / EasyPaisa (والٹ)')}</option>
                 </select>
-                <label><b>Note</b></label>
+                <label><b>${ebMix('Note', 'نوٹ')}</b></label>
                 <input id="advNote" class="swal2-input" placeholder="e.g. Mid-month Peshgi" style="margin-top:4px;">
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Record Advance',
+        confirmButtonText: ebT('Record Advance', 'Record Advance (پیشگی درج کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: '#d97706',
         preConfirm: () => {
             const amount = Number(document.getElementById('advAmt').value) || 0;
-            if (amount <= 0) { Swal.showValidationMessage('Valid amount likhein!'); return false; }
+            if (amount <= 0) {
+                Swal.showValidationMessage(ebT('Please enter a valid amount!', 'Please enter a valid amount! (درست رقم درج کریں)'));
+                return false;
+            }
             return {
                 payrollMonth: document.getElementById('advMonth').value || salaryMonth,
                 amount,
@@ -2076,9 +2531,15 @@ window.openPayAdvanceModal = async function(staffId) {
         await db.collection('expenses').add(expData);
         await loadStaffPayrollContext();
         await loadExpenses();
-        Swal.fire({ icon: 'success', title: 'Advance Recorded!', text: `Rs ${val.amount.toLocaleString()} Peshgi ${st.name} ke khate mein darj ho gayi.`, timer: 1800, showConfirmButton: false });
+        Swal.fire({
+            icon: 'success',
+            title: ebT('Advance Recorded!', 'Advance Recorded! (پیشگی درج ہو گئی)'),
+            text: ebT(`Rs ${val.amount.toLocaleString()} advance recorded for ${st.name}.`, `Rs ${val.amount.toLocaleString()} advance recorded for ${st.name}. (پیشگی کھاتے میں درج ہو گئی)`),
+            timer: 1800,
+            showConfirmButton: false
+        });
     } catch (e) {
-        Swal.fire('Error', e.message, 'error');
+        Swal.fire(ebT('Error', 'Error (خرابی)'), e.message, 'error');
     }
 };
 
@@ -2087,37 +2548,41 @@ window.openPaySalaryModal = async function(staffId) {
     if (!row) return;
 
     const { value: val } = await Swal.fire({
-        title: `✅ Pay Monthly Salary: ${row.name}`,
+        title: `${ebT('✅ Pay Monthly Salary', '✅ Pay Monthly Salary (تنخواہ ادائیگی)')}: ${row.name}`,
         html: `
             <div style="text-align:left; font-size:13px;">
                 <div style="background:#ecfdf5; border:1px solid #a7f3d0; padding:8px 10px; border-radius:8px; margin-bottom:10px; font-size:12px;">
-                    📅 Month: <b>${salaryMonth}</b> &bull; Sales: <b>Rs ${Math.round(row.monthSales).toLocaleString()}</b> &bull; Peshgi Already Paid: <b style="color:#b45309;">Rs ${Math.round(row.advancesPaid).toLocaleString()}</b>
+                    📅 ${ebMix('Month', 'مہینہ')}: <b>${salaryMonth}</b> &bull; ${ebMix('Sales', 'سیلز')}: <b>Rs ${Math.round(row.monthSales).toLocaleString()}</b> &bull; ${ebMix('Peshgi Already Paid', 'پیشگی ادا شدہ')}: <b style="color:#b45309;">Rs ${Math.round(row.advancesPaid).toLocaleString()}</b>
                 </div>
-                <label><b>Base Salary + Allowance (Rs)</b></label>
+                <label><b>${ebMix('Base Salary + Allowance (Rs)', 'بنیادی تنخواہ + الاؤنس')}</b></label>
                 <input id="payBase" type="number" class="swal2-input" value="${(row.baseSalary || 0) + (row.fixedAllowance || 0)}" style="margin-top:4px; margin-bottom:8px;">
-                <label><b>Commission / Target Bonus (Rs)</b></label>
+                <label><b>${ebMix('Commission / Target Bonus (Rs)', 'کمیشن / ٹارگٹ بونس')}</b></label>
                 <input id="payBonus" type="number" class="swal2-input" value="${row.commissionAmt || 0}" style="margin-top:4px; margin-bottom:8px;">
-                <label><b>Advance (Peshgi) / Fine Deduction (Rs)</b></label>
+                <label><b>${ebMix('Advance (Peshgi) / Fine Deduction (Rs)', 'پیشگی / کٹوتی')}</b></label>
                 <input id="payDed" type="number" class="swal2-input" value="${row.advancesPaid || 0}" style="margin-top:4px; margin-bottom:8px;">
-                <label><b>Payment Mode</b></label>
+                <label><b>${ebMix('Payment Mode', 'ادائیگی کا طریقہ')}</b></label>
                 <select id="payMode" class="swal2-input" style="margin-top:4px; margin-bottom:8px;">
-                    <option value="cash">Cash (نقد)</option>
-                    <option value="bank">Bank Transfer</option>
-                    <option value="wallet">JazzCash / EasyPaisa</option>
+                    <option value="cash">${ebT('Cash', 'Cash (نقد)')}</option>
+                    <option value="bank">${ebT('Bank Transfer', 'Bank Transfer (بینک)')}</option>
+                    <option value="wallet">${ebT('JazzCash / EasyPaisa', 'JazzCash / EasyPaisa (والٹ)')}</option>
                 </select>
-                <label><b>Remarks / Notes</b></label>
+                <label><b>${ebMix('Remarks / Notes', 'ریمارکس / نوٹس')}</b></label>
                 <input id="payNotes" class="swal2-input" placeholder="e.g. Full month settled" style="margin-top:4px;">
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: '💸 Pay & Generate Salary Voucher',
+        confirmButtonText: ebT('💸 Pay & Generate Salary Voucher', '💸 Pay & Generate Voucher (تنخواہ ادا کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: '#059669',
         preConfirm: () => {
             const base = Number(document.getElementById('payBase').value) || 0;
             const bonus = Number(document.getElementById('payBonus').value) || 0;
             const deduction = Number(document.getElementById('payDed').value) || 0;
             const netPaid = Math.max(0, base + bonus - deduction);
-            if (netPaid <= 0) { Swal.showValidationMessage('Net payable amount 0 se zyada honi chahiye!'); return false; }
+            if (netPaid <= 0) {
+                Swal.showValidationMessage(ebT('Net payable amount must be greater than 0!', 'Net payable must be > 0! (خالص رقم 0 سے زیادہ ہونی چاہیے)'));
+                return false;
+            }
             return {
                 base,
                 bonus,
@@ -2164,9 +2629,16 @@ window.openPaySalaryModal = async function(staffId) {
         await db.collection('expenses').add(expData);
         await loadStaffPayrollContext();
         await loadExpenses();
-        Swal.fire({ icon: 'success', title: 'Salary Paid & Recorded!', html: `<b>${row.name}</b> ko <b>Rs ${val.netPaid.toLocaleString()}</b> (${salaryMonth}) ada kar diye gaye.` });
+        Swal.fire({
+            icon: 'success',
+            title: ebT('Salary Paid & Recorded!', 'Salary Paid & Recorded! (تنخواہ ادا ہو گئی)'),
+            html: ebT(
+                `<b>Rs ${val.netPaid.toLocaleString()}</b> paid to <b>${row.name}</b> (${salaryMonth}).`,
+                `<b>Rs ${val.netPaid.toLocaleString()}</b> paid to <b>${row.name}</b> (${salaryMonth})<span class="eb-ur-compact">تنخواہ کامیابی سے ادا اور ریکارڈ کر دی گئی۔</span>`
+            )
+        });
     } catch (e) {
-        Swal.fire('Error', e.message, 'error');
+        Swal.fire(ebT('Error', 'Error (خرابی)'), e.message, 'error');
     }
 };
 
@@ -2176,7 +2648,8 @@ window.printSalarySlip = function(staffId) {
     const printArea = document.getElementById('printableExpenseArea');
     if (!printArea) return;
 
-    const agencyName = (myAgency && myAgency.name) || 'NH POS Distribution';
+    const meta = getCategoryExpensesUiMeta(getActiveExpenseCategory());
+    const agencyName = (myAgency && (myAgency.businessName || myAgency.name)) || 'NH POS';
     const agencyPhone = (myAgency && (myAgency.phone || myAgency.mobile)) || '';
     const agencyCity = (myAgency && myAgency.city) || '';
     const paidVoucher = agencyAllSalaryExpenses.find(e => e.staffId === staffId && (e.payrollMonth || (e.date || '').slice(0, 7)) === salaryMonth && e.salaryType === 'monthly_salary');
@@ -2196,7 +2669,7 @@ window.printSalarySlip = function(staffId) {
                 </div>
             </div>
             <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:12px;">
-                <div><b>Employee:</b> ${row.name}<br><b>Role:</b> ${row.roleLabel}<br><b>Route:</b> ${row.route}</div>
+                <div><b>Employee:</b> ${row.name}<br><b>Role:</b> ${row.roleLabel}<br><b>${meta.payrollColRoute || 'Route / Dept'}:</b> ${row.route}</div>
                 <div style="text-align:right;"><b>Slip #:</b> ${(paidVoucher && paidVoucher.voucherNo) || 'PREVIEW'}<br><b>Status:</b> ${row.isPaid ? '✅ PAID' : '⏳ PENDING'}<br><b>Date:</b> ${(paidVoucher && paidVoucher.date) || getPktToday()}</div>
             </div>
             <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px;">
@@ -2216,3 +2689,38 @@ window.printSalarySlip = function(staffId) {
     window.print();
     setTimeout(() => { printArea.style.display = 'none'; }, 1000);
 };
+
+// ==========================================================================
+// 🌐 LIVE BILINGUAL SYNC (SIDEBAR LANGUAGE TOGGLE LISTENER)
+// ==========================================================================
+if (!window.__ebExpensesLangBound) {
+    window.__ebExpensesLangBound = true;
+
+    const refreshExpensesBilingualUI = () => {
+        ebApplyBilingualDom(document);
+        applyCategoryExpensesUI();
+        populateCategoryDropdowns();
+        renderCategoryManagerList();
+        if (dateStart && dateEnd) {
+            calculateAndRenderKPIs();
+            renderCurrentViewTable();
+        }
+        const expModal = document.getElementById('modalAddExpense');
+        if (expModal && expModal.style.display !== 'none') {
+            updateExpenseModalHeaderAndBtn();
+        }
+    };
+
+    window.addEventListener('eb-lang-changed', refreshExpensesBilingualUI);
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            ebApplyBilingualDom(document);
+            ebRefreshStaticSelects();
+        });
+    } else {
+        ebApplyBilingualDom(document);
+        ebRefreshStaticSelects();
+    }
+}
+

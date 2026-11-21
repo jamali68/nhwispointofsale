@@ -45,6 +45,57 @@ let rawDamageClaims = [];
 let rawOrders = [];
 let activeTableData = []; // for CSV export and quick search
 
+// ============================================
+// 🌐 UNIFIED BILINGUAL ENGINE HELPERS (SIDEBAR CONTROLLED)
+// ============================================
+function ebIsMix() {
+    return !!(window.ebLang && typeof window.ebLang.isMix === 'function' && window.ebLang.isMix());
+}
+function ebT(en, urMix) {
+    return ebIsMix() ? (urMix || en) : en;
+}
+function ebEscAttr(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+function ebMix(en, ur, asBlock = false) {
+    if (!ur) return en;
+    const cls = asBlock ? 'eb-ur-block' : 'eb-ur-sub';
+    return `${en} <span class="${cls}">(${ur})</span>`;
+}
+function ebCompact(en, ur) {
+    if (!ur) return en;
+    return `${en}<span class="eb-ur-compact">${ur}</span>`;
+}
+function ebApplyBilingualDom(root) {
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(root || document);
+    }
+}
+function ebBilingualizeSelectOptions(selectEl) {
+    if (!selectEl) return;
+    const mix = ebIsMix();
+    Array.from(selectEl.options || []).forEach(opt => {
+        const en = opt.getAttribute('data-eb-en');
+        const ur = opt.getAttribute('data-eb-ur');
+        if (en !== null) {
+            opt.textContent = (mix && ur) ? ur : en;
+        }
+    });
+}
+function ebRefreshStaticSelects() {
+    [
+        'mobileAnalyticsModeSelect',
+        'booksAnalyticsModeSelect',
+        'wholesalerAnalyticsModeSelect',
+        'medicalAnalyticsModeSelect',
+        'restaurantAnalyticsModeSelect'
+    ].forEach(id => ebBilingualizeSelectOptions(document.getElementById(id)));
+}
+
 function getActiveReportCategory() {
     if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
         return window.BusinessCategories.resolveActiveCategory(myAgency, 'books');
@@ -72,6 +123,215 @@ function getReportItemSubtitle(it) {
     return src.itemSubtitle || '';
 }
 
+function getCategoryReportMeta(catId) {
+    const c = String(catId || getActiveReportCategory() || 'distributor').toLowerCase();
+    const map = {
+        restaurant: {
+            icon: '🍔',
+            specsHeaderEn: 'Kitchen Station / Portion / Deal Info',
+            specsHeaderUr: 'کچن کاؤنٹر / پورشن / ڈیل تفصیل',
+            partyHeaderEn: 'Customer / Table / Order Party',
+            partyHeaderUr: 'گاہک / ٹیبل / آرڈر پارٹی',
+            shopHeaderEn: 'Table / Zone / Channel',
+            shopHeaderUr: 'ٹیبل / زون / چینل',
+            staffTabIcon: '<i class="fas fa-user-tie"></i>',
+            staffTabEn: 'Waiters &amp; Riders Performance',
+            staffTabUr: 'ویٹرز و رائیڈرز کارکردگی',
+            staffReportTitleEn: 'Waiters, Captains &amp; Delivery Riders Performance',
+            staffReportTitleUr: 'ویٹرز، کیپٹنز اور ڈلیوری رائیڈرز کارکردگی',
+            staffReportSubEn: 'Sales, orders, and cash collection report for waiters, table order takers, and delivery riders.',
+            staffReportSubUr: 'ویٹرز، ٹیبل آرڈر ٹیکرز اور ہوم ڈلیوری رائیڈرز کی سیلز، آرڈرز اور کیش وصولی کی رپورٹ',
+            staffColHeaderEn: 'Waiter / Rider Name',
+            staffColHeaderUr: 'ویٹر / رائیڈر کا نام',
+            staffKpiActiveEn: 'Active Waiters &amp; Riders',
+            staffKpiActiveUr: 'فعال ویٹرز و رائیڈرز',
+            damageIcon: '<i class="fas fa-fire-burner"></i>',
+            damageTitleEn: 'Kitchen Wastage, Freezer Spoilage &amp; Losses',
+            damageTitleUr: 'کچن ویسٹیج، فریزر خرابی و نقصانات',
+            damageSubEn: 'Detailed report of kitchen wastage, freezer spoilage, staff meals, and unsellable item losses.',
+            damageSubUr: 'کچن ضیاع، فریزر خرابی، اسٹاف میلز اور ناقابلِ فروخت آئٹمز کے نقصانات کی تفصیلی رپورٹ',
+            damageKpi1En: 'Kitchen Wastage / Damaged Units',
+            damageKpi1Ur: 'کچن ویسٹیج / خراب یونٹس',
+            damageKpi2En: 'Freezer Spoilage / Expired Units',
+            damageKpi2Ur: 'فریزر خرابی / ایکسپائرڈ یونٹس',
+            claimsSubEn: 'Detailed report of home delivery returns, cancelled orders, and supplier claims.',
+            claimsSubUr: 'ہوم ڈلیوری واپسی، کینسل شدہ آرڈرز اور سپلائر کلیمز کی تفصیلی رپورٹ'
+        },
+        medical: {
+            icon: '💊',
+            specsHeaderEn: 'Generic Salt / Batch # / Expiry / Rack',
+            specsHeaderUr: 'جنیرک سالٹ / بیچ / ایکسپائری / ریک',
+            partyHeaderEn: 'Patient / Doctor / Clinic',
+            partyHeaderUr: 'مریض / ڈاکٹر / کلینک',
+            shopHeaderEn: 'Clinic / Hospital',
+            shopHeaderUr: 'کلینک / اسپتال',
+            staffTabIcon: '<i class="fas fa-user-md"></i>',
+            staffTabEn: 'Pharmacist &amp; Staff Performance',
+            staffTabUr: 'فارماسسٹ و اسٹاف کارکردگی',
+            staffReportTitleEn: 'Pharmacists, Dispensers &amp; Supply Riders Performance',
+            staffReportTitleUr: 'فارماسسٹ، ڈسپنسرز اور سپلائی رائیڈرز کارکردگی',
+            staffReportSubEn: 'Sales, prescriptions, and collection performance for pharmacists, dispensers, and clinic supply riders.',
+            staffReportSubUr: 'فارماسسٹ، ڈسپنسرز اور کلینک سپلائی رائیڈرز کی سیلز، نسخہ جات اور وصولی کی رپورٹ',
+            staffColHeaderEn: 'Pharmacist / Staff Name',
+            staffColHeaderUr: 'فارماسسٹ / اسٹاف کا نام',
+            staffKpiActiveEn: 'Active Pharmacy Staff',
+            staffKpiActiveUr: 'فعال فارمیسی اسٹاف',
+            damageIcon: '<i class="fas fa-pills"></i>',
+            damageTitleEn: 'Expired Medicines, Breakage &amp; Company Claims',
+            damageTitleUr: 'ایکسپائرڈ ادویات، ٹوٹ پھوٹ و کمپنی کلیمز',
+            damageSubEn: 'Detailed report of near/past expiry medicines, breakage, and pharma company claim losses.',
+            damageSubUr: 'زائد المیعاد ادویات (Near/Past Expiry)، ٹوٹ پھوٹ اور فارما کمپنی کلیم نقصانات کی تفصیلی رپورٹ',
+            damageKpi1En: 'Broken / Damaged Packs',
+            damageKpi1Ur: 'ٹوٹے / خراب پیکس',
+            damageKpi2En: 'Expired Medicine Units',
+            damageKpi2Ur: 'ایکسپائرڈ ادویات یونٹس',
+            claimsSubEn: 'Report of returned medicines from patients/clinics and pharma company claims.',
+            claimsSubUr: 'مریضوں اور کلینکس سے واپس آنے والی ادویات اور فارما کمپنی کلیمز کی رپورٹ'
+        },
+        mobile: {
+            icon: '📱',
+            specsHeaderEn: 'IMEI / RAM-ROM / PTA &amp; Warranty Specs',
+            specsHeaderUr: 'IMEI / ریم-روم / PTA و وارنٹی تفصیل',
+            partyHeaderEn: 'Buyer / Sub-Dealer Name',
+            partyHeaderUr: 'خریدار / سب ڈیلر کا نام',
+            shopHeaderEn: 'Showroom / Market',
+            shopHeaderUr: 'شوروم / مارکیٹ',
+            staffTabIcon: '<i class="fas fa-user-gear"></i>',
+            staffTabEn: 'Sales &amp; Lab Team Performance',
+            staffTabUr: 'سیلز و لیب ٹیم کارکردگی',
+            staffReportTitleEn: 'Sales Executives, Technicians &amp; Recovery Team Performance',
+            staffReportTitleUr: 'سیلز ایگزیکٹوز، ٹیکنیشنز اور ریکوری ٹیم کارکردگی',
+            staffReportSubEn: 'Performance of mobile sales executives, repair lab technicians, and installment recovery riders.',
+            staffReportSubUr: 'موبائل سیلز ایگزیکٹوز، ریپیئرنگ لیب کاریگروں اور قسط ریکوری رائیڈرز کی کارکردگی',
+            staffColHeaderEn: 'Executive / Technician Name',
+            staffColHeaderUr: 'ایگزیکٹو / ٹیکنیشن کا نام',
+            staffKpiActiveEn: 'Active Showroom &amp; Lab Staff',
+            staffKpiActiveUr: 'فعال شوروم و لیب اسٹاف',
+            damageIcon: '<i class="fas fa-triangle-exclamation"></i>',
+            damageTitleEn: 'Dead-on-Arrival (DOA), Faulty Parts &amp; Warranty Losses',
+            damageTitleUr: 'ڈیڈ سیٹس (DOA)، خراب پارٹس و وارنٹی نقصانات',
+            damageSubEn: 'Detailed report of faulty LCD/parts, dead handsets, and warranty claim losses.',
+            damageSubUr: 'خراب ایل سی ڈی/پارٹس، ڈیڈ ہینڈ سیٹس اور وارنٹی کلیم نقصانات کی تفصیلی رپورٹ',
+            damageKpi1En: 'Damaged / Faulty Parts &amp; Sets',
+            damageKpi1Ur: 'خراب پارٹس اور ہینڈ سیٹس',
+            damageKpi2En: 'DOA / Warranty Expired Units',
+            damageKpi2Ur: 'DOA / وارنٹی ایکسپائرڈ یونٹس',
+            claimsSubEn: 'Report of customer/dealer warranty returns and replacement claims.',
+            claimsSubUr: 'گاہکوں اور ڈیلرز کی طرف سے وارنٹی واپسی اور ریپلیسمنٹ کلیمز کی رپورٹ'
+        },
+        books: {
+            icon: '📚',
+            specsHeaderEn: 'Class / Publisher / Edition',
+            specsHeaderUr: 'کلاس / پبلشر / ایڈیشن',
+            partyHeaderEn: 'School / Bookshop / Student',
+            partyHeaderUr: 'اسکول / بک شاپ / طالب علم',
+            shopHeaderEn: 'School / Institution',
+            shopHeaderUr: 'اسکول / تعلیمی ادارہ',
+            staffTabIcon: '<i class="fas fa-users"></i>',
+            staffTabEn: 'Salesmen &amp; School Rep Performance',
+            staffTabUr: 'سیلزمین و اسکول نمائندہ کارکردگی',
+            staffReportTitleEn: 'Counter Salesmen &amp; School Representatives Performance',
+            staffReportTitleUr: 'کاؤنٹر سیلزمین اور اسکول نمائندوں کی کارکردگی',
+            staffReportSubEn: 'Sales, orders, and collection report for counter salesmen and school supply representatives.',
+            staffReportSubUr: 'کاؤنٹر سیلزمین اور اسکول سپلائی نمائندوں کی سیلز، آرڈرز اور وصولی کی رپورٹ',
+            staffColHeaderEn: 'Salesman / School Rep Name',
+            staffColHeaderUr: 'سیلزمین / اسکول نمائندے کا نام',
+            staffKpiActiveEn: 'Active Salesmen &amp; Reps',
+            staffKpiActiveUr: 'فعال سیلزمین و نمائندے',
+            damageIcon: '<i class="fas fa-triangle-exclamation"></i>',
+            damageTitleEn: 'Damaged, Misprint &amp; Old Edition Losses',
+            damageTitleUr: 'خراب، مس پرنٹ اور پرانا ایڈیشن نقصانات',
+            damageSubEn: 'Detailed report of damaged, misprinted, outdated editions, and lost books & stationery.',
+            damageSubUr: 'ٹوٹ پھوٹ، مس پرنٹنگ، پرانا ایڈیشن اور گم شدہ کتب و اسٹیشنری کی تفصیلی رپورٹ',
+            damageKpi1En: 'Damaged / Misprint Units',
+            damageKpi1Ur: 'خراب / مس پرنٹ یونٹس',
+            damageKpi2En: 'Old Edition / Outdated Units',
+            damageKpi2Ur: 'پرانا ایڈیشن یونٹس',
+            claimsSubEn: 'Report of books returned from schools/customers and publisher return claims.',
+            claimsSubUr: 'اسکولوں اور گاہکوں کی طرف سے واپس آئی ہوئی کتب اور پبلشر واپسی کلیمز'
+        },
+        wholesaler: {
+            icon: '🌾',
+            specsHeaderEn: 'Lot / Packing Weight / Brand / Godown',
+            specsHeaderUr: 'لاٹ / وزن / برانڈ / گودام',
+            partyHeaderEn: 'Mandi Party / Arhti Name',
+            partyHeaderUr: 'منڈی پارٹی / آڑھتی کا نام',
+            shopHeaderEn: 'Mandi / Market',
+            shopHeaderUr: 'منڈی / مارکیٹ',
+            staffTabIcon: '<i class="fas fa-user-tie"></i>',
+            staffTabEn: 'Munshi &amp; Booker Performance',
+            staffTabUr: 'منشی و بکر کارکردگی',
+            staffReportTitleEn: 'Mandi Munshi, Bookers &amp; Dispatch Suppliers Performance',
+            staffReportTitleUr: 'منڈی منشی، بکرز اور ڈسپیچ سپلائرز کارکردگی',
+            staffReportSubEn: 'Sales, bilty dispatches, and cash collection report for mandi munshis, bulk bookers, and suppliers.',
+            staffReportSubUr: 'منڈی منشی، بلک آرڈر بکرز اور بلٹی سپلائرز کی سیلز، بلٹیاں اور کیش وصولی کی رپورٹ',
+            staffColHeaderEn: 'Munshi / Booker Name',
+            staffColHeaderUr: 'منشی / بکر کا نام',
+            staffKpiActiveEn: 'Active Mandi Staff',
+            staffKpiActiveUr: 'فعال منڈی اسٹاف',
+            damageIcon: '<i class="fas fa-triangle-exclamation"></i>',
+            damageTitleEn: 'Godown Shortage, Moisture Damage &amp; Expired Lots',
+            damageTitleUr: 'گودام کمی، نمی نقصان و ایکسپائرڈ لاٹس',
+            damageSubEn: 'Report of godown moisture/breakage, weight shortage, and expired bulk lot losses.',
+            damageSubUr: 'گودام میں نمی/ٹوٹ پھوٹ، وزن کی کمی اور زائد المیعاد بلک لاٹس کے نقصانات کی رپورٹ',
+            damageKpi1En: 'Damaged / Torn Bags &amp; Units',
+            damageKpi1Ur: 'پھٹی / خراب بوریاں و یونٹس',
+            damageKpi2En: 'Expired / Spoiled Lot Units',
+            damageKpi2Ur: 'ایکسپائرڈ / خراب لاٹ یونٹس',
+            claimsSubEn: 'Detailed report of returned stock from mandi parties, bilty claims, and deductions.',
+            claimsSubUr: 'منڈی پارٹیوں سے واپس آنے والا مال، بلٹی کلیمز اور کٹوتیوں کی تفصیلی رپورٹ'
+        },
+        distributor: {
+            icon: '🚚',
+            specsHeaderEn: 'Company / Carton Packing / Batch &amp; Expiry',
+            specsHeaderUr: 'کمپنی / کارٹن پیکنگ / بیچ و ایکسپائری',
+            partyHeaderEn: 'Shopkeeper / Customer Name',
+            partyHeaderUr: 'دکاندار / گاہک کا نام',
+            shopHeaderEn: 'Shop / Route Market',
+            shopHeaderUr: 'دکان / روٹ مارکیٹ',
+            staffTabIcon: '<i class="fas fa-users-gear"></i>',
+            staffTabEn: 'Booker Performance',
+            staffTabUr: 'بکر کارکردگی',
+            staffReportTitleEn: 'Order Bookers &amp; Van Suppliers Performance',
+            staffReportTitleUr: 'آرڈر بکرز اور وین سپلائرز کارکردگی',
+            staffReportSubEn: 'Performance of field order bookers and van delivery suppliers — booked orders, sales, and cash recovery.',
+            staffReportSubUr: 'فیلڈ آرڈر بکرز اور وین ڈلیوری سپلائرز کی کارکردگی، بک کیے گئے آرڈرز، سیلز اور کیش وصولی',
+            staffColHeaderEn: 'Booker / Supplier Name',
+            staffColHeaderUr: 'بکر / سپلائر کا نام',
+            staffKpiActiveEn: 'Active Field Bookers &amp; Suppliers',
+            staffKpiActiveUr: 'فعال فیلڈ بکرز و سپلائرز',
+            damageIcon: '<i class="fas fa-triangle-exclamation"></i>',
+            damageTitleEn: 'Market Expiry, Transit Damage &amp; Company Claims',
+            damageTitleUr: 'مارکیٹ ایکسپائری، ٹرانزٹ نقصان و کمپنی کلیمز',
+            damageSubEn: 'Detailed report of market expiry, transit damage, leakage, and principal company claim losses.',
+            damageSubUr: 'مارکیٹ ایکسپائری، ٹرانزٹ ڈیمیج، لیکیج اور پرنسپل کمپنی کلیم نقصانات کی تفصیلی رپورٹ',
+            damageKpi1En: 'Transit Damaged / Leaked Units',
+            damageKpi1Ur: 'ٹرانزٹ خراب / لیکج یونٹس',
+            damageKpi2En: 'Market Expired Units',
+            damageKpi2Ur: 'مارکیٹ ایکسپائرڈ یونٹس',
+            claimsSubEn: 'Detailed report of stock returned from shopkeepers/vans and distribution claims.',
+            claimsSubUr: 'دکانداروں اور وین سپلائی سے واپس آیا ہوا مال اور ڈسٹری بیوشن کلیمز کی تفصیلی رپورٹ'
+        }
+    };
+    const m = map[c] || map.distributor;
+    return {
+        ...m,
+        specsHeader: ebMix(m.specsHeaderEn, m.specsHeaderUr),
+        partyHeader: ebMix(m.partyHeaderEn, m.partyHeaderUr),
+        shopHeader: ebMix(m.shopHeaderEn, m.shopHeaderUr),
+        staffTabLabel: `${m.staffTabIcon} ${ebMix(m.staffTabEn, m.staffTabUr)}`,
+        staffReportTitle: `${m.staffTabIcon} ${ebMix(m.staffReportTitleEn, m.staffReportTitleUr)}`,
+        staffReportSubHtml: ebCompact(m.staffReportSubEn, m.staffReportSubUr),
+        staffColHeader: ebMix(m.staffColHeaderEn, m.staffColHeaderUr),
+        staffKpiActive: ebMix(m.staffKpiActiveEn, m.staffKpiActiveUr),
+        damageTitle: `${m.damageIcon} ${ebMix(m.damageTitleEn, m.damageTitleUr)}`,
+        damageSubHtml: ebCompact(m.damageSubEn, m.damageSubUr),
+        damageKpi1: ebMix(m.damageKpi1En, m.damageKpi1Ur),
+        damageKpi2: ebMix(m.damageKpi2En, m.damageKpi2Ur),
+        claimsSubHtml: ebCompact(m.claimsSubEn, m.claimsSubUr)
+    };
+}
+
 // ============================================
 // 🛡️ AUTH GUARD & INITIALIZATION
 // ============================================
@@ -96,15 +356,15 @@ auth.onAuthStateChanged(async (user) => {
             if (!p.reports) {
                 Swal.fire({
                     icon: 'warning',
-                    title: '🔒 Access Denied',
-                    text: 'Aap ke paas Reports dekhne ki permission nahi hai!',
+                    title: ebT('🔒 Access Denied', '🔒 Access Denied (رسائی ممنوع)'),
+                    text: ebT('You do not have permission to view Reports!', 'You do not have permission to view Reports! (آپ کے پاس رپورٹس دیکھنے کی اجازت نہیں ہے)'),
                     confirmButtonColor: '#27ae60'
                 }).then(() => window.location.href = 'dashboard.html');
                 return;
             }
         }
 
-        myAgencyId = myUser.agencyId;
+        myAgencyId = localStorage.getItem('eb_active_agencyId') || myUser.agencyId;
         if (!myAgencyId) {
             if (myUser.role === 'super-admin') {
                 myAgencyId = 'super-admin-hq';
@@ -171,6 +431,14 @@ auth.onAuthStateChanged(async (user) => {
             });
         }
 
+        window.addEventListener('ebCategoryChanged', async () => {
+            if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency || {});
+            }
+            setupTabs();
+            await loadAllReportData();
+        });
+
         // Default: This Month
         setDatePreset('thismonth');
 
@@ -184,7 +452,11 @@ auth.onAuthStateChanged(async (user) => {
     } catch (e) {
         console.error('Reports init error:', e);
         if (window.hideNHLoader) window.hideNHLoader();
-        Swal.fire('Error', 'Reports loading error: ' + e.message, 'error');
+        Swal.fire(
+            ebT('Error', 'Error (خرابی)'),
+            ebT('Reports loading error: ' + e.message, 'Reports loading error (رپورٹس لوڈ کرنے میں خرابی): ' + e.message),
+            'error'
+        );
     }
 });
 
@@ -193,22 +465,62 @@ auth.onAuthStateChanged(async (user) => {
 // ============================================
 function setupTabs() {
     const activeCat = getActiveReportCategory();
+    const uiMeta = getCategoryReportMeta(activeCat);
+    const catMeta = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+        ? (window.BusinessCategories.getById(activeCat) || { id: activeCat, icon: uiMeta.icon, nameEn: activeCat })
+        : { id: activeCat, icon: uiMeta.icon, nameEn: activeCat };
+
+    const badgeEl = document.getElementById('reportsActiveCategoryBadge');
+    if (badgeEl) {
+        const catTitleHtml = catMeta.nameUr
+            ? ebMix(catMeta.nameEn || activeCat, catMeta.nameUr)
+            : (catMeta.nameEn || activeCat);
+        badgeEl.innerHTML = `${catMeta.icon || uiMeta.icon} ${catTitleHtml} • ${(myAgency && myAgency.name) || ebMix('Workspace', 'ورک اسپیس')}`;
+    }
+
     const mobBtn = document.getElementById('tabBtnMobileAnalytics');
     const booksBtn = document.getElementById('tabBtnBooksAnalytics');
     const whBtn = document.getElementById('tabBtnWholesalerAnalytics');
     const medBtn = document.getElementById('tabBtnMedicalAnalytics');
     const restBtn = document.getElementById('tabBtnRestaurantAnalytics');
+    const bookersBtn = document.querySelector('.report-tab-btn[data-tab="bookers"]');
+
+    if (mobBtn) mobBtn.style.display = (activeCat === 'mobile') ? 'inline-flex' : 'none';
+    if (booksBtn) booksBtn.style.display = (activeCat === 'books') ? 'inline-flex' : 'none';
+    if (whBtn) whBtn.style.display = (activeCat === 'wholesaler' || activeCat === 'distributor') ? 'inline-flex' : 'none';
+    if (medBtn) medBtn.style.display = (activeCat === 'medical') ? 'inline-flex' : 'none';
+    if (restBtn) restBtn.style.display = (activeCat === 'restaurant') ? 'inline-flex' : 'none';
+
+    if (bookersBtn) {
+        bookersBtn.innerHTML = uiMeta.staffTabLabel;
+    }
+
+    // Prevent viewing another category's analytics tab if URL had a different ?tab= parameter
+    const catTabMap = {
+        mobile_analytics: ['mobile'],
+        books_analytics: ['books'],
+        wholesaler_analytics: ['wholesaler', 'distributor'],
+        medical_analytics: ['medical'],
+        restaurant_analytics: ['restaurant']
+    };
+    if (catTabMap[currentTab] && !catTabMap[currentTab].includes(activeCat)) {
+        if (activeCat === 'mobile') currentTab = 'mobile_analytics';
+        else if (activeCat === 'books') currentTab = 'books_analytics';
+        else if (activeCat === 'wholesaler' || activeCat === 'distributor') currentTab = 'wholesaler_analytics';
+        else if (activeCat === 'medical') currentTab = 'medical_analytics';
+        else if (activeCat === 'restaurant') currentTab = 'restaurant_analytics';
+        else currentTab = 'sales';
+    }
+
+    const activePill = (bg) => ` <span style="background:${bg}; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ ${ebMix('Active', 'فعال')}</span>`;
+
     if (mobBtn && activeCat === 'mobile') {
         mobBtn.style.boxShadow = '0 0 0 2px #0284c7';
-        if (!mobBtn.innerHTML.includes('Active')) {
-            mobBtn.innerHTML += ' <span style="background:#0284c7; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
-        }
+        mobBtn.innerHTML = `<i class="fas fa-mobile-screen-button" style="color:#0284c7;"></i> <b>${ebMix('Mobile, IMEI &amp; Repairing', 'موبائل، IMEI و ریپئرنگ رپورٹ')}</b>${activePill('#0284c7')}`;
     }
     if (booksBtn && activeCat === 'books') {
         booksBtn.style.boxShadow = '0 0 0 2px #2563eb';
-        if (!booksBtn.innerHTML.includes('Active')) {
-            booksBtn.innerHTML += ' <span style="background:#2563eb; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
-        }
+        booksBtn.innerHTML = `<i class="fas fa-book-open" style="color:#2563eb;"></i> <b>${ebMix('Publisher &amp; Class Analytics', 'کتب و نصاب رپورٹ')}</b>${activePill('#2563eb')}`;
     }
     if (whBtn && (activeCat === 'wholesaler' || activeCat === 'distributor')) {
         if (activeCat === 'distributor') {
@@ -216,25 +528,22 @@ function setupTabs() {
             whBtn.style.color = '#0369a1';
             whBtn.style.borderColor = '#7dd3fc';
             whBtn.style.boxShadow = '0 0 0 2px #0284c7';
-            whBtn.innerHTML = '🚚 FMCG Agency, Weekly Route (PJP), Expiry &amp; Schemes (ڈسٹری بیوشن و ایف ایم سی جی رپورٹ) <span style="background:#0284c7; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
+            whBtn.innerHTML = `🚚 <b>${ebMix('FMCG Agency, Weekly Route (PJP), Expiry &amp; Schemes', 'ڈسٹری بیوشن و ایف ایم سی جی رپورٹ')}</b>${activePill('#0284c7')}`;
         } else {
+            whBtn.style.background = '#fff7ed';
+            whBtn.style.color = '#c2410c';
+            whBtn.style.borderColor = '#fdba74';
             whBtn.style.boxShadow = '0 0 0 2px #ea580c';
-            if (!whBtn.innerHTML.includes('Active')) {
-                whBtn.innerHTML += ' <span style="background:#ea580c; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
-            }
+            whBtn.innerHTML = `<i class="fas fa-boxes-stacked" style="color:#ea580c;"></i> <b>${ebMix('Wholesale, PJP, Expiry &amp; Schemes', 'ہول سیل و ڈسٹری بیوشن')}</b>${activePill('#ea580c')}`;
         }
     }
     if (medBtn && activeCat === 'medical') {
         medBtn.style.boxShadow = '0 0 0 2px #059669';
-        if (!medBtn.innerHTML.includes('Active')) {
-            medBtn.innerHTML += ' <span style="background:#059669; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
-        }
+        medBtn.innerHTML = `<i class="fas fa-pills" style="color:#059669;"></i> <b>${ebMix('Pharmacy, Formula &amp; FEFO Expiry', 'میڈیکل و فارمیسی رپورٹ')}</b>${activePill('#059669')}`;
     }
     if (restBtn && activeCat === 'restaurant') {
         restBtn.style.boxShadow = '0 0 0 2px #dc2626';
-        if (!restBtn.innerHTML.includes('Active')) {
-            restBtn.innerHTML += ' <span style="background:#dc2626; color:#fff; font-size:10px; padding:1px 6px; border-radius:6px; margin-left:4px;">★ Active</span>';
-        }
+        restBtn.innerHTML = `<i class="fas fa-utensils" style="color:#dc2626;"></i> <b>${ebMix('Restaurant, Kitchen &amp; Deals', 'ریسٹورنٹ و کچن رپورٹ')}</b>${activePill('#dc2626')}`;
     }
 
     const tabs = document.querySelectorAll('.report-tab-btn');
@@ -242,20 +551,26 @@ function setupTabs() {
         if (btn.dataset.tab === currentTab) btn.classList.add('active');
         else btn.classList.remove('active');
 
-        btn.addEventListener('click', () => {
-            if (!btn.dataset.tab) return;
-            tabs.forEach(t => t.classList.remove('active'));
-            btn.classList.add('active');
-            currentTab = btn.dataset.tab;
-            try {
-                history.replaceState(null, '', 'reports.html?tab=' + encodeURIComponent(currentTab));
-            } catch (_) {}
-            if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
-                window.ebSidebar.setActive('reports.html?tab=' + currentTab);
-            }
-            renderActiveReport();
-        });
+        if (!btn.dataset.listenerBound) {
+            btn.dataset.listenerBound = '1';
+            btn.addEventListener('click', () => {
+                if (!btn.dataset.tab) return;
+                document.querySelectorAll('.report-tab-btn').forEach(t => t.classList.remove('active'));
+                btn.classList.add('active');
+                currentTab = btn.dataset.tab;
+                try {
+                    history.replaceState(null, '', 'reports.html?tab=' + encodeURIComponent(currentTab));
+                } catch (_) {}
+                if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
+                    window.ebSidebar.setActive('reports.html?tab=' + currentTab);
+                }
+                renderActiveReport();
+            });
+        }
     });
+
+    ebApplyBilingualDom(document);
+    ebRefreshStaticSelects();
 
     if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
         window.ebSidebar.setActive('reports.html?tab=' + (currentTab || 'sales'));
@@ -279,7 +594,7 @@ function setupDatePresets() {
         const s = document.getElementById('dateStart').value;
         const e = document.getElementById('dateEnd').value;
         if (!s || !e) {
-            Swal.fire('⚠️', 'Start date aur End date select karein!', 'warning');
+            Swal.fire('⚠️', ebT('Please select both Start Date and End Date!', 'Please select both Start Date and End Date! (براہ کرم شروع اور اختتام کی تاریخ منتخب کریں)'), 'warning');
             return;
         }
         document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active'));
@@ -316,6 +631,9 @@ function setDatePreset(preset) {
         const e = new Date(now.getFullYear(), now.getMonth(), 0);
         dateStart = toYMD(s);
         dateEnd = toYMD(e);
+    } else if (preset === 'alltime') {
+        dateStart = '2020-01-01';
+        dateEnd = '2035-12-31';
     }
 
     document.getElementById('dateStart').value = dateStart;
@@ -327,7 +645,7 @@ function setDatePreset(preset) {
 // ============================================
 async function loadAllReportData() {
     const tableDiv = document.getElementById('tableContainer');
-    tableDiv.innerHTML = '<div class="loading-inline">Loading report data...</div>';
+    tableDiv.innerHTML = `<div class="loading-inline">${ebMix('Loading report data...', 'رپورٹ ڈیٹا لوڈ ہو رہا ہے...')}</div>`;
 
     try {
         // Parallel queries (Single equality field — NO composite index needed!)
@@ -354,8 +672,10 @@ async function loadAllReportData() {
         billsSnap.forEach(d => {
             const b = d.data();
             if (!filterByCat(b)) return;
-            const bDate = b.date || (b.createdAt || '').slice(0, 10);
-            if (bDate >= dateStart && bDate <= dateEnd) {
+            const st = String(b.status || b.orderStatus || '').toLowerCase();
+            if (st === 'cancelled' || st === 'rejected' || st === 'deleted') return;
+            const bDate = b.date || (b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().toISOString().slice(0, 10) : String(b.createdAt || '').slice(0, 10));
+            if (!bDate || (bDate >= dateStart && bDate <= dateEnd)) {
                 rawBills.push({ id: d.id, ...b });
             }
         });
@@ -371,7 +691,7 @@ async function loadAllReportData() {
             const m = d.data();
             if (!filterByCat(m)) return;
             const mDate = (m.createdAt || '').slice(0, 10);
-            if (mDate >= dateStart && mDate <= dateEnd) {
+            if (!mDate || (mDate >= dateStart && mDate <= dateEnd)) {
                 rawMovements.push({ id: d.id, ...m });
             }
         });
@@ -404,7 +724,7 @@ async function loadAllReportData() {
         claimsSnap.forEach(d => {
             const c = d.data();
             if (!filterByCat(c)) return;
-            const cDate = c.incidentDate || (c.createdAt || '').slice(0, 10);
+            const cDate = c.incidentDate || c.date || (c.createdAt || '').slice(0, 10);
             if (!cDate || (cDate >= dateStart && cDate <= dateEnd)) {
                 rawDamageClaims.push({ id: d.id, ...c });
             }
@@ -424,16 +744,17 @@ async function loadAllReportData() {
 
     } catch (e) {
         console.error('Data fetch error:', e);
-        tableDiv.innerHTML = '<div class="error-inline">⚠️ Failed to load report data: ' + e.message + '</div>';
+        tableDiv.innerHTML = `<div class="error-inline">⚠️ ${ebMix('Failed to load report data:', 'رپورٹ ڈیٹا لوڈ کرنے میں ناکامی:')} ${e.message}</div>`;
     }
 }
 
 // ============================================
 // 🔀 RENDER ACTIVE REPORT DISPATCHER
 // ============================================
-function renderActiveReport() {
+function renderActiveReport(preserveSearch = false) {
     const searchInput = document.getElementById('reportSearchInput');
-    if (searchInput) searchInput.value = '';
+    const savedQuery = (preserveSearch && searchInput) ? searchInput.value : '';
+    if (searchInput && !preserveSearch) searchInput.value = '';
 
     const modeSel = document.getElementById('booksAnalyticsModeSelect');
     if (modeSel) {
@@ -472,75 +793,91 @@ function renderActiveReport() {
     else if (currentTab === 'wholesaler_analytics') renderWholesalerAnalyticsReport();
     else if (currentTab === 'medical_analytics') renderMedicalAnalyticsReport();
     else if (currentTab === 'restaurant_analytics') renderRestaurantAnalyticsReport();
+
+    if (preserveSearch && searchInput && savedQuery) {
+        searchInput.value = savedQuery;
+        searchInput.dispatchEvent(new Event('input'));
+    }
 }
 
 // ============================================
 // 1️⃣ SALES & REVENUE REPORT
 // ============================================
 function renderSalesReport() {
-    document.getElementById('reportTitle').innerHTML = '<i class="fas fa-chart-line"></i> Sales & Revenue Report';
-    document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak ki mukammal sales`;
+    const uiMeta = getCategoryReportMeta(getActiveReportCategory());
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-chart-line"></i> ${uiMeta.icon} ${ebMix('Sales &amp; Revenue Report', 'سیلز و آمدن رپورٹ')}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(
+        `Complete sales, cash recovery, and credit ledger from ${dateStart} to ${dateEnd}`,
+        `${dateStart} تا ${dateEnd} مکمل سیلز، کیش وصولی اور ادھار کھاتہ`
+    );
 
     let totalSales = 0, totalReceived = 0, totalCredit = 0, totalBills = rawBills.length;
     rawBills.forEach(b => {
-        const val = Number(b.billAmount || b.grandTotal || 0);
-        const rec = Number(b.received || 0);
+        const val = Number(b.billAmount || b.grandTotal || b.totalAmount || b.netTotal || b.total || 0);
+        const rec = b.paidAmount !== undefined
+            ? Number(b.paidAmount || 0)
+            : (b.received !== undefined ? Number(b.received || 0) : (b.paymentType === 'credit' ? 0 : val));
         totalSales += val;
-        totalReceived += rec;
+        totalReceived += Math.min(val, Math.max(0, rec));
         totalCredit += Math.max(0, val - rec);
     });
 
     const avgBill = totalBills > 0 ? (totalSales / totalBills) : 0;
 
-    // Render KPIs
     document.getElementById('kpiGrid').innerHTML = `
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#10b981;">💰</div>
             <div class="kpi-value">Rs ${Math.round(totalSales).toLocaleString()}</div>
-            <div class="kpi-label">Total Sales (Rs)</div>
+            <div class="kpi-label">${ebMix('Total Sales (Rs)', 'کل فروخت')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#0284c7;">💵</div>
             <div class="kpi-value">Rs ${Math.round(totalReceived).toLocaleString()}</div>
-            <div class="kpi-label">Cash Collected</div>
+            <div class="kpi-label">${ebMix('Cash Collected', 'کیش وصولی')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#ef4444;">📊</div>
             <div class="kpi-value">Rs ${Math.round(totalCredit).toLocaleString()}</div>
-            <div class="kpi-label">Credit Added (Khata)</div>
+            <div class="kpi-label">${ebMix('Credit Added (Khata)', 'ادھار کھاتہ')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#8b5cf6;">🧾</div>
             <div class="kpi-value">${totalBills}</div>
-            <div class="kpi-label">Total Invoices</div>
+            <div class="kpi-label">${ebMix('Total Invoices', 'کل بلز')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">📈</div>
             <div class="kpi-value">Rs ${Math.round(avgBill).toLocaleString()}</div>
-            <div class="kpi-label">Avg Invoice Size</div>
+            <div class="kpi-label">${ebMix('Avg Invoice Size', 'اوسط بل رقم')}</div>
         </div>
     `;
 
-    // Sort bills desc
-    const sorted = [...rawBills].sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
-    activeTableData = sorted.map(b => ({
-        date: b.date || '',
-        billNo: b.billNo || '',
-        customer: b.customerName || 'Counter Sale',
-        itemsCount: (b.items || []).length,
-        total: Number(b.billAmount || b.grandTotal || 0),
-        received: Number(b.received || 0),
-        balance: Number(b.balance || 0)
-    }));
+    const sorted = [...rawBills].sort((a, b) => String((b.date || '') + (b.time || '')).localeCompare(String((a.date || '') + (a.time || ''))));
+    activeTableData = sorted.map(b => {
+        const val = Number(b.billAmount || b.grandTotal || b.totalAmount || b.netTotal || b.total || 0);
+        const rec = b.paidAmount !== undefined
+            ? Number(b.paidAmount || 0)
+            : (b.received !== undefined ? Number(b.received || 0) : (b.paymentType === 'credit' ? 0 : val));
+        const bal = b.balance !== undefined ? Number(b.balance || 0) : Math.max(0, val - rec);
+        return {
+            date: b.date || (b.createdAt ? String(b.createdAt).slice(0, 10) : ''),
+            billNo: b.billNo || b.billNumber || ('INV-' + String(b.id || '').slice(-4)),
+            customer: b.customerName || 'Counter Sale',
+            itemsCount: (b.items || []).length,
+            total: val,
+            received: rec,
+            balance: bal
+        };
+    });
 
     renderTable([
-        { header: 'Date', key: 'date' },
-        { header: 'Invoice #', key: 'billNo', bold: true },
-        { header: 'Customer / Shop', key: 'customer' },
-        { header: 'Items', key: 'itemsCount', align: 'center' },
-        { header: 'Total (Rs)', key: 'total', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Cash Paid', key: 'received', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString(), color: '#16a34a' },
-        { header: 'Balance', key: 'balance', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString(), color: '#dc2626' }
+        { header: ebMix('Date', 'تاریخ'), key: 'date' },
+        { header: ebMix('Invoice #', 'بل نمبر'), key: 'billNo', bold: true },
+        { header: uiMeta.partyHeader, key: 'customer' },
+        { header: ebMix('Items', 'آئٹمز'), key: 'itemsCount', align: 'center' },
+        { header: ebMix('Total (Rs)', 'کل رقم'), key: 'total', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Cash Paid', 'وصول کیش'), key: 'received', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString(), color: '#16a34a' },
+        { header: ebMix('Balance', 'بقایا'), key: 'balance', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString(), color: '#dc2626' }
     ]);
 }
 
@@ -548,8 +885,12 @@ function renderSalesReport() {
 // 2️⃣ BEST SELLERS REPORT
 // ============================================
 function renderBestSellersReport() {
-    document.getElementById('reportTitle').innerHTML = '<i class="fas fa-trophy"></i> Best Selling Products';
-    document.getElementById('reportSubTitle').innerText = 'سب سے زیادہ بکنے والے اور منافع بخش آئٹمز کی درجہ بندی';
+    const uiMeta = getCategoryReportMeta(getActiveReportCategory());
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-trophy"></i> ${uiMeta.icon} ${ebMix('Best Selling Products', 'سب سے زیادہ بکنے والی مصنوعات')}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(
+        'Ranking of top-selling and highest-revenue items',
+        'سب سے زیادہ بکنے والے اور منافع بخش آئٹمز کی درجہ بندی'
+    );
 
     const itemMap = new Map();
 
@@ -566,8 +907,8 @@ function renderBestSellersReport() {
                 stockId: it.stockId
             };
 
-            existing.unitsSold += Number(it.qty || 0);
-            existing.revenue += Number(it.total || (it.qty * it.rate) || 0);
+            existing.unitsSold += Number(it.qty || it.quantity || 0);
+            existing.revenue += Number(it.total || (Number(it.qty || it.quantity || 0) * Number(it.rate || it.price || 0)) || 0);
             existing.orderCount++;
             itemMap.set(key, existing);
         });
@@ -582,22 +923,22 @@ function renderBestSellersReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">🏆</div>
             <div class="kpi-value">${list[0] ? list[0].name : '—'}</div>
-            <div class="kpi-label">#1 Top Selling Product</div>
+            <div class="kpi-label">${ebMix('#1 Top Selling Product', 'نمبر 1 مقبول آئٹم')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#10b981;">📦</div>
             <div class="kpi-value">${Math.round(totUnits).toLocaleString()}</div>
-            <div class="kpi-label">Total Units Sold</div>
+            <div class="kpi-label">${ebMix('Total Units Sold', 'کل فروخت شدہ یونٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#0284c7;">💰</div>
             <div class="kpi-value">Rs ${Math.round(totRev).toLocaleString()}</div>
-            <div class="kpi-label">Top Sellers Revenue</div>
+            <div class="kpi-label">${ebMix('Top Sellers Revenue', 'ٹاپ آئٹمز آمدن')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#8b5cf6;">🏷️</div>
             <div class="kpi-value">${list.length}</div>
-            <div class="kpi-label">Unique Products Moving</div>
+            <div class="kpi-label">${ebMix('Unique Products Moving', 'متحرک آئٹمز')}</div>
         </div>
     `;
 
@@ -616,13 +957,13 @@ function renderBestSellersReport() {
     });
 
     renderTable([
-        { header: 'Rank', key: 'rank', bold: true },
-        { header: 'Product Name', key: 'name', bold: true },
-        { header: 'Class / Publisher / Specs', key: 'details', color: '#475569' },
-        { header: 'Category', key: 'category' },
-        { header: 'Units Sold', key: 'unitsSold', align: 'center', bold: true, color: '#16a34a' },
-        { header: 'Revenue Generated', key: 'revenue', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Current Stock Left', key: 'inStock', align: 'center' }
+        { header: ebMix('Rank', 'درجہ'), key: 'rank', bold: true },
+        { header: ebMix('Product Name', 'پراڈکٹ کا نام'), key: 'name', bold: true },
+        { header: uiMeta.specsHeader, key: 'details', color: '#475569' },
+        { header: ebMix('Category', 'کیٹیگری'), key: 'category' },
+        { header: ebMix('Units Sold', 'فروخت شدہ تعداد'), key: 'unitsSold', align: 'center', bold: true, color: '#16a34a' },
+        { header: ebMix('Revenue Generated', 'حاصل آمدن'), key: 'revenue', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Current Stock Left', 'موجودہ اسٹاک'), key: 'inStock', align: 'center' }
     ]);
 }
 
@@ -630,8 +971,12 @@ function renderBestSellersReport() {
 // 3️⃣ SLOW & DEAD MOVING STOCK REPORT
 // ============================================
 function renderSlowStockReport() {
-    document.getElementById('reportTitle').innerHTML = '<i class="fas fa-hourglass-half"></i> Slow & Dead Moving Stock';
-    document.getElementById('reportSubTitle').innerText = 'وہ پراڈکٹس جن کی سیلز نہ ہونے کے برابر ہے اور کیپیٹل رکا ہوا ہے';
+    const uiMeta = getCategoryReportMeta(getActiveReportCategory());
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hourglass-half"></i> ${uiMeta.icon} ${ebMix('Slow &amp; Dead Moving Stock', 'سست اور رکا ہوا اسٹاک')}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(
+        'Products with zero sales in this period where capital is locked',
+        'وہ پراڈکٹس جن کی سیلز نہ ہونے کے برابر ہے اور کیپیٹل رکا ہوا ہے'
+    );
 
     const soldMap = new Set();
     rawBills.forEach(b => {
@@ -640,7 +985,6 @@ function renderSlowStockReport() {
         });
     });
 
-    // Items with zero sales
     const deadItems = rawStock.filter(s => !soldMap.has((s.name || '').trim().toLowerCase()));
 
     let lockedCapital = 0;
@@ -652,17 +996,17 @@ function renderSlowStockReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#ef4444;">🐢</div>
             <div class="kpi-value">${deadItems.length}</div>
-            <div class="kpi-label">Zero-Sales Products</div>
+            <div class="kpi-label">${ebMix('Zero-Sales Products', 'بغیر فروخت پراڈکٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">🔒</div>
             <div class="kpi-value">Rs ${Math.round(lockedCapital).toLocaleString()}</div>
-            <div class="kpi-label">Capital Trapped in Dead Stock</div>
+            <div class="kpi-label">${ebMix('Capital Trapped in Dead Stock', 'رکے اسٹاک میں بند سرمایہ')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#64748b;">📦</div>
             <div class="kpi-value">${deadItems.reduce((acc, i) => acc + (Number(i.qty) || 0), 0)}</div>
-            <div class="kpi-label">Total Idle Units</div>
+            <div class="kpi-label">${ebMix('Total Idle Units', 'کل رکے ہوئے یونٹس')}</div>
         </div>
     `;
 
@@ -677,13 +1021,13 @@ function renderSlowStockReport() {
     }));
 
     renderTable([
-        { header: 'Product Name', key: 'name', bold: true },
-        { header: 'Class / Publisher / Edition', key: 'details', color: '#475569' },
-        { header: 'Category', key: 'category' },
-        { header: 'Stock in Hand', key: 'qty', align: 'center', bold: true },
-        { header: 'Unit', key: 'unit' },
-        { header: 'Cost Price', key: 'cost', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Capital Trapped', key: 'trappedCost', align: 'right', bold: true, color: '#dc2626', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
+        { header: ebMix('Product Name', 'پراڈکٹ کا نام'), key: 'name', bold: true },
+        { header: uiMeta.specsHeader, key: 'details', color: '#475569' },
+        { header: ebMix('Category', 'کیٹیگری'), key: 'category' },
+        { header: ebMix('Stock in Hand', 'موجودہ اسٹاک'), key: 'qty', align: 'center', bold: true },
+        { header: ebMix('Unit', 'یونٹ'), key: 'unit' },
+        { header: ebMix('Cost Price', 'قیمت خرید'), key: 'cost', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Capital Trapped', 'بند سرمایہ'), key: 'trappedCost', align: 'right', bold: true, color: '#dc2626', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
     ]);
 }
 
@@ -691,9 +1035,10 @@ function renderSlowStockReport() {
 // 4️⃣ CLAIMS & CUSTOMER RETURNS REPORT
 // ============================================
 function renderClaimsReport() {
-    document.getElementById('reportTitle').innerHTML = '<i class="fas fa-rotate-left"></i> Claims & Customer Returns ' +
-        '<a href="delivery-returns.html?tab=claims" class="btn btn-sm" style="background:#dc2626; color:#fff; font-size:11px; padding:4px 10px; border-radius:6px; text-decoration:none; margin-left:10px; vertical-align:middle;"><i class="fas fa-hand-holding-dollar"></i> اوپن کلیم ریکوری پورٹل →</a>';
-    document.getElementById('reportSubTitle').innerText = 'گاہکوں کی طرف سے واپس آیا ہوا مال، ڈسٹری بیوشن کلائمز اور وجوہات';
+    const uiMeta = getCategoryReportMeta(getActiveReportCategory());
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-rotate-left"></i> ${uiMeta.icon} ${ebMix('Claims &amp; Customer Returns', 'کلیمز و کسٹمر واپسی')} ` +
+        `<a href="delivery-returns.html?tab=claims" class="btn btn-sm" style="background:#dc2626; color:#fff; font-size:11px; padding:4px 10px; border-radius:6px; text-decoration:none; margin-left:10px; vertical-align:middle;"><i class="fas fa-hand-holding-dollar"></i> ${ebMix('Open Claim Recovery Portal →', 'کلیم ریکوری پورٹل کھولیں')}</a>`;
+    document.getElementById('reportSubTitle').innerHTML = uiMeta.claimsSubHtml;
 
     const movementReturns = rawMovements.filter(m =>
         m.reason === 'return' ||
@@ -712,7 +1057,7 @@ function renderClaimsReport() {
                     name: it.name || 'Item',
                     details: getReportItemSubtitle(it) || '—',
                     qty: Number(it.qty || 0),
-                    reason: r.reason || 'Van Return',
+                    reason: r.reason || 'Return Inward',
                     note: `${r.voucherNo ? r.voucherNo + ' — ' : ''}${r.supplierName || ''}`
                 });
             });
@@ -728,7 +1073,6 @@ function renderClaimsReport() {
         }
     });
 
-    // Also include stock_returns docs if not already represented by voucherNo
     const existingVouchers = new Set(movementReturns.map(m => m.voucherNo).filter(Boolean));
     rawStockReturns.forEach(sr => {
         if (sr.voucherNo && existingVouchers.has(sr.voucherNo)) return;
@@ -751,29 +1095,29 @@ function renderClaimsReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">↩️</div>
             <div class="kpi-value">${combinedReturns.length}</div>
-            <div class="kpi-label">Return Claim Events</div>
+            <div class="kpi-label">${ebMix('Return Claim Events', 'واپسی کلیم اندراجات')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#0284c7;">📦</div>
             <div class="kpi-value">${Math.round(totalReturnedUnits)}</div>
-            <div class="kpi-label">Total Units Returned</div>
+            <div class="kpi-label">${ebMix('Total Units Returned', 'کل واپس شدہ یونٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#10b981;">📅</div>
-            <div class="kpi-value">${dateStart} to ${dateEnd}</div>
-            <div class="kpi-label">Report Period</div>
+            <div class="kpi-value">${dateStart} ${ebT('to', 'تا')} ${dateEnd}</div>
+            <div class="kpi-label">${ebMix('Report Period', 'رپورٹ کا دورانیہ')}</div>
         </div>
     `;
 
     activeTableData = combinedReturns;
 
     renderTable([
-        { header: 'Date', key: 'date' },
-        { header: 'Product Name', key: 'name', bold: true },
-        { header: 'Class / Publisher / Edition', key: 'details', color: '#475569' },
-        { header: 'Returned Qty', key: 'qty', align: 'center', bold: true, color: '#d97706' },
-        { header: 'Claim / Reason', key: 'reason', badge: 'badge-return' },
-        { header: 'Remarks / Voucher #', key: 'note' }
+        { header: ebMix('Date', 'تاریخ'), key: 'date' },
+        { header: ebMix('Product Name', 'پراڈکٹ کا نام'), key: 'name', bold: true },
+        { header: uiMeta.specsHeader, key: 'details', color: '#475569' },
+        { header: ebMix('Returned Qty', 'واپس مقدار'), key: 'qty', align: 'center', bold: true, color: '#d97706' },
+        { header: ebMix('Claim / Reason', 'کلیم / وجہ'), key: 'reason', badge: 'badge-return' },
+        { header: ebMix('Remarks / Voucher #', 'تفصیل / واؤچر نمبر'), key: 'note' }
     ]);
 }
 
@@ -781,24 +1125,25 @@ function renderClaimsReport() {
 // 5️⃣ DAMAGED, EXPIRED & LOST STOCK REPORT
 // ============================================
 function renderDamageReport() {
-    document.getElementById('reportTitle').innerHTML = '<i class="fas fa-triangle-exclamation"></i> Damaged, Expired & Lost Losses ' +
-        '<a href="delivery-returns.html?tab=claims" class="btn btn-sm" style="background:#dc2626; color:#fff; font-size:11px; padding:4px 10px; border-radius:6px; text-decoration:none; margin-left:10px; vertical-align:middle;"><i class="fas fa-hand-holding-dollar"></i> اوپن کلیم ریکوری پورٹل →</a>';
-    document.getElementById('reportSubTitle').innerText = 'ٹوٹ پھوٹ، مس پرنٹنگ، پرانا ایڈیشن اور گم شدہ مال کی تفصیلی رپورٹ';
+    const uiMeta = getCategoryReportMeta(getActiveReportCategory());
+    document.getElementById('reportTitle').innerHTML = `${uiMeta.damageTitle} ` +
+        `<a href="delivery-returns.html?tab=claims" class="btn btn-sm" style="background:#dc2626; color:#fff; font-size:11px; padding:4px 10px; border-radius:6px; text-decoration:none; margin-left:10px; vertical-align:middle;"><i class="fas fa-hand-holding-dollar"></i> ${ebMix('Open Claim Recovery Portal →', 'کلیم ریکوری پورٹل کھولیں')}</a>`;
+    document.getElementById('reportSubTitle').innerHTML = uiMeta.damageSubHtml;
 
-    const losses = rawMovements.filter(m => ['damage', 'expired', 'lost'].includes(m.reason));
+    const losses = rawMovements.filter(m => ['damage', 'expired', 'lost', 'kitchen_wastage', 'staff_meal_out'].includes(m.reason));
 
     let damagedUnits = 0, expiredUnits = 0, lostUnits = 0, estLossCost = 0;
     const rows = [];
 
     losses.forEach(l => {
         const q = Number(l.qty || 0);
-        if (l.reason === 'damage') damagedUnits += q;
+        if (l.reason === 'damage' || l.reason === 'kitchen_wastage' || l.reason === 'staff_meal_out') damagedUnits += q;
         else if (l.reason === 'expired') expiredUnits += q;
         else if (l.reason === 'lost') lostUnits += q;
 
         const s = rawStock.find(x => (x.name || '').toLowerCase() === (l.itemName || '').toLowerCase());
         const cost = s ? Number(s.purchaseRate || 0) : 0;
-        const lossAmt = q * cost;
+        const lossAmt = l.totalCost !== undefined ? Number(l.totalCost || 0) : (q * cost);
         estLossCost += lossAmt;
 
         rows.push({
@@ -812,7 +1157,6 @@ function renderDamageReport() {
         });
     });
 
-    // Also include damage_claims records not already logged in movements
     const loggedVouchers = new Set(losses.map(l => {
         const match = (l.note || '').match(/#(CLM-\d+)/);
         return match ? match[1] : '';
@@ -825,11 +1169,11 @@ function renderDamageReport() {
         if (catLower.includes('exp') || catLower.includes('edition')) expiredUnits += q;
         else damagedUnits += q;
 
-        const lossAmt = Number(c.totalLoss || (q * (c.purchaseRate || 0)));
+        const lossAmt = Number(c.totalLoss || c.lossAmount || (q * (c.purchaseRate || 0)));
         estLossCost += lossAmt;
 
         rows.push({
-            date: c.incidentDate || (c.createdAt || '').slice(0, 10),
+            date: c.incidentDate || c.date || (c.createdAt || '').slice(0, 10),
             name: c.itemName || 'Product',
             details: c.itemSubtitle || getReportItemSubtitle({ stockId: c.stockId, name: c.itemName }) || '—',
             type: c.category || 'DAMAGE CLAIM',
@@ -843,63 +1187,88 @@ function renderDamageReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#ef4444;">💥</div>
             <div class="kpi-value">${damagedUnits}</div>
-            <div class="kpi-label">Damaged / Misprint Units</div>
+            <div class="kpi-label">${uiMeta.damageKpi1}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">⏰</div>
             <div class="kpi-value">${expiredUnits}</div>
-            <div class="kpi-label">Expired / Old Edition Units</div>
+            <div class="kpi-label">${uiMeta.damageKpi2}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#64748b;">❓</div>
             <div class="kpi-value">${lostUnits}</div>
-            <div class="kpi-label">Lost / Missing Units</div>
+            <div class="kpi-label">${ebMix('Lost / Missing Units', 'گمشدہ یونٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#b91c1c;">💸</div>
             <div class="kpi-value" style="color:#b91c1c;">Rs ${Math.round(estLossCost).toLocaleString()}</div>
-            <div class="kpi-label">Total Financial Loss (At Cost)</div>
+            <div class="kpi-label">${ebMix('Total Financial Loss (At Cost)', 'کل مالی نقصان (لاگت پر)')}</div>
         </div>
     `;
 
     activeTableData = rows;
 
     renderTable([
-        { header: 'Date', key: 'date' },
-        { header: 'Product Name', key: 'name', bold: true },
-        { header: 'Class / Publisher / Edition', key: 'details', color: '#475569' },
-        { header: 'Loss Type', key: 'type', badge: 'badge-loss' },
-        { header: 'Quantity Lost', key: 'qty', align: 'center', bold: true, color: '#dc2626' },
-        { header: 'Est. Loss Amount', key: 'lossAmount', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Reason / Remarks', key: 'note' }
+        { header: ebMix('Date', 'تاریخ'), key: 'date' },
+        { header: ebMix('Product Name', 'پراڈکٹ کا نام'), key: 'name', bold: true },
+        { header: uiMeta.specsHeader, key: 'details', color: '#475569' },
+        { header: ebMix('Loss Type', 'نقصان کی قسم'), key: 'type', badge: 'badge-loss' },
+        { header: ebMix('Quantity Lost', 'ضائع مقدار'), key: 'qty', align: 'center', bold: true, color: '#dc2626' },
+        { header: ebMix('Est. Loss Amount', 'اندازاً نقصان رقم'), key: 'lossAmount', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Reason / Remarks', 'وجہ / تفصیل'), key: 'note' }
     ]);
 }
 
 // ============================================
-// 6️⃣ BOOKER / SALESMAN PERFORMANCE REPORT
+// 6️⃣ BOOKER / STAFF PERFORMANCE REPORT
 // ============================================
 function renderBookersReport() {
-    document.getElementById('reportTitle').innerHTML = '<i class="fas fa-users-gear"></i> Booker Performance & Orders';
-    document.getElementById('reportSubTitle').innerText = 'آرڈر بکیشنل سیلز مینز کی کارکردگی، بلز کی تعداد اور کیش وصولی';
+    const uiMeta = getCategoryReportMeta(getActiveReportCategory());
+    document.getElementById('reportTitle').innerHTML = uiMeta.staffReportTitle;
+    document.getElementById('reportSubTitle').innerHTML = uiMeta.staffReportSubHtml;
 
     const bookerMap = new Map();
 
-    rawBills.forEach(b => {
-        const uid = b.createdBy || 'Unknown';
-        const userObj = rawUsers.find(u => u.id === uid) || { name: b.bookerName || 'Salesman' };
-        const bName = userObj.name || uid;
+    // Seed with registered category staff
+    rawUsers.forEach(u => {
+        if (u.status === 'deleted') return;
+        const r = String(u.role || '').toLowerCase();
+        if (['booker', 'supplier', 'delivery', 'driver', 'cashier', 'chef', 'technician', 'salesman'].includes(r)) {
+            bookerMap.set(u.id, {
+                name: u.name || u.email || 'Staff',
+                role: u.role || 'booker',
+                route: u.route || 'General',
+                ordersCount: 0,
+                salesVolume: 0,
+                cashCollected: 0
+            });
+        }
+    });
 
-        const cur = bookerMap.get(uid) || {
+    rawBills.forEach(b => {
+        const uid = b.bookerId || b.waiterId || b.salesmanId || b.createdByUid || b.createdBy || b.bookerName || 'Counter';
+        const userObj = rawUsers.find(u => u.id === uid || (u.name && u.name === b.bookerName) || (u.email && u.email === b.bookerEmail));
+        const key = userObj ? userObj.id : uid;
+        const bName = (userObj && userObj.name) || b.bookerName || b.waiterName || b.salesmanName || b.createdByName || 'Counter / Direct';
+
+        const cur = bookerMap.get(key) || {
             name: bName,
+            role: (userObj && userObj.role) || 'staff',
+            route: (userObj && userObj.route) || b.route || 'Main Counter',
             ordersCount: 0,
             salesVolume: 0,
             cashCollected: 0
         };
 
+        const val = Number(b.billAmount || b.grandTotal || b.totalAmount || b.netTotal || b.total || 0);
+        const rec = b.paidAmount !== undefined
+            ? Number(b.paidAmount || 0)
+            : (b.received !== undefined ? Number(b.received || 0) : (b.paymentType === 'credit' ? 0 : val));
+
         cur.ordersCount++;
-        cur.salesVolume += Number(b.billAmount || b.grandTotal || 0);
-        cur.cashCollected += Number(b.received || 0);
-        bookerMap.set(uid, cur);
+        cur.salesVolume += val;
+        cur.cashCollected += Math.min(val, Math.max(0, rec));
+        bookerMap.set(key, cur);
     });
 
     const list = Array.from(bookerMap.values()).sort((a, b) => b.salesVolume - a.salesVolume);
@@ -911,39 +1280,41 @@ function renderBookersReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#3b82f6;">👥</div>
             <div class="kpi-value">${list.length}</div>
-            <div class="kpi-label">Active Field Bookers</div>
+            <div class="kpi-label">${uiMeta.staffKpiActive}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#10b981;">💰</div>
             <div class="kpi-value">Rs ${Math.round(totSales).toLocaleString()}</div>
-            <div class="kpi-label">Total Bookers Sales</div>
+            <div class="kpi-label">${ebMix('Total Staff Sales', 'اسٹاف کی کل فروخت')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#8b5cf6;">🧾</div>
             <div class="kpi-value">${totOrders}</div>
-            <div class="kpi-label">Total Orders Booked</div>
+            <div class="kpi-label">${ebMix('Total Bills / Orders', 'کل بلز / آرڈرز')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">🏆</div>
-            <div class="kpi-value">${list[0] ? list[0].name : '—'}</div>
-            <div class="kpi-label">Top Performer Salesman</div>
+            <div class="kpi-value">${list[0] && list[0].salesVolume > 0 ? list[0].name : '—'}</div>
+            <div class="kpi-label">${ebMix('Top Performer', 'بہترین کارکردگی')}</div>
         </div>
     `;
 
     activeTableData = list.map(b => ({
         name: b.name,
+        route: b.route || 'General',
         orders: b.ordersCount,
         sales: b.salesVolume,
         cash: b.cashCollected,
-        balance: b.salesVolume - b.cashCollected
+        balance: Math.max(0, b.salesVolume - b.cashCollected)
     }));
 
     renderTable([
-        { header: 'Booker Name', key: 'name', bold: true },
-        { header: 'Orders Booked', key: 'orders', align: 'center', bold: true },
-        { header: 'Total Sales (Rs)', key: 'sales', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Cash Collected', key: 'cash', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString(), color: '#16a34a' },
-        { header: 'Pending Collection', key: 'balance', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString(), color: '#dc2626' }
+        { header: uiMeta.staffColHeader, key: 'name', bold: true },
+        { header: ebMix('Route / Zone', 'روٹ / زون'), key: 'route' },
+        { header: ebMix('Bills / Orders', 'بلز / آرڈرز'), key: 'orders', align: 'center', bold: true },
+        { header: ebMix('Total Sales (Rs)', 'کل فروخت'), key: 'sales', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Cash Collected', 'کیش وصولی'), key: 'cash', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString(), color: '#16a34a' },
+        { header: ebMix('Credit / Pending', 'ادھار / بقایا'), key: 'balance', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString(), color: '#dc2626' }
     ]);
 }
 
@@ -951,8 +1322,12 @@ function renderBookersReport() {
 // 7️⃣ CUSTOMER KHATA AGING & RECOVERY REPORT
 // ============================================
 function renderKhataReport() {
-    document.getElementById('reportTitle').innerHTML = '<i class="fas fa-hand-holding-dollar"></i> Customer Khata Recovery & Aging';
-    document.getElementById('reportSubTitle').innerText = 'ادھار بقایا جات کی ترجیحی فہرست برائے فوری ریکوری';
+    const uiMeta = getCategoryReportMeta(getActiveReportCategory());
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hand-holding-dollar"></i> ${uiMeta.icon} ${ebMix('Customer Khata Recovery &amp; Aging', 'کسٹمر کھاتہ ریکوری و ایجنگ')}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(
+        'Priority list of outstanding credit balances for quick recovery',
+        'ادھار بقایا جات کی ترجیحی فہرست برائے فوری ریکوری'
+    );
 
     const debtors = rawCustomers
         .filter(c => Number(c.balance || 0) > 0)
@@ -965,17 +1340,17 @@ function renderKhataReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#ef4444;">💸</div>
             <div class="kpi-value" style="color:#ef4444;">Rs ${Math.round(totalPending).toLocaleString()}</div>
-            <div class="kpi-label">Total Outstanding Market Khata</div>
+            <div class="kpi-label">${ebMix('Total Outstanding Market Khata', 'مارکیٹ کا کل بقایا کھاتہ')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">🏬</div>
             <div class="kpi-value">${debtors.length}</div>
-            <div class="kpi-label">Shops With Pending Balance</div>
+            <div class="kpi-label">${ebMix('Accounts With Pending Balance', 'بقایا جات والے اکاؤنٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#0284c7;">🔝</div>
             <div class="kpi-value">${debtors[0] ? debtors[0].name : '—'}</div>
-            <div class="kpi-label">Highest Outstanding Balance</div>
+            <div class="kpi-label">${ebMix('Highest Outstanding Balance', 'سب سے زیادہ بقایا اکاؤنٹ')}</div>
         </div>
     `;
 
@@ -995,12 +1370,12 @@ function renderKhataReport() {
     });
 
     renderTable([
-        { header: 'Customer Name', key: 'name', bold: true },
-        { header: 'Shop / Institution', key: 'shop' },
-        { header: 'Segment / Board', key: 'segmentBoard', color: '#0284c7' },
-        { header: 'Route / Area', key: 'route' },
-        { header: 'Mobile #', key: 'mobile' },
-        { header: 'Outstanding Khata (Rs)', key: 'balance', align: 'right', bold: true, color: '#dc2626', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
+        { header: uiMeta.partyHeader, key: 'name', bold: true },
+        { header: uiMeta.shopHeader, key: 'shop' },
+        { header: ebMix('Segment / Category', 'سیگمنٹ / کیٹیگری'), key: 'segmentBoard', color: '#0284c7' },
+        { header: ebMix('Route / Area', 'روٹ / علاقہ'), key: 'route' },
+        { header: ebMix('Mobile #', 'موبائل نمبر'), key: 'mobile' },
+        { header: ebMix('Outstanding Khata (Rs)', 'واجب الادا کھاتہ'), key: 'balance', align: 'right', bold: true, color: '#dc2626', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
     ]);
 }
 
@@ -1012,17 +1387,23 @@ function renderBooksAnalyticsReport() {
     const mode = modeSel ? modeSel.value : 'publisher';
 
     let modeLabelEn = 'Publisher / Board / Brand';
-    let modeLabelUr = 'پبلشر، تعلیمی بورڈ اور برانڈ کے لحاظ سے سیلز اور اسٹاک کا تجزیہ';
+    let modeLabelUr = 'پبلشر / بورڈ / برانڈ';
+    let modeSubEn = 'Sales and inventory analysis grouped by publisher, educational board, and brand';
+    let modeSubUr = 'پبلشر، تعلیمی بورڈ اور برانڈ کے لحاظ سے سیلز اور اسٹاک کا تجزیہ';
     if (mode === 'class') {
         modeLabelEn = 'Class / Grade';
-        modeLabelUr = 'کلاس اور جماعت (KG تا ڈگری) کے لحاظ سے نصابی کتب اور اسٹاک کی رپورٹ';
+        modeLabelUr = 'کلاس / جماعت';
+        modeSubEn = 'Textbooks and inventory report grouped by class/grade (KG to Degree)';
+        modeSubUr = 'کلاس اور جماعت (KG تا ڈگری) کے لحاظ سے نصابی کتب اور اسٹاک کی رپورٹ';
     } else if (mode === 'subject') {
         modeLabelEn = 'Subject / Product Type';
-        modeLabelUr = 'مضمون اور آئٹم کی قسم (درسی کتاب، گائیڈ، کاپی، اسٹیشنری) کے لحاظ سے تجزیہ';
+        modeLabelUr = 'مضمون / آئٹم کی قسم';
+        modeSubEn = 'Analysis grouped by subject and item type (textbook, guide, notebook, stationery)';
+        modeSubUr = 'مضمون اور آئٹم کی قسم (درسی کتاب، گائیڈ، کاپی، اسٹیشنری) کے لحاظ سے تجزیہ';
     }
 
-    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-book-open"></i> Book Depot Analytics — By ${modeLabelEn}`;
-    document.getElementById('reportSubTitle').innerText = modeLabelUr;
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-book-open"></i> ${ebMix('Book Depot Analytics — By ' + modeLabelEn, 'بک ڈپو تجزیہ — ' + modeLabelUr)}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(modeSubEn, modeSubUr);
 
     const getGroupKey = (itemObj) => {
         if (!itemObj) return 'Unspecified / General';
@@ -1090,22 +1471,22 @@ function renderBooksAnalyticsReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#2563eb;">📚</div>
             <div class="kpi-value">${list.length}</div>
-            <div class="kpi-label">Active ${modeLabelEn} Groups</div>
+            <div class="kpi-label">${ebMix('Active ' + modeLabelEn + ' Groups', 'فعال گروپس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#10b981;">💰</div>
             <div class="kpi-value">Rs ${Math.round(totalRev).toLocaleString()}</div>
-            <div class="kpi-label">Period Sales Revenue</div>
+            <div class="kpi-label">${ebMix('Period Sales Revenue', 'دورانیے کی سیلز آمدن')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">📦</div>
             <div class="kpi-value">${Math.round(totalSold).toLocaleString()}</div>
-            <div class="kpi-label">Units Sold in Period</div>
+            <div class="kpi-label">${ebMix('Units Sold in Period', 'فروخت شدہ یونٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#7c3aed;">🏛️</div>
             <div class="kpi-value">Rs ${Math.round(totalStockVal).toLocaleString()}</div>
-            <div class="kpi-label">Current Inventory Value (At Cost)</div>
+            <div class="kpi-label">${ebMix('Current Inventory Value (At Cost)', 'موجودہ اسٹاک مالیت (لاگت)')}</div>
         </div>
     `;
 
@@ -1121,12 +1502,12 @@ function renderBooksAnalyticsReport() {
 
     renderTable([
         { header: '#', key: 'rank', bold: true },
-        { header: modeLabelEn, key: 'groupName', bold: true, color: '#1e3a8a' },
-        { header: 'Items / Titles', key: 'titlesCount', align: 'center' },
-        { header: 'Units Sold', key: 'soldUnits', align: 'center', bold: true, color: '#16a34a' },
-        { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Stock in Hand', key: 'stockUnits', align: 'center' },
-        { header: 'Stock Value (Cost)', key: 'stockValueCost', align: 'right', color: '#7c3aed', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
+        { header: ebMix(modeLabelEn, modeLabelUr), key: 'groupName', bold: true, color: '#1e3a8a' },
+        { header: ebMix('Items / Titles', 'آئٹمز / کتب'), key: 'titlesCount', align: 'center' },
+        { header: ebMix('Units Sold', 'فروخت شدہ'), key: 'soldUnits', align: 'center', bold: true, color: '#16a34a' },
+        { header: ebMix('Sales Revenue (Rs)', 'سیلز آمدن'), key: 'salesRevenue', align: 'right', bold: true, format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Stock in Hand', 'موجودہ اسٹاک'), key: 'stockUnits', align: 'center' },
+        { header: ebMix('Stock Value (Cost)', 'اسٹاک مالیت'), key: 'stockValueCost', align: 'right', color: '#7c3aed', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
     ]);
 }
 
@@ -1138,8 +1519,11 @@ function renderMobileAnalyticsReport() {
     const mode = modeSel ? modeSel.value : 'brand';
 
     if (mode === 'imei_audit') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-barcode"></i> Mobile IMEI Audit & Handset Profit Register`;
-        document.getElementById('reportSubTitle').innerText = 'فروخت شدہ اور گودام میں موجود تمام موبائلز کے IMEI نمبرز، PTA اسٹیٹس، وارنٹی اور فی سیٹ منافع کا مکمل آڈٹ';
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-barcode"></i> ${ebMix('Mobile IMEI Audit &amp; Handset Profit Register', 'موبائل IMEI آڈٹ و منافع رجسٹر')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            'Complete audit of sold and in-stock mobile IMEI numbers, PTA status, warranty, and per-set profit',
+            'فروخت شدہ اور گودام میں موجود تمام موبائلز کے IMEI نمبرز، PTA اسٹیٹس، وارنٹی اور فی سیٹ منافع کا مکمل آڈٹ'
+        );
 
         const rows = [];
         let soldHandsets = 0, soldRevenue = 0, soldProfit = 0, inStockHandsets = 0;
@@ -1220,44 +1604,47 @@ function renderMobileAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">📱</div>
                 <div class="kpi-value">${soldHandsets} Sets</div>
-                <div class="kpi-label">Handsets Sold in Period</div>
+                <div class="kpi-label">${ebMix('Handsets Sold in Period', 'فروخت شدہ ہینڈ سیٹس')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">💰</div>
                 <div class="kpi-value">Rs ${Math.round(soldRevenue).toLocaleString()}</div>
-                <div class="kpi-label">Handset Sales Revenue</div>
+                <div class="kpi-label">${ebMix('Handset Sales Revenue', 'ہینڈ سیٹ سیلز آمدن')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#16a34a;">📈</div>
                 <div class="kpi-value">Rs ${Math.round(soldProfit).toLocaleString()}</div>
-                <div class="kpi-label">Net Handset Profit</div>
+                <div class="kpi-label">${ebMix('Net Handset Profit', 'خالص ہینڈ سیٹ منافع')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#7c3aed;">📦</div>
                 <div class="kpi-value">${inStockHandsets} Sets</div>
-                <div class="kpi-label">IMEI Handsets in Stock</div>
+                <div class="kpi-label">${ebMix('IMEI Handsets in Stock', 'اسٹاک میں موجود سیٹس')}</div>
             </div>
         `;
 
         activeTableData = rows;
         renderTable([
-            { header: 'Status', key: 'status', bold: true },
-            { header: 'Date', key: 'date' },
-            { header: 'Bill / Code', key: 'refNo', bold: true, color: '#0284c7' },
-            { header: 'Customer / Party', key: 'party' },
-            { header: 'Device / Model', key: 'deviceName', bold: true },
-            { header: 'IMEI 1–4 / Serial', key: 'imeiDetails', color: '#6d28d9', bold: true },
-            { header: 'PTA / Condition / Warranty', key: 'ptaCond' },
-            { header: 'Sale / Value', key: 'saleAmount', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Cost Price', key: 'costAmount', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Margin / Profit', key: 'profitAmount', align: 'right', bold: true, color: '#16a34a', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Status', 'اسٹیٹس'), key: 'status', bold: true },
+            { header: ebMix('Date', 'تاریخ'), key: 'date' },
+            { header: ebMix('Bill / Code', 'بل / کوڈ'), key: 'refNo', bold: true, color: '#0284c7' },
+            { header: ebMix('Customer / Party', 'گاہک / پارٹی'), key: 'party' },
+            { header: ebMix('Device / Model', 'ڈیوائس / ماڈل'), key: 'deviceName', bold: true },
+            { header: ebMix('IMEI 1–4 / Serial', 'IMEI / سیریل'), key: 'imeiDetails', color: '#6d28d9', bold: true },
+            { header: ebMix('PTA / Condition / Warranty', 'PTA / کنڈیشن / وارنٹی'), key: 'ptaCond' },
+            { header: ebMix('Sale / Value', 'فروخت / قیمت'), key: 'saleAmount', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Cost Price', 'قیمت خرید'), key: 'costAmount', align: 'right', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Margin / Profit', 'منافع / مارجن'), key: 'profitAmount', align: 'right', bold: true, color: '#16a34a', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
 
     if (mode === 'repair_lab') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-screwdriver-wrench"></i> Repairing Lab, Tokens & Technician Revenue Report`;
-        document.getElementById('reportSubTitle').innerText = 'موبائل ریپئرنگ ٹوکنز، فالٹس، کاریگر (Technician) کی کارکردگی اور ریپئرنگ لیب کی آمدنی';
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-screwdriver-wrench"></i> ${ebMix('Repairing Lab, Tokens &amp; Technician Revenue Report', 'ریپئرنگ لیب، ٹوکنز و ٹیکنیشن رپورٹ')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            'Mobile repair tokens, faults, technician performance, and repairing lab revenue',
+            'موبائل ریپئرنگ ٹوکنز، فالٹس، کاریگر (Technician) کی کارکردگی اور ریپئرنگ لیب کی آمدنی'
+        );
 
         const jobMap = new Map();
         const combinedDocs = [...rawOrders, ...rawBills];
@@ -1301,44 +1688,47 @@ function renderMobileAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#7c3aed;">🛠️</div>
                 <div class="kpi-value">${list.length} Jobs</div>
-                <div class="kpi-label">Total Repairing Jobs</div>
+                <div class="kpi-label">${ebMix('Total Repairing Jobs', 'کل ریپئرنگ جابز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">💰</div>
                 <div class="kpi-value">Rs ${Math.round(totalRev).toLocaleString()}</div>
-                <div class="kpi-label">Total Lab Billing</div>
+                <div class="kpi-label">${ebMix('Total Lab Billing', 'کل لیب بلنگ')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">💵</div>
                 <div class="kpi-value">Rs ${Math.round(totalCollected).toLocaleString()}</div>
-                <div class="kpi-label">Cash / Advance Received</div>
+                <div class="kpi-label">${ebMix('Cash / Advance Received', 'وصول کیش / ایڈوانس')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#ea580c;">⏳</div>
                 <div class="kpi-value">Rs ${Math.round(totalPending).toLocaleString()}</div>
-                <div class="kpi-label">Pending Pickup Balance</div>
+                <div class="kpi-label">${ebMix('Pending Pickup Balance', 'بقایا پک اپ رقم')}</div>
             </div>
         `;
 
         activeTableData = list;
         renderTable([
-            { header: 'Token / Bill #', key: 'tokenNo', bold: true, color: '#6d28d9' },
-            { header: 'Date', key: 'date' },
-            { header: 'Customer', key: 'customer', bold: true },
-            { header: 'Device & IMEI', key: 'deviceImei' },
-            { header: 'Fault / Work Done', key: 'faultDesc', color: '#475569' },
-            { header: 'Technician', key: 'technician', bold: true, color: '#0284c7' },
-            { header: 'Lab Status', key: 'labStatus', bold: true },
-            { header: 'Total Charges', key: 'totalCharges', align: 'right', bold: true, format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Received', key: 'advancePaid', align: 'right', color: '#16a34a', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Balance Due', key: 'balanceDue', align: 'right', color: '#dc2626', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Token / Bill #', 'ٹوکن / بل نمبر'), key: 'tokenNo', bold: true, color: '#6d28d9' },
+            { header: ebMix('Date', 'تاریخ'), key: 'date' },
+            { header: ebMix('Customer', 'گاہک'), key: 'customer', bold: true },
+            { header: ebMix('Device &amp; IMEI', 'ڈیوائس اور IMEI'), key: 'deviceImei' },
+            { header: ebMix('Fault / Work Done', 'فالٹ / مرمت تفصیل'), key: 'faultDesc', color: '#475569' },
+            { header: ebMix('Technician', 'کاریگر'), key: 'technician', bold: true, color: '#0284c7' },
+            { header: ebMix('Lab Status', 'لیب اسٹیٹس'), key: 'labStatus', bold: true },
+            { header: ebMix('Total Charges', 'کل چارجز'), key: 'totalCharges', align: 'right', bold: true, format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Received', 'وصول شدہ'), key: 'advancePaid', align: 'right', color: '#16a34a', format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Balance Due', 'بقایا رقم'), key: 'balanceDue', align: 'right', color: '#dc2626', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
 
     if (mode === 'exchange_used') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-right-left"></i> Used Phones & Customer Exchange Trade-In Register`;
-        document.getElementById('reportSubTitle').innerText = 'گاہکوں سے ایکسچینج میں لیے گئے پرانے موبائل، شناختی کارڈ (Seller CNIC) ریکارڈ اور استعمال شدہ موبائلز کی تفصیل';
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-right-left"></i> ${ebMix('Used Phones &amp; Customer Exchange Trade-In Register', 'استعمال شدہ و ایکسچینج موبائل رجسٹر')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            'Used phones taken in exchange, seller CNIC records, and used mobile stock details',
+            'گاہکوں سے ایکسچینج میں لیے گئے پرانے موبائل، شناختی کارڈ (Seller CNIC) ریکارڈ اور استعمال شدہ موبائلز کی تفصیل'
+        );
 
         const rows = [];
         let tradeInCount = 0, totalTradeInCredit = 0, usedStockCount = 0;
@@ -1383,37 +1773,40 @@ function renderMobileAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">🔄</div>
                 <div class="kpi-value">${tradeInCount} Phones</div>
-                <div class="kpi-label">Exchange Trade-Ins Taken</div>
+                <div class="kpi-label">${ebMix('Exchange Trade-Ins Taken', 'ایکسچینج میں لیے گئے موبائل')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">💵</div>
                 <div class="kpi-value">Rs ${Math.round(totalTradeInCredit).toLocaleString()}</div>
-                <div class="kpi-label">Total Trade-In Credit Allowed</div>
+                <div class="kpi-label">${ebMix('Total Trade-In Credit Allowed', 'کل ایکسچینج کریڈٹ')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#7c3aed;">🪪</div>
                 <div class="kpi-value">${usedStockCount} Sets</div>
-                <div class="kpi-label">Used / Kit Phones in Stock</div>
+                <div class="kpi-label">${ebMix('Used / Kit Phones in Stock', 'استعمال شدہ موبائل اسٹاک')}</div>
             </div>
         `;
 
         activeTableData = rows;
         renderTable([
-            { header: 'Record Type', key: 'type', bold: true },
-            { header: 'Date', key: 'date' },
-            { header: 'Bill / Code', key: 'refNo', bold: true, color: '#0284c7' },
-            { header: 'Phone Model', key: 'modelName', bold: true },
-            { header: 'IMEI #', key: 'imeiNo', color: '#6d28d9', bold: true },
-            { header: 'Condition & PTA', key: 'conditionPta' },
-            { header: 'Seller Name & CNIC #', key: 'sellerNameCnic', bold: true },
-            { header: 'Purchase / Credit Value', key: 'amountVal', align: 'right', bold: true, format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Record Type', 'ریکارڈ قسم'), key: 'type', bold: true },
+            { header: ebMix('Date', 'تاریخ'), key: 'date' },
+            { header: ebMix('Bill / Code', 'بل / کوڈ'), key: 'refNo', bold: true, color: '#0284c7' },
+            { header: ebMix('Phone Model', 'موبائل ماڈل'), key: 'modelName', bold: true },
+            { header: ebMix('IMEI #', 'IMEI نمبر'), key: 'imeiNo', color: '#6d28d9', bold: true },
+            { header: ebMix('Condition &amp; PTA', 'کنڈیشن اور PTA'), key: 'conditionPta' },
+            { header: ebMix('Seller Name &amp; CNIC #', 'فروخت کنندہ و CNIC'), key: 'sellerNameCnic', bold: true },
+            { header: ebMix('Purchase / Credit Value', 'خرید / کریڈٹ قیمت'), key: 'amountVal', align: 'right', bold: true, format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
 
     // Default mode === 'brand': Brand & Model Analytics
-    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-mobile-screen-button"></i> Mobile & Accessories Analytics — By Brand & Company`;
-    document.getElementById('reportSubTitle').innerText = 'موبائل برانڈز (Samsung, Apple, Xiaomi, Infinix) اور ایسیسریز برانڈز (Ronin, Audionic, Own Brand) کے لحاظ سے سیلز اور اسٹاک رپورٹ';
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-mobile-screen-button"></i> ${ebMix('Mobile &amp; Accessories Analytics — By Brand &amp; Company', 'موبائل و ایسیسریز تجزیہ — برانڈ کے لحاظ سے')}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(
+        'Sales and stock report grouped by mobile brands (Samsung, Apple, Xiaomi, Infinix) and accessory brands',
+        'موبائل برانڈز (Samsung, Apple, Xiaomi, Infinix) اور ایسیسریز برانڈز (Ronin, Audionic, Own Brand) کے لحاظ سے سیلز اور اسٹاک رپورٹ'
+    );
 
     const getBrandKey = (itemObj) => {
         if (!itemObj) return 'General / Unspecified Brand';
@@ -1472,22 +1865,22 @@ function renderMobileAnalyticsReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#0284c7;">📱</div>
             <div class="kpi-value">${list.length}</div>
-            <div class="kpi-label">Active Mobile / Accessory Brands</div>
+            <div class="kpi-label">${ebMix('Active Mobile / Accessory Brands', 'فعال موبائل / ایسیسری برانڈز')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#10b981;">💰</div>
             <div class="kpi-value">Rs ${Math.round(totalRev).toLocaleString()}</div>
-            <div class="kpi-label">Period Brand Sales Revenue</div>
+            <div class="kpi-label">${ebMix('Period Brand Sales Revenue', 'دورانیے کی برانڈ سیلز آمدن')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">📦</div>
             <div class="kpi-value">${Math.round(totalSold).toLocaleString()}</div>
-            <div class="kpi-label">Units Sold in Period</div>
+            <div class="kpi-label">${ebMix('Units Sold in Period', 'فروخت شدہ یونٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#7c3aed;">🏛️</div>
             <div class="kpi-value">Rs ${Math.round(totalStockVal).toLocaleString()}</div>
-            <div class="kpi-label">Current Inventory Value (At Cost)</div>
+            <div class="kpi-label">${ebMix('Current Inventory Value (At Cost)', 'موجودہ اسٹاک مالیت (لاگت)')}</div>
         </div>
     `;
 
@@ -1503,12 +1896,12 @@ function renderMobileAnalyticsReport() {
 
     renderTable([
         { header: '#', key: 'rank', bold: true },
-        { header: 'Brand / Company Name', key: 'brandName', bold: true, color: '#0369a1' },
-        { header: 'Models / Products', key: 'modelsCount', align: 'center' },
-        { header: 'Units Sold', key: 'soldUnits', align: 'center', bold: true, color: '#16a34a' },
-        { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Stock in Hand', key: 'stockUnits', align: 'center' },
-        { header: 'Stock Value (Cost)', key: 'stockValueCost', align: 'right', color: '#7c3aed', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
+        { header: ebMix('Brand / Company Name', 'برانڈ / کمپنی نام'), key: 'brandName', bold: true, color: '#0369a1' },
+        { header: ebMix('Models / Products', 'ماڈلز / آئٹمز'), key: 'modelsCount', align: 'center' },
+        { header: ebMix('Units Sold', 'فروخت شدہ'), key: 'soldUnits', align: 'center', bold: true, color: '#16a34a' },
+        { header: ebMix('Sales Revenue (Rs)', 'سیلز آمدن'), key: 'salesRevenue', align: 'right', bold: true, format: (v) => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Stock in Hand', 'موجودہ اسٹاک'), key: 'stockUnits', align: 'center' },
+        { header: ebMix('Stock Value (Cost)', 'اسٹاک مالیت'), key: 'stockValueCost', align: 'right', color: '#7c3aed', format: (v) => 'Rs ' + Math.round(v).toLocaleString() }
     ]);
 }
 
@@ -1563,8 +1956,11 @@ function renderWholesalerAnalyticsReport() {
     // MODE 1: Principal Company / Brand Sales & Stock
     // -----------------------------------------
     if (mode === 'principal_company') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-industry"></i> Principal Company / Brand Sales &amp; Stock`;
-        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Principal Companies / Suppliers ke hisaab se Sales, Free Bonus (TP) aur Maujooda Stock Value`;
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-industry"></i> ${ebMix('Principal Company / Brand Sales &amp; Stock', 'پرنسپل کمپنی / برانڈ سیلز و اسٹاک')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            `Sales, free bonus (TP), and current stock value by principal company / supplier from ${dateStart} to ${dateEnd}`,
+            `${dateStart} تا ${dateEnd} پرنسپل کمپنیوں اور سپلائرز کے لحاظ سے سیلز، مفت بونس اور موجودہ اسٹاک مالیت`
+        );
 
         const getPrincipalName = (obj) => {
             if (!obj) return 'General / Unspecified Principal';
@@ -1637,22 +2033,22 @@ function renderWholesalerAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#ea580c;">🏭</div>
                 <div class="kpi-value">${list.length}</div>
-                <div class="kpi-label">Active Principal Companies</div>
+                <div class="kpi-label">${ebMix('Active Principal Companies', 'فعال پرنسپل کمپنیاں')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">💰</div>
                 <div class="kpi-value">Rs ${Math.round(totalRev).toLocaleString()}</div>
-                <div class="kpi-label">Principal Sales Revenue</div>
+                <div class="kpi-label">${ebMix('Principal Sales Revenue', 'کمپنی سیلز آمدن')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">📦</div>
                 <div class="kpi-value">${Math.round(totalSold).toLocaleString()} ${totalFree > 0 ? `<small style="font-size:11px; color:#ea580c;">+${Math.round(totalFree)} Free</small>` : ''}</div>
-                <div class="kpi-label">Paid &amp; Free Bonus Units Sold</div>
+                <div class="kpi-label">${ebMix('Paid &amp; Free Bonus Units Sold', 'فروخت شدہ و مفت بونس یونٹس')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#7c3aed;">🏛️</div>
                 <div class="kpi-value">Rs ${Math.round(totalStockCost).toLocaleString()}</div>
-                <div class="kpi-label">Godown Stock Value (At Cost)</div>
+                <div class="kpi-label">${ebMix('Godown Stock Value (At Cost)', 'گودام اسٹاک مالیت (لاگت)')}</div>
             </div>
         `;
 
@@ -1669,13 +2065,13 @@ function renderWholesalerAnalyticsReport() {
 
         renderTable([
             { header: '#', key: 'rank', bold: true },
-            { header: 'Principal / Supplier Company', key: 'companyName', bold: true, color: '#c2410c' },
-            { header: 'SKUs', key: 'skuCount', align: 'center' },
-            { header: 'Sold Qty', key: 'soldQty', align: 'center', bold: true, color: '#16a34a' },
-            { header: 'Free / Bonus', key: 'freeBonusQty', align: 'center', color: '#ea580c' },
-            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Stock in Hand', key: 'stockInHand', align: 'center' },
-            { header: 'Stock Value (Cost)', key: 'stockCostValue', align: 'right', color: '#7c3aed', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Principal / Supplier Company', 'پرنسپل / سپلائر کمپنی'), key: 'companyName', bold: true, color: '#c2410c' },
+            { header: ebMix('SKUs', 'آئٹمز'), key: 'skuCount', align: 'center' },
+            { header: ebMix('Sold Qty', 'فروخت مقدار'), key: 'soldQty', align: 'center', bold: true, color: '#16a34a' },
+            { header: ebMix('Free / Bonus', 'مفت / بونس'), key: 'freeBonusQty', align: 'center', color: '#ea580c' },
+            { header: ebMix('Sales Revenue (Rs)', 'سیلز آمدن'), key: 'salesRevenue', align: 'right', bold: true, format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Stock in Hand', 'موجودہ اسٹاک'), key: 'stockInHand', align: 'center' },
+            { header: ebMix('Stock Value (Cost)', 'اسٹاک مالیت'), key: 'stockCostValue', align: 'right', color: '#7c3aed', format: v => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
@@ -1684,8 +2080,11 @@ function renderWholesalerAnalyticsReport() {
     // MODE 2: PJP Beat / Route Sales & Khata Recovery
     // -----------------------------------------
     if (mode === 'pjp_route') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-route"></i> PJP Beat / Route Sales &amp; Khata Recovery`;
-        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak har PJP Beat / Bazaar Route ki Shops, Sales, Cash Recovery aur Market Khata Balance`;
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-route"></i> ${ebMix('PJP Beat / Route Sales &amp; Khata Recovery', 'روٹ / بیٹ سیلز و کھاتہ ریکوری')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            `Shops, sales, cash recovery, and market khata balance for each PJP beat / bazaar route from ${dateStart} to ${dateEnd}`,
+            `${dateStart} تا ${dateEnd} ہر روٹ اور بازار بیٹ کی دکانیں، سیلز، کیش وصولی اور مارکیٹ کھاتہ بقایا`
+        );
 
         const custById = {};
         const custByName = {};
@@ -1740,22 +2139,22 @@ function renderWholesalerAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">🗺️</div>
                 <div class="kpi-value">${list.length} Routes</div>
-                <div class="kpi-label">Active PJP Beats / Markets</div>
+                <div class="kpi-label">${ebMix('Active PJP Beats / Markets', 'فعال روٹس / مارکیٹس')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">💰</div>
                 <div class="kpi-value">Rs ${Math.round(totalSales).toLocaleString()}</div>
-                <div class="kpi-label">Route-Wise Period Sales</div>
+                <div class="kpi-label">${ebMix('Route-Wise Period Sales', 'روٹ کے لحاظ سے سیلز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#16a34a;">💵</div>
                 <div class="kpi-value">Rs ${Math.round(totalCash).toLocaleString()}</div>
-                <div class="kpi-label">Cash Collected on Routes</div>
+                <div class="kpi-label">${ebMix('Cash Collected on Routes', 'روٹس سے کیش وصولی')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#ef4444;">💳</div>
                 <div class="kpi-value">Rs ${Math.round(totalKhata).toLocaleString()}</div>
-                <div class="kpi-label">Pending Market Khata</div>
+                <div class="kpi-label">${ebMix('Pending Market Khata', 'بقایا مارکیٹ کھاتہ')}</div>
             </div>
         `;
 
@@ -1772,13 +2171,13 @@ function renderWholesalerAnalyticsReport() {
 
         renderTable([
             { header: '#', key: 'rank', bold: true },
-            { header: 'PJP Route / Market Beat', key: 'routeName', bold: true, color: '#0369a1' },
-            { header: 'Shops', key: 'shopsCount', align: 'center' },
-            { header: 'Invoices', key: 'billsCount', align: 'center', bold: true },
-            { header: 'Period Sales (Rs)', key: 'periodSales', align: 'right', bold: true, format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Cash Collected', key: 'cashCollected', align: 'right', color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Recovery %', key: 'recoveryPct', align: 'center', bold: true },
-            { header: 'Pending Khata (Rs)', key: 'pendingKhata', align: 'right', bold: true, color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('PJP Route / Market Beat', 'روٹ / مارکیٹ بیٹ'), key: 'routeName', bold: true, color: '#0369a1' },
+            { header: ebMix('Shops', 'دکانیں'), key: 'shopsCount', align: 'center' },
+            { header: ebMix('Invoices', 'بلز'), key: 'billsCount', align: 'center', bold: true },
+            { header: ebMix('Period Sales (Rs)', 'دورانیے کی سیلز'), key: 'periodSales', align: 'right', bold: true, format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Cash Collected', 'وصول کیش'), key: 'cashCollected', align: 'right', color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Recovery %', 'ریکوری ٪'), key: 'recoveryPct', align: 'center', bold: true },
+            { header: ebMix('Pending Khata (Rs)', 'بقایا کھاتہ'), key: 'pendingKhata', align: 'right', bold: true, color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
@@ -1787,8 +2186,11 @@ function renderWholesalerAnalyticsReport() {
     // MODE 3: Batch Expiry Radar & Damage Claims
     // -----------------------------------------
     if (mode === 'expiry_batch') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hourglass-end"></i> Batch Expiry Radar &amp; Damage Claims`;
-        document.getElementById('reportSubTitle').innerText = 'Godown mein Expired / Near-Expiry Batches (30/90 Days) aur Company Damage Claims ki Net Recovery summary';
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hourglass-end"></i> ${ebMix('Batch Expiry Radar &amp; Damage Claims', 'بیچ ایکسپائری ریڈار و کلیمز')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            'Expired and near-expiry godown batches (30/90 days) plus net recovery summary of company damage claims',
+            'گودام میں ایکسپائر اور قریبِ ایکسپائری بیچز (30/90 دن) اور کمپنی کلیمز کی نیٹ ریکوری رپورٹ'
+        );
 
         let expiredCount = 0, criticalCount = 0, warningCount = 0, atRiskValue = 0;
         const rows = [];
@@ -1854,22 +2256,22 @@ function renderWholesalerAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#ef4444;">🚨</div>
                 <div class="kpi-value">${expiredCount} Expired / ${criticalCount} ≤30d</div>
-                <div class="kpi-label">Critical Expiry Batches (${warningCount} ≤90d)</div>
+                <div class="kpi-label">${ebMix(`Critical Expiry Batches (${warningCount} ≤90d)`, 'نازک ایکسپائری بیچز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#f59e0b;">💸</div>
                 <div class="kpi-value">Rs ${Math.round(atRiskValue).toLocaleString()}</div>
-                <div class="kpi-label">At-Risk Stock Value (≤90d &amp; Expired)</div>
+                <div class="kpi-label">${ebMix('At-Risk Stock Value (≤90d &amp; Expired)', 'خطرے میں اسٹاک مالیت')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">📝</div>
                 <div class="kpi-value">Rs ${Math.round(claimsGross).toLocaleString()}</div>
-                <div class="kpi-label">Claims Gross (${rawDamageClaims.length} Claims)</div>
+                <div class="kpi-label">${ebMix(`Claims Gross (${rawDamageClaims.length} Claims)`, 'کل کلیمز رقم')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">✅</div>
                 <div class="kpi-value">Rs ${Math.round(claimsRecovered).toLocaleString()}</div>
-                <div class="kpi-label">Claim Recovered (Net Loss: Rs ${Math.round(claimsNetLoss).toLocaleString()})</div>
+                <div class="kpi-label">${ebMix(`Claim Recovered (Net Loss: Rs ${Math.round(claimsNetLoss).toLocaleString()})`, 'وصول شدہ کلیم')}</div>
             </div>
         `;
 
@@ -1886,15 +2288,15 @@ function renderWholesalerAnalyticsReport() {
         }));
 
         renderTable([
-            { header: 'Type', key: 'source', bold: true },
-            { header: 'Product / Principal', key: 'itemName', bold: true },
-            { header: 'Batch # / Reason', key: 'batchOrClaim' },
-            { header: 'Expiry / Date', key: 'expiryDate', align: 'center' },
-            { header: 'Status', key: 'statusLabel', bold: true },
-            { header: 'Qty', key: 'qtyUnits', align: 'center' },
-            { header: 'Cost / Claim (Rs)', key: 'grossCost', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Recovered (Rs)', key: 'recoveredVal', align: 'right', color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Net Risk / Loss', key: 'netExposure', align: 'right', bold: true, color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Type', 'قسم'), key: 'source', bold: true },
+            { header: ebMix('Product / Principal', 'پراڈکٹ / کمپنی'), key: 'itemName', bold: true },
+            { header: ebMix('Batch # / Reason', 'بیچ نمبر / وجہ'), key: 'batchOrClaim' },
+            { header: ebMix('Expiry / Date', 'ایکسپائری / تاریخ'), key: 'expiryDate', align: 'center' },
+            { header: ebMix('Status', 'اسٹیٹس'), key: 'statusLabel', bold: true },
+            { header: ebMix('Qty', 'تعداد'), key: 'qtyUnits', align: 'center' },
+            { header: ebMix('Cost / Claim (Rs)', 'لاگت / کلیم'), key: 'grossCost', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Recovered (Rs)', 'ریکوری'), key: 'recoveredVal', align: 'right', color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Net Risk / Loss', 'خالص نقصان / رسک'), key: 'netExposure', align: 'right', bold: true, color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
@@ -1902,8 +2304,11 @@ function renderWholesalerAnalyticsReport() {
     // -----------------------------------------
     // MODE 4: Free Bonus (TP) & Trade Schemes Audit
     // -----------------------------------------
-    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-gift"></i> Free Bonus (TP) &amp; Trade Schemes Audit`;
-    document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak invoices aur orders mein diye gaye Free Bonus units, Trade Discounts aur Company Bonus Cost`;
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-gift"></i> ${ebMix('Free Bonus (TP) &amp; Trade Schemes Audit', 'مفت بونس و ٹریڈ اسکیم آڈٹ')}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(
+        `Free bonus units, trade discounts, and company bonus cost issued across invoices from ${dateStart} to ${dateEnd}`,
+        `${dateStart} تا ${dateEnd} بلز اور آرڈرز میں دیے گئے مفت بونس یونٹس، ٹریڈ ڈسکاؤنٹ اور بونس لاگت`
+    );
 
     const schemeItemsMap = new Map();
     let totalPaidQty = 0, totalFreeUnits = 0, totalFreeCostValue = 0, totalTradeDisc = 0;
@@ -1956,22 +2361,22 @@ function renderWholesalerAnalyticsReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#ea580c;">🎁</div>
             <div class="kpi-value">${Math.round(totalFreeUnits).toLocaleString()} Units</div>
-            <div class="kpi-label">Free Bonus Units Given</div>
+            <div class="kpi-label">${ebMix('Free Bonus Units Given', 'دیے گئے مفت بونس یونٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#ef4444;">💸</div>
             <div class="kpi-value">Rs ${Math.round(totalFreeCostValue).toLocaleString()}</div>
-            <div class="kpi-label">Free Bonus Stock Cost (TP Impact)</div>
+            <div class="kpi-label">${ebMix('Free Bonus Stock Cost (TP Impact)', 'مفت بونس اسٹاک لاگت')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">✂️</div>
             <div class="kpi-value">Rs ${Math.round(totalTradeDisc).toLocaleString()}</div>
-            <div class="kpi-label">Bill &amp; Trade Offer Discounts</div>
+            <div class="kpi-label">${ebMix('Bill &amp; Trade Offer Discounts', 'بل اور ٹریڈ ڈسکاؤنٹس')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#0284c7;">📦</div>
             <div class="kpi-value">${schemeList.length} SKUs</div>
-            <div class="kpi-label">Items Issued on Bonus / Scheme (${Math.round(totalPaidQty).toLocaleString()} Paid Units)</div>
+            <div class="kpi-label">${ebMix(`Items Issued on Bonus / Scheme (${Math.round(totalPaidQty).toLocaleString()} Paid Units)`, 'بونس / اسکیم آئٹمز')}</div>
         </div>
     `;
 
@@ -1989,14 +2394,14 @@ function renderWholesalerAnalyticsReport() {
 
     renderTable([
         { header: '#', key: 'rank', bold: true },
-        { header: 'Product Name', key: 'itemName', bold: true, color: '#0f172a' },
-        { header: 'Principal / Brand', key: 'company', color: '#c2410c' },
-        { header: 'Bills', key: 'billsTouched', align: 'center' },
-        { header: 'Paid Qty', key: 'paidQty', align: 'center', bold: true },
-        { header: 'Free Bonus Qty', key: 'freeUnits', align: 'center', bold: true, color: '#ea580c' },
-        { header: 'Bonus Cost Value', key: 'bonusCostVal', align: 'right', bold: true, color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Trade Disc (Rs)', key: 'tradeDiscRs', align: 'right', color: '#d97706', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Billed Sales (Rs)', key: 'billedSales', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+        { header: ebMix('Product Name', 'پراڈکٹ کا نام'), key: 'itemName', bold: true, color: '#0f172a' },
+        { header: ebMix('Principal / Brand', 'کمپنی / برانڈ'), key: 'company', color: '#c2410c' },
+        { header: ebMix('Bills', 'بلز'), key: 'billsTouched', align: 'center' },
+        { header: ebMix('Paid Qty', 'قیمت مقدار'), key: 'paidQty', align: 'center', bold: true },
+        { header: ebMix('Free Bonus Qty', 'مفت بونس مقدار'), key: 'freeUnits', align: 'center', bold: true, color: '#ea580c' },
+        { header: ebMix('Bonus Cost Value', 'بونس لاگت'), key: 'bonusCostVal', align: 'right', bold: true, color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Trade Disc (Rs)', 'ٹریڈ ڈسکاؤنٹ'), key: 'tradeDiscRs', align: 'right', color: '#d97706', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Billed Sales (Rs)', 'بل شدہ سیلز'), key: 'billedSales', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
     ]);
 }
 
@@ -2025,8 +2430,11 @@ function renderMedicalAnalyticsReport() {
     // MODE 1: Pharma Company / Brand Sales & Stock
     // -----------------------------------------
     if (mode === 'pharma_company') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hospital"></i> Pharma Company / Brand Sales &amp; Stock`;
-        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Pharma Companies ke hisaab se Medicine Sales, Free Bonus aur Maujooda Pharmacy Stock Value`;
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hospital"></i> ${ebMix('Pharma Company / Brand Sales &amp; Stock', 'فارما کمپنی / برانڈ سیلز و اسٹاک')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            `Medicine sales, free bonus, and current pharmacy stock value by pharma company from ${dateStart} to ${dateEnd}`,
+            `${dateStart} تا ${dateEnd} فارما کمپنیوں کے لحاظ سے ادویات سیلز، مفت بونس اور موجودہ فارمیسی اسٹاک مالیت`
+        );
 
         const getPharmaName = (obj) => {
             if (!obj) return 'Other / Unspecified Pharma';
@@ -2098,22 +2506,22 @@ function renderMedicalAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#059669;">🏥</div>
                 <div class="kpi-value">${list.length}</div>
-                <div class="kpi-label">Pharma Companies / Brands</div>
+                <div class="kpi-label">${ebMix('Pharma Companies / Brands', 'فارما کمپنیاں / برانڈز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">💊</div>
                 <div class="kpi-value">Rs ${Math.round(totalRevenue).toLocaleString()}</div>
-                <div class="kpi-label">Medicine Sales Revenue</div>
+                <div class="kpi-label">${ebMix('Medicine Sales Revenue', 'ادویات سیلز آمدن')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#f59e0b;">📦</div>
                 <div class="kpi-value">${Math.round(totalSoldUnits).toLocaleString()} + ${Math.round(totalBonusUnits)} Free</div>
-                <div class="kpi-label">Sold &amp; Bonus Units</div>
+                <div class="kpi-label">${ebMix('Sold &amp; Bonus Units', 'فروخت شدہ و بونس یونٹس')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#6366f1;">🏦</div>
                 <div class="kpi-value">Rs ${Math.round(totalStockCost).toLocaleString()}</div>
-                <div class="kpi-label">Pharmacy Stock Value (TP/Cost)</div>
+                <div class="kpi-label">${ebMix('Pharmacy Stock Value (TP/Cost)', 'فارمیسی اسٹاک مالیت (لاگت)')}</div>
             </div>
         `;
 
@@ -2130,13 +2538,13 @@ function renderMedicalAnalyticsReport() {
 
         renderTable([
             { header: '#', key: 'rank', bold: true },
-            { header: 'Pharma Company / Brand', key: 'companyName', bold: true, color: '#047857' },
-            { header: 'SKUs', key: 'skuCount', align: 'center' },
-            { header: 'Sold Qty', key: 'soldQty', align: 'center', bold: true },
-            { header: 'Free Bonus', key: 'freeBonusQty', align: 'center', color: '#ea580c' },
-            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'In-Stock Qty', key: 'stockInHand', align: 'center' },
-            { header: 'Stock Value (TP)', key: 'stockCostValue', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Pharma Company / Brand', 'فارما کمپنی / برانڈ'), key: 'companyName', bold: true, color: '#047857' },
+            { header: ebMix('SKUs', 'آئٹمز'), key: 'skuCount', align: 'center' },
+            { header: ebMix('Sold Qty', 'فروخت مقدار'), key: 'soldQty', align: 'center', bold: true },
+            { header: ebMix('Free Bonus', 'مفت بونس'), key: 'freeBonusQty', align: 'center', color: '#ea580c' },
+            { header: ebMix('Sales Revenue (Rs)', 'سیلز آمدن'), key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('In-Stock Qty', 'موجودہ اسٹاک'), key: 'stockInHand', align: 'center' },
+            { header: ebMix('Stock Value (TP)', 'اسٹاک مالیت'), key: 'stockCostValue', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
@@ -2145,8 +2553,11 @@ function renderMedicalAnalyticsReport() {
     // MODE 2: Generic Salt / Formula Demand & Stock
     // -----------------------------------------
     if (mode === 'generic_formula') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-dna"></i> Generic Salt / Formula Demand &amp; Stock`;
-        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Generic Salt / Formula ke hisaab se Sales aur Alternate Brands Availability`;
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-dna"></i> ${ebMix('Generic Salt / Formula Demand &amp; Stock', 'جنیرک سالٹ / فارمولا ڈیمانڈ و اسٹاک')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            `Sales and alternate brand availability by generic salt/formula from ${dateStart} to ${dateEnd}`,
+            `${dateStart} تا ${dateEnd} جنیرک سالٹ اور فارمولا کے لحاظ سے سیلز اور متبادل برانڈز کی دستیابی`
+        );
 
         const getGenericFormula = (obj) => {
             if (!obj) return 'Unspecified Formula / OTC';
@@ -2203,22 +2614,22 @@ function renderMedicalAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#059669;">🧬</div>
                 <div class="kpi-value">${list.length}</div>
-                <div class="kpi-label">Active Generic Formulas / Salts</div>
+                <div class="kpi-label">${ebMix('Active Generic Formulas / Salts', 'فعال جنیرک فارمولے / سالٹس')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">💰</div>
                 <div class="kpi-value">Rs ${Math.round(totalFormulaRev).toLocaleString()}</div>
-                <div class="kpi-label">Total Dispensed Sales</div>
+                <div class="kpi-label">${ebMix('Total Dispensed Sales', 'کل فروخت شدہ ادویات')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">💊</div>
                 <div class="kpi-value">${Math.round(totalFormulasSold).toLocaleString()}</div>
-                <div class="kpi-label">Units Dispensed</div>
+                <div class="kpi-label">${ebMix('Units Dispensed', 'جاری شدہ یونٹس')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#ef4444;">⚠️</div>
                 <div class="kpi-value">${lowStockFormulas}</div>
-                <div class="kpi-label">Low / Zero Stock Formulas (≤5)</div>
+                <div class="kpi-label">${ebMix('Low / Zero Stock Formulas (≤5)', 'کم یا ختم اسٹاک فارمولے')}</div>
             </div>
         `;
 
@@ -2234,12 +2645,12 @@ function renderMedicalAnalyticsReport() {
 
         renderTable([
             { header: '#', key: 'rank', bold: true },
-            { header: 'Generic Salt / Formula', key: 'formula', bold: true, color: '#047857' },
-            { header: 'Available Brands / Companies', key: 'brands' },
-            { header: 'SKUs', key: 'skuCount', align: 'center' },
-            { header: 'Sold Qty', key: 'soldQty', align: 'center', bold: true },
-            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'In-Stock Qty', key: 'stockInHand', align: 'center', bold: true }
+            { header: ebMix('Generic Salt / Formula', 'جنیرک سالٹ / فارمولا'), key: 'formula', bold: true, color: '#047857' },
+            { header: ebMix('Available Brands / Companies', 'دستیاب برانڈز / کمپنیاں'), key: 'brands' },
+            { header: ebMix('SKUs', 'آئٹمز'), key: 'skuCount', align: 'center' },
+            { header: ebMix('Sold Qty', 'فروخت مقدار'), key: 'soldQty', align: 'center', bold: true },
+            { header: ebMix('Sales Revenue (Rs)', 'سیلز آمدن'), key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('In-Stock Qty', 'موجودہ اسٹاک'), key: 'stockInHand', align: 'center', bold: true }
         ]);
         return;
     }
@@ -2248,8 +2659,11 @@ function renderMedicalAnalyticsReport() {
     // MODE 3: FEFO Batch Expiry Radar & Pharma Claims
     // -----------------------------------------
     if (mode === 'expiry_fefo') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hourglass-end"></i> FEFO Batch Expiry Radar &amp; Pharma Claims`;
-        document.getElementById('reportSubTitle').innerText = `First-Expired-First-Out (FEFO): Expired, 30-Day Critical aur 90-Day Near-Expiry Medicines + Distributor Return Claims`;
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-hourglass-end"></i> ${ebMix('FEFO Batch Expiry Radar &amp; Pharma Claims', 'FEFO ایکسپائری ریڈار و فارما کلیمز')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            'First-Expired-First-Out (FEFO): expired, 30-day critical, and 90-day near-expiry medicines plus distributor return claims',
+            'FEFO ریڈار: ایکسپائر، 30 دن نازک اور 90 دن قریبِ ایکسپائری ادویات اور ڈسٹری بیوٹر کلیمز'
+        );
 
         const rows = [];
         let expiredCount = 0, criticalCount = 0, warningCount = 0, atRiskValue = 0;
@@ -2315,22 +2729,22 @@ function renderMedicalAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#ef4444;">🚨</div>
                 <div class="kpi-value">${expiredCount} Expired / ${criticalCount} ≤30d</div>
-                <div class="kpi-label">FEFO Critical Alert (${warningCount} ≤90d)</div>
+                <div class="kpi-label">${ebMix(`FEFO Critical Alert (${warningCount} ≤90d)`, 'نازک FEFO انتباہ')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#f59e0b;">💸</div>
                 <div class="kpi-value">Rs ${Math.round(atRiskValue).toLocaleString()}</div>
-                <div class="kpi-label">Near-Expiry &amp; Expired Stock Value</div>
+                <div class="kpi-label">${ebMix('Near-Expiry &amp; Expired Stock Value', 'قریبِ ایکسپائری و ایکسپائر اسٹاک')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">📝</div>
                 <div class="kpi-value">Rs ${Math.round(claimsGross).toLocaleString()}</div>
-                <div class="kpi-label">Pharma Expiry Claims (${rawDamageClaims.length})</div>
+                <div class="kpi-label">${ebMix(`Pharma Expiry Claims (${rawDamageClaims.length})`, 'فارما ایکسپائری کلیمز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">✅</div>
                 <div class="kpi-value">Rs ${Math.round(claimsRecovered).toLocaleString()}</div>
-                <div class="kpi-label">Distributor Credit Recovered</div>
+                <div class="kpi-label">${ebMix('Distributor Credit Recovered', 'ڈسٹری بیوٹر ریکوری')}</div>
             </div>
         `;
 
@@ -2347,15 +2761,15 @@ function renderMedicalAnalyticsReport() {
         }));
 
         renderTable([
-            { header: 'Type', key: 'source', bold: true },
-            { header: 'Medicine / Product', key: 'itemName', bold: true },
-            { header: 'Company & Formula', key: 'pharmaFormula' },
-            { header: 'Batch # / Reason', key: 'batchOrClaim' },
-            { header: 'Expiry / Date', key: 'expiryDate', align: 'center' },
-            { header: 'FEFO Status', key: 'statusLabel', bold: true },
-            { header: 'Qty', key: 'qtyUnits', align: 'center' },
-            { header: 'Stock / Claim (Rs)', key: 'grossCost', align: 'right', color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Recovered (Rs)', key: 'recoveredVal', align: 'right', color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Type', 'قسم'), key: 'source', bold: true },
+            { header: ebMix('Medicine / Product', 'دوا / پراڈکٹ'), key: 'itemName', bold: true },
+            { header: ebMix('Company &amp; Formula', 'کمپنی و فارمولا'), key: 'pharmaFormula' },
+            { header: ebMix('Batch # / Reason', 'بیچ نمبر / وجہ'), key: 'batchOrClaim' },
+            { header: ebMix('Expiry / Date', 'ایکسپائری / تاریخ'), key: 'expiryDate', align: 'center' },
+            { header: ebMix('FEFO Status', 'FEFO اسٹیٹس'), key: 'statusLabel', bold: true },
+            { header: ebMix('Qty', 'تعداد'), key: 'qtyUnits', align: 'center' },
+            { header: ebMix('Stock / Claim (Rs)', 'اسٹاک / کلیم'), key: 'grossCost', align: 'right', color: '#ef4444', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Recovered (Rs)', 'ریکوری'), key: 'recoveredVal', align: 'right', color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
@@ -2363,8 +2777,11 @@ function renderMedicalAnalyticsReport() {
     // -----------------------------------------
     // MODE 4: Rack Location, Cold-Chain (2-8°C) & Rx Audit
     // -----------------------------------------
-    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-temperature-low"></i> Rack Location, Cold-Chain (2-8°C) &amp; Schedule Rx Audit`;
-    document.getElementById('reportSubTitle').innerText = `Pharmacy Rack/Shelf Breakdown, Cold-Chain Fridge Items aur Schedule-G / Prescription Only Stock Audit`;
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-temperature-low"></i> ${ebMix('Rack Location, Cold-Chain (2-8°C) &amp; Schedule Rx Audit', 'ریک، کولڈ چین اور شیڈول Rx آڈٹ')}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(
+        'Pharmacy rack/shelf breakdown, cold-chain fridge items, and Schedule-G / prescription-only stock audit',
+        'فارمیسی ریک/شیلف تفصیل، کولڈ چین فریج آئٹمز اور شیڈول-G / نسخہ ادویات اسٹاک آڈٹ'
+    );
 
     const rackMap = new Map();
     let totalColdChain = 0, totalControlledRx = 0, totalShelfStockVal = 0;
@@ -2404,22 +2821,22 @@ function renderMedicalAnalyticsReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#059669;">🗄️</div>
             <div class="kpi-value">${rackList.length}</div>
-            <div class="kpi-label">Active Pharmacy Racks / Zones</div>
+            <div class="kpi-label">${ebMix('Active Pharmacy Racks / Zones', 'فعال فارمیسی ریکس / زونز')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#0284c7;">❄️</div>
             <div class="kpi-value">${totalColdChain} SKUs</div>
-            <div class="kpi-label">Cold-Chain Fridge Items (2-8°C)</div>
+            <div class="kpi-label">${ebMix('Cold-Chain Fridge Items (2-8°C)', 'فریج / کولڈ چین آئٹمز')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#dc2626;">🔐</div>
             <div class="kpi-value">${totalControlledRx} SKUs</div>
-            <div class="kpi-label">Schedule-G / Rx Controlled Items</div>
+            <div class="kpi-label">${ebMix('Schedule-G / Rx Controlled Items', 'شیڈول-G / کنٹرولڈ ادویات')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#6366f1;">💰</div>
             <div class="kpi-value">Rs ${Math.round(totalShelfStockVal).toLocaleString()}</div>
-            <div class="kpi-label">Total Audited Shelf Stock</div>
+            <div class="kpi-label">${ebMix('Total Audited Shelf Stock', 'کل شیلف اسٹاک مالیت')}</div>
         </div>
     `;
 
@@ -2435,12 +2852,12 @@ function renderMedicalAnalyticsReport() {
 
     renderTable([
         { header: '#', key: 'rank', bold: true },
-        { header: 'Rack / Zone Location', key: 'rackName', bold: true, color: '#047857' },
-        { header: 'Storage Class', key: 'storageType', bold: true },
-        { header: 'SKUs', key: 'skuCount', align: 'center' },
-        { header: 'Total Stock Qty', key: 'totalUnits', align: 'center', bold: true },
-        { header: 'Stock Value (TP)', key: 'stockValue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Sample Medicines', key: 'sampleMedicines' }
+        { header: ebMix('Rack / Zone Location', 'ریک / زون لوکیشن'), key: 'rackName', bold: true, color: '#047857' },
+        { header: ebMix('Storage Class', 'اسٹوریج کیٹیگری'), key: 'storageType', bold: true },
+        { header: ebMix('SKUs', 'آئٹمز'), key: 'skuCount', align: 'center' },
+        { header: ebMix('Total Stock Qty', 'کل اسٹاک مقدار'), key: 'totalUnits', align: 'center', bold: true },
+        { header: ebMix('Stock Value (TP)', 'اسٹاک مالیت'), key: 'stockValue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Sample Medicines', 'منتخب ادویات'), key: 'sampleMedicines' }
     ]);
 }
 
@@ -2469,8 +2886,11 @@ function renderRestaurantAnalyticsReport() {
     // MODE 1: Kitchen Station / Signature Brand Sales & Pantry Stock
     // -----------------------------------------
     if (mode === 'kitchen_station') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-utensils"></i> Kitchen Station / Brand Sales &amp; Pantry Stock`;
-        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Kitchen KOT Stations (Fryer, Pizza Oven, Drinks) ke hisaab se Sales, Food Cost Margin aur Maujooda Pantry Stock`;
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-utensils"></i> ${ebMix('Kitchen Station / Brand Sales &amp; Pantry Stock', 'کچن کاؤنٹر سیلز و پینٹری اسٹاک')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            `Sales, food-cost margin, and current pantry stock by Kitchen KOT Station (Fryer, Pizza Oven, Drinks) from ${dateStart} to ${dateEnd}`,
+            `${dateStart} تا ${dateEnd} کچن KOT اسٹیشنز (فرائر، پیزا اوون، ڈرنکس) کے لحاظ سے سیلز، فوڈ کاسٹ مارجن اور پینٹری اسٹاک`
+        );
 
         const getKitchenStation = (obj) => {
             if (!obj) return 'Main Kitchen / Unassigned';
@@ -2546,22 +2966,22 @@ function renderRestaurantAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#dc2626;">👨‍🍳</div>
                 <div class="kpi-value">${list.length}</div>
-                <div class="kpi-label">Active Kitchen KOT Stations / Brands</div>
+                <div class="kpi-label">${ebMix('Active Kitchen KOT Stations / Brands', 'فعال کچن اسٹیشنز / برانڈز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">🍔</div>
                 <div class="kpi-value">Rs ${Math.round(totalRevenue).toLocaleString()}</div>
-                <div class="kpi-label">Fast Food &amp; Cafe Revenue (${overallMarginPct}% Margin)</div>
+                <div class="kpi-label">${ebMix(`Fast Food &amp; Cafe Revenue (${overallMarginPct}% Margin)`, 'فاسٹ فوڈ و کیفے آمدن')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#f59e0b;">🍽️</div>
                 <div class="kpi-value">${Math.round(totalSoldUnits).toLocaleString()}</div>
-                <div class="kpi-label">Menu Portions &amp; Deals Sold</div>
+                <div class="kpi-label">${ebMix('Menu Portions &amp; Deals Sold', 'فروخت شدہ پورشنز و ڈیلز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">🧊</div>
                 <div class="kpi-value">Rs ${Math.round(totalPantryValue).toLocaleString()}</div>
-                <div class="kpi-label">Pantry &amp; Freezer Stock Value</div>
+                <div class="kpi-label">${ebMix('Pantry &amp; Freezer Stock Value', 'پینٹری و فریزر اسٹاک مالیت')}</div>
             </div>
         `;
 
@@ -2584,14 +3004,14 @@ function renderRestaurantAnalyticsReport() {
 
         renderTable([
             { header: '#', key: 'rank', bold: true },
-            { header: 'Kitchen KOT Station / Brand', key: 'stationName', bold: true, color: '#b91c1c' },
-            { header: 'Menu SKUs', key: 'skuCount', align: 'center' },
-            { header: 'Sold Orders/Qty', key: 'soldQty', align: 'center', bold: true },
-            { header: 'Food Cost (Rs)', key: 'foodCost', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Margin %', key: 'marginPct', align: 'center', bold: true, color: '#059669' },
-            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Pantry Qty', key: 'stockInHand', align: 'center' },
-            { header: 'Pantry Value (Rs)', key: 'pantryValue', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Kitchen KOT Station / Brand', 'کچن کاؤنٹر / برانڈ'), key: 'stationName', bold: true, color: '#b91c1c' },
+            { header: ebMix('Menu SKUs', 'مینو آئٹمز'), key: 'skuCount', align: 'center' },
+            { header: ebMix('Sold Orders/Qty', 'فروخت شدہ مقدار'), key: 'soldQty', align: 'center', bold: true },
+            { header: ebMix('Food Cost (Rs)', 'فوڈ لاگت'), key: 'foodCost', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Margin %', 'مارجن ٪'), key: 'marginPct', align: 'center', bold: true, color: '#059669' },
+            { header: ebMix('Sales Revenue (Rs)', 'سیلز آمدن'), key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Pantry Qty', 'پینٹری اسٹاک'), key: 'stockInHand', align: 'center' },
+            { header: ebMix('Pantry Value (Rs)', 'پینٹری مالیت'), key: 'pantryValue', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
@@ -2600,8 +3020,11 @@ function renderRestaurantAnalyticsReport() {
     // MODE 2: Service Mode, Table / Delivery & Rider Performance
     // -----------------------------------------
     if (mode === 'service_channel') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-motorcycle"></i> Service Mode, Table / Delivery &amp; Rider Sales`;
-        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Dine-in, Takeaway, Home Delivery aur Foodpanda/Online App Orders, Avg Ticket aur Rider/Waiter Recovery`;
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-motorcycle"></i> ${ebMix('Service Mode, Table / Delivery &amp; Rider Sales', 'سروس موڈ، ٹیبل / ڈلیوری و رائیڈر سیلز')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            `Dine-in, takeaway, home delivery, and online app orders, average ticket, and rider/waiter recovery from ${dateStart} to ${dateEnd}`,
+            `${dateStart} تا ${dateEnd} ڈائن اِن، ٹیک اوے، ہوم ڈلیوری اور آن لائن ایپ آرڈرز، اوسط بل اور رائیڈر/ویٹر ریکوری`
+        );
 
         const normalizeChannelLabel = (b) => {
             const rawLbl = String(b.serviceModeLabel || '').trim();
@@ -2683,22 +3106,22 @@ function renderRestaurantAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#dc2626;">🧾</div>
                 <div class="kpi-value">${totalOrders} Bills</div>
-                <div class="kpi-label">Total Served Kitchen Bills</div>
+                <div class="kpi-label">${ebMix('Total Served Kitchen Bills', 'کل سرو کیے گئے بلز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">🍽️</div>
                 <div class="kpi-value">Rs ${Math.round(dineTakeawayRev).toLocaleString()}</div>
-                <div class="kpi-label">Dine-in &amp; Takeaway Sales</div>
+                <div class="kpi-label">${ebMix('Dine-in &amp; Takeaway Sales', 'ڈائن اِن و ٹیک اوے سیلز')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#ea580c;">🛵</div>
                 <div class="kpi-value">Rs ${Math.round(deliveryOnlineRev).toLocaleString()}</div>
-                <div class="kpi-label">Home Delivery &amp; Online Apps</div>
+                <div class="kpi-label">${ebMix('Home Delivery &amp; Online Apps', 'ہوم ڈلیوری و آن لائن ایپس')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">🎯</div>
                 <div class="kpi-value">Rs ${Math.round(avgTicket).toLocaleString()}</div>
-                <div class="kpi-label">Average Order Ticket Size</div>
+                <div class="kpi-label">${ebMix('Average Order Ticket Size', 'اوسط آرڈر بل رقم')}</div>
             </div>
         `;
 
@@ -2721,13 +3144,13 @@ function renderRestaurantAnalyticsReport() {
 
         renderTable([
             { header: '#', key: 'rank', bold: true },
-            { header: 'Service Mode / Channel', key: 'channelName', bold: true, color: '#b91c1c' },
-            { header: 'Bills / Orders', key: 'billCount', align: 'center', bold: true },
-            { header: 'Riders / Waiters / Tables', key: 'ridersWaiters' },
-            { header: 'Avg Ticket (Rs)', key: 'avgTicket', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Cash Received (Rs)', key: 'cashReceived', align: 'right', color: '#059669', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Due / Khata (Rs)', key: 'creditDue', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Total Revenue (Rs)', key: 'totalRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+            { header: ebMix('Service Mode / Channel', 'سروس موڈ / چینل'), key: 'channelName', bold: true, color: '#b91c1c' },
+            { header: ebMix('Bills / Orders', 'بلز / آرڈرز'), key: 'billCount', align: 'center', bold: true },
+            { header: ebMix('Riders / Waiters / Tables', 'رائیڈرز / ویٹرز / ٹیبلز'), key: 'ridersWaiters' },
+            { header: ebMix('Avg Ticket (Rs)', 'اوسط بل'), key: 'avgTicket', align: 'right', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Cash Received (Rs)', 'کیش وصولی'), key: 'cashReceived', align: 'right', color: '#059669', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Due / Khata (Rs)', 'بقایا / کھاتہ'), key: 'creditDue', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Total Revenue (Rs)', 'کل آمدن'), key: 'totalRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() }
         ]);
         return;
     }
@@ -2736,8 +3159,11 @@ function renderRestaurantAnalyticsReport() {
     // MODE 3: Combo Deals, Sizes & Food-Cost Margin
     // -----------------------------------------
     if (mode === 'deals_combos') {
-        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-burger"></i> Combo Deals, Sizes &amp; Food-Cost Margin`;
-        document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Fast Food Combo Deals vs Single Menu Items, Portion Sizes, Prep Time aur Gross Food Margin %`;
+        document.getElementById('reportTitle').innerHTML = `<i class="fas fa-burger"></i> ${ebMix('Combo Deals, Sizes &amp; Food-Cost Margin', 'کومبو ڈیلز، سائز اور فوڈ کاسٹ مارجن')}`;
+        document.getElementById('reportSubTitle').innerHTML = ebCompact(
+            `Combo deals vs single menu items, portion sizes, prep time, and gross food margin % from ${dateStart} to ${dateEnd}`,
+            `${dateStart} تا ${dateEnd} کومبو ڈیلز بمقابلہ سنگل آئٹمز، پورشن سائز، تیاری کا وقت اور فوڈ مارجن ٪`
+        );
 
         const map = new Map();
         const detectIsDeal = (item, matchedStock) => {
@@ -2818,22 +3244,22 @@ function renderRestaurantAnalyticsReport() {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#ea580c;">🎁</div>
                 <div class="kpi-value">Rs ${Math.round(dealsRev).toLocaleString()}</div>
-                <div class="kpi-label">Combo Deals Revenue (${dealSkuCount} Deals)</div>
+                <div class="kpi-label">${ebMix(`Combo Deals Revenue (${dealSkuCount} Deals)`, 'کومبو ڈیلز آمدن')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#0284c7;">🍔</div>
                 <div class="kpi-value">Rs ${Math.round(singleRev).toLocaleString()}</div>
-                <div class="kpi-label">Single Items &amp; Sides Revenue</div>
+                <div class="kpi-label">${ebMix('Single Items &amp; Sides Revenue', 'سنگل آئٹمز آمدن')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#10b981;">📈</div>
                 <div class="kpi-value">${avgMarginPct}%</div>
-                <div class="kpi-label">Overall Kitchen Food Margin</div>
+                <div class="kpi-label">${ebMix('Overall Kitchen Food Margin', 'مجموعی کچن فوڈ مارجن')}</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#6366f1;">📋</div>
                 <div class="kpi-value">${list.length}</div>
-                <div class="kpi-label">Active Menu Variants / Portions</div>
+                <div class="kpi-label">${ebMix('Active Menu Variants / Portions', 'فعال مینو پورشنز / ڈیلز')}</div>
             </div>
         `;
 
@@ -2857,15 +3283,15 @@ function renderRestaurantAnalyticsReport() {
 
         renderTable([
             { header: '#', key: 'rank', bold: true },
-            { header: 'Menu Item / Deal', key: 'itemName', bold: true, color: '#b91c1c' },
-            { header: 'Class', key: 'menuType', bold: true },
-            { header: 'Portion / Spice', key: 'portionSpice' },
-            { header: 'Deal Contents', key: 'dealContents' },
-            { header: 'Prep', key: 'prepMins', align: 'center' },
-            { header: 'Sold Qty', key: 'soldQty', align: 'center', bold: true },
-            { header: 'Margin %', key: 'marginPct', align: 'center', bold: true, color: '#059669' },
-            { header: 'Sales Revenue (Rs)', key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-            { header: 'Stock', key: 'inStockQty', align: 'center' }
+            { header: ebMix('Menu Item / Deal', 'مینو آئٹم / ڈیل'), key: 'itemName', bold: true, color: '#b91c1c' },
+            { header: ebMix('Class', 'قسم'), key: 'menuType', bold: true },
+            { header: ebMix('Portion / Spice', 'سائز / مسالہ'), key: 'portionSpice' },
+            { header: ebMix('Deal Contents', 'ڈیل تفصیل'), key: 'dealContents' },
+            { header: ebMix('Prep', 'تیاری'), key: 'prepMins', align: 'center' },
+            { header: ebMix('Sold Qty', 'فروخت مقدار'), key: 'soldQty', align: 'center', bold: true },
+            { header: ebMix('Margin %', 'مارجن ٪'), key: 'marginPct', align: 'center', bold: true, color: '#059669' },
+            { header: ebMix('Sales Revenue (Rs)', 'سیلز آمدن'), key: 'salesRevenue', align: 'right', bold: true, color: '#16a34a', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+            { header: ebMix('Stock', 'اسٹاک'), key: 'inStockQty', align: 'center' }
         ]);
         return;
     }
@@ -2873,8 +3299,11 @@ function renderRestaurantAnalyticsReport() {
     // -----------------------------------------
     // MODE 4: Kitchen Wastage, Freezer Spoilage & Cancelled Orders Audit
     // -----------------------------------------
-    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-fire"></i> Kitchen Wastage, Freezer Spoilage &amp; Cancelled Orders`;
-    document.getElementById('reportSubTitle').innerText = `${dateStart} se ${dateEnd} tak Kitchen Wastage, Staff Meals, Freezer Spoilage Claims aur Cancelled Delivery Orders ka Mukammal Audit`;
+    document.getElementById('reportTitle').innerHTML = `<i class="fas fa-fire"></i> ${ebMix('Kitchen Wastage, Freezer Spoilage &amp; Cancelled Orders', 'کچن ویسٹیج، فریزر خرابی و کینسل آرڈرز')}`;
+    document.getElementById('reportSubTitle').innerHTML = ebCompact(
+        `Complete audit of kitchen wastage, staff meals, freezer spoilage claims, and cancelled delivery orders from ${dateStart} to ${dateEnd}`,
+        `${dateStart} تا ${dateEnd} کچن ضیاع، اسٹاف میلز، فریزر خرابی کلیمز اور کینسل ڈلیوری آرڈرز کا مکمل آڈٹ`
+    );
 
     const rows = [];
     let wastageLoss = 0, claimGrossTotal = 0, claimRecoveredTotal = 0, cancelledOrderCount = 0;
@@ -2992,37 +3421,37 @@ function renderRestaurantAnalyticsReport() {
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#dc2626;">🔥</div>
             <div class="kpi-value">Rs ${Math.round(wastageLoss).toLocaleString()}</div>
-            <div class="kpi-label">Kitchen Wastage &amp; Staff Meals</div>
+            <div class="kpi-label">${ebMix('Kitchen Wastage &amp; Staff Meals', 'کچن ویسٹیج و اسٹاف میلز')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#f59e0b;">🧊</div>
             <div class="kpi-value">Rs ${Math.round(claimGrossTotal).toLocaleString()}</div>
-            <div class="kpi-label">Freezer &amp; Vendor Claims (${rawDamageClaims.length})</div>
+            <div class="kpi-label">${ebMix(`Freezer &amp; Vendor Claims (${rawDamageClaims.length})`, 'فریزر و سپلائر کلیمز')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#0284c7;">❌</div>
             <div class="kpi-value">${cancelledOrderCount}</div>
-            <div class="kpi-label">Cancelled / Returned Orders</div>
+            <div class="kpi-label">${ebMix('Cancelled / Returned Orders', 'کینسل / واپس آرڈرز')}</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon" style="background:#10b981;">💸</div>
             <div class="kpi-value">Rs ${Math.round(netUnrecovered).toLocaleString()}</div>
-            <div class="kpi-label">Net Unrecovered Loss (Recovered Rs ${Math.round(claimRecoveredTotal).toLocaleString()})</div>
+            <div class="kpi-label">${ebMix(`Net Unrecovered Loss (Recovered Rs ${Math.round(claimRecoveredTotal).toLocaleString()})`, 'خالص غیر وصول شدہ نقصان')}</div>
         </div>
     `;
 
     activeTableData = rows;
 
     renderTable([
-        { header: 'Date', key: 'date', align: 'center' },
-        { header: 'Audit Category', key: 'sourceType', bold: true },
-        { header: 'Menu Item / Order', key: 'itemName', bold: true, color: '#b91c1c' },
-        { header: 'Station / Vendor / Rider', key: 'stationOrParty' },
-        { header: 'Reason / KOT / Claim #', key: 'reasonNote' },
-        { header: 'Qty', key: 'qty', align: 'center', bold: true },
-        { header: 'Gross Loss (Rs)', key: 'grossLoss', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Recovered (Rs)', key: 'recoveredAmt', align: 'right', color: '#059669', format: v => 'Rs ' + Math.round(v).toLocaleString() },
-        { header: 'Net Loss (Rs)', key: 'netLoss', align: 'right', bold: true, color: '#b91c1c', format: v => 'Rs ' + Math.round(v).toLocaleString() }
+        { header: ebMix('Date', 'تاریخ'), key: 'date', align: 'center' },
+        { header: ebMix('Audit Category', 'آڈٹ کیٹیگری'), key: 'sourceType', bold: true },
+        { header: ebMix('Menu Item / Order', 'آئٹم / آرڈر'), key: 'itemName', bold: true, color: '#b91c1c' },
+        { header: ebMix('Station / Vendor / Rider', 'کاؤنٹر / سپلائر / رائیڈر'), key: 'stationOrParty' },
+        { header: ebMix('Reason / KOT / Claim #', 'وجہ / KOT / کلیم'), key: 'reasonNote' },
+        { header: ebMix('Qty', 'تعداد'), key: 'qty', align: 'center', bold: true },
+        { header: ebMix('Gross Loss (Rs)', 'مجموعی نقصان'), key: 'grossLoss', align: 'right', color: '#dc2626', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Recovered (Rs)', 'ریکوری'), key: 'recoveredAmt', align: 'right', color: '#059669', format: v => 'Rs ' + Math.round(v).toLocaleString() },
+        { header: ebMix('Net Loss (Rs)', 'خالص نقصان'), key: 'netLoss', align: 'right', bold: true, color: '#b91c1c', format: v => 'Rs ' + Math.round(v).toLocaleString() }
     ]);
 }
 
@@ -3032,7 +3461,7 @@ function renderRestaurantAnalyticsReport() {
 function renderTable(columns) {
     const container = document.getElementById('tableContainer');
     if (!activeTableData || activeTableData.length === 0) {
-        container.innerHTML = '<div class="empty-state">No records found for this period.</div>';
+        container.innerHTML = `<div class="empty-state">${ebMix('No records found for this period.', 'اس دورانیے کے لیے کوئی ریکارڈ نہیں ملا۔')}</div>`;
         return;
     }
 
@@ -3078,7 +3507,7 @@ document.getElementById('reportSearchInput').addEventListener('input', function(
 // ============================================
 document.getElementById('btnExportCSV').addEventListener('click', () => {
     if (!activeTableData || activeTableData.length === 0) {
-        Swal.fire('ℹ️', 'Export karne ke liye koi data nahi hai!', 'info');
+        Swal.fire('ℹ️', ebT('No data available to export!', 'No data available to export! (ایکسپورٹ کرنے کے لیے کوئی ڈیٹا موجود نہیں)'), 'info');
         return;
     }
 
@@ -3168,7 +3597,7 @@ window.printThermalSummaryReport = function(paperWidth = '80mm') {
             <div style="font-size:10px; font-weight:700; margin-top:3px;">Period: ${dateStart} to ${dateEnd}</div>
         </div>
         <div class="hr"></div>
-        <div style="font-weight:900; font-size:11px; margin-bottom:4px;">SUMMARY METRICS (خلاصہ):</div>
+        <div style="font-weight:900; font-size:11px; margin-bottom:4px;">${ebT('SUMMARY METRICS:', 'SUMMARY METRICS (خلاصہ):')}</div>
         ${kpiCards.map(k => `
             <div style="display:flex; justify-content:space-between; font-size:11px; padding:2px 0; border-bottom:1px dotted #000;">
                 <span>${k.lbl}:</span>
@@ -3176,9 +3605,9 @@ window.printThermalSummaryReport = function(paperWidth = '80mm') {
             </div>
         `).join('')}
         <div class="hr"></div>
-        <div style="font-weight:900; font-size:10.5px; margin-bottom:3px;">TOP RECORDS (${Math.min((activeTableData || []).length, 20)} of ${(activeTableData || []).length}):</div>
+        <div style="font-weight:900; font-size:10.5px; margin-bottom:3px;">${ebT('TOP RECORDS', 'TOP RECORDS (نمایاں ریکارڈز)')} (${Math.min((activeTableData || []).length, 20)} / ${(activeTableData || []).length}):</div>
         <table style="width:100%; border-collapse:collapse;">
-            <tbody>${topRows || '<tr><td>No records</td></tr>'}</tbody>
+            <tbody>${topRows || `<tr><td>${ebT('No records', 'No records (کوئی ریکارڈ نہیں)')}</td></tr>`}</tbody>
         </table>
         <div class="hr"></div>
         <div class="center" style="font-size:9.5px; font-weight:700;">Printed: ${new Date().toLocaleString()}</div>
@@ -3192,13 +3621,45 @@ window.printThermalSummaryReport = function(paperWidth = '80mm') {
     }
 };
 
-    const rLogout = document.getElementById('logoutBtn');
-    if (rLogout) {
-        rLogout.addEventListener('click', async () => {
-            const res = await Swal.fire({ title: 'Logout?', icon: 'question', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Yes', cancelButtonText: 'Cancel' });
-            if (res.isConfirmed) {
-                await auth.signOut();
-                window.location.href = 'auth.html';
-            }
+const rLogout = document.getElementById('logoutBtn');
+if (rLogout) {
+    rLogout.addEventListener('click', async () => {
+        const res = await Swal.fire({
+            title: ebT('Logout?', 'Logout? (لاگ آؤٹ کریں؟)'),
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: ebT('Yes', 'Yes (جی ہاں)'),
+            cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)')
         });
+        if (res.isConfirmed) {
+            await auth.signOut();
+            window.location.href = 'auth.html';
+        }
+    });
+}
+
+// ============================================
+// 🌐 LIVE BILINGUAL SYNC (SIDEBAR LANGUAGE TOGGLE)
+// ============================================
+if (!window.__ebReportsLangBound) {
+    window.__ebReportsLangBound = true;
+    const syncReportsLanguage = () => {
+        ebApplyBilingualDom(document);
+        ebRefreshStaticSelects();
+        try { setupTabs(); } catch (_) {}
+        if (myAgencyId) {
+            try { renderActiveReport(true); } catch (_) {}
+        }
+    };
+    window.addEventListener('eb-lang-changed', syncReportsLanguage);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            ebApplyBilingualDom(document);
+            ebRefreshStaticSelects();
+        });
+    } else {
+        ebApplyBilingualDom(document);
+        ebRefreshStaticSelects();
     }
+}

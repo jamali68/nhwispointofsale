@@ -2152,6 +2152,21 @@ const BusinessCategories = {
         return BUSINESS_CATEGORIES.filter(c => c.status === 'active');
     },
 
+    // Check if a category ID (or alias) is in the production-ready completed set
+    isCompletedCategory(id) {
+        if (!id) return false;
+        const cat = this.getById(id);
+        const canonicalId = cat ? cat.id : String(id).toLowerCase().trim();
+        return this.COMPLETED_CATEGORY_IDS.includes(canonicalId);
+    },
+
+    // Get ONLY production-ready completed categories in exact display order for user-facing dropdowns & pickers
+    getCompletedCategories() {
+        return this.COMPLETED_CATEGORY_IDS
+            .map(id => BUSINESS_CATEGORIES.find(c => c.id === id))
+            .filter(Boolean);
+    },
+
     // Find category by ID (exact ID match takes precedence before alias lookup)
     getById(id) {
         if (!id) return null;
@@ -2170,8 +2185,8 @@ const BusinessCategories = {
         return `${cat.icon} ${cat.nameEn} (${cat.nameUr})`;
     },
 
-    // Completed vs In-Progress vs Coming Soon category status registry
-    COMPLETED_CATEGORY_IDS: ['books', 'mobile', 'wholesaler', 'medical', 'restaurant', 'distributor'],
+    // Completed vs In-Progress vs Coming Soon category status registry (exact UI display order)
+    COMPLETED_CATEGORY_IDS: ['distributor', 'restaurant', 'books', 'medical', 'mobile', 'wholesaler'],
     IN_PROGRESS_CATEGORY_IDS: [],
 
     getCategoryDevStatus(id) {
@@ -2226,10 +2241,16 @@ const BusinessCategories = {
         };
     },
 
-    // Populate a <select> element dynamically
+    // Populate a <select> element dynamically (defaults to completed categories only, clean professional labels)
     populateSelect(selectElement, selectedValue = '', options = {}) {
         if (!selectElement) return;
-        const { includeAll = false, allLabel = '📂 All Business Types', onlyActive = false, showDevStatus = false } = options;
+        const {
+            includeAll = false,
+            allLabel = '📂 All Business Types',
+            onlyActive = false,
+            onlyCompleted = true,
+            showDevStatus = false
+        } = options;
 
         selectElement.innerHTML = '';
 
@@ -2240,7 +2261,9 @@ const BusinessCategories = {
             selectElement.appendChild(allOpt);
         }
 
-        const list = onlyActive ? this.getActive() : this.getAll();
+        const list = onlyCompleted
+            ? this.getCompletedCategories()
+            : (onlyActive ? this.getActive() : this.getAll());
 
         list.forEach(cat => {
             const opt = document.createElement('option');

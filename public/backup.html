@@ -12,7 +12,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NH POS — Backup & Restore</title>
+    <title>NH POS — Advanced Backup, Restore &amp; SQL Converter</title>
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -33,7 +33,7 @@
         .swal2-container { z-index: 999999 !important; }
 
         .backup-hero {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%);
             border-radius: 16px;
             padding: 24px;
             color: #fff;
@@ -43,13 +43,15 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
         }
 
         .backup-status-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 12px;
+            padding: 7px 14px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 800;
@@ -57,10 +59,30 @@
         .status-safe { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #059669; }
         .status-warn { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #d97706; }
 
+        .hero-badges-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .backup-cat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
         .backup-actions-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 18px;
             margin-bottom: 20px;
         }
 
@@ -87,55 +109,148 @@
             margin-bottom: 12px;
         }
         .action-card-icon {
-            width: 44px;
-            height: 44px;
+            width: 46px;
+            height: 46px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 20px;
             color: #fff;
+            flex-shrink: 0;
         }
 
         .stats-pill-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin: 12px 0 16px 0;
             background: #f8fafc;
             padding: 12px;
             border-radius: 10px;
+            border: 1px solid #e2e8f0;
         }
         .stat-pill-item {
-            font-size: 12px;
+            font-size: 11px;
             color: #475569;
+            background: #fff;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #f1f5f9;
         }
         .stat-pill-val {
             font-size: 15px;
             font-weight: 800;
             color: var(--primary);
+            margin-top: 2px;
         }
 
+        .format-buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-format-dl {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #1e293b;
+            transition: all 0.15s;
+        }
+        .btn-format-dl:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        }
+        .btn-format-sql { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+        .btn-format-sql:hover { background: #dbeafe; }
+        .btn-format-xls { background: #f0fdf4; border-color: #86efac; color: #15803d; }
+        .btn-format-xls:hover { background: #dcfce7; }
+        .btn-format-csv { background: #fffbeb; border-color: #fcd34d; color: #b45309; }
+        .btn-format-csv:hover { background: #fef3c7; }
+        .btn-format-html { background: #faf5ff; border-color: #d8b4fe; color: #7e22ce; }
+        .btn-format-html:hover { background: #f3e8ff; }
+
         .drop-zone {
-            border: 2px dashed #cbd5e1;
+            border: 2px dashed #93c5fd;
             border-radius: 12px;
-            padding: 24px 16px;
+            padding: 22px 16px;
             text-align: center;
             cursor: pointer;
             background: #f8fafc;
             transition: all 0.2s;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
         .drop-zone:hover, .drop-zone.dragover {
-            border-color: #3b82f6;
+            border-color: #2563eb;
             background: #eff6ff;
+        }
+
+        .format-tags-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .fmt-badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        /* SQL & Universal Converter Studio */
+        .converter-studio-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 16px;
+            margin-top: 12px;
+        }
+        @media (max-width: 860px) {
+            .converter-studio-grid { grid-template-columns: 1fr; }
+            .stats-pill-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .sql-editor-area {
+            width: 100%;
+            min-height: 190px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+            background: #0f172a;
+            color: #38bdf8;
+            resize: vertical;
+            line-height: 1.45;
+        }
+
+        .converter-preview-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .csv-exports-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 12px;
-            margin-top: 10px;
+            margin-top: 12px;
         }
         .btn-csv-export {
             display: flex;
@@ -143,7 +258,7 @@
             justify-content: space-between;
             background: #fff;
             border: 1px solid #cbd5e1;
-            padding: 12px 16px;
+            padding: 12px 14px;
             border-radius: 10px;
             font-weight: 700;
             font-size: 13px;
@@ -156,6 +271,27 @@
             color: #10b981;
             background: #f0fdf4;
         }
+
+        .preview-mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+        .preview-mini-table th, .preview-mini-table td {
+            border: 1px solid #cbd5e1;
+            padding: 5px 7px;
+            text-align: left;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .preview-mini-table th {
+            background: #e2e8f0;
+            font-weight: 800;
+            color: #1e293b;
+        }
     </style>
 </head>
 <body>
@@ -165,24 +301,30 @@
     <!-- ===== 🛡️ HERO STATUS BANNER ===== -->
     <div class="backup-hero">
         <div>
-            <div style="font-size:20px; font-weight:800; margin-bottom:4px;">
-                ☁️ Agency Data Protection &amp; Instant Recovery
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+                <span style="font-size:21px; font-weight:900;">
+                    ☁️ <span data-eb-en="Data Protection, Multi-Format Backup &amp; SQL Migration Hub" data-eb-ur="ڈیٹا تحفظ، ملٹی فارمیٹ بیک اپ اور ایس کیو ایل مائیگریشن ہب">Data Protection, Multi-Format Backup &amp; SQL Migration Hub</span>
+                </span>
+                <span id="agencyNameHeader" style="font-size:12px; background:rgba(255,255,255,0.12); padding:4px 10px; border-radius:8px; font-weight:700;">🏢 <span data-eb-en="Loading Agency..." data-eb-ur="ایجنسی لوڈ ہو رہی ہے...">Loading Agency...</span></span>
             </div>
-            <div style="font-size:13px; opacity:0.85; max-width:600px;">
-                اپنے تمام بزنس ڈیٹا (اسٹاک، کسٹمرز، بلز اور کھاتوں) کا مکمل بیک اپ اپنے کمپیوٹر یا موبائل میں محفوظ رکھیں تاکہ کسی بھی وقت ایک سیکنڈ میں ڈیٹا بحال کیا جا سکے۔
+            <div style="font-size:13px; opacity:0.88; max-width:680px; line-height:1.45;" data-eb-en="Download your complete business data in JSON, SQL Database, Multi-Sheet Excel (.XLS), CSV, or Printable Audit Book formats. Bringing a .SQL or .CSV file from legacy software? Convert and upload it directly here!" data-eb-ur="اپنے بزنس کا مکمل ڈیٹا JSON، SQL ڈیٹابیس، ملٹی شیٹ ایکسل (.XLS)، CSV یا پرنٹ ایبل آڈٹ بک میں ڈاؤن لوڈ کریں۔ اگر آپ کسی پرانے سافٹ ویئر سے .SQL یا .CSV فائل لائے ہیں تو اسے براہِ راست یہاں کنورٹ اور اپلوڈ کریں!">
+                Download your complete business data in JSON, SQL Database, Multi-Sheet Excel (.XLS), CSV, or Printable Audit Book formats. Bringing a .SQL or .CSV file from legacy software? Convert and upload it directly here!
             </div>
         </div>
-        <div>
+        <div class="hero-badges-col">
+            <span class="backup-cat-badge" id="backupActiveCategoryBadge">
+                <i class="fas fa-layer-group"></i> <span data-eb-en="Category Workspace" data-eb-ur="کیٹیگری ورک اسپیس">Category Workspace</span>
+            </span>
             <span class="backup-status-badge status-safe" id="backupStatusBadge">
-                <i class="fas fa-shield-halved"></i> Checking Backup...
+                <i class="fas fa-shield-halved"></i> <span data-eb-en="Checking Backup..." data-eb-ur="بیک اپ چیک ہو رہا ہے...">Checking Backup...</span>
             </span>
         </div>
     </div>
 
-    <!-- ===== 📦 MAIN ACTIONS: BACKUP & RESTORE ===== -->
+    <!-- ===== 📦 MAIN ACTIONS: MULTI-FORMAT BACKUP & UNIVERSAL RESTORE ===== -->
     <div class="backup-actions-grid">
         
-        <!-- 📥 FULL CLOUD BACKUP CARD -->
+        <!-- 📥 1. MULTI-FORMAT COMPLETE BACKUP CARD -->
         <div class="action-card" style="border-top: 4px solid #10b981;">
             <div>
                 <div class="action-card-header">
@@ -190,48 +332,65 @@
                         <i class="fas fa-cloud-arrow-down"></i>
                     </div>
                     <div>
-                        <div style="font-size:16px; font-weight:800; color:var(--primary);">Download Complete Backup</div>
-                        <div style="font-size:12px; color:#64748b;">Full agency snapshot (.JSON)</div>
+                        <div style="font-size:16px; font-weight:800; color:var(--primary);" data-eb-en="Download Complete Agency Backup" data-eb-ur="مکمل ایجنسی بیک اپ ڈاؤن لوڈ کریں">Download Complete Agency Backup</div>
+                        <div style="font-size:12px; color:#64748b;" data-eb-en="Export all 10 collections in JSON, SQL, Excel, CSV or HTML" data-eb-ur="تمام 10 کلیکشنز JSON، SQL، ایکسل، CSV یا HTML میں ایکسپورٹ کریں">Export all 10 collections in JSON, SQL, Excel, CSV or HTML</div>
                     </div>
                 </div>
-                <p style="font-size:13px; color:#475569; line-height:1.4;">
-                    اس میں آپ کا تمام ڈیٹا اکٹھا شامل ہوگا: اسٹاک، سپلائر ریٹس، دکان داروں کے کھاتے، انوائسز اور فنانشل ہسٹری۔
+                <p style="font-size:12.5px; color:#475569; line-height:1.4; margin:0;" data-eb-en="Download all data for your selected business category (stock, customer ledgers, bills, orders, expenses, salaries, and claims) in a complete, secure format:" data-eb-ur="آپ کی منتخب کردہ بزنس کیٹیگری کا تمام ڈیٹا (اسٹاک، کسٹمر کھاتے، بلز، آرڈرز، اخراجات، تنخواہیں اور کلیمز) مکمل محفوظ فارمیٹ میں ڈاؤن لوڈ کریں:">
+                    Download all data for your selected business category (stock, customer ledgers, bills, orders, expenses, salaries, and claims) in a complete, secure format:
                 </p>
 
                 <div class="stats-pill-grid">
                     <div class="stat-pill-item">
-                        <div>📦 Stock Items</div>
+                        <div>📦 <span data-eb-en="Stock Items" data-eb-ur="اسٹاک آئٹمز" data-eb-compact="1">Stock Items</span></div>
                         <div class="stat-pill-val" id="cntStock">—</div>
                     </div>
                     <div class="stat-pill-item">
-                        <div>👥 Customers</div>
+                        <div>👥 <span data-eb-en="Customers" data-eb-ur="کسٹمرز" data-eb-compact="1">Customers</span></div>
                         <div class="stat-pill-val" id="cntCustomers">—</div>
                     </div>
                     <div class="stat-pill-item">
-                        <div>🧾 Total Bills</div>
+                        <div>🧾 <span data-eb-en="Sales Bills" data-eb-ur="سیلز بلز" data-eb-compact="1">Sales Bills</span></div>
                         <div class="stat-pill-val" id="cntBills">—</div>
                     </div>
                     <div class="stat-pill-item">
-                        <div>🔄 Stock Logs</div>
+                        <div>🔄 <span data-eb-en="Stock Logs" data-eb-ur="اسٹاک لاگز" data-eb-compact="1">Stock Logs</span></div>
                         <div class="stat-pill-val" id="cntMovements">—</div>
                     </div>
                     <div class="stat-pill-item">
-                        <div>💸 Expenses &amp; Payroll</div>
+                        <div>💸 <span data-eb-en="Expenses/Staff" data-eb-ur="اخراجات/اسٹاف" data-eb-compact="1">Expenses/Staff</span></div>
                         <div class="stat-pill-val" id="cntExpenses">—</div>
                     </div>
                     <div class="stat-pill-item">
-                        <div>🚚 Orders, Returns &amp; Claims</div>
+                        <div>🚚 <span data-eb-en="Orders/Claims" data-eb-ur="آرڈرز/کلیمز" data-eb-compact="1">Orders/Claims</span></div>
                         <div class="stat-pill-val" id="cntClaimsReturns">—</div>
                     </div>
                 </div>
             </div>
 
-            <button class="btn btn-primary" id="btnDownloadBackup" style="background:#10b981; width:100%; padding:12px;">
-                <i class="fas fa-download"></i> DOWNLOAD FULL BACKUP (.JSON)
-            </button>
+            <div>
+                <button class="btn btn-primary" id="btnDownloadBackup" style="background:#10b981; width:100%; padding:12px; font-weight:800; border-radius:10px;">
+                    <i class="fas fa-download"></i> <span data-eb-en="DOWNLOAD FULL BACKUP (.JSON SNAPSHOT)" data-eb-ur="مکمل بیک اپ ڈاؤن لوڈ کریں (.JSON)">DOWNLOAD FULL BACKUP (.JSON SNAPSHOT)</span>
+                </button>
+
+                <div class="format-buttons-grid">
+                    <button type="button" class="btn-format-dl btn-format-sql" id="btnDownloadSQLBackup" title="Download standard SQL CREATE TABLE &amp; INSERT script for all 10 collections">
+                        <i class="fas fa-database"></i> <span data-eb-en="Full SQL Dump (.SQL)" data-eb-ur="مکمل ایس کیو ایل ڈمپ" data-eb-compact="1">Full SQL Dump (.SQL)</span>
+                    </button>
+                    <button type="button" class="btn-format-dl btn-format-xls" id="btnDownloadExcelWorkbook" title="Download Multi-Sheet Microsoft Excel Workbook (.XLS)">
+                        <i class="fas fa-file-excel"></i> <span data-eb-en="Excel Workbook (.XLS)" data-eb-ur="ایکسل ورک بک" data-eb-compact="1">Excel Workbook (.XLS)</span>
+                    </button>
+                    <button type="button" class="btn-format-dl btn-format-csv" id="btnDownloadMasterCSV" title="Download Combined Master CSV Archive of all records">
+                        <i class="fas fa-file-csv"></i> <span data-eb-en="Master CSV (.CSV)" data-eb-ur="ماسٹر سی ایس وی" data-eb-compact="1">Master CSV (.CSV)</span>
+                    </button>
+                    <button type="button" class="btn-format-dl btn-format-html" id="btnDownloadAuditHTML" title="Download Offline Printable HTML/PDF Audit Book">
+                        <i class="fas fa-print"></i> <span data-eb-en="Printable Audit (.HTML)" data-eb-ur="پرنٹ ایبل آڈٹ بک" data-eb-compact="1">Printable Audit (.HTML)</span>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- 📤 RESTORE FROM BACKUP CARD -->
+        <!-- 📤 2. UNIVERSAL RESTORE & SQL / CSV / JSON DIRECT UPLOAD CARD -->
         <div class="action-card" style="border-top: 4px solid #3b82f6;">
             <div>
                 <div class="action-card-header">
@@ -239,55 +398,182 @@
                         <i class="fas fa-cloud-arrow-up"></i>
                     </div>
                     <div>
-                        <div style="font-size:16px; font-weight:800; color:var(--primary);">Restore From Backup File</div>
-                        <div style="font-size:12px; color:#64748b;">Upload previously saved .JSON</div>
+                        <div style="font-size:16px; font-weight:800; color:var(--primary);" data-eb-en="Universal Restore &amp; Direct SQL / CSV Upload" data-eb-ur="یونیورسل ریسٹور اور براہِ راست SQL / CSV اپلوڈ">Universal Restore &amp; Direct SQL / CSV Upload</div>
+                        <div style="font-size:12px; color:#64748b;" data-eb-en="Upload .JSON, .SQL Database Dump, or .CSV Sheet directly" data-eb-ur=".JSON، .SQL ڈیٹابیس ڈمپ یا .CSV شیٹ براہِ راست اپلوڈ کریں">Upload .JSON, .SQL Database Dump, or .CSV Sheet directly</div>
                     </div>
                 </div>
-                <p style="font-size:13px; color:#475569; line-height:1.4;">
-                    کمپیوٹر خراب ہونے، موبائل تبدیل کرنے یا غلطی سے ڈیٹا اڑ جانے کی صورت میں پرانی بیک اپ فائل اپلوڈ کر کے بحال کریں۔
+                <p style="font-size:12.5px; color:#475569; line-height:1.4; margin:0 0 12px 0;" data-eb-en="This app runs on cloud NoSQL, yet if you have a .SQL database dump, .CSV sheet, or .JSON backup from legacy software, drop it here. The system automatically converts SQL tables and uploads them!" data-eb-ur="ہماری ایپ کلاؤڈ NoSQL پر چلتی ہے، لیکن اگر آپ کے پاس کسی پرانے سافٹ ویئر کی .SQL فائل، .CSV شیٹ یا .JSON بیک اپ ہے تو یہاں ڈراپ کریں۔ سسٹم خودکار طریقے سے SQL ٹیبلز کو کنورٹ کر کے اپلوڈ کر دے گا!">
+                    This app runs on cloud NoSQL, yet if you have a .SQL database dump, .CSV sheet, or .JSON backup from legacy software, drop it here. The system automatically converts SQL tables and uploads them!
                 </p>
 
-                <input type="file" id="restoreFileInput" accept=".json" style="display:none;">
+                <input type="file" id="restoreFileInput" accept=".json,.sql,.csv,.txt" style="display:none;">
                 <div class="drop-zone" id="dropZone" onclick="document.getElementById('restoreFileInput').click();">
-                    <i class="fas fa-file-arrow-up" style="font-size:28px; color:#3b82f6; margin-bottom:8px; display:block;"></i>
-                    <div style="font-weight:700; font-size:13px; color:#1e293b;">Click or Drag &amp; Drop Backup File here</div>
-                    <div style="font-size:11px; color:#64748b; margin-top:4px;">Only valid NH POS .JSON files accepted</div>
+                    <i class="fas fa-file-arrow-up" style="font-size:30px; color:#2563eb; margin-bottom:8px; display:block;"></i>
+                    <div style="font-weight:800; font-size:13.5px; color:#1e293b;" data-eb-en="Click or Drag &amp; Drop Any Data File Here" data-eb-ur="کوئی بھی ڈیٹا فائل یہاں کلک یا ڈریگ اینڈ ڈراپ کریں">Click or Drag &amp; Drop Any Data File Here</div>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:4px;" data-eb-en="Auto-Detects NH POS JSON, MySQL/SQLite/POS .SQL Dumps &amp; Excel .CSV" data-eb-ur="NH POS JSON، MySQL/SQLite/POS .SQL ڈمپس اور ایکسل .CSV خودکار شناخت">Auto-Detects NH POS JSON, MySQL/SQLite/POS .SQL Dumps &amp; Excel .CSV</div>
+                    <div class="format-tags-row">
+                        <span class="fmt-badge" style="background:#dcfce7; color:#166534;" data-eb-en=".JSON Backup" data-eb-ur="JSON بیک اپ" data-eb-compact="1">.JSON Backup</span>
+                        <span class="fmt-badge" style="background:#dbeafe; color:#1e40af;" data-eb-en=".SQL Database" data-eb-ur="SQL ڈیٹابیس" data-eb-compact="1">.SQL Database</span>
+                        <span class="fmt-badge" style="background:#fef3c7; color:#92400e;" data-eb-en=".CSV / Excel" data-eb-ur="CSV / ایکسل" data-eb-compact="1">.CSV / Excel</span>
+                    </div>
+                </div>
+
+                <!-- Target Collection Hint for single CSV / custom SQL table -->
+                <div style="display:flex; gap:8px; align-items:center; background:#f8fafc; padding:9px 12px; border-radius:9px; border:1px solid #e2e8f0; margin-bottom:10px;">
+                    <label for="importDefaultCollection" style="font-size:11.5px; font-weight:700; color:#334155; white-space:nowrap;">
+                        <i class="fas fa-bullseye" style="color:#3b82f6;"></i> <span data-eb-en="CSV / Unknown Table Target:" data-eb-ur="CSV / نامعلوم ٹیبل ہدف:" data-eb-compact="1">CSV / Unknown Table Target:</span>
+                    </label>
+                    <select id="importDefaultCollection" style="flex:1; padding:6px 8px; border-radius:7px; border:1px solid #cbd5e1; font-size:12px; font-weight:700;">
+                        <option value="auto">🤖 Auto-Detect from Table / Columns</option>
+                        <option value="stock">📦 Stock / Inventory Items</option>
+                        <option value="customers">👥 Customers &amp; Khata</option>
+                        <option value="bills">🧾 Sales Bills / Invoices</option>
+                        <option value="orders">🚚 Booker Orders / KOT</option>
+                        <option value="expenses">💸 Expenses &amp; Vouchers</option>
+                        <option value="staff_payroll_profiles">👔 Staff / Payroll Profiles</option>
+                        <option value="stock_returns">↩️ Sales / Delivery Returns</option>
+                        <option value="damage_claims">⚠️ Damage &amp; Expiry Claims</option>
+                    </select>
                 </div>
             </div>
 
-            <div style="font-size:11px; color:#94a3b8; text-align:center;">
-                🔒 Safe Restore: Previews contents before writing to Firebase.
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; font-size:11px; color:#64748b;">
+                <span>🔒 <span data-eb-en="Safe Preview before Merge or Clean Overwrite" data-eb-ur="مرج یا کلین اوور رائٹ سے پہلے محفوظ پریویو">Safe Preview before Merge or Clean Overwrite</span></span>
+                <button type="button" id="btnDownloadSampleSQL" style="background:none; border:none; color:#2563eb; font-weight:800; cursor:pointer; font-size:11.5px; text-decoration:underline;">
+                    <i class="fas fa-code"></i> <span data-eb-en="Download Sample .SQL Template" data-eb-ur="سیمپل .SQL ٹیمپلیٹ ڈاؤن لوڈ کریں" data-eb-compact="1">Download Sample .SQL Template</span>
+                </button>
             </div>
         </div>
 
     </div>
 
-    <!-- ===== 📑 INDIVIDUAL EXCEL / CSV EXPORTS ===== -->
+    <!-- ===== 🛠️ 3. INTERACTIVE SQL & CSV CONVERTER STUDIO ===== -->
+    <div class="panel-card" style="border-top: 4px solid #6366f1; margin-bottom: 20px;">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h2><i class="fas fa-wand-magic-sparkles" style="color:#6366f1;"></i> <span data-eb-en="Universal SQL &amp; CSV Converter Studio (No-SQL Bridge)" data-eb-ur="یونیورسل SQL اور CSV کنورٹر اسٹوڈیو (No-SQL برج)">Universal SQL &amp; CSV Converter Studio (No-SQL Bridge)</span></h2>
+                <small class="header-note" data-eb-en="Paste or upload any SQL file (MySQL / PostgreSQL / SQLite INSERT INTO) or CSV data to live-convert, download JSON, or import directly to the cloud" data-eb-ur="کسی بھی SQL فائل (MySQL / PostgreSQL / SQLite INSERT INTO) یا CSV ڈیٹا کو یہاں پیسٹ یا اپلوڈ کر کے لائیو کنورٹ کریں، JSON ڈاؤن لوڈ کریں یا سیدھا کلاؤڈ میں امپورٹ کریں">Paste or upload any SQL file (MySQL / PostgreSQL / SQLite INSERT INTO) or CSV data to live-convert, download JSON, or import directly to the cloud</small>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn" id="btnLoadSampleSQLStudio" style="background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; padding:7px 12px; font-size:12px; font-weight:800; border-radius:8px;">
+                    <i class="fas fa-flask"></i> <span data-eb-en="Load Sample SQL Dump" data-eb-ur="سیمپل SQL ڈمپ لوڈ کریں" data-eb-compact="1">Load Sample SQL Dump</span>
+                </button>
+                <button type="button" class="btn" id="btnClearSQLStudio" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:7px 12px; font-size:12px; font-weight:700; border-radius:8px;">
+                    <i class="fas fa-eraser"></i> <span data-eb-en="Clear" data-eb-ur="صاف کریں" data-eb-compact="1">Clear</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="converter-studio-grid">
+            <!-- Left: SQL / CSV Input Box -->
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label for="sqlStudioInput" style="font-size:12px; font-weight:800; color:#334155;">
+                        <i class="fas fa-terminal" style="color:#6366f1;"></i> <span data-eb-en="Paste .SQL Queries (CREATE TABLE / INSERT INTO) or .CSV Text:" data-eb-ur=".SQL کوئریز (CREATE TABLE / INSERT INTO) یا .CSV ٹیکسٹ پیسٹ کریں:">Paste .SQL Queries (CREATE TABLE / INSERT INTO) or .CSV Text:</span>
+                    </label>
+                    <span id="sqlStudioCharCount" style="font-size:11px; color:#64748b;">0 chars</span>
+                </div>
+                <textarea id="sqlStudioInput" class="sql-editor-area" placeholder="-- Example SQL Dump (Paste your .sql or .csv content here):
+CREATE TABLE products (id VARCHAR(50), name VARCHAR(120), brandCompany VARCHAR(80), qty INT, purchaseRate DECIMAL(10,2), retailRate DECIMAL(10,2));
+INSERT INTO products (id, name, brandCompany, qty, purchaseRate, retailRate) VALUES ('sku_101', 'Premium Carton Pack', 'Principal Alpha', 45, 1450, 1600);
+
+CREATE TABLE customers (id VARCHAR(50), name VARCHAR(120), shopName VARCHAR(120), mobile VARCHAR(30), balance DECIMAL(10,2));
+INSERT INTO customers (id, name, shopName, mobile, balance) VALUES ('cust_1', 'Tariq Traders', 'Tariq General Store', '03001234567', 18500);"></textarea>
+
+                <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-primary" id="btnParseSQLStudio" style="background:#6366f1; padding:10px 16px; font-size:12.5px; font-weight:800; border-radius:9px;">
+                        <i class="fas fa-bolt"></i> <span data-eb-en="Parse &amp; Convert SQL / CSV Now" data-eb-ur="SQL / CSV کنورٹ کریں" data-eb-compact="1">Parse &amp; Convert SQL / CSV Now</span>
+                    </button>
+                    <button type="button" class="btn" id="btnStudioUploadFile" onclick="document.getElementById('restoreFileInput').click();" style="background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1; padding:10px 14px; font-size:12.5px; font-weight:700; border-radius:9px;">
+                        <i class="fas fa-folder-open"></i> <span data-eb-en="Browse .SQL / .CSV File" data-eb-ur=".SQL / .CSV فائل منتخب کریں" data-eb-compact="1">Browse .SQL / .CSV File</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Live Conversion Preview & Actions -->
+            <div class="converter-preview-box">
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:13px; font-weight:800; color:#1e293b;">
+                            <i class="fas fa-microchip" style="color:#10b981;"></i> <span data-eb-en="Conversion Output &amp; Schema Map" data-eb-ur="کنورژن آؤٹ پٹ اور اسکیما میپ">Conversion Output &amp; Schema Map</span>
+                        </span>
+                        <span id="sqlStudioStatusBadge" style="font-size:11px; font-weight:800; padding:3px 9px; border-radius:12px; background:#e2e8f0; color:#475569;" data-eb-en="Waiting for input..." data-eb-ur="ان پٹ کا انتظار..." data-eb-compact="1">
+                            Waiting for input...
+                        </span>
+                    </div>
+
+                    <div id="sqlStudioSummaryBox" style="font-size:12px; color:#475569; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:10px; min-height:115px;">
+                        <div style="text-align:center; padding:22px 10px; color:#94a3b8;">
+                            <i class="fas fa-database" style="font-size:24px; margin-bottom:6px; display:block;"></i>
+                            <span data-eb-en="Paste SQL or CSV data and click Parse &amp; Convert, or select any .sql / .csv file above." data-eb-ur="SQL یا CSV ڈیٹا پیسٹ کر کے Parse &amp; Convert دبائیں، یا اوپر سے کوئی بھی .sql / .csv فائل سلیکٹ کریں۔">Paste SQL or CSV data and click Parse &amp; Convert, or select any .sql / .csv file above.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:12px;">
+                    <button type="button" class="btn" id="btnStudioDownloadJSON" disabled style="background:#0f172a; color:#fff; padding:10px; font-size:12px; font-weight:800; border-radius:8px; opacity:0.6; cursor:not-allowed;">
+                        <i class="fas fa-file-code"></i> <span data-eb-en="Download Converted .JSON" data-eb-ur="کنورٹڈ .JSON ڈاؤن لوڈ کریں" data-eb-compact="1">Download Converted .JSON</span>
+                    </button>
+                    <button type="button" class="btn" id="btnStudioImportCloud" disabled style="background:#10b981; color:#fff; padding:10px; font-size:12px; font-weight:800; border-radius:8px; opacity:0.6; cursor:not-allowed;">
+                        <i class="fas fa-cloud-arrow-up"></i> <span data-eb-en="Direct Import to Cloud" data-eb-ur="براہِ راست کلاؤڈ امپورٹ" data-eb-compact="1">Direct Import to Cloud</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 📑 4. INDIVIDUAL COLLECTION EXPORTS (CSV / EXCEL / SQL) ===== -->
     <div class="panel-card" style="border-top-color:#f59e0b;">
-        <div class="card-header">
-            <h2><i class="fas fa-file-excel" style="color:#10b981;"></i> Individual Excel / CSV Data Exports</h2>
-            <small class="header-note">اگر آپ صرف مخصوص ڈیٹا کو ایکسل شیٹ میں اوپن کرنا چاہیں</small>
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h2><i class="fas fa-file-excel" style="color:#10b981;"></i> <span data-eb-en="Individual Module Data Exports (Excel CSV &amp; SQL Table)" data-eb-ur="انفرادی ماڈیول ڈیٹا ایکسپورٹس (ایکسل CSV اور SQL ٹیبل)">Individual Module Data Exports (Excel CSV &amp; SQL Table)</span></h2>
+                <small class="header-note" data-eb-en="Download any single module (such as Stock, Customer Ledger, or Sales Bills) individually in Excel CSV, SQL, or JSON format" data-eb-ur="اگر آپ صرف کسی ایک مخصوص حصے (مثلاً صرف اسٹاک، صرف کسٹمر کھاتہ یا صرف بلز) کو ایکسل یا SQL میں ڈاؤن لوڈ کرنا چاہیں">Download any single module (such as Stock, Customer Ledger, or Sales Bills) individually in Excel CSV, SQL, or JSON format</small>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="singleExportFormatSelect" style="font-size:12px; font-weight:800; color:#475569;" data-eb-en="Export Format:" data-eb-ur="ایکسپورٹ فارمیٹ:" data-eb-compact="1">Export Format:</label>
+                <select id="singleExportFormatSelect" style="padding:6px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:800; background:#fff;">
+                    <option value="csv">📊 Excel CSV (.csv)</option>
+                    <option value="sql">🗄️ SQL Table Dump (.sql)</option>
+                    <option value="json">📦 Module JSON (.json)</option>
+                </select>
+            </div>
         </div>
 
         <div class="csv-exports-grid">
             <button class="btn-csv-export" id="btnExportStockCSV">
-                <span><i class="fas fa-boxes-stacked" style="color:#0284c7; margin-right:8px;"></i> Stock Items List</span>
+                <span><i class="fas fa-boxes-stacked" style="color:#0284c7; margin-right:8px;"></i> <span data-eb-en="Stock &amp; Inventory List" data-eb-ur="اسٹاک اور انوینٹری لسٹ" data-eb-compact="1">Stock &amp; Inventory List</span></span>
                 <i class="fas fa-download"></i>
             </button>
             <button class="btn-csv-export" id="btnExportCustCSV">
-                <span><i class="fas fa-users" style="color:#8b5cf6; margin-right:8px;"></i> Customers &amp; Khata</span>
+                <span><i class="fas fa-users" style="color:#8b5cf6; margin-right:8px;"></i> <span data-eb-en="Customers &amp; Khata Ledger" data-eb-ur="کسٹمرز اور کھاتہ لیجر" data-eb-compact="1">Customers &amp; Khata Ledger</span></span>
                 <i class="fas fa-download"></i>
             </button>
             <button class="btn-csv-export" id="btnExportBillsCSV">
-                <span><i class="fas fa-file-invoice-dollar" style="color:#10b981; margin-right:8px;"></i> Sales Bills Register</span>
+                <span><i class="fas fa-file-invoice-dollar" style="color:#10b981; margin-right:8px;"></i> <span data-eb-en="Sales Bills Register" data-eb-ur="سیلز بلز رجسٹر" data-eb-compact="1">Sales Bills Register</span></span>
+                <i class="fas fa-download"></i>
+            </button>
+            <button class="btn-csv-export" id="btnExportOrdersCSV">
+                <span><i class="fas fa-truck-fast" style="color:#3b82f6; margin-right:8px;"></i> <span data-eb-en="Booker Orders &amp; Dispatch" data-eb-ur="بکر آرڈرز اور ڈسپیچ" data-eb-compact="1">Booker Orders &amp; Dispatch</span></span>
                 <i class="fas fa-download"></i>
             </button>
             <button class="btn-csv-export" id="btnExportExpensesCSV">
-                <span><i class="fas fa-wallet" style="color:#f59e0b; margin-right:8px;"></i> Expenses &amp; Staff Salaries</span>
+                <span><i class="fas fa-wallet" style="color:#f59e0b; margin-right:8px;"></i> <span data-eb-en="Expenses &amp; Staff Salaries" data-eb-ur="اخراجات اور اسٹاف تنخواہیں" data-eb-compact="1">Expenses &amp; Staff Salaries</span></span>
                 <i class="fas fa-download"></i>
             </button>
             <button class="btn-csv-export" id="btnExportClaimsCSV">
-                <span><i class="fas fa-triangle-exclamation" style="color:#ef4444; margin-right:8px;"></i> Damage &amp; Expiry Claims</span>
+                <span><i class="fas fa-triangle-exclamation" style="color:#ef4444; margin-right:8px;"></i> <span data-eb-en="Damage &amp; Expiry Claims" data-eb-ur="ڈیمیج اور ایکسپائری کلیمز" data-eb-compact="1">Damage &amp; Expiry Claims</span></span>
+                <i class="fas fa-download"></i>
+            </button>
+            <button class="btn-csv-export" id="btnExportReturnsCSV">
+                <span><i class="fas fa-rotate-left" style="color:#ec4899; margin-right:8px;"></i> <span data-eb-en="Delivery &amp; Sale Returns" data-eb-ur="ڈلیوری اور سیل ریٹرنز" data-eb-compact="1">Delivery &amp; Sale Returns</span></span>
+                <i class="fas fa-download"></i>
+            </button>
+            <button class="btn-csv-export" id="btnExportMovementsCSV">
+                <span><i class="fas fa-arrows-rotate" style="color:#14b8a6; margin-right:8px;"></i> <span data-eb-en="Stock Movement History" data-eb-ur="اسٹاک موومنٹ ہسٹری" data-eb-compact="1">Stock Movement History</span></span>
+                <i class="fas fa-download"></i>
+            </button>
+            <button class="btn-csv-export" id="btnExportPayrollCSV">
+                <span><i class="fas fa-id-card" style="color:#6366f1; margin-right:8px;"></i> <span data-eb-en="Staff &amp; Payroll Profiles" data-eb-ur="اسٹاف اور پے رول پروفائلز" data-eb-compact="1">Staff &amp; Payroll Profiles</span></span>
                 <i class="fas fa-download"></i>
             </button>
         </div>

@@ -246,21 +246,26 @@
 
 <div class="panel-container" style="margin-top: 8px;">
 
-    <!-- ===== 👑 OWNER PACKAGE & BRANCH CAPACITY BAR ===== -->
+    <!-- ===== 👑 OWNER PACKAGE & 20+ SUB-AGENCY CAPACITY BAR ===== -->
     <div class="panel-card" style="border-top-color:#3b82f6; padding:18px 22px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
             <div>
-                <div style="font-size:12px; color:#64748b; font-weight:bold; text-transform:uppercase;">
-                    Package Tier &bull; <span id="ownerTitle" style="color:#0284c7;">Owner Hub</span>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="font-size:12px; color:#64748b; font-weight:bold; text-transform:uppercase;">
+                        <span data-eb-en="Enterprise Chain Control" data-eb-ur="انٹرپرائز چین کنٹرول">Enterprise Chain Control</span> &bull; <span id="ownerTitle" style="color:#0284c7;" data-eb-en="Owner Hub" data-eb-ur="اونر ہب">Owner Hub</span>
+                    </span>
+                    <span id="multiAgencyCategoryBadge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 9px; border-radius:8px; font-size:11px; font-weight:800;" data-eb-en="🏢 Active Category" data-eb-ur="فعال کیٹیگری">
+                        🏢 Active Category
+                    </span>
                 </div>
-                <div style="font-size:18px; font-weight:800; color:var(--primary); margin-top:2px;" id="pkgNameDisplay">
-                    💎 Enterprise Mega Multi (Up to 10 Branches)
+                <div style="font-size:18px; font-weight:800; color:var(--primary); margin-top:4px;" id="pkgNameDisplay" data-eb-en="💎 Enterprise Mega Multi-Branch Hub (Up to 25 Sub-Agencies)" data-eb-ur="انٹرپرائز ملٹی برانچ ہب (25 سب ایجنسیز تک)">
+                    💎 Enterprise Mega Multi-Branch Hub (Up to 25 Sub-Agencies)
                 </div>
             </div>
             <div style="text-align:right;">
-                <div style="font-size:12px; color:#64748b; font-weight:bold;">AGENCY / BRANCH ALLOCATION</div>
-                <div style="font-size:16px; font-weight:800; color:#10b981;" id="branchCountRatio">
-                    0 / 10 Branches Used
+                <div style="font-size:12px; color:#64748b; font-weight:bold;" id="branchAllocationTitle" data-eb-en="SUB-AGENCY / BRANCH ALLOCATION" data-eb-ur="سب ایجنسی / برانچ کوٹہ" data-eb-compact="1">SUB-AGENCY / BRANCH ALLOCATION</div>
+                <div style="font-size:16px; font-weight:800; color:#10b981;" id="branchCountRatio" data-eb-en="0 / 25 Branches Used" data-eb-ur="استعمال شدہ برانچز">
+                    0 / 25 Branches Used
                 </div>
             </div>
         </div>
@@ -269,22 +274,27 @@
         </div>
     </div>
 
-    <!-- ===== 📊 CONSOLIDATED EXECUTIVE METRICS (Across Up to 10 Agencies) ===== -->
+    <!-- ===== 📊 CONSOLIDATED EXECUTIVE METRICS & A-TO-Z AUDIT CONTROLS ===== -->
     <div class="panel-card" style="border-top-color:#10b981;">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
-                <h2><i class="fas fa-chart-pie"></i> Consolidated 10-Agency Distributor P&amp;L Hub</h2>
-                <small class="header-note">تمام برانچز / ایجنسیز کی سیلز، اخراجات، تنخواہیں اور خالص نفع نقصان کا یکجا جائزہ</small>
+                <h2 id="multiHubMainTitle" data-eb-en="Consolidated Multi-Branch P&amp;L &amp; Audit Hub" data-eb-ur="مجموعی ملٹی برانچ منافع و آڈٹ ہب"><i class="fas fa-chart-pie"></i> Consolidated Multi-Branch P&amp;L &amp; Audit Hub</h2>
+                <small class="header-note" id="multiHubMainSub" data-eb-en="Complete audit comparison of sales, expenses, salaries, billing, stock &amp; net P&amp;L across all branches" data-eb-ur="تمام برانچز کی سیلز، اخراجات، تنخواہیں، بلنگ، اسٹاک اور خالص نفع نقصان کا مکمل آڈٹ موازنہ" data-eb-compact="1">Complete audit comparison of sales, expenses, salaries, billing, stock &amp; net P&amp;L across all branches</small>
             </div>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <div class="period-bar" id="agencyPeriodBar">
-                    <button type="button" class="period-chip" data-period="today">Today</button>
-                    <button type="button" class="period-chip active" data-period="thismonth">This Month</button>
-                    <button type="button" class="period-chip" data-period="lastmonth">Last Month</button>
-                    <button type="button" class="period-chip" data-period="alltime">All Time</button>
+                    <button type="button" class="period-chip" data-period="today" data-eb-en="Today" data-eb-ur="آج">Today</button>
+                    <button type="button" class="period-chip" data-period="7days" data-eb-en="Last 7 Days" data-eb-ur="گزشتہ 7 دن">Last 7 Days</button>
+                    <button type="button" class="period-chip active" data-period="thismonth" data-eb-en="This Month" data-eb-ur="اس ماہ">This Month</button>
+                    <button type="button" class="period-chip" data-period="lastmonth" data-eb-en="Last Month" data-eb-ur="گزشتہ ماہ">Last Month</button>
+                    <button type="button" class="period-chip" data-period="alltime" data-eb-en="All Time" data-eb-ur="تمام عرصہ">All Time</button>
                 </div>
+                <select id="categoryScopeFilter" style="padding:5px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:700; color:#1e293b; background:#fff; outline:none;" title="Filter branches by category scope">
+                    <option value="active_cat" data-eb-en="🔒 Active Category Only (Isolated)" data-eb-ur="🔒 صرف فعال کیٹیگری (الگ تھلگ)">🔒 Active Category Only (Isolated)</option>
+                    <option value="all_cats" data-eb-en="🌐 All Owned Branches (Cross-Category)" data-eb-ur="🌐 تمام ذاتی برانچز (تمام کیٹیگریز)">🌐 All Owned Branches (Cross-Category)</option>
+                </select>
                 <button class="btn btn-sm" id="refreshConsolidatedBtn" style="background:#0284c7; color:#fff;">
-                    <i class="fas fa-sync-alt"></i> Refresh All
+                    <i class="fas fa-sync-alt"></i> <span data-eb-en="Refresh Audit" data-eb-ur="آڈٹ ریفریش کریں">Refresh Audit</span>
                 </button>
             </div>
         </div>
@@ -293,122 +303,195 @@
             <div class="exec-card">
                 <div class="exec-icon" style="background:#3b82f6;">🏢</div>
                 <div class="exec-value" id="totBranchesVal">0</div>
-                <div class="exec-label">Connected Agencies</div>
+                <div class="exec-label" id="lblExecBranches" data-eb-en="Connected Branches" data-eb-ur="منسلک برانچز" data-eb-compact="1">Connected Branches</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#10b981;">💰</div>
                 <div class="exec-value" id="totSalesVal">Rs 0</div>
-                <div class="exec-label">Period Sales (All)</div>
+                <div class="exec-label" id="lblExecSales" data-eb-en="Period Sales (All)" data-eb-ur="مدت کی مجموعی سیلز" data-eb-compact="1">Period Sales (All)</div>
+            </div>
+            <div class="exec-card">
+                <div class="exec-icon" style="background:#0284c7;">🧾</div>
+                <div class="exec-value" id="totBillsVal">0</div>
+                <div class="exec-label" id="lblExecBills" data-eb-en="Total Bills Generated" data-eb-ur="کل تیار کردہ بلز" data-eb-compact="1">Total Bills Generated</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#8b5cf6;">📈</div>
                 <div class="exec-value" id="totProfitVal">Rs 0</div>
-                <div class="exec-label">Gross Profit (After COGS)</div>
+                <div class="exec-label" data-eb-en="Gross Profit (After COGS)" data-eb-ur="مجموعی منافع (لاگت کے بعد)" data-eb-compact="1">Gross Profit (After COGS)</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#f97316;">💸</div>
                 <div class="exec-value" id="totExpensesVal" style="color:#c2410c;">Rs 0</div>
-                <div class="exec-label">Expenses &amp; Salaries</div>
+                <div class="exec-label" data-eb-en="Expenses &amp; Salaries" data-eb-ur="اخراجات اور تنخواہیں" data-eb-compact="1">Expenses &amp; Salaries</div>
             </div>
             <div class="exec-card" style="border-color:#86efac; background:#f0fdf4;">
                 <div class="exec-icon" style="background:#059669;">💎</div>
                 <div class="exec-value" id="totNetProfitVal" style="color:#047857;">Rs 0</div>
-                <div class="exec-label">Final Net Profit / Loss</div>
+                <div class="exec-label" data-eb-en="Final Net Profit / Loss" data-eb-ur="حتمی خالص نفع / نقصان" data-eb-compact="1">Final Net Profit / Loss</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#ef4444;">📉</div>
                 <div class="exec-value" id="totReceivablesVal">Rs 0</div>
-                <div class="exec-label">Market Khata Udhaar</div>
+                <div class="exec-label" id="lblExecKhata" data-eb-en="Market Khata Udhaar" data-eb-ur="مارکیٹ کھاتہ ادھار" data-eb-compact="1">Market Khata Udhaar</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#06b6d4;">📦</div>
                 <div class="exec-value" id="totInventoryVal">Rs 0</div>
-                <div class="exec-label">Total Stock Worth</div>
+                <div class="exec-label" id="lblExecStock" data-eb-en="Total Stock Worth" data-eb-ur="کل اسٹاک کی مالیت" data-eb-compact="1">Total Stock Worth</div>
+            </div>
+            <div class="exec-card">
+                <div class="exec-icon" style="background:#e11d48;">⚠️</div>
+                <div class="exec-value" id="totLowStockVal" style="color:#be123c;">0</div>
+                <div class="exec-label" id="lblExecLowStock" data-eb-en="Low / Out of Stock" data-eb-ur="کم یا ختم اسٹاک" data-eb-compact="1">Low / Out of Stock</div>
             </div>
             <div class="exec-card">
                 <div class="exec-icon" style="background:#f59e0b;">👥</div>
                 <div class="exec-value" id="totBookersVal">0</div>
-                <div class="exec-label">Bookers &amp; Staff</div>
+                <div class="exec-label" id="lblExecStaff" data-eb-en="Active Staff &amp; Team" data-eb-ur="فعال اسٹاف اور ٹیم" data-eb-compact="1">Active Staff &amp; Team</div>
             </div>
         </div>
 
-        <!-- Executive Spotlights: Top / Low Margin / Heavy Cost / Khata Risk -->
+        <!-- Executive Spotlights: 8 High/Low Audit Cards (Income, Margin, Expense, Khata, Top Selling Item, Bills, Low Stock, Staff) -->
         <div class="spotlight-grid" id="spotlightCardsGrid">
             <div class="spotlight-card" style="border-color:#86efac; background:#f0fdf4;">
-                <div class="spotlight-tag" style="color:#15803d;">🏆 Top Performer Agency</div>
+                <div class="spotlight-tag" style="color:#15803d;" data-eb-en="🏆 Highest Net Profit / Income" data-eb-ur="سب سے زیادہ خالص منافع / آمدنی" data-eb-compact="1">🏆 Highest Net Profit / Income</div>
                 <div class="spotlight-name" id="spotTopName">—</div>
-                <div class="spotlight-meta" id="spotTopMeta">Calculating rankings...</div>
+                <div class="spotlight-meta" id="spotTopMeta" data-eb-en="Calculating rankings..." data-eb-ur="درجہ بندی کا حساب جاری ہے...">Calculating rankings...</div>
             </div>
             <div class="spotlight-card" style="border-color:#fde68a; background:#fffbeb;">
-                <div class="spotlight-tag" style="color:#b45309;">📉 Low Margin / Weak Agency</div>
+                <div class="spotlight-tag" style="color:#b45309;" data-eb-en="📉 Lowest Profit / Weakest Margin" data-eb-ur="کم ترین منافع / کمزور مارجن" data-eb-compact="1">📉 Lowest Profit / Weakest Margin</div>
                 <div class="spotlight-name" id="spotLowName">—</div>
-                <div class="spotlight-meta" id="spotLowMeta">Calculating margins...</div>
+                <div class="spotlight-meta" id="spotLowMeta" data-eb-en="Calculating margins..." data-eb-ur="مارجن کا حساب جاری ہے...">Calculating margins...</div>
             </div>
             <div class="spotlight-card" style="border-color:#fecaca; background:#fef2f2;">
-                <div class="spotlight-tag" style="color:#b91c1c;">🔥 Heavy Cost / Expense Agency</div>
+                <div class="spotlight-tag" style="color:#b91c1c;" data-eb-en="🔥 Highest vs Lowest Expenses" data-eb-ur="سب سے زیادہ بمقابلہ کم اخراجات" data-eb-compact="1">🔥 Highest vs Lowest Expenses</div>
                 <div class="spotlight-name" id="spotHeavyName">—</div>
-                <div class="spotlight-meta" id="spotHeavyMeta">Calculating expenses...</div>
+                <div class="spotlight-meta" id="spotHeavyMeta" data-eb-en="Calculating expenses..." data-eb-ur="اخراجات کا حساب جاری ہے...">Calculating expenses...</div>
             </div>
             <div class="spotlight-card" style="border-color:#bae6fd; background:#f0f9ff;">
-                <div class="spotlight-tag" style="color:#0369a1;">💳 Highest Khata Risk Agency</div>
+                <div class="spotlight-tag" style="color:#0369a1;" data-eb-en="💳 Highest Khata / Credit Exposure" data-eb-ur="سب سے زیادہ کھاتہ / ادھار بقایا" data-eb-compact="1">💳 Highest Khata / Credit Exposure</div>
                 <div class="spotlight-name" id="spotKhataName">—</div>
-                <div class="spotlight-meta" id="spotKhataMeta">Calculating market udhaar...</div>
+                <div class="spotlight-meta" id="spotKhataMeta" data-eb-en="Calculating market udhaar..." data-eb-ur="مارکیٹ ادھار کا حساب جاری ہے...">Calculating market udhaar...</div>
+            </div>
+            <div class="spotlight-card" style="border-color:#ddd6fe; background:#f5f3ff;">
+                <div class="spotlight-tag" style="color:#6d28d9;" data-eb-en="⭐ #1 Highest Selling Item (Chain-Wide)" data-eb-ur="نمبر 1 سب سے زیادہ فروخت آئٹم" data-eb-compact="1">⭐ #1 Highest Selling Item (Chain-Wide)</div>
+                <div class="spotlight-name" id="spotTopItemName">—</div>
+                <div class="spotlight-meta" id="spotTopItemMeta" data-eb-en="Analyzing bill items..." data-eb-ur="بل آئٹمز کا تجزیہ جاری ہے...">Analyzing bill items...</div>
+            </div>
+            <div class="spotlight-card" style="border-color:#99f6e4; background:#f0fdfa;">
+                <div class="spotlight-tag" style="color:#0f766e;" data-eb-en="🧾 Most vs Least Bills Generated" data-eb-ur="زیادہ بمقابلہ کم بلز کی تعداد" data-eb-compact="1">🧾 Most vs Least Bills Generated</div>
+                <div class="spotlight-name" id="spotBillsName">—</div>
+                <div class="spotlight-meta" id="spotBillsMeta" data-eb-en="Analyzing billing volume..." data-eb-ur="بلنگ حجم کا تجزیہ جاری ہے...">Analyzing billing volume...</div>
+            </div>
+            <div class="spotlight-card" style="border-color:#fed7aa; background:#fff7ed;">
+                <div class="spotlight-tag" style="color:#c2410c;" data-eb-en="⚠️ Most Low / Out-of-Stock Alerts" data-eb-ur="سب سے زیادہ کم / ختم اسٹاک الرٹس" data-eb-compact="1">⚠️ Most Low / Out-of-Stock Alerts</div>
+                <div class="spotlight-name" id="spotLowStockName">—</div>
+                <div class="spotlight-meta" id="spotLowStockMeta" data-eb-en="Analyzing stock shortages..." data-eb-ur="اسٹاک کی کمی کا تجزیہ جاری ہے...">Analyzing stock shortages...</div>
+            </div>
+            <div class="spotlight-card" style="border-color:#e2e8f0; background:#f8fafc;">
+                <div class="spotlight-tag" style="color:#334155;" data-eb-en="👥 Top Staff Productivity Branch" data-eb-ur="بہترین اسٹاف کارکردگی برانچ" data-eb-compact="1">👥 Top Staff Productivity Branch</div>
+                <div class="spotlight-name" id="spotStaffName">—</div>
+                <div class="spotlight-meta" id="spotStaffMeta" data-eb-en="Analyzing revenue per staff..." data-eb-ur="فی اسٹاف سیلز کا تجزیہ جاری ہے...">Analyzing revenue per staff...</div>
             </div>
         </div>
     </div>
 
-    <!-- ===== 🏢 MY AGENCIES / BRANCHES LIST ===== -->
-    <div class="panel-card" style="border-top-color:#f59e0b;">
-        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div>
-                <h2><i class="fas fa-building"></i> My Agency Branches</h2>
-                <small class="header-note">ہر برانچ کو منتخب کر کے اس کی سیلز، بلنگ اور اسٹاک سنبھالیں</small>
-            </div>
-            <button class="btn" id="registerBranchBtn" style="background:#10b981; color:#fff;">
-                <i class="fas fa-plus-circle"></i> + Add / Connect New Branch
-            </button>
-        </div>
-
-        <div id="branchesList">
-            <div class="loading-inline">Loading your agency branches...</div>
-        </div>
-    </div>
-
-    <!-- ===== 📈 COMPARATIVE BRANCH MATRIX (Side-by-Side) ===== -->
+    <!-- ===== 📈 A-TO-Z MULTI-DIMENSIONAL AUDIT & COMPARISON MATRIX ===== -->
     <div class="panel-card" style="border-top-color:#8b5cf6;">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
-                <h2><i class="fas fa-scale-balanced"></i> Branch Performance Comparison Matrix</h2>
-                <small class="header-note">برانچ بمقابلہ برانچ موازنہ برائے اونر</small>
+                <h2 id="matrixSectionTitle"><i class="fas fa-scale-balanced"></i> <span data-eb-en="A-to-Z Multi-Branch Audit &amp; Comparison Matrix" data-eb-ur="مکمل ملٹی برانچ آڈٹ اور تقابلی میٹرکس">A-to-Z Multi-Branch Audit &amp; Comparison Matrix</span></h2>
+                <small class="header-note" data-eb-en="Complete comparative audit of sales, profit, expenses, bills, stock, top-selling items, staff &amp; khata" data-eb-ur="سیلز، منافع، اخراجات، بلز، اسٹاک، ہائی سیلنگ آئٹمز، اسٹاف اور کھاتہ کا مکمل تقابلی آڈٹ" data-eb-compact="1">Complete comparative audit of sales, profit, expenses, bills, stock, top-selling items, staff &amp; khata</small>
             </div>
-            <button class="btn btn-sm btn-print-comp" id="printMatrixBtn" style="background:#475569; color:#fff;">
-                <i class="fas fa-print"></i> Print Comparison
-            </button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-sm" id="exportAuditCsvBtn" style="background:#059669; color:#fff;">
+                    <i class="fas fa-file-csv"></i> <span data-eb-en="Export Full Audit CSV" data-eb-ur="مکمل آڈٹ CSV ایکسپورٹ">Export Full Audit CSV</span>
+                </button>
+                <button class="btn btn-sm btn-print-comp" id="printMatrixBtn" style="background:#475569; color:#fff;">
+                    <i class="fas fa-print"></i> <span data-eb-en="Print Audit Report" data-eb-ur="آڈٹ رپورٹ پرنٹ کریں">Print Audit Report</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 6 Audit Comparison Dimension Tabs -->
+        <div class="period-bar" id="auditDimensionTabs" style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #e2e8f0;">
+            <button type="button" class="period-chip active" data-tab="pnl" data-eb-en="💰 1. Income, Expenses &amp; Net P&amp;L" data-eb-ur="آمدنی، اخراجات اور خالص نفع" data-eb-compact="1">💰 1. Income, Expenses &amp; Net P&amp;L</button>
+            <button type="button" class="period-chip" data-tab="stock" data-eb-en="📦 2. Stock, Low Stock &amp; Top Selling Items" data-eb-ur="اسٹاک، کم اسٹاک اور ہائی سیلنگ آئٹمز" data-eb-compact="1">📦 2. Stock, Low Stock &amp; Top Selling Items</button>
+            <button type="button" class="period-chip" data-tab="bills" data-eb-en="🧾 3. Bills Generated, Cash vs Credit" data-eb-ur="بلز، نقد بمقابلہ ادھار سیلز" data-eb-compact="1">🧾 3. Bills Generated, Cash vs Credit</button>
+            <button type="button" class="period-chip" data-tab="staff" data-eb-en="👥 4. Staff, Salaries &amp; Productivity" data-eb-ur="اسٹاف، تنخواہیں اور کارکردگی" data-eb-compact="1">👥 4. Staff, Salaries &amp; Productivity</button>
+            <button type="button" class="period-chip" data-tab="khata_claims" data-eb-en="📒 5. Customers Khata &amp; Claims Loss" data-eb-ur="کسٹمرز کھاتہ اور کلیمز نقصان" data-eb-compact="1">📒 5. Customers Khata &amp; Claims Loss</button>
+            <button type="button" class="period-chip" data-tab="head2head" data-eb-en="⚖️ 6. Head-to-Head &amp; Min/Max Audit" data-eb-ur="براہِ راست موازنہ اور کم/زیادہ آڈٹ" data-eb-compact="1">⚖️ 6. Head-to-Head &amp; Min/Max Audit</button>
+        </div>
+
+        <!-- Head-to-Head Branch Selector Bar (Shown when tab === 'head2head') -->
+        <div id="head2HeadBar" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <div style="font-size:13px; font-weight:800; color:#1e293b;" data-eb-en="⚖️ Select Any Two Sub-Agencies / Branches for Direct A-to-Z Comparison:" data-eb-ur="براہِ راست مکمل موازنے کے لیے کوئی سی دو سب ایجنسیز / برانچز منتخب کریں:" data-eb-compact="1">
+                    ⚖️ Select Any Two Sub-Agencies / Branches for Direct A-to-Z Comparison:
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <select id="h2hBranchA" style="padding:7px 12px; border:1px solid #94a3b8; border-radius:8px; font-size:13px; font-weight:700; background:#fff;"></select>
+                    <span style="font-weight:900; color:#7c3aed; font-size:13px;" data-eb-en="VS" data-eb-ur="بمقابلہ">VS</span>
+                    <select id="h2hBranchB" style="padding:7px 12px; border:1px solid #94a3b8; border-radius:8px; font-size:13px; font-weight:700; background:#fff;"></select>
+                </div>
+            </div>
         </div>
 
         <div style="overflow-x:auto;">
             <table class="comp-table" id="branchMatrixTable">
-                <thead>
+                <thead id="matrixThead">
                     <tr>
                         <th>#</th>
-                        <th>Agency / Branch Name</th>
-                        <th>City / Type</th>
-                        <th>Period Sales</th>
-                        <th>COGS</th>
-                        <th>Gross Profit</th>
-                        <th>Expenses &amp; Salaries</th>
-                        <th>Net Profit / Loss</th>
-                        <th>Net Margin %</th>
-                        <th>Claims Loss</th>
-                        <th>Khata Balance</th>
-                        <th>Stock Worth</th>
-                        <th>Ranking Tag</th>
+                        <th data-eb-en="Agency / Branch Name" data-eb-ur="ایجنسی / برانچ کا نام" data-eb-compact="1">Agency / Branch Name</th>
+                        <th data-eb-en="City / Type" data-eb-ur="شہر / قسم" data-eb-compact="1">City / Type</th>
+                        <th data-eb-en="Period Sales" data-eb-ur="مدت سیلز" data-eb-compact="1">Period Sales</th>
+                        <th data-eb-en="COGS" data-eb-ur="لاگت خرید" data-eb-compact="1">COGS</th>
+                        <th data-eb-en="Gross Profit" data-eb-ur="مجموعی منافع" data-eb-compact="1">Gross Profit</th>
+                        <th data-eb-en="Expenses &amp; Salaries" data-eb-ur="اخراجات و تنخواہیں" data-eb-compact="1">Expenses &amp; Salaries</th>
+                        <th data-eb-en="Net Profit / Loss" data-eb-ur="خالص نفع / نقصان" data-eb-compact="1">Net Profit / Loss</th>
+                        <th data-eb-en="Net Margin %" data-eb-ur="خالص مارجن %" data-eb-compact="1">Net Margin %</th>
+                        <th data-eb-en="Claims Loss" data-eb-ur="کلیمز نقصان" data-eb-compact="1">Claims Loss</th>
+                        <th data-eb-en="Khata Balance" data-eb-ur="کھاتہ بقایا" data-eb-compact="1">Khata Balance</th>
+                        <th data-eb-en="Stock Worth" data-eb-ur="اسٹاک مالیت" data-eb-compact="1">Stock Worth</th>
+                        <th data-eb-en="Ranking Tag" data-eb-ur="درجہ بندی" data-eb-compact="1">Ranking Tag</th>
                     </tr>
                 </thead>
                 <tbody id="matrixTbody">
-                    <tr><td colspan="13" style="text-align:center; color:#94a3b8;">Loading matrix comparison...</td></tr>
+                    <tr><td colspan="13" style="text-align:center; color:#94a3b8;" data-eb-en="Loading matrix comparison..." data-eb-ur="تقابلی میٹرکس لوڈ ہو رہا ہے...">Loading matrix comparison...</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- ===== 🏢 MY SUB-AGENCIES / BRANCHES DIRECTORY (Supports 10–25+ Branches) ===== -->
+    <div class="panel-card" style="border-top-color:#f59e0b;">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h2 id="branchesSectionTitle"><i class="fas fa-building"></i> <span data-eb-en="Connected Sub-Agencies &amp; Branches Directory" data-eb-ur="منسلک سب ایجنسیز اور برانچز ڈائریکٹری">Connected Sub-Agencies &amp; Branches Directory</span></h2>
+                <small class="header-note" id="branchesSectionSub" data-eb-en="View complete audit for each branch, switch sessions, or add a new sub-agency / branch" data-eb-ur="ہر برانچ کا مکمل آڈٹ دیکھیں، سوئچ کریں، یا نئی سب ایجنسی / برانچ شامل کریں" data-eb-compact="1">View complete audit for each branch, switch sessions, or add a new sub-agency / branch</small>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <input type="text" id="branchSearchInput" placeholder="🔍 Search branch name or city..." data-eb-ph-en="🔍 Search branch name or city..." data-eb-ph-ur="🔍 برانچ کا نام یا شہر تلاش کریں..." style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px; outline:none; min-width:200px;">
+                <select id="branchSortSelect" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px; font-weight:700; background:#fff; outline:none;">
+                    <option value="profit_desc" data-eb-en="Sort: Highest Net Profit" data-eb-ur="ترتیب: سب سے زیادہ خالص منافع">Sort: Highest Net Profit</option>
+                    <option value="profit_asc" data-eb-en="Sort: Lowest Net Profit" data-eb-ur="ترتیب: سب سے کم خالص منافع">Sort: Lowest Net Profit</option>
+                    <option value="sales_desc" data-eb-en="Sort: Highest Sales" data-eb-ur="ترتیب: سب سے زیادہ سیلز">Sort: Highest Sales</option>
+                    <option value="sales_asc" data-eb-en="Sort: Lowest Sales" data-eb-ur="ترتیب: سب سے کم سیلز">Sort: Lowest Sales</option>
+                    <option value="exp_desc" data-eb-en="Sort: Highest Expenses" data-eb-ur="ترتیب: سب سے زیادہ اخراجات">Sort: Highest Expenses</option>
+                    <option value="exp_asc" data-eb-en="Sort: Lowest Expenses" data-eb-ur="ترتیب: سب سے کم اخراجات">Sort: Lowest Expenses</option>
+                    <option value="bills_desc" data-eb-en="Sort: Most Bills Generated" data-eb-ur="ترتیب: سب سے زیادہ بلز">Sort: Most Bills Generated</option>
+                    <option value="lowstock_desc" data-eb-en="Sort: Most Low Stock Alerts" data-eb-ur="ترتیب: سب سے زیادہ کم اسٹاک الرٹس">Sort: Most Low Stock Alerts</option>
+                    <option value="khata_desc" data-eb-en="Sort: Highest Khata Udhaar" data-eb-ur="ترتیب: سب سے زیادہ کھاتہ ادھار">Sort: Highest Khata Udhaar</option>
+                </select>
+                <button class="btn" id="registerBranchBtn" style="background:#10b981; color:#fff;">
+                    <i class="fas fa-plus-circle"></i> <span data-eb-en="+ Add Sub-Agency / Branch" data-eb-ur="نئی سب ایجنسی / برانچ شامل کریں">+ Add Sub-Agency / Branch</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="branchesList">
+            <div class="loading-inline" data-eb-en="Loading your agency branches..." data-eb-ur="آپ کی ایجنسی برانچز لوڈ ہو رہی ہیں...">Loading your agency branches...</div>
         </div>
     </div>
 
@@ -420,10 +503,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <!-- 🏢 BUSINESS CATEGORIES REGISTRY -->
-<script src="business-categories.js"></script>
+<script src="business-categories.js?v=5.7.4"></script>
 <!-- 🧭 SIDEBAR SYSTEM -->
-<script src="sidebar.js"></script>
+<script src="sidebar.js?v=5.7.4"></script>
 <!-- 🏢 MULTI-AGENCY CONTROLLER -->
-<script src="multi-agency.js"></script>
+<script src="multi-agency.js?v=5.7.4"></script>
 </body>
 </html>

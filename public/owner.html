@@ -12,7 +12,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NH POS — Owner Panel</title>
+    <title>NH POS — Staff, Bookers &amp; Team Performance Hub</title>
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -25,103 +25,317 @@
     <!-- Global Dark Theme & Theme Sync -->
     <link rel="stylesheet" href="dark-theme.css">
     <script src="theme-sync.js"></script>
+
+    <style>
+        .staff-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .staff-kpi-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px 15px;
+            border: 1px solid #e2e8f0;
+            border-top: 4px solid #0284c7;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+        }
+        .staff-kpi-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .staff-kpi-val {
+            font-size: 20px;
+            font-weight: 900;
+            color: #0f172a;
+            margin-top: 4px;
+        }
+        .staff-kpi-sub {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 3px;
+            font-weight: 600;
+        }
+        .period-chip-bar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .staff-chip {
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+        .staff-chip.active {
+            background: #0284c7;
+            color: #fff;
+            border-color: #0284c7;
+            box-shadow: 0 2px 8px rgba(2,132,199,0.28);
+        }
+        .target-progress-wrap {
+            background: #e2e8f0;
+            height: 7px;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .target-progress-bar {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+        .staff-stat-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+            padding: 9px 11px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+        .staff-stat-box {
+            font-size: 11.5px;
+            color: #475569;
+        }
+        .staff-stat-box b {
+            display: block;
+            font-size: 13.5px;
+            color: #0f172a;
+            margin-top: 1px;
+        }
+        html.dark .staff-kpi-card,
+        body.dark-theme .staff-kpi-card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+        html.dark .staff-kpi-val,
+        body.dark-theme .staff-kpi-val,
+        html.dark .staff-stat-box b,
+        body.dark-theme .staff-stat-box b {
+            color: #f8fafc;
+        }
+        html.dark .staff-stat-strip,
+        body.dark-theme .staff-stat-strip {
+            background: #0f172a;
+            border-color: #334155;
+        }
+        html.dark .staff-chip:not(.active),
+        body.dark-theme .staff-chip:not(.active) {
+            background: #0f172a;
+            color: #cbd5e1;
+            border-color: #334155;
+        }
+    </style>
 </head>
 <body>
 <span id="agencyName" style="display:none;"></span>
 <span id="ownerEmail" style="display:none;"></span>
 
 <div class="panel-container" style="margin-top: 8px;">
-    
-    <!-- 🚚 DELIVERY & VAN STOCK RETURN LINK -->
-    <div class="panel-card" style="border-top-color: #8b5cf6; cursor: pointer;" onclick="window.location.href='delivery-returns.html'">
-        <div style="display:flex; align-items:center; gap:15px;">
-            <div style="font-size:36px;">🚚</div>
-            <div style="flex:1;">
-                <h2 style="font-size:18px; color:var(--primary); margin-bottom:4px;">Delivery &amp; Van Stock Return Hub (مال واپسی مینیجر)</h2>
-                <p style="font-size:13px; color:#7f8c8d;">Van dispatch challan, delivery suppliers &amp; unsold return inward (0 profit/loss)</p>
+
+    <!-- 🚚 CATEGORY-DEDICATED DISPATCH / OPERATIONS SHORTCUT BANNER -->
+    <div class="panel-card" id="ownerDispatchHubBanner" style="border-top-color: #8b5cf6; cursor: pointer; margin-bottom: 14px;" onclick="window.location.href='delivery-returns.html'">
+        <div style="display:flex; align-items:center; gap:15px; flex-wrap:wrap;">
+            <div id="ownerBannerIcon" style="font-size:34px;">🚚</div>
+            <div style="flex:1; min-width:220px;">
+                <h2 id="ownerBannerTitle" style="font-size:17px; color:var(--primary); margin-bottom:3px;" data-eb-en="Delivery &amp; Van Stock Return Hub" data-eb-ur="ڈلیوری اور وین اسٹاک واپسی ہب">Delivery &amp; Van Stock Return Hub</h2>
+                <p id="ownerBannerSub" style="font-size:12.5px; color:#64748b; margin:0;" data-eb-en="Van dispatch challan, delivery suppliers &amp; unsold return inward (0 profit/loss)" data-eb-ur="وین ڈسپیچ چالان، ڈلیوری سپلائرز اور غیر فروخت شدہ مال کی واپسی" data-eb-compact="1">Van dispatch challan, delivery suppliers &amp; unsold return inward (0 profit/loss)</p>
             </div>
-            <i class="fas fa-arrow-right" style="font-size:20px; color:#8b5cf6;"></i>
+            <div style="display:flex; gap:8px; align-items:center;" onclick="event.stopPropagation();">
+                <a href="booker-orders.html" class="btn btn-sm" style="background:#0284c7; color:#fff; text-decoration:none; padding:7px 12px; border-radius:8px; font-size:12px; font-weight:800;">
+                    <i class="fas fa-clipboard-check"></i> <span id="ownerOrdersBtnLabel" data-eb-en="Field Orders" data-eb-ur="فیلڈ آرڈرز">Field Orders</span>
+                </a>
+                <a href="expenses.html" class="btn btn-sm" style="background:#10b981; color:#fff; text-decoration:none; padding:7px 12px; border-radius:8px; font-size:12px; font-weight:800;">
+                    <i class="fas fa-money-check-dollar"></i> <span data-eb-en="Staff Payroll" data-eb-ur="اسٹاف پے رول">Staff Payroll</span>
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- ===== ➕ ADD STAFF (BOOKER OR SUPPLIER) ===== -->
+    <!-- 📊 EXECUTIVE TEAM PERFORMANCE KPIs -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span id="ownerActiveCategoryBadge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:800;" data-eb-en="🏢 Category Workspace" data-eb-ur="کیٹیگری ورک اسپیس">🏢 Category Workspace</span>
+            <span style="font-size:12px; color:#64748b; font-weight:600;" id="ownerTeamSummaryHint" data-eb-en="Live Sales, Targets &amp; Commission Audit" data-eb-ur="لائیو سیلز، ٹارگٹس اور کمیشن آڈٹ">Live Sales, Targets &amp; Commission Audit</span>
+        </div>
+        <div class="period-chip-bar" id="staffPeriodBar">
+            <button type="button" class="staff-chip" data-period="today" data-eb-en="Today" data-eb-ur="آج">Today</button>
+            <button type="button" class="staff-chip" data-period="7days" data-eb-en="Last 7 Days" data-eb-ur="گزشتہ 7 دن">Last 7 Days</button>
+            <button type="button" class="staff-chip active" data-period="thismonth" data-eb-en="This Month" data-eb-ur="اس ماہ">This Month</button>
+            <button type="button" class="staff-chip" data-period="alltime" data-eb-en="All Time" data-eb-ur="تمام عرصہ">All Time</button>
+        </div>
+    </div>
+
+    <div class="staff-kpi-grid">
+        <div class="staff-kpi-card" style="border-top-color:#0284c7;">
+            <div class="staff-kpi-label" id="kpiLblStaffCount" data-eb-en="Active Team Members" data-eb-ur="فعال ٹیم ممبرز" data-eb-compact="1">Active Team Members</div>
+            <div class="staff-kpi-val" id="kpiValStaffCount">0</div>
+            <div class="staff-kpi-sub" id="kpiSubStaffBreakdown" data-eb-en="0 Bookers • 0 Suppliers" data-eb-ur="0 بکرز • 0 سپلائرز">0 Bookers • 0 Suppliers</div>
+        </div>
+        <div class="staff-kpi-card" style="border-top-color:#10b981;">
+            <div class="staff-kpi-label" id="kpiLblTeamSales" data-eb-en="Team Period Sales" data-eb-ur="ٹیم کی مدت سیلز" data-eb-compact="1">Team Period Sales</div>
+            <div class="staff-kpi-val" id="kpiValTeamSales" style="color:#10b981;">Rs 0</div>
+            <div class="staff-kpi-sub" id="kpiSubTopPerformer" data-eb-en="Top: —" data-eb-ur="سرفہرست: —">Top: —</div>
+        </div>
+        <div class="staff-kpi-card" style="border-top-color:#8b5cf6;">
+            <div class="staff-kpi-label" id="kpiLblTeamBills" data-eb-en="Bills &amp; Orders Handled" data-eb-ur="کل بلز اور آرڈرز" data-eb-compact="1">Bills &amp; Orders Handled</div>
+            <div class="staff-kpi-val" id="kpiValTeamBills">0</div>
+            <div class="staff-kpi-sub" id="kpiSubBillsBreakdown" data-eb-en="0 Completed • 0 Pending" data-eb-ur="0 مکمل • 0 زیرِ التواء">0 Completed • 0 Pending</div>
+        </div>
+        <div class="staff-kpi-card" style="border-top-color:#f59e0b;">
+            <div class="staff-kpi-label" data-eb-en="Target Achievement" data-eb-ur="ٹارگٹ کا حصول" data-eb-compact="1">Target Achievement</div>
+            <div class="staff-kpi-val" id="kpiValTargetPct" style="color:#d97706;">0%</div>
+            <div class="staff-kpi-sub" id="kpiSubTargetTotal" data-eb-en="Target: Rs 0" data-eb-ur="ٹارگٹ: Rs 0">Target: Rs 0</div>
+        </div>
+        <div class="staff-kpi-card" style="border-top-color:#ec4899;">
+            <div class="staff-kpi-label" data-eb-en="Earned Commissions" data-eb-ur="حاصل شدہ کمیشن" data-eb-compact="1">Earned Commissions</div>
+            <div class="staff-kpi-val" id="kpiValCommission" style="color:#db2777;">Rs 0</div>
+            <div class="staff-kpi-sub" data-eb-en="Based on Period Sales" data-eb-ur="مدت سیلز کی بنیاد پر">Based on Period Sales</div>
+        </div>
+        <div class="staff-kpi-card" style="border-top-color:#ef4444;">
+            <div class="staff-kpi-label" data-eb-en="Base Monthly Payroll" data-eb-ur="بنیادی ماہانہ تنخواہیں" data-eb-compact="1">Base Monthly Payroll</div>
+            <div class="staff-kpi-val" id="kpiValBaseSalary">Rs 0</div>
+            <div class="staff-kpi-sub"><a href="expenses.html" style="color:#0284c7; text-decoration:none; font-weight:800;" data-eb-en="Open Payroll Ledger →" data-eb-ur="پے رول کھاتہ کھولیں ←">Open Payroll Ledger →</a></div>
+        </div>
+    </div>
+
+    <!-- ===== ➕ ADD STAFF (CATEGORY-AWARE ROLE, TARGET, SALARY & PERMISSIONS) ===== -->
     <div class="panel-card">
         <div class="card-header">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <h2><i class="fas fa-user-plus"></i> Add New Field Staff (بکر یا ڈلیوری سپلائر)</h2>
-                <span id="ownerActiveCategoryBadge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:800;">🏢 Category Workspace</span>
+                <h2 id="ownerFormTitle"><i class="fas fa-user-plus"></i> <span data-eb-en="Add New Field Staff" data-eb-ur="نیا فیلڈ اسٹاف شامل کریں">Add New Field Staff</span></h2>
+                <button type="button" onclick="syncAllStaffToPayroll()" class="btn btn-sm" style="background:#f0fdf4; color:#15803d; border:1px solid #86efac; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer;">
+                    <i class="fas fa-sync-alt"></i> <span data-eb-en="Sync Team with Payroll" data-eb-ur="ٹیم کو پے رول سے سنک کریں">Sync Team with Payroll</span>
+                </button>
             </div>
-            <small class="header-note">Booker field se order le ga aur Supplier mall dukanon par deliver/wapas laye ga! (Har Category ke Bookers &amp; Suppliers alag mehfooz hote hain)</small>
+            <small class="header-note" id="ownerFormSub" data-eb-en="Bookers collect field orders and Suppliers deliver/return stock to shops (each category's staff stays 100% isolated)" data-eb-ur="بکر فیلڈ سے آرڈر لے گا اور سپلائر مال دکانوں پر ڈلیور/واپس لائے گا (ہر کیٹیگری کا اسٹاف 100% الگ محفوظ ہوتا ہے)" data-eb-compact="1">Bookers collect field orders and Suppliers deliver/return stock to shops (each category's staff stays 100% isolated)</small>
         </div>
         <form id="addBookerForm" class="panel-form">
             <div class="form-row">
                 <div class="form-group">
-                    <label>Staff Role (عہدہ) *</label>
+                    <label id="lblBkRole" data-eb-en="Staff Role *" data-eb-ur="اسٹاف عہدہ *">Staff Role *</label>
                     <select id="bkRole" required style="width:100%; padding:10px; border:2px solid #e0e6e8; border-radius:8px; font-size:14px; background:#fff;">
-                        <option value="booker">📕 Order Booker (فیلڈ آرڈر بکر)</option>
-                        <option value="supplier">🚚 Delivery Supplier / Salesman (ڈلیوری سپلائر)</option>
+                        <option value="booker" data-eb-en="📕 Order Booker" data-eb-ur="فیلڈ آرڈر بکر">📕 Order Booker</option>
+                        <option value="supplier" data-eb-en="🚚 Delivery Supplier / Salesman" data-eb-ur="ڈلیوری سپلائر">🚚 Delivery Supplier / Salesman</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Staff Name *</label>
-                    <input type="text" id="bkName" placeholder="e.g. Ali Ahmed" required maxlength="40">
+                    <label id="lblBkName" data-eb-en="Staff Full Name *" data-eb-ur="اسٹاف کا پورا نام *">Staff Full Name *</label>
+                    <input type="text" id="bkName" placeholder="e.g. Ali Ahmed" data-eb-ph-en="e.g. Ali Ahmed" data-eb-ph-ur="مثلاً: علی احمد" required maxlength="40">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>📧 Email (Login ID) *</label>
-                    <input type="email" id="bkEmail" placeholder="staff@example.com" required>
+                    <label data-eb-en="📧 Email or Username (Login ID) *" data-eb-ur="ای میل یا یوزر نیم (لاگ اِن آئی ڈی) *">📧 Email or Username (Login ID) *</label>
+                    <input type="text" id="bkEmail" placeholder="staff@example.com or username" data-eb-ph-en="staff@example.com or username" data-eb-ph-ur="ای میل یا یوزر نیم درج کریں" required>
                 </div>
                 <div class="form-group">
-                    <label>📱 Mobile / WhatsApp *</label>
-                    <input type="tel" id="bkMobile" placeholder="e.g. 03001234567" required>
+                    <label data-eb-en="📱 Mobile / WhatsApp *" data-eb-ur="موبائل / واٹس ایپ *">📱 Mobile / WhatsApp *</label>
+                    <input type="tel" id="bkMobile" placeholder="e.g. 03001234567" data-eb-ph-en="e.g. 03001234567" data-eb-ph-ur="مثلاً: 03001234567" required>
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>🔑 Password * (min 6 — aap baad mein change kar sakte hain!)</label>
-                    <input type="text" id="bkPassword" placeholder="Password" required minlength="6">
+                    <label data-eb-en="🔑 Password * (min 6 — editable anytime)" data-eb-ur="پاسورڈ * (کم از کم 6 حروف — بعد میں تبدیل ہو سکتا ہے)">🔑 Password * (min 6 — editable anytime)</label>
+                    <input type="text" id="bkPassword" placeholder="Min 6 characters" data-eb-ph-en="Min 6 characters" data-eb-ph-ur="کم از کم 6 حروف" required minlength="6">
                 </div>
                 <div class="form-group">
-                    <label>📍 Assigned Area / Route (مقررہ علاقہ)</label>
-                    <input type="text" id="bkRoute" placeholder="e.g. Main Bazaar, Sadiqabad">
+                    <label id="lblBkRoute" data-eb-en="📍 Assigned Area / Route" data-eb-ur="مقررہ علاقہ / روٹ">📍 Assigned Area / Route</label>
+                    <input type="text" id="bkRoute" placeholder="e.g. Main Bazaar, Sadiqabad" data-eb-ph-en="e.g. Main Bazaar, Sadiqabad" data-eb-ph-ur="مثلاً: مین بازار، صادق آباد">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label id="lblBkTarget" data-eb-en="🎯 Monthly Sales Target (Rs)" data-eb-ur="ماہانہ سیلز ٹارگٹ (روپے)">🎯 Monthly Sales Target (Rs)</label>
+                    <input type="number" id="bkMonthlyTarget" placeholder="e.g. 500000" min="0" step="1000">
+                </div>
+                <div class="form-group">
+                    <label data-eb-en="💰 Base Monthly Salary (Rs)" data-eb-ur="ماہانہ بنیادی تنخواہ (روپے)">💰 Base Monthly Salary (Rs)</label>
+                    <input type="number" id="bkBaseSalary" placeholder="e.g. 35000" min="0" step="500">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label data-eb-en="📈 Sales Commission (%)" data-eb-ur="سیلز کمیشن فیصد">📈 Sales Commission (%)</label>
+                    <input type="number" id="bkCommissionPct" placeholder="e.g. 1.5" min="0" max="50" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label id="lblBkShift" data-eb-en="🗓️ Visiting Days / Shift" data-eb-ur="ڈیوٹی شفٹ یا دن">🗓️ Visiting Days / Shift</label>
+                    <input type="text" id="bkShiftDays" placeholder="e.g. Mon-Sat Full Day" data-eb-ph-en="e.g. Mon-Sat Full Day" data-eb-ph-ur="مثلاً: پیر تا ہفتہ فل ڈے">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group" style="width:100%;">
-                    <label>⚡ Permissions (Granular Controls) *</label>
+                    <label data-eb-en="⚡ Permissions (Granular Access Controls) *" data-eb-ur="اجازتیں (رسائی کنٹرول) *">⚡ Permissions (Granular Access Controls) *</label>
                     <div class="perm-checks">
-                        <label class="perm-check"><input type="checkbox" id="permStock" checked> 📦 Stock Bill &amp; Orders</label>
-                        <label class="perm-check"><input type="checkbox" id="permCustomers" checked> 👥 Customer Khata</label>
-                        <label class="perm-check"><input type="checkbox" id="permReports"> 📊 Reports</label>
-                        <label class="perm-check" style="color:#b45309; font-weight:bold;"><input type="checkbox" id="permApproveOrders"> ⚖️ Allow Self Order Approval (بکر خود آرڈر منظور کر سکے)</label>
+                        <label class="perm-check"><input type="checkbox" id="permStock" checked> <span id="lblPermStock" data-eb-en="📦 Stock Bill &amp; Orders" data-eb-ur="اسٹاک بل اور آرڈرز">📦 Stock Bill &amp; Orders</span></label>
+                        <label class="perm-check"><input type="checkbox" id="permCustomers" checked> <span id="lblPermCustomers" data-eb-en="👥 Customer Khata" data-eb-ur="کسٹمر کھاتہ">👥 Customer Khata</span></label>
+                        <label class="perm-check"><input type="checkbox" id="permReports"> <span data-eb-en="📊 Reports" data-eb-ur="رپورٹس">📊 Reports</span></label>
+                        <label class="perm-check" style="color:#b45309; font-weight:bold;"><input type="checkbox" id="permApproveOrders"> <span id="lblPermApprove" data-eb-en="⚖️ Allow Self Order Approval" data-eb-ur="بکر خود آرڈر منظور کر سکے">⚖️ Allow Self Order Approval</span></label>
+                        <label class="perm-check" id="lblPermGpsWrap" style="color:#059669; font-weight:bold;"><input type="checkbox" id="permGpsRequired"> <span id="lblPermGps" data-eb-en="📍 Require GPS Location for this Booker (Optional — mandatory when ON)" data-eb-ur="اختیاری — آن کرنے پر اس بکر کے لیے لوکیشن لازمی ہو گی">📍 Require GPS Location for this Booker (Optional — mandatory when ON)</span></label>
                     </div>
                 </div>
             </div>
             <button type="submit" class="btn btn-primary" id="addBookerBtn">
-                <i class="fas fa-user-plus"></i> ADD STAFF MEMBER
+                <i class="fas fa-user-plus"></i> <span data-eb-en="ADD STAFF MEMBER" data-eb-ur="اسٹاف ممبر شامل کریں">ADD STAFF MEMBER</span>
             </button>
         </form>
     </div>
 
-    <!-- ===== 📋 STAFF LIST ===== -->
+    <!-- ===== 📋 STAFF DIRECTORY, PERFORMANCE & AUDIT LIST ===== -->
     <div class="panel-card" id="bookersSection">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
-                <h2><i class="fas fa-users"></i> Agency Field Staff (<span id="bookerCount">0</span>)</h2>
+                <h2 id="ownerListTitle"><i class="fas fa-users"></i> <span data-eb-en="Agency Staff &amp; Performance Directory" data-eb-ur="ایجنسی اسٹاف اور کارکردگی ڈائریکٹری">Agency Staff &amp; Performance Directory</span> (<span id="bookerCount">0</span>)</h2>
                 <div style="font-size:12px; color:#64748b; margin-top:2px;">
-                    پیکیج لمٹ: <b id="bookerLimitBadge" style="color:#0284c7;">--</b> • لمٹ بڑھانے کے لیے رابطہ: <a href="https://wa.me/923346800959?text=Assalam-o-Alaikum%20Developer!%20Please%20increase%20order%20booker%20limits" target="_blank" style="color:#16a34a; font-weight:bold; text-decoration:none;"><i class="fab fa-whatsapp" style="color:#25d366;"></i> +923346800959</a>
+                    <span data-eb-en="Package Limit:" data-eb-ur="پیکیج لمٹ:">Package Limit:</span> <b id="bookerLimitBadge" style="color:#0284c7;">--</b> • <span data-eb-en="Contact to increase limit:" data-eb-ur="لمٹ بڑھانے کے لیے رابطہ:">Contact to increase limit:</span> <a href="https://wa.me/923346800959?text=Assalam-o-Alaikum%20Developer!%20Please%20increase%20order%20booker%20limits" target="_blank" style="color:#16a34a; font-weight:bold; text-decoration:none;"><i class="fab fa-whatsapp" style="color:#25d366;"></i> +923346800959</a>
                 </div>
             </div>
-            <a href="https://wa.me/923346800959?text=Assalam-o-Alaikum%20Developer!%20Staff%20Limit%20Support" target="_blank" class="btn btn-sm" style="background:#25D366; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
-                <i class="fab fa-whatsapp"></i> WhatsApp Developer
-            </a>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" id="btnOwnerLiveGpsMap" onclick="openTeamGpsMap()" class="btn btn-sm" style="background:#10b981; color:#fff; border:none; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:5px;" title="View Live Order Booker GPS Locations on Google Maps">
+                    <i class="fas fa-map-location-dot"></i> <span data-eb-en="Live GPS Map" data-eb-ur="لائیو GPS نقشہ">Live GPS Map</span>
+                </button>
+                <button type="button" onclick="exportStaffPerformanceCSV()" class="btn btn-sm" style="background:#0f172a; color:#fff; border:none; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                    <i class="fas fa-file-csv"></i> <span data-eb-en="Export Audit CSV" data-eb-ur="آڈٹ CSV ایکسپورٹ">Export Audit CSV</span>
+                </button>
+                <a href="https://wa.me/923346800959?text=Assalam-o-Alaikum%20Developer!%20Staff%20Limit%20Support" target="_blank" class="btn btn-sm" style="background:#25D366; color:#fff; border:none; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+                    <i class="fab fa-whatsapp"></i> <span data-eb-en="WhatsApp Developer" data-eb-ur="ڈویلپر واٹس ایپ">WhatsApp Developer</span>
+                </a>
+            </div>
         </div>
-        <div style="margin-bottom: 12px;">
-            <input type="text" id="bookerSearchInput" placeholder="🔍 Search by name, role, email or route..." style="width: 100%; padding: 10px 14px; border: 2px solid #e0e6e8; border-radius: 8px; font-size: 14px; outline:none;">
+
+        <!-- 🔍 SEARCH, ROLE FILTER & SORT BAR -->
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 14px;">
+            <input type="text" id="bookerSearchInput" placeholder="🔍 Search by name, role, email, mobile or route..." data-eb-ph-en="🔍 Search by name, role, email, mobile or route..." data-eb-ph-ur="🔍 نام، عہدہ، ای میل، موبائل یا روٹ سے تلاش کریں..." style="flex: 2 1 220px; padding: 10px 14px; border: 2px solid #e0e6e8; border-radius: 8px; font-size: 13.5px; outline:none;">
+            <select id="staffRoleFilter" style="flex: 1 1 150px; padding: 9px 12px; border: 2px solid #e0e6e8; border-radius: 8px; font-size: 13px; font-weight:700;">
+                <option value="all" data-eb-en="👥 All Staff Roles" data-eb-ur="تمام اسٹاف عہدے">👥 All Staff Roles</option>
+                <option value="booker" data-eb-en="📕 Order Bookers / Sales" data-eb-ur="آرڈر بکرز / سیلز">📕 Order Bookers / Sales</option>
+                <option value="supplier" data-eb-en="🚚 Suppliers / Riders" data-eb-ur="سپلائرز / رائیڈرز">🚚 Suppliers / Riders</option>
+                <option value="other" data-eb-en="🛠️ Counter / Lab / Kitchen" data-eb-ur="کاؤنٹر / لیب / کچن">🛠️ Counter / Lab / Kitchen</option>
+                <option value="active" data-eb-en="✅ Active Only" data-eb-ur="صرف فعال">✅ Active Only</option>
+                <option value="blocked" data-eb-en="🚫 Blocked Only" data-eb-ur="صرف بلاک شدہ">🚫 Blocked Only</option>
+            </select>
+            <select id="staffSortSelect" style="flex: 1 1 160px; padding: 9px 12px; border: 2px solid #e0e6e8; border-radius: 8px; font-size: 13px; font-weight:700;">
+                <option value="sales_desc" data-eb-en="🔥 Sort: Highest Sales" data-eb-ur="ترتیب: سب سے زیادہ سیلز">🔥 Sort: Highest Sales</option>
+                <option value="bills_desc" data-eb-en="🧾 Sort: Most Bills / Orders" data-eb-ur="ترتیب: سب سے زیادہ بلز / آرڈرز">🧾 Sort: Most Bills / Orders</option>
+                <option value="target_desc" data-eb-en="🎯 Sort: Target Achievement %" data-eb-ur="ترتیب: ٹارگٹ حصول %">🎯 Sort: Target Achievement %</option>
+                <option value="name_asc" data-eb-en="🔤 Sort: Name (A–Z)" data-eb-ur="ترتیب: نام (A–Z)">🔤 Sort: Name (A–Z)</option>
+            </select>
         </div>
+
         <div id="bookersList">
-            <div class="loading-inline">Loading staff...</div>
+            <div class="loading-inline" data-eb-en="Loading staff &amp; performance metrics..." data-eb-ur="اسٹاف اور کارکردگی ڈیٹا لوڈ ہو رہا ہے...">Loading staff &amp; performance metrics...</div>
         </div>
     </div>
 
@@ -131,17 +345,17 @@
 <div id="shareModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; padding:15px;">
     <div style="background:#fff; border-radius:16px; padding:22px; width:100%; max-width:480px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <h3 style="margin:0; color:#1e293b; font-size:17px;"><i class="fas fa-share-alt" style="color:#0284c7;"></i> Staff Login Credentials &amp; Link</h3>
+            <h3 style="margin:0; color:#1e293b; font-size:17px;"><i class="fas fa-share-alt" style="color:#0284c7;"></i> <span data-eb-en="Staff Login Credentials &amp; Link" data-eb-ur="اسٹاف لاگ اِن تفصیلات اور لنک">Staff Login Credentials &amp; Link</span></h3>
             <button onclick="closeShareModal()" style="background:#f1f5f9; border:none; width:28px; height:28px; border-radius:50%; cursor:pointer;">✕</button>
         </div>
         <div id="shareCredentialCard" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; font-size:13px; line-height:1.6; margin-bottom:16px;">
         </div>
         <div style="display:flex; gap:10px;">
             <button id="copyCredentialsBtn" class="btn" style="flex:1; background:#0284c7; color:#fff; padding:10px; border-radius:8px; font-weight:bold;">
-                <i class="fas fa-copy"></i> Copy Link &amp; Details
+                <i class="fas fa-copy"></i> <span data-eb-en="Copy Link &amp; Details" data-eb-ur="لنک اور تفصیلات کاپی کریں">Copy Link &amp; Details</span>
             </button>
             <button id="whatsappCredentialsBtn" class="btn" style="flex:1; background:#10b981; color:#fff; padding:10px; border-radius:8px; font-weight:bold;">
-                <i class="fab fa-whatsapp"></i> Share on WhatsApp
+                <i class="fab fa-whatsapp"></i> <span data-eb-en="Share on WhatsApp" data-eb-ur="واٹس ایپ پر شیئر کریں">Share on WhatsApp</span>
             </button>
         </div>
     </div>
@@ -149,42 +363,88 @@
 
 <!-- ✏️ EDIT STAFF MODAL -->
 <div id="editStaffModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; padding:15px;">
-    <div style="background:#fff; border-radius:16px; padding:22px; width:100%; max-width:480px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+    <div style="background:#fff; border-radius:16px; padding:22px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <h3 style="margin:0; color:#1e293b; font-size:17px;"><i class="fas fa-edit" style="color:#0284c7;"></i> Edit Staff Member</h3>
+            <h3 style="margin:0; color:#1e293b; font-size:17px;"><i class="fas fa-edit" style="color:#0284c7;"></i> <span data-eb-en="Edit Staff Member &amp; Targets" data-eb-ur="اسٹاف ممبر اور ٹارگٹس میں ترمیم">Edit Staff Member &amp; Targets</span></h3>
             <button onclick="closeEditStaffModal()" style="background:#f1f5f9; border:none; width:28px; height:28px; border-radius:50%; cursor:pointer;">✕</button>
         </div>
         <form id="editStaffForm">
             <input type="hidden" id="editStaffId">
-            <div style="margin-bottom:10px;">
-                <label style="font-size:12px; font-weight:bold;">Staff Role</label>
-                <select id="editStaffRole" style="width:100%; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
-                    <option value="booker">📕 Order Booker</option>
-                    <option value="supplier">🚚 Delivery Supplier</option>
-                </select>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                    <label style="font-size:12px; font-weight:bold;" data-eb-en="Staff Role" data-eb-ur="اسٹاف عہدہ">Staff Role</label>
+                    <select id="editStaffRole" style="width:100%; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+                        <option value="booker" data-eb-en="📕 Order Booker / Sales" data-eb-ur="آرڈر بکر / سیلز">📕 Order Booker / Sales</option>
+                        <option value="supplier" data-eb-en="🚚 Delivery Supplier / Rider" data-eb-ur="ڈلیوری سپلائر / رائیڈر">🚚 Delivery Supplier / Rider</option>
+                        <option value="cashier" data-eb-en="🧾 Counter Cashier" data-eb-ur="کاؤنٹر کیشیئر">🧾 Counter Cashier</option>
+                        <option value="chef" data-eb-en="👨‍🍳 Head Chef / Kitchen" data-eb-ur="ہیڈ شیف / کچن">👨‍🍳 Head Chef / Kitchen</option>
+                        <option value="technician" data-eb-en="🛠️ Lab Technician" data-eb-ur="لیب ٹیکنیشن">🛠️ Lab Technician</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold;" data-eb-en="Full Name *" data-eb-ur="پورا نام *">Full Name *</label>
+                    <input type="text" id="editStaffName" required style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+                </div>
             </div>
-            <div style="margin-bottom:10px;">
-                <label style="font-size:12px; font-weight:bold;">Full Name</label>
-                <input type="text" id="editStaffName" required style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                    <label style="font-size:12px; font-weight:bold;" data-eb-en="Mobile / WhatsApp *" data-eb-ur="موبائل / واٹس ایپ *">Mobile / WhatsApp *</label>
+                    <input type="tel" id="editStaffMobile" required style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold;" id="lblEditRoute" data-eb-en="Assigned Route / Area" data-eb-ur="مقررہ روٹ / علاقہ">Assigned Route / Area</label>
+                    <input type="text" id="editStaffRoute" style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+                </div>
             </div>
-            <div style="margin-bottom:10px;">
-                <label style="font-size:12px; font-weight:bold;">Mobile / WhatsApp</label>
-                <input type="tel" id="editStaffMobile" required style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                    <label style="font-size:12px; font-weight:bold;" data-eb-en="🎯 Monthly Sales Target (Rs)" data-eb-ur="ماہانہ سیلز ٹارگٹ (روپے)">🎯 Monthly Sales Target (Rs)</label>
+                    <input type="number" id="editStaffTarget" min="0" step="1000" style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold;" data-eb-en="💰 Base Monthly Salary (Rs)" data-eb-ur="ماہانہ بنیادی تنخواہ (روپے)">💰 Base Monthly Salary (Rs)</label>
+                    <input type="number" id="editStaffSalary" min="0" step="500" style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+                </div>
             </div>
-            <div style="margin-bottom:14px;">
-                <label style="font-size:12px; font-weight:bold;">Assigned Route / Area</label>
-                <input type="text" id="editStaffRoute" style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                <div>
+                    <label style="font-size:12px; font-weight:bold;" data-eb-en="📈 Sales Commission (%)" data-eb-ur="سیلز کمیشن (%)">📈 Sales Commission (%)</label>
+                    <input type="number" id="editStaffCommission" min="0" max="50" step="0.1" style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:bold;" data-eb-en="🗓️ Visiting Days / Shift" data-eb-ur="ڈیوٹی شفٹ / دن">🗓️ Visiting Days / Shift</label>
+                    <input type="text" id="editStaffShift" style="width:100%; box-sizing:border-box; padding:8px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+                </div>
             </div>
-            <div style="margin-bottom:14px; background:#fffbeb; padding:8px 12px; border-radius:8px; border:1px solid #fde68a;">
+            <div style="margin-bottom:10px; background:#fffbeb; padding:8px 12px; border-radius:8px; border:1px solid #fde68a;">
                 <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12px; font-weight:bold; color:#b45309;">
-                    <input type="checkbox" id="editStaffApproveOrders"> ⚖️ Allow Self Order Approval (بکر خود آرڈر منظور کر سکے)
+                    <input type="checkbox" id="editStaffApproveOrders"> <span data-eb-en="⚖️ Allow Self Order Approval" data-eb-ur="بکر خود آرڈر منظور کر سکے">⚖️ Allow Self Order Approval</span>
+                </label>
+            </div>
+            <div style="margin-bottom:14px; background:#f0fdf4; padding:8px 12px; border-radius:8px; border:1px solid #86efac;">
+                <label style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12px; font-weight:bold; color:#15803d;">
+                    <input type="checkbox" id="editStaffGpsRequired"> <span data-eb-en="📍 Require Mandatory GPS Location (GPS mandatory when booking orders)" data-eb-ur="اس بکر کے لیے آرڈر بک کرتے وقت GPS لازمی">📍 Require Mandatory GPS Location (GPS mandatory when booking orders)</span>
                 </label>
             </div>
             <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button type="button" class="btn" onclick="closeEditStaffModal()" style="background:#e2e8f0; color:#475569;">Cancel</button>
-                <button type="submit" class="btn btn-primary" style="background:#0284c7; color:#fff;">Save Changes</button>
+                <button type="button" class="btn" onclick="closeEditStaffModal()" style="background:#e2e8f0; color:#475569;" data-eb-en="Cancel" data-eb-ur="منسوخ کریں">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="background:#0284c7; color:#fff;" data-eb-en="Save Changes" data-eb-ur="تبدیلیاں محفوظ کریں">Save Changes</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- 📊 STAFF DEEP PERFORMANCE & BILL AUDIT MODAL -->
+<div id="staffAuditModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.65); z-index:99999; align-items:center; justify-content:center; padding:15px;">
+    <div style="background:#fff; border-radius:16px; padding:22px; width:100%; max-width:740px; max-height:90vh; overflow-y:auto; box-shadow:0 15px 40px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
+            <div>
+                <h3 id="auditStaffTitle" style="margin:0; color:#0f172a; font-size:18px;" data-eb-en="📊 Staff Performance &amp; Bill Ledger" data-eb-ur="اسٹاف کارکردگی اور بل کھاتہ">📊 Staff Performance &amp; Bill Ledger</h3>
+                <small id="auditStaffSub" style="color:#64748b; font-size:12px;"></small>
+            </div>
+            <button onclick="closeStaffAuditModal()" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:50%; cursor:pointer; font-weight:bold;">✕</button>
+        </div>
+        <div id="staffAuditBody"></div>
     </div>
 </div>
 
@@ -196,7 +456,6 @@
 <script src="business-categories.js?v=5.6.6"></script>
 
 <script>
-    // ⚠️ AAP KA CONFIG
     const firebaseConfig = {
         apiKey: "AIzaSyDDwKWcixoUThCJQqiVoBcUVsJZI60h43Q",
         authDomain: "multipos-ed91a.firebaseapp.com",
@@ -207,94 +466,108 @@
         measurementId: "G-QPCP7S5Q5L"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // ============================================
-    // 🛡️ GUARD: Sirf OWNER andar
-    // ============================================
     let myUid = null;
     let myAgencyId = null;
     let myAgency = null;
     let myLimits = null;
+    let allAgencyBookers = [];
+    let allCategoryBills = [];
+    let staffPerfMap = {};
+    let activeStaffPeriod = 'thismonth';
+    let lastBookerMaxAllowed = 25;
+    let lastAuditStaffId = null;
+    let lastShareStaffObj = null;
 
-    auth.onAuthStateChanged(async (user) => {
-        if (!user) {
-            window.location.href = 'auth.html';
-            return;
-        }
-        myUid = user.uid;
-        document.getElementById('ownerEmail').innerText = user.email;
-
-        const doc = await db.collection('users').doc(user.uid).get();
-        
-        if (!doc.exists) {
-            window.location.href = 'dashboard.html';
-            return;
-        }
-        const me = doc.data();
-
-        // Allow BOTH owner AND super-admin
-        if (me.role !== 'owner' && me.role !== 'super-admin') {
-            window.location.href = 'dashboard.html';
-            return;
-        }
-
-        // Agency load
-        if (!me.agencyId || me.agencyId === 'super-admin-hq') {
-            try {
-                const agSnap = await db.collection('agencies').limit(1).get();
-                if (!agSnap.empty) {
-                    myAgencyId = agSnap.docs[0].id;
-                    myAgency = agSnap.docs[0].data();
-                } else {
-                    myAgencyId = 'agency_default';
-                    myAgency = { name: 'My Business Agency' };
-                }
-            } catch(e) {
-                myAgencyId = 'agency_default';
-                myAgency = { name: 'My Business Agency' };
+    // ============================================
+    // 🌐 UNIFIED BILINGUAL HELPERS (Sidebar-Controlled)
+    // ============================================
+    function ebIsMix() {
+        return !!(window.ebLang && typeof window.ebLang.isMix === 'function' && window.ebLang.isMix());
+    }
+    function ebT(en, ur) {
+        return (ebIsMix() && ur) ? ur : en;
+    }
+    function ebMix(en, ur) {
+        if (!ebIsMix() || !ur) return en;
+        return `${en} <span class="eb-ur-sub">(${ur})</span>`;
+    }
+    function ebCompact(en, ur) {
+        if (!ebIsMix() || !ur) return en;
+        return `${en}<span class="eb-ur-compact">${ur}</span>`;
+    }
+    function ebApplyBilingualDom(root) {
+        const scope = root || document;
+        const mix = ebIsMix();
+        scope.querySelectorAll('[data-eb-en]').forEach(el => {
+            if (el.tagName === 'OPTION') return;
+            const en = el.getAttribute('data-eb-en') || '';
+            const ur = el.getAttribute('data-eb-ur') || '';
+            const compact = el.getAttribute('data-eb-compact') === '1';
+            if (mix && ur) {
+                el.innerHTML = compact
+                    ? `${en}<span class="eb-ur-compact">${ur}</span>`
+                    : `${en} <span class="eb-ur-sub">(${ur})</span>`;
+            } else {
+                el.textContent = en;
             }
-        } else {
-            myAgencyId = me.agencyId;
-            const agDoc = await db.collection('agencies').doc(myAgencyId).get();
-            myAgency = agDoc.exists ? agDoc.data() : {};
+        });
+        scope.querySelectorAll('[data-eb-ph-en]').forEach(el => {
+            const en = el.getAttribute('data-eb-ph-en') || '';
+            const ur = el.getAttribute('data-eb-ph-ur') || '';
+            el.setAttribute('placeholder', (mix && ur) ? `${en} — ${ur}` : en);
+        });
+    }
+    function ebBilingualizeSelectOptions(sel) {
+        if (!sel) return;
+        const mix = ebIsMix();
+        const prev = sel.value;
+        Array.from(sel.options).forEach(opt => {
+            const en = opt.getAttribute('data-eb-en') || opt.textContent;
+            const ur = opt.getAttribute('data-eb-ur') || '';
+            opt.textContent = (mix && ur) ? `${en} (${ur})` : en;
+        });
+        if (prev) sel.value = prev;
+    }
+    function ebRefreshStaticSelects() {
+        ['staffRoleFilter', 'staffSortSelect', 'editStaffRole', 'bkRole'].forEach(id => {
+            ebBilingualizeSelectOptions(document.getElementById(id));
+        });
+    }
+    function updateBookerLimitBadge() {
+        const activeCount = allAgencyBookers.length;
+        const badgeEl = document.getElementById('bookerLimitBadge');
+        if (badgeEl) {
+            badgeEl.innerHTML = ebMix(
+                `${activeCount} / ${lastBookerMaxAllowed} Active in this Category`,
+                `اس کیٹیگری میں ${activeCount} / ${lastBookerMaxAllowed} فعال`
+            );
         }
-        if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
-            myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency || {});
-        }
-        if (window.BusinessCategories && typeof window.BusinessCategories.healMisassignedLegacyRecords === 'function') {
-            window.BusinessCategories.healMisassignedLegacyRecords(db, myAgencyId, myAgency).catch(() => {});
-        }
-        document.getElementById('agencyName').innerText = myAgency.name || 'My Agency';
+    }
 
-        const activeCatId = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
-            ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
-            : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'general');
-        const activeCatMeta = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
-            ? (window.BusinessCategories.getById(activeCatId) || { id: activeCatId, icon: '🏢', nameEn: activeCatId })
-            : { id: activeCatId, icon: '🏢', nameEn: activeCatId };
-        const catBadgeEl = document.getElementById('ownerActiveCategoryBadge');
-        if (catBadgeEl) {
-            catBadgeEl.innerHTML = `${activeCatMeta.icon || '🏢'} ${activeCatMeta.nameEn || activeCatId} • ${myAgency.name || 'Workspace'}`;
+    function getStaffPeriodRange(periodKey) {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const toYMD = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        if (periodKey === 'today') {
+            const t = toYMD(now);
+            return { start: t, end: t, label: 'Today', labelUr: 'آج' };
         }
-
-        // Limits load (package se + customLimits priority)
-        let pkgId = myAgency.packageId || 'free';
-        try {
-            const pkgDoc = await db.collection('packages').doc(pkgId).get();
-            myLimits = pkgDoc.exists ? pkgDoc.data().limits : null;
-        } catch (e) {}
-        if (!myLimits) {
-            myLimits = { monthlyBills: 150, weeklyBills: 50, maxBookers: 2, maxAdmins: 1, dailyOrdersPerBooker: 30 };
+        if (periodKey === '7days') {
+            const s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+            return { start: toYMD(s), end: toYMD(now), label: 'Last 7 Days', labelUr: 'آخری 7 دن' };
         }
-        if (myAgency.customLimits) {
-            myLimits = { ...myLimits, ...myAgency.customLimits };
+        if (periodKey === 'alltime') {
+            return { start: '2020-01-01', end: '2035-12-31', label: 'All Time', labelUr: 'مکمل تاریخ' };
         }
-
-        loadBookers();
-    });
+        const s = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { start: toYMD(s), end: toYMD(now), label: 'This Month', labelUr: 'اس مہینے' };
+    }
 
     function getActiveOwnerCategory() {
         if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
@@ -313,78 +586,570 @@
         return true;
     }
 
-    // ============================================
-    // 📋 STAFF LOAD (Bookers & Delivery Suppliers — Strictly Per-Category)
-    // ============================================
-    let allAgencyBookers = [];
+    function getCategoryStaffUiConfig(catId) {
+        const c = String(catId || getActiveOwnerCategory() || 'distributor').toLowerCase();
+        const configs = {
+            restaurant: {
+                bannerIcon: '🍔',
+                bannerTitle: ebMix('Home Delivery, Table Service & Kitchen Queue Hub', 'ہوم ڈلیوری و کچن آرڈرز ہب'),
+                bannerSub: ebMix('Waiter table orders, rider parcel dispatch, kitchen wastage & customer returns', 'ویٹر ٹیبل آرڈرز، رائیڈر پارسل ڈسپیچ اور کسٹمر واپسی'),
+                ordersBtnLabel: ebMix('Kitchen & Table Queue', 'کچن اور ٹیبل قطار'),
+                formTitle: `<i class="fas fa-utensils"></i> ${ebMix('Add Restaurant & Fast Food Staff', 'ویٹر، ڈلیوری رائیڈر، کیشیئر یا شیف')}`,
+                formSub: ebMix('Waiter/Captain takes table orders, Rider delivers parcels, and Chef manages the kitchen queue.', 'ویٹر ٹیبل آرڈر لے گا، رائیڈر پارسل پہنچائے گا اور شیف کچن سنبھالے گا۔'),
+                roleOptions: [
+                    { value: 'booker', labelEn: '🍽️ Waiter / Captain / Table Order Taker', labelUr: 'ویٹر / ٹیبل آرڈر ٹیکر' },
+                    { value: 'supplier', labelEn: '🏍️ Home Delivery Rider / Parcel Boy', labelUr: 'ہوم ڈلیوری رائیڈر' },
+                    { value: 'cashier', labelEn: '🧾 Counter Cashier / KOT Operator', labelUr: 'کاؤنٹر کیشیئر' },
+                    { value: 'chef', labelEn: '👨‍🍳 Head Chef / Kitchen Master', labelUr: 'ہیڈ شیف / کچن ماسٹر' }
+                ],
+                routeLabel: ebMix('🪑 Assigned Floor / Table Zone / Delivery Area', 'مقررہ ہال، ٹیبل زون یا ڈلیوری علاقہ'),
+                routePlaceholder: ebT('e.g. Family Hall Tables 1-12 / Model Town Delivery', 'مثلاً فیملی ہال ٹیبلز 1-12 / ماڈل ٹاؤن ڈلیوری'),
+                shiftLabel: ebMix('🕒 Duty Shift / Timing', 'مارننگ، ایوننگ یا نائٹ شفٹ'),
+                shiftPlaceholder: ebT('e.g. Evening Shift (4 PM - 1 AM)', 'مثلاً ایوننگ شفٹ (شام 4 تا رات 1)'),
+                permStockLabel: ebMix('🍔 Fast Food POS, Deals & KOT Orders', 'فاسٹ فوڈ POS، ڈیلز اور KOT آرڈرز'),
+                permCustomersLabel: ebMix('👥 Customer & Rider Khata', 'کسٹمر اور رائیڈر کھاتہ'),
+                permApproveLabel: ebMix('⚖️ Allow Direct Kitchen KOT & Bill Finalization', 'ویٹر خود آرڈر فائنل کر سکے'),
+                listTitle: `<i class="fas fa-users"></i> ${ebMix('Restaurant Waiters, Riders & Kitchen Team', 'ریسٹورنٹ ویٹرز، رائیڈرز اور کچن ٹیم')}`
+            },
+            medical: {
+                bannerIcon: '💊',
+                bannerTitle: ebMix('Pharmacy Dispatch, Clinic Supply & Expiry Claims Hub', 'میڈیکل سپلائی و ایکسپائری کلیمز'),
+                bannerSub: ebMix('Patient home delivery, doctor/clinic supply challans & near-expiry company claims', 'مریض ہوم ڈلیوری، کلینک چالان اور ایکسپائری کلیمز'),
+                ordersBtnLabel: ebMix('Prescription Orders', 'نسخہ آرڈرز'),
+                formTitle: `<i class="fas fa-user-md"></i> ${ebMix('Add Pharmacy & Medical Store Staff', 'فارماسسٹ، سیلزمین یا سپلائی رائیڈر')}`,
+                formSub: ebMix('Pharmacist handles counter prescriptions and Rider delivers medicines to clinics & patients.', 'فارماسسٹ کاؤنٹر پر نسخے بنائے گا اور رائیڈر کلینکس/مریضوں کو ادویات پہنچائے گا۔'),
+                roleOptions: [
+                    { value: 'booker', labelEn: '💊 Counter Pharmacist / Dispenser', labelUr: 'فارماسسٹ / ڈسپنسر' },
+                    { value: 'supplier', labelEn: '🏥 Clinic & Patient Delivery Rider', labelUr: 'کلینک و ہوم ڈلیوری رائیڈر' },
+                    { value: 'cashier', labelEn: '🧾 Pharmacy Counter Cashier', labelUr: 'کاؤنٹر کیشیئر' }
+                ],
+                routeLabel: ebMix('🏥 Assigned Counter / Shift / Clinic Beat', 'مقررہ کاؤنٹر یا کلینک روٹ'),
+                routePlaceholder: ebT('e.g. Main Pharmacy Counter A / Civil Hospital Beat', 'مثلاً مین فارمیسی کاؤنٹر A / سول ہسپتال روٹ'),
+                shiftLabel: ebMix('🕒 Duty Shift', 'مارننگ، ایوننگ یا نائٹ شفٹ'),
+                shiftPlaceholder: ebT('e.g. Morning Shift (8 AM - 4 PM)', 'مثلاً مارننگ شفٹ (صبح 8 تا شام 4)'),
+                permStockLabel: ebMix('💊 Medicine Billing & Batch Stock', 'ادویات بلنگ اور بیچ اسٹاک'),
+                permCustomersLabel: ebMix('🏥 Patient & Clinic Khata', 'مریض اور کلینک کھاتہ'),
+                permApproveLabel: ebMix('⚖️ Allow Direct Prescription Invoice Approval', 'فارماسسٹ خود انوائس منظور کر سکے'),
+                listTitle: `<i class="fas fa-users"></i> ${ebMix('Pharmacy Dispenser, Pharmacist & Supply Team', 'فارمیسی ڈسپنسر، فارماسسٹ اور سپلائی ٹیم')}`
+            },
+            mobile: {
+                bannerIcon: '📱',
+                bannerTitle: ebMix('Mobile Showroom, Dealer Supply & Warranty Claims Hub', 'موبائل ڈیلر سپلائی و وارنٹی ہب'),
+                bannerSub: ebMix('Handset dealer dispatch, installment recovery & warranty/DOA claims management', 'ہینڈسیٹ ڈیلر ڈسپیچ، قسط ریکوری اور وارنٹی کلیمز'),
+                ordersBtnLabel: ebMix('Handset & Lab Orders', 'ہینڈسیٹ اور لیب آرڈرز'),
+                formTitle: `<i class="fas fa-mobile-screen-button"></i> ${ebMix('Add Showroom & Repair Lab Staff', 'سیلز ایگزیکٹو، ٹیکنیشن یا ریکوری آفیسر')}`,
+                formSub: ebMix('Sales Executive bills IMEI handsets, Technician handles lab repairs, and Recovery Rider collects installments.', 'سیلز ایگزیکٹو IMEI بل بنائے گا، ٹیکنیشن لیب ریپیئر اور رائیڈر قسط وصول کرے گا۔'),
+                roleOptions: [
+                    { value: 'booker', labelEn: '📱 Handset & Accessories Sales Executive', labelUr: 'موبائل سیلز ایگزیکٹو' },
+                    { value: 'supplier', labelEn: '🛵 Installment Recovery & Dealer Rider', labelUr: 'قسط ریکوری و ڈیلر رائیڈر' },
+                    { value: 'technician', labelEn: '🛠️ Mobile Repair Lab Technician', labelUr: 'موبائل ریپیئرنگ ٹیکنیشن' }
+                ],
+                routeLabel: ebMix('📍 Assigned Counter / Lab Bench / Recovery Zone', 'کاؤنٹر، لیب بینچ یا ریکوری زون'),
+                routePlaceholder: ebT('e.g. IMEI Counter 1 / Hardware Repair Bench B', 'مثلاً IMEI کاؤنٹر 1 / ہارڈویئر ریپیئر بینچ B'),
+                shiftLabel: ebMix('🗓️ Duty Timing / Recovery Days', 'ڈیوٹی ٹائمنگ / ریکوری دن'),
+                shiftPlaceholder: ebT('e.g. 10 AM - 9 PM (Mon-Sat)', 'مثلاً صبح 10 تا رات 9 (پیر تا ہفتہ)'),
+                permStockLabel: ebMix('📱 Handset IMEI & Parts Billing', 'ہینڈسیٹ IMEI اور پارٹس بلنگ'),
+                permCustomersLabel: ebMix('💳 Installment & Dealer Khata', 'قسط اور ڈیلر کھاتہ'),
+                permApproveLabel: ebMix('⚖️ Allow Direct Handset Order Approval', 'موبائل آرڈر خود منظور کر سکے'),
+                listTitle: `<i class="fas fa-users"></i> ${ebMix('Mobile Showroom Sales, Technicians & Recovery Team', 'موبائل شوروم سیلز، ٹیکنیشن اور ریکوری ٹیم')}`
+            },
+            books: {
+                bannerIcon: '📚',
+                bannerTitle: ebMix('School Supply Dispatch & Publisher Return Hub', 'اسکول سپلائی و پبلشر واپسی ہب'),
+                bannerSub: ebMix('School book sets delivery, specimen dispatch & unsold syllabus return inward', 'اسکول کتب سیٹس ڈلیوری اور غیر فروخت شدہ سلیبس واپسی'),
+                ordersBtnLabel: ebMix('School & Counter Orders', 'اسکول اور کاؤنٹر آرڈرز'),
+                formTitle: `<i class="fas fa-book-open"></i> ${ebMix('Add Book Shop & Stationery Staff', 'کاؤنٹر سیلزمین یا اسکول سپلائی نمائندہ')}`,
+                formSub: ebMix('School Rep collects booklist orders from schools and Delivery Supplier delivers books & stationery.', 'اسکول نمائندہ اسکولوں سے کتب آرڈرز لے گا اور ڈلیوری سپلائر کتب و اسٹیشنری پہنچائے گا۔'),
+                roleOptions: [
+                    { value: 'booker', labelEn: '📚 School Representative / Counter Salesman', labelUr: 'اسکول نمائندہ / کاؤنٹر سیلزمین' },
+                    { value: 'supplier', labelEn: '🚐 School & College Supply Deliveryman', labelUr: 'اسکول سپلائی ڈلیوری مین' }
+                ],
+                routeLabel: ebMix('🏫 Assigned School Zone / Counter Section', 'مقررہ اسکول زون یا کاؤنٹر سیکشن'),
+                routePlaceholder: ebT('e.g. Private Schools Zone A / College Road Counter', 'مثلاً پرائیویٹ اسکولز زون A / کالج روڈ کاؤنٹر'),
+                shiftLabel: ebMix('🗓️ Visiting Days / Shift', 'وزٹنگ دن / شفٹ'),
+                shiftPlaceholder: ebT('e.g. Mon-Sat School Hours & Evening Counter', 'مثلاً پیر تا ہفتہ اسکول اوقات و شام کاؤنٹر'),
+                permStockLabel: ebMix('📚 Books & Stationery Billing', 'کتب اور اسٹیشنری بلنگ'),
+                permCustomersLabel: ebMix('🏫 School & Party Khata', 'اسکول اور پارٹی کھاتہ'),
+                permApproveLabel: ebMix('⚖️ Allow Direct School Order Approval', 'اسکول آرڈر خود منظور کر سکے'),
+                listTitle: `<i class="fas fa-users"></i> ${ebMix('Book Depot Salesmen & School Supply Team', 'بک ڈپو سیلزمین اور اسکول سپلائی ٹیم')}`
+            },
+            wholesaler: {
+                bannerIcon: '🌾',
+                bannerTitle: ebMix('Mandi Bilti Dispatch, Adda Challan & Bulk Return Hub', 'منڈی بلٹی و گودام ڈسپیچ ہب'),
+                bannerSub: ebMix('Truck/adda bilti dispatch, godown gate-pass challan & bulk party return settlement', 'ٹرک/اڈہ بلٹی ڈسپیچ، گودام گیٹ پاس اور بلک پارٹی واپسی'),
+                ordersBtnLabel: ebMix('Mandi & Bulk Orders', 'منڈی اور بلک آرڈرز'),
+                formTitle: `<i class="fas fa-warehouse"></i> ${ebMix('Add Wholesale Mandi & Godown Staff', 'منشی، بلک آرڈر بکر یا بلٹی سپلائر')}`,
+                formSub: ebMix('Mandi Munshi/Booker records bulk deals and Dispatch Supplier handles adda bilti & godown loading.', 'منڈی منشی/بکر بلک سودے لکھے گا اور ڈسپیچ سپلائر اڈہ بلٹی اور گودام لوڈنگ سنبھالے گا۔'),
+                roleOptions: [
+                    { value: 'booker', labelEn: '🌾 Mandi Munshi / Bulk Order Booker', labelUr: 'منڈی منشی / بلک آرڈر بکر' },
+                    { value: 'supplier', labelEn: '🚛 Adda Bilti & Godown Dispatch Supplier', labelUr: 'بلٹی و گودام ڈسپیچ سپلائر' }
+                ],
+                routeLabel: ebMix('🏪 Assigned Mandi Line / Godown / Transport Adda', 'مقررہ منڈی لائن، گودام یا ٹرانسپورٹ اڈہ'),
+                routePlaceholder: ebT('e.g. Grain Market Line 2 / New Goods Transport Adda', 'مثلاً غلہ منڈی لائن 2 / نیو گڈز ٹرانسپورٹ اڈہ'),
+                shiftLabel: ebMix('🗓️ Mandi Timing / Route Days', 'منڈی اوقات / روٹ دن'),
+                shiftPlaceholder: ebT('e.g. Mon-Sat Mandi Hours', 'مثلاً پیر تا ہفتہ منڈی اوقات'),
+                permStockLabel: ebMix('🌾 Bulk Lot Billing & Godown Stock', 'بلک لاٹ بلنگ اور گودام اسٹاک'),
+                permCustomersLabel: ebMix('🤝 Mandi Arhti & Party Khata', 'منڈی آڑھتی اور پارٹی کھاتہ'),
+                permApproveLabel: ebMix('⚖️ Allow Self Bulk Sauda Approval', 'منشی خود بلک آرڈر منظور کر سکے'),
+                listTitle: `<i class="fas fa-users"></i> ${ebMix('Wholesale Mandi Munshis, Bookers & Godown Team', 'ہول سیل منڈی منشی، بکرز اور گودام ٹیم')}`
+            },
+            distributor: {
+                bannerIcon: '🚚',
+                bannerTitle: ebMix('Delivery & Van Stock Return Hub', 'وین ڈسپیچ و مال واپسی مینیجر'),
+                bannerSub: ebMix('Van dispatch challan, route delivery suppliers & unsold return inward (0 profit/loss)', 'وین ڈسپیچ چالان، روٹ ڈلیوری سپلائرز اور غیر فروخت شدہ مال واپسی'),
+                ordersBtnLabel: ebMix('Booker Field Orders', 'بکر فیلڈ آرڈرز'),
+                formTitle: `<i class="fas fa-user-plus"></i> ${ebMix('Add Distribution & FMCG Field Staff', 'بکر یا وین ڈلیوری سپلائر')}`,
+                formSub: ebMix('Order Booker takes orders on PJP routes and Van Delivery Supplier delivers stock & collects returns.', 'آرڈر بکر PJP روٹ سے آرڈر لے گا اور وین ڈلیوری سپلائر دکانوں پر مال پہنچائے اور واپس لائے گا۔'),
+                roleOptions: [
+                    { value: 'booker', labelEn: '📕 Field Order Booker / PJP Salesman', labelUr: 'فیلڈ آرڈر بکر' },
+                    { value: 'supplier', labelEn: '🚚 Van Delivery Supplier / Salesman', labelUr: 'وین ڈلیوری سپلائر' }
+                ],
+                routeLabel: ebMix('📍 Assigned PJP Route / Market Beat', 'مقررہ روٹ یا علاقہ'),
+                routePlaceholder: ebT('e.g. Main Bazaar & Mandi Road (Mon-Thu)', 'مثلاً مین بازار اور منڈی روڈ (پیر تا جمعرات)'),
+                shiftLabel: ebMix('🗓️ PJP Beat Days / Shift', 'روٹ کے دن'),
+                shiftPlaceholder: ebT('e.g. Mon-Wed City Beat / Thu-Sat Tehsil Beat', 'مثلاً پیر تا بدھ سٹی بیٹ / جمعرات تا ہفتہ تحصیل بیٹ'),
+                permStockLabel: ebMix('📦 Stock Bill & PJP Orders', 'اسٹاک بل اور PJP آرڈرز'),
+                permCustomersLabel: ebMix('👥 Shopkeeper Khata Ledger', 'دکاندار کھاتہ لیجر'),
+                permApproveLabel: ebMix('⚖️ Allow Self Order Approval', 'بکر خود آرڈر منظور کر سکے'),
+                listTitle: `<i class="fas fa-users"></i> ${ebMix('Agency Field Bookers & Van Delivery Team', 'ایجنسی فیلڈ بکرز اور وین ڈلیوری ٹیم')}`
+            }
+        };
+        return configs[c] || configs.distributor;
+    }
 
+    function applyCategoryOwnerUI() {
+        ebApplyBilingualDom(document);
+        ebRefreshStaticSelects();
+
+        const activeCatId = getActiveOwnerCategory();
+        const activeCatMeta = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+            ? (window.BusinessCategories.getById(activeCatId) || { id: activeCatId, icon: '🏢', nameEn: activeCatId })
+            : { id: activeCatId, icon: '🏢', nameEn: activeCatId };
+        const ui = getCategoryStaffUiConfig(activeCatId);
+
+        const catBadgeEl = document.getElementById('ownerActiveCategoryBadge');
+        if (catBadgeEl) {
+            const catLabel = ebMix(activeCatMeta.nameEn || activeCatId, activeCatMeta.nameUr || '');
+            catBadgeEl.innerHTML = `${activeCatMeta.icon || ui.bannerIcon} ${catLabel} • ${(myAgency && myAgency.name) || ebT('Workspace', 'ورک اسپیس')}`;
+        }
+
+        const setHtml = (id, val) => { const el = document.getElementById(id); if (el) el.innerHTML = val; };
+        const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+        setText('ownerBannerIcon', ui.bannerIcon);
+        setHtml('ownerBannerTitle', ui.bannerTitle);
+        setHtml('ownerBannerSub', ui.bannerSub);
+        setHtml('ownerOrdersBtnLabel', ui.ordersBtnLabel);
+        setHtml('ownerFormTitle', ui.formTitle);
+        setHtml('ownerFormSub', ui.formSub);
+        setHtml('lblBkRoute', ui.routeLabel);
+        setHtml('lblEditRoute', ui.routeLabel);
+        setHtml('lblBkShift', ui.shiftLabel);
+        setHtml('lblPermStock', ui.permStockLabel);
+        setHtml('lblPermCustomers', ui.permCustomersLabel);
+        setHtml('lblPermApprove', ui.permApproveLabel);
+        setHtml('ownerListTitle', `${ui.listTitle} (<span id="bookerCount">${allAgencyBookers.length}</span>)`);
+
+        const routeInput = document.getElementById('bkRoute');
+        if (routeInput) routeInput.placeholder = ui.routePlaceholder;
+        const shiftInput = document.getElementById('bkShiftDays');
+        if (shiftInput) shiftInput.placeholder = ui.shiftPlaceholder;
+
+        const roleSelect = document.getElementById('bkRole');
+        if (roleSelect) {
+            const prevVal = roleSelect.value;
+            const mix = ebIsMix();
+            roleSelect.innerHTML = ui.roleOptions.map(o => {
+                const txt = (mix && o.labelUr) ? `${o.labelEn} (${o.labelUr})` : o.labelEn;
+                return `<option value="${o.value}" data-eb-en="${o.labelEn}" data-eb-ur="${o.labelUr || ''}">${txt}</option>`;
+            }).join('');
+            if (prevVal && ui.roleOptions.some(o => o.value === prevVal)) {
+                roleSelect.value = prevVal;
+            }
+        }
+    }
+
+    function getRoleBadgeMeta(role) {
+        const catId = getActiveOwnerCategory();
+        const r = String(role || 'booker').toLowerCase();
+        if (catId === 'restaurant') {
+            if (r === 'supplier' || r === 'delivery') return { icon: '🏍️', label: 'Delivery Rider', labelUr: 'ڈلیوری رائیڈر', bg: '#e0f2fe', color: '#0369a1' };
+            if (r === 'cashier') return { icon: '🧾', label: 'Counter Cashier', labelUr: 'کاؤنٹر کیشیئر', bg: '#f3e8ff', color: '#7e22ce' };
+            if (r === 'chef') return { icon: '👨‍🍳', label: 'Head Chef / Kitchen', labelUr: 'ہیڈ شیف / کچن', bg: '#ffedd5', color: '#c2410c' };
+            return { icon: '🍽️', label: 'Waiter / Order Taker', labelUr: 'ویٹر / آرڈر ٹیکر', bg: '#fef3c7', color: '#b45309' };
+        }
+        if (catId === 'medical') {
+            if (r === 'supplier' || r === 'delivery') return { icon: '🏥', label: 'Clinic / Supply Rider', labelUr: 'کلینک سپلائی رائیڈر', bg: '#e0f2fe', color: '#0369a1' };
+            if (r === 'cashier') return { icon: '🧾', label: 'Pharmacy Cashier', labelUr: 'فارمیسی کیشیئر', bg: '#f3e8ff', color: '#7e22ce' };
+            return { icon: '💊', label: 'Pharmacist / Dispenser', labelUr: 'فارماسسٹ / ڈسپنسر', bg: '#dcfce7', color: '#15803d' };
+        }
+        if (catId === 'mobile') {
+            if (r === 'supplier' || r === 'delivery') return { icon: '🛵', label: 'Recovery & Dealer Rider', labelUr: 'ریکوری و ڈیلر رائیڈر', bg: '#e0f2fe', color: '#0369a1' };
+            if (r === 'technician') return { icon: '🛠️', label: 'Repair Lab Technician', labelUr: 'ریپیئرنگ ٹیکنیشن', bg: '#f3e8ff', color: '#7e22ce' };
+            return { icon: '📱', label: 'Sales Executive', labelUr: 'سیلز ایگزیکٹو', bg: '#fef3c7', color: '#b45309' };
+        }
+        if (catId === 'books') {
+            if (r === 'supplier' || r === 'delivery') return { icon: '🚐', label: 'School Supply Rider', labelUr: 'اسکول سپلائی رائیڈر', bg: '#e0f2fe', color: '#0369a1' };
+            return { icon: '📚', label: 'School Rep / Salesman', labelUr: 'اسکول نمائندہ / سیلزمین', bg: '#fef3c7', color: '#b45309' };
+        }
+        if (catId === 'wholesaler') {
+            if (r === 'supplier' || r === 'delivery') return { icon: '🚛', label: 'Bilti / Godown Supplier', labelUr: 'بلٹی و گودام سپلائر', bg: '#e0f2fe', color: '#0369a1' };
+            return { icon: '🌾', label: 'Mandi Munshi / Booker', labelUr: 'منڈی منشی / بکر', bg: '#fef3c7', color: '#b45309' };
+        }
+        if (r === 'supplier' || r === 'delivery' || r === 'driver') {
+            return { icon: '🚚', label: 'Delivery Supplier', labelUr: 'ڈلیوری سپلائر', bg: '#e0f2fe', color: '#0369a1' };
+        }
+        return { icon: '📕', label: 'Order Booker', labelUr: 'آرڈر بکر', bg: '#fef3c7', color: '#b45309' };
+    }
+
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            window.location.href = 'auth.html';
+            return;
+        }
+        myUid = user.uid;
+        document.getElementById('ownerEmail').innerText = user.email;
+
+        const doc = await db.collection('users').doc(user.uid).get();
+        if (!doc.exists) {
+            window.location.href = 'dashboard.html';
+            return;
+        }
+        const me = doc.data();
+
+        if (me.role !== 'owner' && me.role !== 'super-admin') {
+            window.location.href = 'dashboard.html';
+            return;
+        }
+
+        const storedAgId = localStorage.getItem('eb_active_agencyId') || me.agencyId;
+        if (!storedAgId || storedAgId === 'super-admin-hq') {
+            try {
+                const agSnap = await db.collection('agencies').limit(1).get();
+                if (!agSnap.empty) {
+                    myAgencyId = agSnap.docs[0].id;
+                    myAgency = agSnap.docs[0].data();
+                } else {
+                    myAgencyId = 'agency_default';
+                    myAgency = { name: 'My Business Agency' };
+                }
+            } catch (e) {
+                myAgencyId = 'agency_default';
+                myAgency = { name: 'My Business Agency' };
+            }
+        } else {
+            myAgencyId = storedAgId;
+            const agDoc = await db.collection('agencies').doc(myAgencyId).get();
+            myAgency = agDoc.exists ? agDoc.data() : {};
+        }
+
+        if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+            myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency || {});
+        }
+        if (window.BusinessCategories && typeof window.BusinessCategories.healMisassignedLegacyRecords === 'function') {
+            window.BusinessCategories.healMisassignedLegacyRecords(db, myAgencyId, myAgency).catch(() => {});
+        }
+        document.getElementById('agencyName').innerText = myAgency.name || 'My Agency';
+
+        let pkgId = myAgency.packageId || 'free';
+        try {
+            const pkgDoc = await db.collection('packages').doc(pkgId).get();
+            myLimits = pkgDoc.exists ? pkgDoc.data().limits : null;
+        } catch (e) {}
+        if (!myLimits) {
+            myLimits = { monthlyBills: 1500, weeklyBills: 400, maxBookers: 25, maxAdmins: 3, dailyOrdersPerBooker: 100 };
+        }
+        if (myAgency.customLimits) {
+            myLimits = { ...myLimits, ...myAgency.customLimits };
+        }
+        myLimits.maxBookers = Math.max(25, Number(myLimits.maxBookers || 25));
+
+        setupOwnerControls();
+        applyCategoryOwnerUI();
+        await loadBookers();
+    });
+
+    function setupOwnerControls() {
+        document.querySelectorAll('#staffPeriodBar .staff-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#staffPeriodBar .staff-chip').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeStaffPeriod = btn.dataset.period || 'thismonth';
+                computeStaffPerformance();
+                renderExecutiveStaffKPIs();
+                renderBookersList();
+            });
+        });
+
+        const searchInput = document.getElementById('bookerSearchInput');
+        if (searchInput) searchInput.addEventListener('input', () => renderBookersList());
+
+        const roleFilter = document.getElementById('staffRoleFilter');
+        if (roleFilter) roleFilter.addEventListener('change', () => renderBookersList());
+
+        const sortSel = document.getElementById('staffSortSelect');
+        if (sortSel) sortSel.addEventListener('change', () => renderBookersList());
+
+        window.addEventListener('ebCategoryChanged', async () => {
+            if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency || {});
+            }
+            applyCategoryOwnerUI();
+            await loadBookers();
+        });
+    }
+
+    // ============================================
+    // 📋 LOAD STAFF & LIVE BILL PERFORMANCE (Strictly Per-Category)
+    // ============================================
     async function loadBookers() {
         const container = document.getElementById('bookersList');
         try {
-            // Single equality query - no composite index needed!
-            const snap = await db.collection('users')
-                .where('agencyId', '==', myAgencyId)
-                .get();
+            const [usersSnap, bookersSnap, billsSnap] = await Promise.all([
+                db.collection('users').where('agencyId', '==', myAgencyId).get(),
+                db.collection('bookers').where('agencyId', '==', myAgencyId).get().catch(() => ({ forEach: () => {} })),
+                db.collection('bills').where('agencyId', '==', myAgencyId).get().catch(() => ({ forEach: () => {} }))
+            ]);
 
             allAgencyBookers = [];
             const seenIds = new Set();
-            let activeCount = 0;
-            snap.forEach(d => {
+            const validRoles = ['booker', 'supplier', 'delivery', 'driver', 'cashier', 'chef', 'technician', 'salesman'];
+
+            usersSnap.forEach(d => {
                 const data = d.data();
                 data.id = d.id;
-                if (data.status !== 'deleted' && (data.role === 'booker' || data.role === 'supplier' || data.role === 'delivery' || data.role === 'driver')) {
+                if (data.status !== 'deleted' && validRoles.includes(String(data.role || '').toLowerCase())) {
                     if (matchesOwnerActiveCategory(data)) {
                         allAgencyBookers.push(data);
                         seenIds.add(data.id);
-                        activeCount++;
                     }
                 }
             });
 
-            // Also check 'bookers' collection fallback filtered strictly by active category
-            try {
-                const bSnap = await db.collection('bookers').where('agencyId', '==', myAgencyId).get();
-                bSnap.forEach(d => {
-                    if (!seenIds.has(d.id)) {
-                        const data = d.data();
-                        data.id = d.id;
-                        if (data.status !== 'deleted' && matchesOwnerActiveCategory(data)) {
-                            allAgencyBookers.push(data);
-                            seenIds.add(data.id);
-                            activeCount++;
-                        }
+            bookersSnap.forEach(d => {
+                if (!seenIds.has(d.id)) {
+                    const data = d.data();
+                    data.id = d.id;
+                    if (data.status !== 'deleted' && matchesOwnerActiveCategory(data)) {
+                        allAgencyBookers.push(data);
+                        seenIds.add(data.id);
                     }
-                });
-            } catch (_) {}
+                }
+            });
 
-            const maxAllowed = (myAgency && myAgency.customLimits && myAgency.customLimits.maxBookers) || (myLimits && myLimits.maxBookers) || 2;
-            document.getElementById('bookerCount').innerText = activeCount;
-            const badgeEl = document.getElementById('bookerLimitBadge');
-            if (badgeEl) badgeEl.innerText = `${activeCount} / ${maxAllowed} Active in this Category (Max Limit: ${maxAllowed})`;
+            allCategoryBills = [];
+            billsSnap.forEach(d => {
+                const b = d.data();
+                if (!b || !matchesOwnerActiveCategory(b)) return;
+                allCategoryBills.push({ id: d.id, ...b });
+            });
 
-            renderBookersList('');
+            const activeCount = allAgencyBookers.length;
+            const maxAllowed = Math.max(25, Number((myAgency && myAgency.customLimits && myAgency.customLimits.maxBookers) || (myLimits && myLimits.maxBookers) || 25));
+            lastBookerMaxAllowed = maxAllowed;
+            const cntEl = document.getElementById('bookerCount');
+            if (cntEl) cntEl.innerText = activeCount;
+            updateBookerLimitBadge();
+
+            computeStaffPerformance();
+            renderExecutiveStaffKPIs();
+            renderBookersList();
+            if (typeof syncOwnerGpsFormControls === 'function') syncOwnerGpsFormControls();
 
             if (window.hideNHLoader) {
                 window.hideNHLoader();
             }
-
         } catch (e) {
-            container.innerHTML = '<div class="error-inline">⚠️ Staff load failed: ' + e.message + '</div>';
+            container.innerHTML = `<div class="error-inline">⚠️ ${ebMix('Staff load failed:', 'اسٹاف لوڈ کرنے میں خرابی:')} ${e.message}</div>`;
             console.error(e);
             if (window.hideNHLoader) window.hideNHLoader();
         }
     }
 
-    function renderBookersList(query) {
+    function computeStaffPerformance() {
+        const range = getStaffPeriodRange(activeStaffPeriod);
+        staffPerfMap = {};
+
+        allAgencyBookers.forEach(st => {
+            staffPerfMap[st.id] = {
+                sales: 0,
+                cashSales: 0,
+                creditSales: 0,
+                billsCount: 0,
+                pendingCount: 0,
+                deliveredCount: 0,
+                unitsSold: 0,
+                recentBills: [],
+                itemMap: {}
+            };
+        });
+
+        // Lookup helpers by id, email, or name
+        const byEmail = {};
+        const byName = {};
+        allAgencyBookers.forEach(st => {
+            if (st.email) byEmail[String(st.email).toLowerCase().trim()] = st.id;
+            if (st.name) byName[String(st.name).toLowerCase().trim()] = st.id;
+        });
+
+        allCategoryBills.forEach(b => {
+            const st = String(b.status || b.orderStatus || 'completed').toLowerCase();
+            if (st === 'cancelled' || st === 'rejected' || st === 'deleted') return;
+
+            const rawDate = b.date || (b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().toISOString().slice(0, 10) : String(b.createdAt || '').slice(0, 10));
+            if (rawDate && (rawDate < range.start || rawDate > range.end)) return;
+
+            const amount = Number(b.grandTotal || b.totalAmount || b.netTotal || b.total || 0);
+            const paid = Number(b.paidAmount !== undefined ? b.paidAmount : (b.paymentType === 'credit' ? 0 : amount));
+            const credit = Math.max(0, amount - paid);
+
+            // Match booker/waiter/salesman OR delivery supplier/rider
+            const matchedIds = new Set();
+            const candIds = [b.bookerId, b.createdByUid, b.waiterId, b.salesmanId, b.supplierId, b.deliverySupplierId, b.riderId].filter(Boolean);
+            candIds.forEach(cid => {
+                if (staffPerfMap[cid]) matchedIds.add(cid);
+            });
+
+            if (matchedIds.size === 0) {
+                const candEmails = [b.bookerEmail, b.createdByEmail, b.supplierEmail].filter(Boolean);
+                candEmails.forEach(em => {
+                    const id = byEmail[String(em).toLowerCase().trim()];
+                    if (id && staffPerfMap[id]) matchedIds.add(id);
+                });
+            }
+
+            if (matchedIds.size === 0) {
+                const candNames = [b.bookerName, b.waiterName, b.salesmanName, b.supplierName, b.riderName, b.deliveredBy].filter(Boolean);
+                candNames.forEach(nm => {
+                    const id = byName[String(nm).toLowerCase().trim()];
+                    if (id && staffPerfMap[id]) matchedIds.add(id);
+                });
+            }
+
+            matchedIds.forEach(staffId => {
+                const perf = staffPerfMap[staffId];
+                if (!perf) return;
+                if (st === 'pending' || st === 'booked' || st === 'draft_order') {
+                    perf.pendingCount++;
+                } else {
+                    perf.sales += amount;
+                    perf.cashSales += Math.min(amount, Math.max(0, paid));
+                    perf.creditSales += credit;
+                    perf.billsCount++;
+                    if (b.deliveryStatus === 'delivered' || b.supplierId === staffId) {
+                        perf.deliveredCount++;
+                    }
+                }
+                if (Array.isArray(b.items)) {
+                    b.items.forEach(it => {
+                        const q = Number(it.qty || it.quantity || 0);
+                        perf.unitsSold += q;
+                        const nm = String(it.name || it.itemName || 'Item').trim();
+                        if (!perf.itemMap[nm]) perf.itemMap[nm] = { name: nm, qty: 0, rev: 0 };
+                        perf.itemMap[nm].qty += q;
+                        perf.itemMap[nm].rev += q * Number(it.rate || it.price || 0);
+                    });
+                }
+                if (perf.recentBills.length < 25) {
+                    perf.recentBills.push({
+                        id: b.id,
+                        billNo: b.billNumber || b.invoiceNo || b.id.slice(0, 6).toUpperCase(),
+                        date: rawDate || '—',
+                        customer: b.customerName || b.shopName || 'Walk-in Customer',
+                        amount,
+                        status: st
+                    });
+                }
+            });
+        });
+    }
+
+    function renderExecutiveStaffKPIs() {
+        const activeList = allAgencyBookers.filter(b => b.status !== 'deleted');
+        const bookerRoleCount = activeList.filter(b => b.role !== 'supplier' && b.role !== 'delivery').length;
+        const supplierRoleCount = activeList.filter(b => b.role === 'supplier' || b.role === 'delivery').length;
+
+        let totalTeamSales = 0;
+        let totalBills = 0;
+        let totalPending = 0;
+        let totalTarget = 0;
+        let totalCommission = 0;
+        let totalBaseSalary = 0;
+        let topStaffName = '—';
+        let topStaffSales = 0;
+
+        activeList.forEach(st => {
+            const perf = staffPerfMap[st.id] || { sales: 0, billsCount: 0, pendingCount: 0 };
+            const target = Number(st.monthlyTarget || 0);
+            const salary = Number(st.baseSalary || 0);
+            const commPct = Number(st.commissionPct || 0);
+            const earnedComm = Math.round((perf.sales * commPct) / 100);
+
+            totalTeamSales += perf.sales;
+            totalBills += perf.billsCount;
+            totalPending += perf.pendingCount;
+            totalTarget += target;
+            totalCommission += earnedComm;
+            totalBaseSalary += salary;
+
+            if (perf.sales > topStaffSales) {
+                topStaffSales = perf.sales;
+                topStaffName = st.name || st.email || 'Staff';
+            }
+        });
+
+        const targetPct = totalTarget > 0 ? Math.min(999, Math.round((totalTeamSales / totalTarget) * 100)) : 0;
+
+        document.getElementById('kpiValStaffCount').textContent = activeList.length;
+        document.getElementById('kpiSubStaffBreakdown').innerHTML = `${bookerRoleCount} ${ebMix('Sales/Order', 'سیلز/آرڈر')} • ${supplierRoleCount} ${ebMix('Delivery', 'ڈلیوری')}`;
+        document.getElementById('kpiValTeamSales').textContent = `Rs ${Math.round(totalTeamSales).toLocaleString()}`;
+        document.getElementById('kpiSubTopPerformer').innerHTML = topStaffSales > 0
+            ? `🏆 ${ebT('Top:', 'ٹاپ:')} ${topStaffName} (Rs ${Math.round(topStaffSales).toLocaleString()})`
+            : ebMix('No period sales yet', 'اس مدت میں کوئی سیل نہیں');
+        document.getElementById('kpiValTeamBills').textContent = (totalBills + totalPending).toLocaleString();
+        document.getElementById('kpiSubBillsBreakdown').innerHTML = `${totalBills} ${ebMix('Completed', 'مکمل')} • ${totalPending} ${ebMix('Pending', 'زیر التوا')}`;
+        document.getElementById('kpiValTargetPct').textContent = `${targetPct}%`;
+        document.getElementById('kpiSubTargetTotal').innerHTML = `${ebMix('Target:', 'ٹارگٹ:')} Rs ${Math.round(totalTarget).toLocaleString()}`;
+        document.getElementById('kpiValCommission').textContent = `Rs ${Math.round(totalCommission).toLocaleString()}`;
+        document.getElementById('kpiValBaseSalary').textContent = `Rs ${Math.round(totalBaseSalary).toLocaleString()}`;
+    }
+
+    function renderBookersList(explicitQuery) {
         const container = document.getElementById('bookersList');
-        const filtered = allAgencyBookers.filter(bk => {
+        const query = explicitQuery !== undefined
+            ? explicitQuery
+            : (document.getElementById('bookerSearchInput')?.value || '').trim();
+        const roleFilter = document.getElementById('staffRoleFilter')?.value || 'all';
+        const sortBy = document.getElementById('staffSortSelect')?.value || 'sales_desc';
+
+        let filtered = allAgencyBookers.filter(bk => {
             if (bk.status === 'deleted') return false;
+            if (roleFilter === 'booker' && bk.role !== 'booker') return false;
+            if (roleFilter === 'supplier' && bk.role !== 'supplier' && bk.role !== 'delivery') return false;
+            if (roleFilter === 'other' && (bk.role === 'booker' || bk.role === 'supplier' || bk.role === 'delivery')) return false;
+            if (roleFilter === 'active' && bk.status === 'blocked') return false;
+            if (roleFilter === 'blocked' && bk.status !== 'blocked') return false;
+
             if (!query) return true;
             const q = query.toLowerCase();
             return (bk.name && bk.name.toLowerCase().includes(q)) ||
                    (bk.email && bk.email.toLowerCase().includes(q)) ||
+                   (bk.mobile && bk.mobile.toLowerCase().includes(q)) ||
                    (bk.route && bk.route.toLowerCase().includes(q)) ||
                    (bk.role && bk.role.toLowerCase().includes(q));
+        });
+
+        filtered.sort((a, b) => {
+            const pa = staffPerfMap[a.id] || { sales: 0, billsCount: 0 };
+            const pb = staffPerfMap[b.id] || { sales: 0, billsCount: 0 };
+            if (sortBy === 'sales_desc') return (pb.sales || 0) - (pa.sales || 0);
+            if (sortBy === 'bills_desc') return (pb.billsCount || 0) - (pa.billsCount || 0);
+            if (sortBy === 'target_desc') {
+                const ta = a.monthlyTarget > 0 ? (pa.sales / a.monthlyTarget) : 0;
+                const tb = b.monthlyTarget > 0 ? (pb.sales / b.monthlyTarget) : 0;
+                return tb - ta;
+            }
+            return String(a.name || '').localeCompare(String(b.name || ''));
         });
 
         if (filtered.length === 0) {
@@ -392,97 +1157,134 @@
             const catMeta = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
                 ? (window.BusinessCategories.getById(activeCatId) || { icon: '🏢', nameEn: activeCatId })
                 : { icon: '🏢', nameEn: activeCatId };
-            container.innerHTML = query 
-                ? '<div class="empty-state">🔍 Koi staff member match nahi hua!</div>'
-                : `<div class="empty-state">👥 Is category (<b>${catMeta.icon || '🏢'} ${catMeta.nameEn || activeCatId}</b>) mein abhi koi Order Booker ya Delivery Supplier nahi banaya gaya.<br>Upar form se is category ke liye pehla <b>BOOKER</b> ya <b>DELIVERY SUPPLIER</b> shamil karein!</div>`;
+            const catDisplay = `${catMeta.icon || '🏢'} ${ebMix(catMeta.nameEn || activeCatId, catMeta.nameUr || '')}`;
+            container.innerHTML = (query || roleFilter !== 'all')
+                ? `<div class="empty-state">🔍 ${ebMix('No staff member matched this search or filter!', 'اس تلاش یا فلٹر سے کوئی اسٹاف ممبر نہیں ملا!')}</div>`
+                : `<div class="empty-state">👥 ${ebMix(`No staff member added yet in this category (<b>${catDisplay}</b>).`, `اس کیٹیگری (<b>${catDisplay}</b>) میں ابھی کوئی اسٹاف ممبر شامل نہیں کیا گیا۔`)}<br>${ebMix('Use the form above to add your first <b>Staff Member</b> for this category!', 'اوپر دیے گئے فارم سے اس کیٹیگری کا پہلا <b>اسٹاف ممبر</b> شامل کریں!')}</div>`;
             return;
         }
 
         let html = '';
         filtered.forEach(bk => {
-            const isSupplier = bk.role === 'supplier' || bk.role === 'delivery';
-            const roleBadge = isSupplier
-                ? '<span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold;">🚚 Delivery Supplier</span>'
-                : '<span style="background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold;">📕 Order Booker</span>';
+            const rm = getRoleBadgeMeta(bk.role);
+            const roleBadge = `<span style="background:${rm.bg}; color:${rm.color}; padding:2px 9px; border-radius:10px; font-size:11px; font-weight:800;">${rm.icon} ${ebMix(rm.label, rm.labelUr)}</span>`;
 
             const statusHtml = bk.status === 'blocked'
-                ? '<span class="st-inactive">🚫 Blocked</span>'
-                : '<span class="st-active">✅ Active</span>';
+                ? `<span class="st-inactive">🚫 ${ebMix('Blocked', 'بلاک شدہ')}</span>`
+                : `<span class="st-active">✅ ${ebMix('Active', 'فعال')}</span>`;
 
             const p = bk.permissions || {};
             const permStock = p.stock !== false;
             const permCustomers = p.customers !== false;
             const permReports = !!p.reports;
             const permApprove = !!p.approve_orders;
+            const permGps = !!(p.gps_required || bk.gpsRequired);
+            const gpsUnlockedBySuper = window.EB_GPS && typeof window.EB_GPS.isSuperAdminUnlocked === 'function'
+                ? window.EB_GPS.isSuperAdminUnlocked(myAgency, window.__myProfile || { role: 'owner' })
+                : Boolean(myAgency && myAgency.permissions && myAgency.permissions.gps_tracking === true);
+            const hasLastGps = Boolean(bk.lastGpsLocation && Number.isFinite(Number(bk.lastGpsLocation.lat)));
+
+            const perf = staffPerfMap[bk.id] || { sales: 0, cashSales: 0, creditSales: 0, billsCount: 0, pendingCount: 0, unitsSold: 0 };
+            const target = Number(bk.monthlyTarget || 0);
+            const salary = Number(bk.baseSalary || 0);
+            const commPct = Number(bk.commissionPct || 0);
+            const earnedComm = Math.round((perf.sales * commPct) / 100);
+            const targetPct = target > 0 ? Math.min(100, Math.round((perf.sales / target) * 100)) : 0;
+            const targetColor = targetPct >= 80 ? '#10b981' : (targetPct >= 40 ? '#f59e0b' : '#0284c7');
 
             html += `
-            <div class="agency-item" data-id="${bk.id}">
-                <div class="agency-main" style="flex: 1 1 250px; min-width: 0; max-width: 100%;">
-                    <div class="agency-name">
-                        ${isSupplier ? '🚚' : '📕'} ${bk.name || bk.email}
-                        ${roleBadge}
-                    </div>
-                    <div class="agency-meta">
-                        📧 ${bk.email} | ${statusHtml} ${bk.mobile ? `| 📱 ${bk.mobile}` : ''}<br>
-                        🔑 Password: <span style="font-family: monospace; background:#e2e8f0; color:#0f172a; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px;">${bk.tempPassword || '******'}</span>
-                        | 📍 Route: <b>${bk.route || 'General Depot'}</b>
-                        <div style="margin-top: 5px; display:flex; gap:6px; flex-wrap:wrap;">
-                            <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permStock ? '#dcfce7; color:#15803d;' : '#f1f5f9; color:#94a3b8;'} font-weight:bold;">📦 Stock: ${permStock ? 'ON' : 'OFF'}</span>
-                            <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permCustomers ? '#dcfce7; color:#15803d;' : '#f1f5f9; color:#94a3b8;'} font-weight:bold;">👥 Khata: ${permCustomers ? 'ON' : 'OFF'}</span>
-                            <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permReports ? '#dcfce7; color:#15803d;' : '#f1f5f9; color:#94a3b8;'} font-weight:bold;">📊 Reports: ${permReports ? 'ON' : 'OFF'}</span>
-                            <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permApprove ? '#dcfce7; color:#15803d; border:1px solid #86efac;' : '#fffbeb; color:#b45309; border:1px solid #fde68a;'} font-weight:bold;">⚖️ Approval: ${permApprove ? 'ALLOWED' : 'LOCKED'}</span>
+            <div class="agency-item" data-id="${bk.id}" style="flex-direction:column; align-items:stretch; gap:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                    <div class="agency-main" style="flex: 1 1 260px; min-width: 0;">
+                        <div class="agency-name" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span>${rm.icon} ${bk.name || bk.email}</span>
+                            ${roleBadge}
+                            ${statusHtml}
+                        </div>
+                        <div class="agency-meta" style="margin-top:4px;">
+                            📧 <b>${bk.email}</b> ${bk.mobile ? `| 📱 <b>${bk.mobile}</b>` : ''}
+                            | 🔑 ${ebT('Pass:', 'پاسورڈ:')} <span style="font-family: monospace; background:#e2e8f0; color:#0f172a; border:1px solid #cbd5e1; padding:1px 6px; border-radius:4px;">${bk.tempPassword || '******'}</span><br>
+                            📍 ${ebT('Area/Zone:', 'علاقہ/زون:')} <b>${bk.route || ebT('General Area', 'عمومی علاقہ')}</b>
+                            ${bk.shiftDays ? ` | 🗓️ ${ebT('Shift/Days:', 'شفٹ/دن:')} <b>${bk.shiftDays}</b>` : ''}
+                            <div style="margin-top: 6px; display:flex; gap:6px; flex-wrap:wrap;">
+                                <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permStock ? '#dcfce7; color:#15803d;' : '#f1f5f9; color:#94a3b8;'} font-weight:bold;">📦 ${ebT('Billing:', 'بلنگ:')} ${permStock ? ebT('ON', 'آن') : ebT('OFF', 'آف')}</span>
+                                <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permCustomers ? '#dcfce7; color:#15803d;' : '#f1f5f9; color:#94a3b8;'} font-weight:bold;">👥 ${ebT('Khata:', 'کھاتہ:')} ${permCustomers ? ebT('ON', 'آن') : ebT('OFF', 'آف')}</span>
+                                <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permReports ? '#dcfce7; color:#15803d;' : '#f1f5f9; color:#94a3b8;'} font-weight:bold;">📊 ${ebT('Reports:', 'رپورٹس:')} ${permReports ? ebT('ON', 'آن') : ebT('OFF', 'آف')}</span>
+                                <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${permApprove ? '#dcfce7; color:#15803d; border:1px solid #86efac;' : '#fffbeb; color:#b45309; border:1px solid #fde68a;'} font-weight:bold;">⚖️ ${ebT('Self-Approve:', 'خود منظوری:')} ${permApprove ? ebT('ALLOWED', 'اجازت') : ebT('LOCKED', 'بند')}</span>
+                                <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:${!gpsUnlockedBySuper ? '#f1f5f9; color:#64748b; border:1px solid #cbd5e1;' : (permGps ? '#dcfce7; color:#15803d; border:1px solid #86efac;' : '#f8fafc; color:#475569; border:1px solid #cbd5e1;')} font-weight:bold;">${!gpsUnlockedBySuper ? ebT('🔒 GPS: Locked (Paid)', '🔒 GPS: لاک (پیڈ)') : (permGps ? ebT('📍 GPS: MANDATORY ON', '📍 GPS: لازمی آن') : ebT('⚪ GPS: OFF (Optional)', '⚪ GPS: آف (اختیاری)'))}</span>
+                            </div>
                         </div>
                     </div>
+
+                    <div class="agency-actions" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                        <button class="btn-sm" style="background:#0f172a; color:#fff;" onclick="openStaffAuditModal('${bk.id}')" title="View Staff Sales, Bills & Target Audit">
+                            <i class="fas fa-chart-pie"></i> ${ebT('Audit', 'آڈٹ')}
+                        </button>
+                        <button class="btn-sm" style="background:#10b981; color:#fff;" onclick="shareStaffCredentials('${bk.id}')" title="Share login details via WhatsApp or copy link">
+                            <i class="fas fa-share-alt"></i> ${ebT('Share', 'شیئر')}
+                        </button>
+                        <button class="btn-sm" style="background:#0284c7; color:#fff;" onclick="openEditStaffModal('${bk.id}')" title="Edit Staff Details, Target & Salary">
+                            <i class="fas fa-edit"></i> ${ebT('Edit', 'ترمیم')}
+                        </button>
+                        <button class="btn-sm btn-pass" onclick="changeBookerPassword('${bk.id}')" title="Change Password">🔑 ${ebT('Pass', 'پاسورڈ')}</button>
+                        <button class="btn-sm ${permStock ? 'btn-perm-on' : 'btn-perm-off'}" onclick="togglePerm('${bk.id}', 'stock', ${permStock})">📦 ${ebT('Bill', 'بل')}</button>
+                        <button class="btn-sm ${permCustomers ? 'btn-perm-on' : 'btn-perm-off'}" onclick="togglePerm('${bk.id}', 'customers', ${permCustomers})">👥 ${ebT('Khata', 'کھاتہ')}</button>
+                        <button class="btn-sm ${permApprove ? 'btn-perm-on' : 'btn-perm-off'}" style="${permApprove ? 'background:#10b981; color:#fff;' : 'background:#fef3c7; color:#b45309; border:1px solid #fde68a;'}" onclick="togglePerm('${bk.id}', 'approve_orders', ${permApprove})" title="Toggle Self Order Approval">${permApprove ? ebT('⚖️ Approve ON', '⚖️ منظوری آن') : ebT('🔒 Approve OFF', '🔒 منظوری آف')}</button>
+                        <button class="btn-sm" style="${!gpsUnlockedBySuper ? 'background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1;' : (permGps ? 'background:#059669; color:#fff;' : 'background:#e2e8f0; color:#334155;')}" onclick="toggleBookerGps('${bk.id}', ${permGps})" title="${!gpsUnlockedBySuper ? 'GPS is Locked by Super Admin (Paid Add-On)' : 'Toggle Mandatory GPS Location for this Booker'}">${!gpsUnlockedBySuper ? '🔒 GPS' : (permGps ? ebT('📍 GPS ON', '📍 GPS آن') : ebT('⚪ GPS OFF', '⚪ GPS آف'))}</button>
+                        ${hasLastGps ? `<button class="btn-sm" style="background:#0284c7; color:#fff;" onclick="openTeamGpsMap('${bk.id}')" title="View Last GPS Location on Map">🗺️ ${ebT('Pin', 'پن')}</button>` : ''}
+                        <button class="btn-sm ${bk.status === 'blocked' ? 'btn-activate' : 'btn-toggle'}" onclick="toggleBlock('${bk.id}', '${bk.status || 'active'}')">
+                            ${bk.status === 'blocked' ? ebT('✅ Unblock', '✅ ان بلاک') : ebT('🚫 Block', '🚫 بلاک')}
+                        </button>
+                        <button class="btn-sm btn-delete" onclick="deleteBooker('${bk.id}', '${(bk.name || bk.email || '').replace(/'/g, "\\'")}')">🗑️</button>
+                    </div>
                 </div>
-                <div class="agency-actions" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                    <button class="btn-sm" style="background:#10b981; color:#fff;" onclick="shareStaffCredentials('${bk.id}')" title="Share login details via WhatsApp or copy link">
-                        <i class="fas fa-share-alt"></i> Share
-                    </button>
-                    <button class="btn-sm" style="background:#0284c7; color:#fff;" onclick="openEditStaffModal('${bk.id}')" title="Edit Staff Details">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="btn-sm btn-pass" onclick="changeBookerPassword('${bk.id}')" title="Change Password">🔑 Pass</button>
-                    <button class="btn-sm ${permStock ? 'btn-perm-on' : 'btn-perm-off'}" onclick="togglePerm('${bk.id}', 'stock', ${permStock})">📦 Stock</button>
-                    <button class="btn-sm ${permCustomers ? 'btn-perm-on' : 'btn-perm-off'}" onclick="togglePerm('${bk.id}', 'customers', ${permCustomers})">👥 Khata</button>
-                    <button class="btn-sm ${permApprove ? 'btn-perm-on' : 'btn-perm-off'}" style="${permApprove ? 'background:#10b981; color:#fff;' : 'background:#fef3c7; color:#b45309; border:1px solid #fde68a;'}" onclick="togglePerm('${bk.id}', 'approve_orders', ${permApprove})" title="Toggle Order Approval Permission">${permApprove ? '⚖️ Approval ON' : '🔒 Approval OFF'}</button>
-                    <button class="btn-sm ${bk.status === 'blocked' ? 'btn-activate' : 'btn-toggle'}" onclick="toggleBlock('${bk.id}', '${bk.status || 'active'}')">
-                        ${bk.status === 'blocked' ? '✅ Unblock' : '🚫 Block'}
-                    </button>
-                    <button class="btn-sm btn-delete" onclick="deleteBooker('${bk.id}', '${bk.name || bk.email}')">🗑️</button>
+
+                <!-- 📈 LIVE STAFF PERFORMANCE & PAYROLL STRIP -->
+                <div class="staff-stat-strip">
+                    <div class="staff-stat-box">
+                        ${ebCompact('Period Sales', 'مدت کی سیلز')}
+                        <b style="color:#10b981;">Rs ${Math.round(perf.sales).toLocaleString()}</b>
+                    </div>
+                    <div class="staff-stat-box">
+                        ${ebCompact('Bills / Orders', 'بلز / آرڈرز')}
+                        <b>${perf.billsCount} ${ebT('Done', 'مکمل')} ${perf.pendingCount > 0 ? `<span style="color:#f59e0b; font-size:11px;">(${perf.pendingCount} ${ebT('Pend', 'زیر التوا')})</span>` : ''}</b>
+                    </div>
+                    <div class="staff-stat-box">
+                        ${ebCompact('Cash vs Credit', 'نقد بمقابلہ ادھار')}
+                        <b><span style="color:#16a34a;">${Math.round(perf.cashSales).toLocaleString()}</span> / <span style="color:#dc2626;">${Math.round(perf.creditSales).toLocaleString()}</span></b>
+                    </div>
+                    <div class="staff-stat-box">
+                        ${ebCompact('Monthly Target', 'ماہانہ ٹارگٹ')}
+                        <b>${target > 0 ? `Rs ${target.toLocaleString()} (${targetPct}%)` : ebT('Not Set', 'مقرر نہیں')}</b>
+                        ${target > 0 ? `<div class="target-progress-wrap"><div class="target-progress-bar" style="width:${targetPct}%; background:${targetColor};"></div></div>` : ''}
+                    </div>
+                    <div class="staff-stat-box">
+                        ${ebCompact(`Commission (${commPct}%)`, `کمیشن (${commPct}%)`)}
+                        <b style="color:#db2777;">Rs ${earnedComm.toLocaleString()}</b>
+                    </div>
+                    <div class="staff-stat-box">
+                        ${ebCompact('Base Salary', 'بنیادی تنخواہ')}
+                        <b>Rs ${salary.toLocaleString()}</b>
+                    </div>
                 </div>
             </div>`;
         });
         container.innerHTML = html;
     }
 
-    const searchInput = document.getElementById('bookerSearchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            renderBookersList(this.value.trim());
-        });
-    }
-
-    // ============================================
-    // 🔘 BUTTON LOADING HELPER
-    // ============================================
     function btnLoading(btnId, isLoading, text = '') {
         const btn = document.getElementById(btnId);
         if (!btn) return;
         btn.disabled = !!isLoading;
         if (isLoading) {
-            if (!btn.dataset.prevHtml) btn.dataset.prevHtml = btn.innerHTML;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${text || 'Adding Staff...'}`;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${text || ebT('Adding Staff...', 'اسٹاف شامل ہو رہا ہے...')}`;
         } else {
-            if (btn.dataset.prevHtml) {
-                btn.innerHTML = btn.dataset.prevHtml;
-            } else {
-                btn.innerHTML = '<i class="fas fa-user-plus"></i> ADD STAFF MEMBER';
-            }
+            btn.innerHTML = `<i class="fas fa-user-plus"></i> <span data-eb-en="ADD STAFF MEMBER" data-eb-ur="اسٹاف ممبر شامل کریں">${ebMix('ADD STAFF MEMBER', 'اسٹاف ممبر شامل کریں')}</span>`;
         }
     }
 
     // ============================================
-    // ➕ ADD STAFF MEMBER (BOOKER OR SUPPLIER)
+    // ➕ ADD STAFF MEMBER (CATEGORY-ISOLATED + PAYROLL SYNC)
     // ============================================
     async function handleAddStaff(e) {
         if (e) e.preventDefault();
@@ -493,41 +1295,38 @@
         const mobile = document.getElementById('bkMobile').value.trim();
         const password = document.getElementById('bkPassword').value;
         const route = document.getElementById('bkRoute').value.trim();
+        const monthlyTarget = Number(document.getElementById('bkMonthlyTarget')?.value || 0);
+        const baseSalary = Number(document.getElementById('bkBaseSalary')?.value || 0);
+        const commissionPct = Number(document.getElementById('bkCommissionPct')?.value || 0);
+        const shiftDays = (document.getElementById('bkShiftDays')?.value || '').trim();
         const permStock = document.getElementById('permStock').checked;
         const permCustomers = document.getElementById('permCustomers').checked;
         const permReports = document.getElementById('permReports').checked;
         const permApprove = document.getElementById('permApproveOrders')?.checked || false;
+        const gpsUnlocked = window.EB_GPS && typeof window.EB_GPS.isSuperAdminUnlocked === 'function'
+            ? window.EB_GPS.isSuperAdminUnlocked(myAgency, window.__myProfile || { role: 'owner' })
+            : Boolean(myAgency && myAgency.permissions && myAgency.permissions.gps_tracking === true);
+        const permGpsReq = gpsUnlocked ? (document.getElementById('permGpsRequired')?.checked || false) : false;
 
-        // Validations
-        if (!name) { Swal.fire('⚠️', 'Staff ka naam lazmi hai!', 'warning'); return; }
-        if (!rawEmail) { Swal.fire('⚠️', 'Email ya login ID lazmi hai!', 'warning'); return; }
-        if (password.length < 6) { Swal.fire('⚠️', 'Password min 6 characters!', 'warning'); return; }
+        if (!name) { Swal.fire('⚠️', ebT('Staff full name is required!', 'اسٹاف کا پورا نام لازمی ہے!'), 'warning'); return; }
+        if (!rawEmail) { Swal.fire('⚠️', ebT('Email or login ID is required!', 'ای میل یا لاگ اِن آئی ڈی لازمی ہے!'), 'warning'); return; }
+        if (password.length < 6) { Swal.fire('⚠️', ebT('Password must be at least 6 characters!', 'پاسورڈ کم از کم 6 حروف کا ہونا چاہیے!'), 'warning'); return; }
 
-        // 👥 Check Booker / Staff Limit from Package or Super Admin Custom Limits
-        const allowedBookers = (myAgency && myAgency.customLimits && myAgency.customLimits.maxBookers) || (myLimits && myLimits.maxBookers) || 2;
+        const allowedBookers = Math.max(25, Number((myAgency && myAgency.customLimits && myAgency.customLimits.maxBookers) || (myLimits && myLimits.maxBookers) || 25));
         const currentActiveCount = allAgencyBookers.filter(b => b.status !== 'deleted').length;
         if (currentActiveCount >= allowedBookers) {
             Swal.fire({
                 icon: 'warning',
-                title: '👥 Order Booker / Staff Limit Reached',
-                html: `Aap کے موجودہ پیکیج میں زیادہ سے زیادہ <b>${allowedBookers} Staff / Order Bookers</b> کی اجازت ہے۔<br><br>
-                       مزید بکرز یا ڈلیوری سپلائر شامل کرنے کے لیے <b>Super Admin</b> یا <b>Developer</b> سے لمٹ بڑھوائیں:
-                       <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px; margin-top:10px; font-size:13px; font-weight:bold; color:#166534;">
-                           <i class="fab fa-whatsapp"></i> Developer WhatsApp: +923346800959
-                       </div>`,
-                showCancelButton: true,
-                confirmButtonText: '<i class="fab fa-whatsapp"></i> رابطہ ڈویلپر (+923346800959)',
-                confirmButtonColor: '#25D366',
-                cancelButtonText: 'Theek Hai'
-            }).then(r => {
-                if (r.isConfirmed) {
-                    window.open('https://wa.me/923346800959?text=' + encodeURIComponent(`السلام علیکم ڈویلپر صاحب!\nمیری ایجنسی: *${myAgency.name || ''}*\nمجھے آرڈر بکر / اسٹاف کی لمٹ بڑھوانی ہے (موجودہ لمٹ: ${allowedBookers})۔`), '_blank');
-                }
+                title: `👥 ${ebT('Staff Limit Reached', 'اسٹاف لمٹ پوری ہو گئی')}`,
+                html: ebT(
+                    `Your current package allows a maximum of <b>${allowedBookers} Staff Members</b>.`,
+                    `آپ کے موجودہ پیکیج میں زیادہ سے زیادہ <b>${allowedBookers} اسٹاف ممبرز</b> کی اجازت ہے۔`
+                ),
+                confirmButtonColor: '#25D366'
             });
             return;
         }
 
-        // Ensure Agency ID is resolved
         if (!myAgencyId || myAgencyId === 'super-admin-hq') {
             try {
                 const agSnap = await db.collection('agencies').limit(1).get();
@@ -542,17 +1341,15 @@
             }
         }
 
-        // Normalize email: If user typed phone or simple username without @, make valid system email
         let email = rawEmail;
         if (!email.includes('@')) {
             const cleanUser = email.replace(/[^a-zA-Z0-9]/g, '');
             email = (cleanUser || 'staff' + Date.now().toString().slice(-4)) + '@tajkaryana.com';
         }
 
-        btnLoading('addBookerBtn', true, 'Creating Staff Account...');
+        btnLoading('addBookerBtn', true, ebT('Creating Staff Account...', 'اسٹاف اکاؤنٹ بنایا جا رہا ہے...'));
 
         try {
-            // Secondary App creation with NONE persistence so Owner session is never touched!
             const secAppName = 'SecStaff-' + Date.now();
             const secondaryApp = firebase.initializeApp(firebaseConfig, secAppName);
             const secondaryAuth = secondaryApp.auth();
@@ -564,7 +1361,6 @@
                 bookerUid = cred.user.uid;
                 await secondaryAuth.signOut();
             } catch (authErr) {
-                console.warn('Auth create note:', authErr.code, authErr.message);
                 if (authErr.code === 'auth/email-already-in-use') {
                     try {
                         const exCred = await secondaryAuth.signInWithEmailAndPassword(email, password);
@@ -577,7 +1373,7 @@
                     bookerUid = 'staff_' + Date.now();
                 }
             }
-            try { await secondaryApp.delete(); } catch(e) {}
+            try { await secondaryApp.delete(); } catch (e) {}
 
             const activeCat = getActiveOwnerCategory();
             const staffObj = {
@@ -586,16 +1382,22 @@
                 mobile: mobile,
                 role: role,
                 route: route || 'General Area',
+                monthlyTarget: monthlyTarget,
+                baseSalary: baseSalary,
+                commissionPct: commissionPct,
+                shiftDays: shiftDays,
                 loginMethod: 'password',
                 agencyId: myAgencyId,
                 businessCategory: activeCat,
                 categoryConfirmedByCreate: true,
+                gpsRequired: permGpsReq,
                 permissions: {
                     instant: false,
                     stock: permStock,
                     customers: permCustomers,
                     reports: permReports,
-                    approve_orders: permApprove
+                    approve_orders: permApprove,
+                    gps_required: permGpsReq
                 },
                 status: 'active',
                 tempPassword: password,
@@ -603,12 +1405,20 @@
                 createdBy: myUid || 'owner'
             };
 
-            // Save in both 'users' and 'bookers' collections for seamless compatibility across panels
             await db.collection('users').doc(bookerUid).set(staffObj);
             try {
                 await db.collection('bookers').doc(bookerUid).set(staffObj);
-            } catch(bErr) {
-                console.warn('Bookers collection sync note:', bErr);
+            } catch (bErr) {}
+            if (permGpsReq && myAgency && myAgency.gpsTrackingEnabled !== true) {
+                try {
+                    await db.collection('agencies').doc(myAgencyId).update({ gpsTrackingEnabled: true });
+                    myAgency.gpsTrackingEnabled = true;
+                } catch (_) {}
+            }
+
+            // Automatically sync to payroll_staff if baseSalary > 0 or commissionPct > 0
+            if (baseSalary > 0 || commissionPct > 0) {
+                await syncSingleStaffToPayroll({ id: bookerUid, ...staffObj });
             }
 
             btnLoading('addBookerBtn', false);
@@ -617,14 +1427,17 @@
             document.getElementById('permCustomers').checked = true;
             await loadBookers();
 
-            // Open Share Dialog immediately so owner can copy or WhatsApp!
             staffObj.id = bookerUid;
             openShareModal(staffObj);
 
+            const rm = getRoleBadgeMeta(role);
             Swal.fire({
                 icon: 'success',
-                title: '✅ Staff Member Created!',
-                text: `${name} (${role === 'supplier' ? 'Delivery Supplier' : 'Order Booker'}) successfully created!`,
+                title: `✅ ${ebT('Staff Member Created!', 'اسٹاف ممبر شامل ہو گیا!')}`,
+                text: ebT(
+                    `${name} (${rm.label}) successfully added to ${activeCat.toUpperCase()} workspace!`,
+                    `${name} (${rm.labelUr || rm.label}) کو ${activeCat.toUpperCase()} ورک اسپیس میں شامل کر دیا گیا!`
+                ),
                 timer: 2500,
                 showConfirmButton: false
             });
@@ -632,8 +1445,11 @@
         } catch (error) {
             btnLoading('addBookerBtn', false);
             console.error('Staff creation error:', error);
-            let msg = 'Staff add nahi hua: ' + (error.message || error.code);
-            Swal.fire('❌ Error', msg, 'error');
+            Swal.fire(
+                `❌ ${ebT('Error', 'خرابی')}`,
+                `${ebT('Failed to add staff member:', 'اسٹاف شامل نہیں ہو سکا:')} ${error.message || error.code}`,
+                'error'
+            );
         }
     }
 
@@ -641,16 +1457,231 @@
     if (formEl) {
         formEl.addEventListener('submit', handleAddStaff);
     }
-    const addStaffBtn = document.getElementById('addBookerBtn');
-    if (addStaffBtn) {
-        addStaffBtn.addEventListener('click', (e) => {
-            if (formEl && formEl.checkValidity && !formEl.checkValidity()) {
-                formEl.reportValidity();
-                return;
-            }
-            handleAddStaff(e);
-        });
+
+    // ============================================
+    // 💸 SYNC WITH PAYROLL_STAFF (EXPENSES & SALARIES MODULE)
+    // ============================================
+    async function syncSingleStaffToPayroll(st) {
+        if (!st || !myAgencyId) return;
+        const activeCat = getActiveOwnerCategory();
+        const rm = getRoleBadgeMeta(st.role);
+        const payrollDocId = `pay_${st.id}`;
+        try {
+            await db.collection('payroll_staff').doc(payrollDocId).set({
+                linkedUserId: st.id,
+                agencyId: myAgencyId,
+                businessCategory: activeCat,
+                categoryConfirmedByCreate: true,
+                name: st.name || st.email,
+                role: rm.label,
+                phone: st.mobile || '',
+                monthlySalary: Number(st.baseSalary || 0),
+                commissionPct: Number(st.commissionPct || 0),
+                route: st.route || '',
+                status: 'active',
+                updatedAt: new Date().toISOString()
+            }, { merge: true });
+        } catch (e) {
+            console.warn('Payroll sync note:', e);
+        }
     }
+
+    window.syncAllStaffToPayroll = async function() {
+        const activeList = allAgencyBookers.filter(b => b.status !== 'deleted');
+        if (activeList.length === 0) {
+            Swal.fire(
+                ebT('Info', 'معلومات'),
+                ebT('There are no staff members in this category yet.', 'اس کیٹیگری میں ابھی کوئی اسٹاف ممبر موجود نہیں ہے۔'),
+                'info'
+            );
+            return;
+        }
+        try {
+            await Promise.all(activeList.map(st => syncSingleStaffToPayroll(st)));
+            Swal.fire({
+                icon: 'success',
+                title: `✅ ${ebT('Team Synced with Payroll!', 'ٹیم پے رول کے ساتھ سنک ہو گئی!')}`,
+                text: ebT(
+                    `Salary and commission records for ${activeList.length} staff members synced with Expenses & Payroll.`,
+                    `${activeList.length} اسٹاف ممبرز کا تنخواہ اور کمیشن ریکارڈ اخراجات اور پے رول کے ساتھ سنک ہو گیا ہے۔`
+                ),
+                timer: 2400,
+                showConfirmButton: false
+            });
+        } catch (e) {
+            Swal.fire(ebT('Error', 'خرابی'), `${ebT('Payroll sync failed:', 'پے رول سنک ناکام:')} ${e.message}`, 'error');
+        }
+    };
+
+    // ============================================
+    // 📊 STAFF DEEP AUDIT MODAL
+    // ============================================
+    window.openStaffAuditModal = function(staffId) {
+        const st = allAgencyBookers.find(x => x.id === staffId);
+        if (!st) return;
+        lastAuditStaffId = staffId;
+        const perf = staffPerfMap[staffId] || { sales: 0, cashSales: 0, creditSales: 0, billsCount: 0, pendingCount: 0, unitsSold: 0, recentBills: [], itemMap: {} };
+        const rm = getRoleBadgeMeta(st.role);
+        const range = getStaffPeriodRange(activeStaffPeriod);
+        const target = Number(st.monthlyTarget || 0);
+        const salary = Number(st.baseSalary || 0);
+        const commPct = Number(st.commissionPct || 0);
+        const earnedComm = Math.round((perf.sales * commPct) / 100);
+        const targetPct = target > 0 ? Math.min(100, Math.round((perf.sales / target) * 100)) : 0;
+
+        document.getElementById('auditStaffTitle').innerHTML = `${rm.icon} ${st.name || st.email} — ${ebMix('Performance Audit', 'کارکردگی آڈٹ')}`;
+        document.getElementById('auditStaffSub').innerHTML = `${ebMix(rm.label, rm.labelUr)} • ${ebT('Area:', 'علاقہ:')} ${st.route || ebT('General', 'عمومی')} • ${ebT('Period:', 'مدت:')} ${ebMix(range.label, range.labelUr)} (${range.start} ${ebT('to', 'تا')} ${range.end})`;
+
+        const topItems = Object.values(perf.itemMap || {}).sort((a, b) => b.qty - a.qty).slice(0, 6);
+        const topItemsHtml = topItems.length > 0
+            ? topItems.map((it, idx) => `<span style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700;">#${idx + 1} ${it.name}: ${it.qty} ${ebT('units', 'یونٹس')} (Rs ${Math.round(it.rev).toLocaleString()})</span>`).join(' ')
+            : `<span style="color:#94a3b8; font-size:12px;">${ebMix('No items sold in selected period', 'منتخب مدت میں کوئی آئٹم فروخت نہیں ہوا')}</span>`;
+
+        const recentRows = (perf.recentBills || []).slice(0, 12).map(b => `
+            <tr style="border-bottom:1px solid #e2e8f0; font-size:12.5px;">
+                <td style="padding:7px 8px; font-weight:bold;">#${b.billNo}</td>
+                <td style="padding:7px 8px;">${b.date}</td>
+                <td style="padding:7px 8px;">${b.customer}</td>
+                <td style="padding:7px 8px; font-weight:800; color:#10b981;">Rs ${Math.round(b.amount).toLocaleString()}</td>
+                <td style="padding:7px 8px;"><span style="padding:2px 7px; border-radius:6px; font-size:11px; font-weight:bold; background:${b.status === 'pending' ? '#fef3c7; color:#b45309;' : '#dcfce7; color:#15803d;'}">${b.status.toUpperCase()}</span></td>
+            </tr>
+        `).join('');
+
+        document.getElementById('staffAuditBody').innerHTML = `
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(145px, 1fr)); gap:10px; margin-bottom:14px;">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 12px; border-radius:10px;">
+                    <div style="font-size:11px; color:#64748b; font-weight:bold;">${ebCompact('PERIOD SALES', 'مدت کی سیلز')}</div>
+                    <div style="font-size:18px; font-weight:900; color:#10b981;">Rs ${Math.round(perf.sales).toLocaleString()}</div>
+                    <div style="font-size:11px; color:#64748b;">${ebT('Units Sold:', 'فروخت شدہ یونٹس:')} ${perf.unitsSold}</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 12px; border-radius:10px;">
+                    <div style="font-size:11px; color:#64748b; font-weight:bold;">${ebCompact('BILLS / ORDERS', 'بلز / آرڈرز')}</div>
+                    <div style="font-size:18px; font-weight:900; color:#0f172a;">${perf.billsCount} ${ebT('Done', 'مکمل')}</div>
+                    <div style="font-size:11px; color:#f59e0b; font-weight:bold;">${perf.pendingCount} ${ebT('Pending Orders', 'زیر التوا آرڈرز')}</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 12px; border-radius:10px;">
+                    <div style="font-size:11px; color:#64748b; font-weight:bold;">${ebCompact('TARGET PROGRESS', 'ٹارگٹ پیش رفت')}</div>
+                    <div style="font-size:18px; font-weight:900; color:#0284c7;">${target > 0 ? `${targetPct}%` : ebT('No Target', 'کوئی ٹارگٹ نہیں')}</div>
+                    <div style="font-size:11px; color:#64748b;">${ebT('Target:', 'ٹارگٹ:')} Rs ${target.toLocaleString()}</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 12px; border-radius:10px;">
+                    <div style="font-size:11px; color:#64748b; font-weight:bold;">${ebCompact('SALARY + COMMISSION', 'تنخواہ + کمیشن')}</div>
+                    <div style="font-size:18px; font-weight:900; color:#db2777;">Rs ${(salary + earnedComm).toLocaleString()}</div>
+                    <div style="font-size:11px; color:#64748b;">${ebT('Base', 'بنیادی')} ${salary.toLocaleString()} + ${ebT('Comm', 'کمیشن')} ${earnedComm.toLocaleString()}</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:6px;">🔥 ${ebMix(`Top Selling Items by ${st.name || 'Staff'}:`, `${st.name || 'اسٹاف'} کی سب سے زیادہ فروخت ہونے والی اشیاء:`)}</div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">${topItemsHtml}</div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+                <div style="font-size:12px; font-weight:800; color:#334155; margin-bottom:6px;">🧾 ${ebMix('Recent Bills & Orders Handled:', 'حالیہ بلز اور آرڈرز:')}</div>
+                ${recentRows ? `
+                <div style="overflow-x:auto; border:1px solid #e2e8f0; border-radius:10px;">
+                    <table style="width:100%; border-collapse:collapse; text-align:left;">
+                        <thead>
+                            <tr style="background:#f1f5f9; font-size:11.5px; color:#475569;">
+                                <th style="padding:8px;">${ebCompact('Bill #', 'بل نمبر')}</th>
+                                <th style="padding:8px;">${ebCompact('Date', 'تاریخ')}</th>
+                                <th style="padding:8px;">${ebCompact('Customer / Party', 'کسٹمر / پارٹی')}</th>
+                                <th style="padding:8px;">${ebCompact('Amount', 'رقم')}</th>
+                                <th style="padding:8px;">${ebCompact('Status', 'اسٹیٹس')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>${recentRows}</tbody>
+                    </table>
+                </div>` : `<div style="padding:14px; background:#f8fafc; border-radius:8px; color:#64748b; font-size:12.5px; text-align:center;">${ebMix('No bill records found for this staff member in the selected period.', 'اس مدت میں اس اسٹاف ممبر کا کوئی بل ریکارڈ نہیں ملا۔')}</div>`}
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn" style="background:#25D366; color:#fff; font-weight:bold;" onclick="sendStaffAuditWhatsApp('${st.id}')">
+                    <i class="fab fa-whatsapp"></i> ${ebMix('Send Performance Report on WhatsApp', 'واٹس ایپ پر کارکردگی رپورٹ بھیجیں')}
+                </button>
+                <button type="button" class="btn" style="background:#e2e8f0; color:#334155;" onclick="closeStaffAuditModal()">${ebMix('Close', 'بند کریں')}</button>
+            </div>
+        `;
+        document.getElementById('staffAuditModalOverlay').style.display = 'flex';
+    };
+
+    window.closeStaffAuditModal = function() {
+        lastAuditStaffId = null;
+        document.getElementById('staffAuditModalOverlay').style.display = 'none';
+    };
+
+    window.sendStaffAuditWhatsApp = function(staffId) {
+        const st = allAgencyBookers.find(x => x.id === staffId);
+        if (!st) return;
+        const perf = staffPerfMap[staffId] || { sales: 0, billsCount: 0, pendingCount: 0 };
+        const target = Number(st.monthlyTarget || 0);
+        const commPct = Number(st.commissionPct || 0);
+        const earnedComm = Math.round((perf.sales * commPct) / 100);
+        const range = getStaffPeriodRange(activeStaffPeriod);
+
+        let msg = `📊 *Staff Performance Report — ${(myAgency && myAgency.name) || 'NH POS'}*\n`;
+        msg += `👤 *Name:* ${st.name}\n`;
+        msg += `📅 *Period:* ${range.label}\n`;
+        msg += `💰 *Total Sales:* Rs ${Math.round(perf.sales).toLocaleString()}\n`;
+        msg += `🧾 *Completed Bills:* ${perf.billsCount} (Pending: ${perf.pendingCount})\n`;
+        if (target > 0) {
+            msg += `🎯 *Monthly Target:* Rs ${target.toLocaleString()} (${Math.round((perf.sales / target) * 100)}% Achieved)\n`;
+        }
+        if (commPct > 0) {
+            msg += `📈 *Earned Commission (${commPct}%):* Rs ${earnedComm.toLocaleString()}\n`;
+        }
+        const cleanPhone = (st.mobile || '').replace(/\D/g, '');
+        const url = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
+    };
+
+    // ============================================
+    // 📥 EXPORT STAFF PERFORMANCE AUDIT CSV
+    // ============================================
+    window.exportStaffPerformanceCSV = function() {
+        if (allAgencyBookers.length === 0) {
+            Swal.fire(
+                ebT('Info', 'معلومات'),
+                ebT('No staff members available to export.', 'ایکسپورٹ کرنے کے لیے کوئی اسٹاف ممبر موجود نہیں۔'),
+                'info'
+            );
+            return;
+        }
+        const rows = [
+            ['Name', 'Role', 'Email', 'Mobile', 'Route / Zone', 'Status', 'Period Sales (Rs)', 'Cash Sales (Rs)', 'Credit Sales (Rs)', 'Completed Bills', 'Pending Orders', 'Monthly Target (Rs)', 'Commission %', 'Earned Commission (Rs)', 'Base Salary (Rs)']
+        ];
+        allAgencyBookers.filter(b => b.status !== 'deleted').forEach(st => {
+            const perf = staffPerfMap[st.id] || { sales: 0, cashSales: 0, creditSales: 0, billsCount: 0, pendingCount: 0 };
+            const rm = getRoleBadgeMeta(st.role);
+            const commPct = Number(st.commissionPct || 0);
+            const earnedComm = Math.round((perf.sales * commPct) / 100);
+            rows.push([
+                st.name || '',
+                rm.label,
+                st.email || '',
+                st.mobile || '',
+                st.route || '',
+                st.status || 'active',
+                Math.round(perf.sales || 0),
+                Math.round(perf.cashSales || 0),
+                Math.round(perf.creditSales || 0),
+                perf.billsCount || 0,
+                perf.pendingCount || 0,
+                Number(st.monthlyTarget || 0),
+                commPct,
+                earnedComm,
+                Number(st.baseSalary || 0)
+            ]);
+        });
+        const csvContent = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `staff_performance_audit_${getActiveOwnerCategory()}_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     // ============================================
     // 🔗 SHARE CREDENTIALS & LOGIN LINK
@@ -662,35 +1693,41 @@
     };
 
     function openShareModal(staffObj) {
+        lastShareStaffObj = staffObj;
         const appUrl = window.location.origin + '/auth.html';
-        const isSupplier = staffObj.role === 'supplier' || staffObj.role === 'delivery';
-        const roleTitle = isSupplier ? '🚚 Delivery Supplier / Salesman' : '📕 Order Booker';
+        const rm = getRoleBadgeMeta(staffObj.role);
+        const roleTitleHtml = `${rm.icon} ${ebMix(rm.label, rm.labelUr)}`;
+        const roleTitlePlain = `${rm.icon} ${rm.label}`;
 
         const card = document.getElementById('shareCredentialCard');
         card.innerHTML = `
             <div style="font-weight:800; font-size:15px; color:#0f172a; margin-bottom:6px;">${staffObj.name || staffObj.email}</div>
-            <div style="margin-bottom:4px;"><b>عہدہ (Role):</b> ${roleTitle}</div>
-            <div style="margin-bottom:4px;"><b>🏢 Agency:</b> ${(myAgency && myAgency.name) || 'Our Agency'}</div>
-            <div style="margin-bottom:4px;"><b>📧 Email / Login ID:</b> <span style="color:#0284c7; font-weight:bold;">${staffObj.email}</span></div>
-            <div style="margin-bottom:4px;"><b>📱 Mobile:</b> <span style="font-weight:bold;">${staffObj.mobile || '—'}</span></div>
-            <div style="margin-bottom:4px;"><b>🔑 Password:</b> <span style="font-family:monospace; background:#e2e8f0; padding:2px 6px; border-radius:4px;">${staffObj.tempPassword || '******'}</span></div>
-            <div style="margin-bottom:4px;"><b>📍 Assigned Route:</b> ${staffObj.route || 'General Depot'}</div>
+            <div style="margin-bottom:4px;"><b>${ebMix('Role:', 'عہدہ:')}</b> ${roleTitleHtml}</div>
+            <div style="margin-bottom:4px;"><b>🏢 ${ebMix('Agency:', 'ایجنسی:')}</b> ${(myAgency && myAgency.name) || ebT('Our Agency', 'ہماری ایجنسی')}</div>
+            <div style="margin-bottom:4px;"><b>📧 ${ebMix('Email / Login ID:', 'ای میل / لاگ اِن آئی ڈی:')}</b> <span style="color:#0284c7; font-weight:bold;">${staffObj.email}</span></div>
+            <div style="margin-bottom:4px;"><b>📱 ${ebMix('Mobile:', 'موبائل:')}</b> <span style="font-weight:bold;">${staffObj.mobile || '—'}</span></div>
+            <div style="margin-bottom:4px;"><b>🔑 ${ebMix('Password:', 'پاسورڈ:')}</b> <span style="font-family:monospace; background:#e2e8f0; padding:2px 6px; border-radius:4px;">${staffObj.tempPassword || '******'}</span></div>
+            <div style="margin-bottom:4px;"><b>📍 ${ebMix('Assigned Area/Zone:', 'مقررہ علاقہ/زون:')}</b> ${staffObj.route || ebT('General Area', 'عمومی علاقہ')}</div>
             <div style="margin-top:8px; word-break:break-all; font-size:12px; color:#64748b;">
-                <b>🔗 Login Link:</b> <a href="${appUrl}" target="_blank" style="color:#0284c7;">${appUrl}</a>
+                <b>🔗 ${ebMix('Login Link:', 'لاگ اِن لنک:')}</b> <a href="${appUrl}" target="_blank" style="color:#0284c7;">${appUrl}</a>
             </div>
             <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:8px 10px; margin-top:8px; font-size:11px; color:#1e40af;">
-                💡 <b>نوٹ:</b> اسٹاف اوپر دی گئی ای میل یا موبائل اور پاسورڈ درج کر کے لاگ اِن کرے، گوگل بٹن نہ دبائے۔
+                💡 <b>${ebT('Note:', 'نوٹ:')}</b> ${ebMix('Staff must sign in using the Email/Mobile and Password above — do NOT press the Google button.', 'اسٹاف اوپر دی گئی ای میل یا موبائل اور پاسورڈ درج کر کے لاگ اِن کرے، گوگل بٹن نہ دبائے۔')}
             </div>
         `;
 
         let waText = `Assalam-o-Alaikum ${staffObj.name}!\n`;
-        waText += `Aap ko *${(myAgency && myAgency.name) || 'Our Agency'}* mein *${roleTitle}* ke tor par add kar diya gaya hai.\n\n`;
+        waText += ebIsMix()
+            ? `Aap ko *${(myAgency && myAgency.name) || 'Our Agency'}* mein *${roleTitlePlain}* ke tor par add kar diya gaya hai.\n\n`
+            : `You have been added to *${(myAgency && myAgency.name) || 'Our Agency'}* as *${roleTitlePlain}*.\n\n`;
         waText += `🔗 *Login Portal:* ${appUrl}\n`;
         waText += `📧 *Email / Login ID:* ${staffObj.email}\n`;
-        waText += `📱 *Mobile (یا Login ID):* ${staffObj.mobile || '—'}\n`;
+        waText += `📱 *${ebIsMix() ? 'Mobile (یا Login ID)' : 'Mobile'}:* ${staffObj.mobile || '—'}\n`;
         waText += `🔑 *Password:* ${staffObj.tempPassword || '******'}\n`;
-        waText += `📍 *Assigned Route:* ${staffObj.route || 'General Depot'}\n\n`;
-        waText += `💡 *ہدایت:* لاگ اِن لنک کھولیں، ای میل یا موبائل اور پاسورڈ درج کر کے سبز بٹن Login دبائیں (گوگل والا بٹن نہ دبائیں)۔ Shukriya!`;
+        waText += `📍 *Assigned Area:* ${staffObj.route || 'General Area'}\n\n`;
+        waText += ebIsMix()
+            ? `💡 *ہدایت:* لاگ اِن لنک کھولیں، ای میل یا موبائل اور پاسورڈ درج کر کے سبز بٹن Login دبائیں (گوگل والا بٹن نہ دبائیں)۔ Shukriya!`
+            : `💡 *Instruction:* Open the login link, enter your Email/Mobile and Password, and tap the green Login button (do not use Google Sign-In). Thank you!`;
 
         document.getElementById('whatsappCredentialsBtn').onclick = () => {
             const cleanPhone = (staffObj.mobile || '').replace(/\D/g, '');
@@ -701,9 +1738,9 @@
         document.getElementById('copyCredentialsBtn').onclick = async () => {
             try {
                 await navigator.clipboard.writeText(waText);
-                Swal.fire({ toast: true, position: 'top-end', timer: 1800, icon: 'success', title: '📋 Login details copied to clipboard!' });
+                Swal.fire({ toast: true, position: 'top-end', timer: 1800, icon: 'success', title: `📋 ${ebT('Login details copied to clipboard!', 'لاگ اِن تفصیلات کاپی ہو گئیں!')}` });
             } catch (e) {
-                Swal.fire('Error', 'Clipboard copy failed', 'error');
+                Swal.fire(ebT('Error', 'خرابی'), ebT('Clipboard copy failed', 'کلپ بورڈ کاپی ناکام'), 'error');
             }
         };
 
@@ -711,23 +1748,36 @@
     }
 
     window.closeShareModal = () => {
+        lastShareStaffObj = null;
         document.getElementById('shareModalOverlay').style.display = 'none';
     };
 
     // ============================================
-    // ✏️ EDIT STAFF MEMBER (Name, Mobile, Route, Role)
+    // ✏️ EDIT STAFF MEMBER (Name, Mobile, Route, Role, Target, Salary, Commission)
     // ============================================
     window.openEditStaffModal = function(staffId) {
         const st = allAgencyBookers.find(x => x.id === staffId);
         if (!st) return;
 
         document.getElementById('editStaffId').value = staffId;
-        document.getElementById('editStaffRole').value = (st.role === 'supplier' || st.role === 'delivery') ? 'supplier' : 'booker';
+        document.getElementById('editStaffRole').value = st.role || 'booker';
         document.getElementById('editStaffName').value = st.name || '';
         document.getElementById('editStaffMobile').value = st.mobile || '';
         document.getElementById('editStaffRoute').value = st.route || '';
+        document.getElementById('editStaffTarget').value = st.monthlyTarget || '';
+        document.getElementById('editStaffSalary').value = st.baseSalary || '';
+        document.getElementById('editStaffCommission').value = st.commissionPct || '';
+        document.getElementById('editStaffShift').value = st.shiftDays || '';
         const editApproveCb = document.getElementById('editStaffApproveOrders');
         if (editApproveCb) editApproveCb.checked = !!(st.permissions && st.permissions.approve_orders);
+        const editGpsCb = document.getElementById('editStaffGpsRequired');
+        if (editGpsCb) {
+            const gpsUnlocked = window.EB_GPS && typeof window.EB_GPS.isSuperAdminUnlocked === 'function'
+                ? window.EB_GPS.isSuperAdminUnlocked(myAgency, window.__myProfile || { role: 'owner' })
+                : Boolean(myAgency && myAgency.permissions && myAgency.permissions.gps_tracking === true);
+            editGpsCb.disabled = !gpsUnlocked;
+            editGpsCb.checked = gpsUnlocked ? Boolean(st.gpsRequired || (st.permissions && st.permissions.gps_required)) : false;
+        }
 
         document.getElementById('editStaffModalOverlay').style.display = 'flex';
     };
@@ -743,51 +1793,186 @@
         const name = document.getElementById('editStaffName').value.trim();
         const mobile = document.getElementById('editStaffMobile').value.trim();
         const route = document.getElementById('editStaffRoute').value.trim();
+        const monthlyTarget = Number(document.getElementById('editStaffTarget').value || 0);
+        const baseSalary = Number(document.getElementById('editStaffSalary').value || 0);
+        const commissionPct = Number(document.getElementById('editStaffCommission').value || 0);
+        const shiftDays = document.getElementById('editStaffShift').value.trim();
         const allowApprove = document.getElementById('editStaffApproveOrders')?.checked || false;
+        const gpsUnlocked = window.EB_GPS && typeof window.EB_GPS.isSuperAdminUnlocked === 'function'
+            ? window.EB_GPS.isSuperAdminUnlocked(myAgency, window.__myProfile || { role: 'owner' })
+            : Boolean(myAgency && myAgency.permissions && myAgency.permissions.gps_tracking === true);
+        const reqGps = gpsUnlocked ? (document.getElementById('editStaffGpsRequired')?.checked || false) : false;
 
         const currentStaff = allAgencyBookers.find(x => x.id === staffId);
         const curPerms = (currentStaff && currentStaff.permissions) ? { ...currentStaff.permissions } : {};
         curPerms.approve_orders = allowApprove;
+        curPerms.gps_required = reqGps;
+
+        const updatePayload = {
+            role: role,
+            name: name,
+            mobile: mobile,
+            route: route,
+            monthlyTarget: monthlyTarget,
+            baseSalary: baseSalary,
+            commissionPct: commissionPct,
+            shiftDays: shiftDays,
+            gpsRequired: reqGps,
+            permissions: curPerms,
+            updatedAt: new Date().toISOString()
+        };
 
         try {
-            await db.collection('users').doc(staffId).update({
-                role: role,
-                name: name,
-                mobile: mobile,
-                route: route,
-                permissions: curPerms,
-                updatedAt: new Date().toISOString()
-            });
+            await db.collection('users').doc(staffId).update(updatePayload);
+            try { await db.collection('bookers').doc(staffId).update(updatePayload); } catch (_) {}
+            if (reqGps && myAgency && myAgency.gpsTrackingEnabled !== true) {
+                // Auto-enable Agency GPS switch when Owner turns on GPS for a booker
+                try {
+                    await db.collection('agencies').doc(myAgencyId).update({ gpsTrackingEnabled: true });
+                    myAgency.gpsTrackingEnabled = true;
+                } catch (_) {}
+            }
+            await syncSingleStaffToPayroll({ id: staffId, ...currentStaff, ...updatePayload });
 
             closeEditStaffModal();
             await loadBookers();
-            Swal.fire({ toast: true, position: 'top-end', timer: 1600, icon: 'success', title: '✅ Staff member updated!' });
+            Swal.fire({ toast: true, position: 'top-end', timer: 1600, icon: 'success', title: `✅ ${ebT('Staff member & targets updated!', 'اسٹاف ممبر اور ٹارگٹس اپڈیٹ ہو گئے!')}` });
         } catch (err) {
-            Swal.fire('Error', 'Update failed: ' + err.message, 'error');
+            Swal.fire(ebT('Error', 'خرابی'), `${ebT('Update failed:', 'اپڈیٹ ناکام:')} ${err.message}`, 'error');
         }
     });
 
+    // 📍 1-Click Per-Booker Mandatory GPS Toggle (Only available if Super Admin unlocked GPS on Paid Package)
+    window.toggleBookerGps = async function(bookerId, currentVal) {
+        const gpsUnlocked = window.EB_GPS && typeof window.EB_GPS.isSuperAdminUnlocked === 'function'
+            ? window.EB_GPS.isSuperAdminUnlocked(myAgency, window.__myProfile || { role: 'owner' })
+            : Boolean(myAgency && myAgency.permissions && myAgency.permissions.gps_tracking === true);
+
+        if (!gpsUnlocked) {
+            if (window.SaaSModules && typeof window.SaaSModules.showUpgradeModal === 'function') {
+                window.SaaSModules.showUpgradeModal('gps_tracking', myAgency, window.__myProfile || { role: 'owner' });
+            } else {
+                Swal.fire(
+                    `🔒 ${ebT('Locked', 'لاک شدہ')}`,
+                    ebT('GPS Live Location is locked by default — ask Super Admin to unlock it on a Paid Package.', 'GPS لائیو لوکیشن پہلے سے لاک ہے — سپر ایڈمن سے پیڈ پیکیج پر ان لاک کروائیں۔'),
+                    'info'
+                );
+            }
+            return;
+        }
+
+        const nextVal = !currentVal;
+        try {
+            const doc = await db.collection('users').doc(bookerId).get();
+            const perms = (doc.exists && doc.data().permissions) ? { ...doc.data().permissions } : {};
+            perms.gps_required = nextVal;
+            await db.collection('users').doc(bookerId).update({ gpsRequired: nextVal, permissions: perms });
+            try { await db.collection('bookers').doc(bookerId).update({ gpsRequired: nextVal, permissions: perms }); } catch (_) {}
+            if (nextVal && myAgency && myAgency.gpsTrackingEnabled !== true) {
+                try {
+                    await db.collection('agencies').doc(myAgencyId).update({ gpsTrackingEnabled: true });
+                    myAgency.gpsTrackingEnabled = true;
+                } catch (_) {}
+            }
+            Swal.fire({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, icon: 'success',
+                title: nextVal
+                    ? ebT('📍 Mandatory GPS turned ON for this staff member!', '📍 اس اسٹاف ممبر کے لیے لازمی GPS آن ہو گیا!')
+                    : ebT('⚪ GPS set to OFF (Optional) for this staff member!', '⚪ اس اسٹاف ممبر کا GPS آف (اختیاری) کر دیا گیا!')
+            });
+            loadBookers();
+        } catch (err) {
+            Swal.fire(ebT('Error', 'خرابی'), `${ebT('GPS toggle failed:', 'GPS تبدیلی ناکام:')} ${err.message}`, 'error');
+        }
+    };
+
+    // 🔒 Keep Create-Staff GPS Checkbox accurately locked/unlocked with Super Admin Tier 1 permission
+    function syncOwnerGpsFormControls() {
+        const gpsUnlocked = window.EB_GPS && typeof window.EB_GPS.isSuperAdminUnlocked === 'function'
+            ? window.EB_GPS.isSuperAdminUnlocked(myAgency, window.__myProfile || { role: 'owner' })
+            : Boolean(myAgency && myAgency.permissions && myAgency.permissions.gps_tracking === true);
+        const cb = document.getElementById('permGpsRequired');
+        const wrap = document.getElementById('lblPermGpsWrap');
+        if (cb) {
+            cb.disabled = !gpsUnlocked;
+            if (!gpsUnlocked) cb.checked = false;
+        }
+        if (wrap) {
+            wrap.style.opacity = gpsUnlocked ? '1' : '0.6';
+            wrap.title = gpsUnlocked
+                ? 'Enable mandatory GPS location for this staff member'
+                : 'GPS Live Location is locked by Super Admin (Paid Add-On)';
+        }
+    }
+    window.addEventListener('eb-gps-ready', () => {
+        syncOwnerGpsFormControls();
+        if (allAgencyBookers && allAgencyBookers.length > 0) renderBookersList();
+    });
+
+    // 🗺️ Open Live Google Maps Radar for Agency Team (Live Pings + Recent Shop Check-Ins)
+    window.openTeamGpsMap = async function(focusStaffId) {
+        const gpsUnlocked = window.EB_GPS && typeof window.EB_GPS.isSuperAdminUnlocked === 'function'
+            ? window.EB_GPS.isSuperAdminUnlocked(myAgency, window.__myProfile || { role: 'owner' })
+            : Boolean(myAgency && myAgency.permissions && myAgency.permissions.gps_tracking === true);
+
+        if (!gpsUnlocked) {
+            if (window.SaaSModules) {
+                window.SaaSModules.showUpgradeModal('gps_tracking', myAgency, window.__myProfile || { role: 'owner' });
+            }
+            return;
+        }
+        if (!window.EB_GPS) return;
+
+        const pins = allAgencyBookers
+            .filter(bk => bk.lastGpsLocation && Number.isFinite(Number(bk.lastGpsLocation.lat)))
+            .map(bk => ({
+                id: 'staff_' + bk.id,
+                label: `${bk.name || bk.email || ebT('Booker', 'بکر')} (Live Ping)`,
+                subLabel: bk.route ? `${ebT('Route:', 'روٹ:')} ${bk.route}` : ebT('Field Staff', 'فیلڈ اسٹاف'),
+                role: (bk.role === 'supplier' || bk.role === 'delivery' || bk.role === 'driver') ? 'supplier' : 'booker',
+                lat: Number(bk.lastGpsLocation.lat),
+                lng: Number(bk.lastGpsLocation.lng),
+                accuracy: bk.lastGpsLocation.accuracy,
+                capturedAt: bk.lastGpsLocation.capturedAt,
+                shopName: bk.lastGpsLocation.shopName || '',
+                route: bk.lastGpsLocation.route || bk.route || '',
+                mobile: bk.mobile || '',
+                note: bk.lastGpsLocation.note || ''
+            }));
+
+        if (typeof window.EB_GPS.fetchRecentCheckInPins === 'function' && db && myAgencyId) {
+            const checkInPins = await window.EB_GPS.fetchRecentCheckInPins(db, myAgencyId, 50);
+            checkInPins.forEach(p => pins.push(p));
+        }
+
+        window.EB_GPS.openLiveMapModal({
+            title: ebT('Live Field Staff & Order Booker GPS Radar', 'فیلڈ اسٹاف اور آرڈر بکر لائیو GPS ریڈار'),
+            agencyName: (myAgency && myAgency.name) || '',
+            pins,
+            focusPinId: focusStaffId ? ('staff_' + focusStaffId) : undefined
+        });
+    };
+
     // ============================================
-    // 🔑 CHANGE BOOKER PASSWORD (Adjustable!)
+    // 🔑 CHANGE BOOKER PASSWORD
     // ============================================
     async function changeBookerPassword(bookerId) {
-        // Purana password Firestore se lo (owner ke paas stored hai)
         const doc = await db.collection('users').doc(bookerId).get();
         if (!doc.exists) return;
         const bk = doc.data();
         const oldPass = bk.tempPassword || '';
 
         const result = await Swal.fire({
-            title: '🔑 Change Password',
-            text: `Booker: ${bk.email}`,
+            title: `🔑 ${ebT('Change Password', 'پاسورڈ تبدیل کریں')}`,
+            text: `${ebT('Staff:', 'اسٹاف:')} ${bk.email}`,
             input: 'text',
-            inputPlaceholder: 'Naya Password (min 6)',
+            inputPlaceholder: ebT('New Password (min 6 characters)', 'نیا پاسورڈ (کم از کم 6 حروف)'),
             showCancelButton: true,
             confirmButtonColor: '#f39c12',
-            confirmButtonText: '🔑 Change',
-            cancelButtonText: 'Cancel',
+            confirmButtonText: `🔑 ${ebT('Change', 'تبدیل کریں')}`,
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں'),
             inputValidator: (value) => {
-                if (!value || value.length < 6) return 'Min 6 characters!';
+                if (!value || value.length < 6) return ebT('Minimum 6 characters required!', 'کم از کم 6 حروف لازمی ہیں!');
             }
         });
 
@@ -795,72 +1980,77 @@
         const newPass = result.value;
 
         try {
-            // 🔧 SECONDARY APP: booker ki identity se login → password update!
             const secApp = firebase.initializeApp(firebaseConfig, 'PassChg-' + Date.now());
             const secAuth = secApp.auth();
 
-            const cred = await secAuth.signInWithEmailAndPassword(bk.email, oldPass);
-            await cred.user.updatePassword(newPass);
-            await secAuth.signOut();
-            secApp.delete();
+            try {
+                const cred = await secAuth.signInWithEmailAndPassword(bk.email, oldPass);
+                await cred.user.updatePassword(newPass);
+                await secAuth.signOut();
+            } catch (authSubErr) {
+                console.warn('Secondary auth password sync note:', authSubErr);
+            }
+            try { await secApp.delete(); } catch (_) {}
 
-            // Firestore mein stored password update
             await db.collection('users').doc(bookerId).update({
                 tempPassword: newPass,
                 passwordChangedAt: new Date().toISOString()
             });
+            try {
+                await db.collection('bookers').doc(bookerId).update({
+                    tempPassword: newPass,
+                    passwordChangedAt: new Date().toISOString()
+                });
+            } catch (_) {}
 
+            await loadBookers();
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
                 timer: 2200, icon: 'success',
-                title: '✅ Password changed!'
+                title: `✅ ${ebT('Password updated!', 'پاسورڈ تبدیل ہو گیا!')}`
             });
         } catch (e) {
             console.error(e);
-            let msg = 'Password change fail: ' + e.code;
-            if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
-                msg = 'Purana password match nahi hua! Booker ne shayad khud change kiya hai.';
-            }
-            Swal.fire('❌ Error', msg, 'error');
+            Swal.fire(`❌ ${ebT('Error', 'خرابی')}`, `${ebT('Password change failed:', 'پاسورڈ تبدیلی ناکام:')} ${e.message || e.code}`, 'error');
         }
     }
 
     // ============================================
-    // ⚡📦 PERMISSION TOGGLE (Instant, Stock, Khata, Reports)
+    // ⚡📦 PERMISSION TOGGLE
     // ============================================
     async function togglePerm(bookerId, perm, currentVal) {
         try {
             const doc = await db.collection('users').doc(bookerId).get();
-            const perms = doc.data().permissions || {};
+            const perms = (doc.exists && doc.data().permissions) ? doc.data().permissions : {};
             perms[perm] = !currentVal;
-            
-            // Kam az kam 1 bill permission honi chahiye (Instant ya Stock)!
+
             if (!perms.instant && !perms.stock) {
                 Swal.fire({
                     toast: true, position: 'top-end', showConfirmButton: false,
                     timer: 2000, icon: 'warning',
-                    title: '⚠️ Kam az kam 1 bill permission (Instant ya Stock) zaroori hai!'
+                    title: `⚠️ ${ebT('At least 1 billing permission is required!', 'کم از کم 1 بلنگ اجازت لازمی ہے!')}`
                 });
                 return;
             }
 
             const labelMap = {
-                'instant': '⚡ Instant Bill',
-                'stock': '📦 Stock Bill',
-                'customers': '👥 Customer Khata',
-                'reports': '📊 Reports',
-                'approve_orders': '⚖️ Order Self-Approval'
+                'instant': ebT('⚡ Instant Bill', '⚡ فوری بل'),
+                'stock': ebT('📦 Stock / POS Billing', '📦 اسٹاک / POS بلنگ'),
+                'customers': ebT('👥 Customer Khata', '👥 کسٹمر کھاتہ'),
+                'reports': ebT('📊 Reports', '📊 رپورٹس'),
+                'approve_orders': ebT('⚖️ Order Self-Approval', '⚖️ آرڈر خود منظوری')
             };
 
             await db.collection('users').doc(bookerId).update({ permissions: perms });
+            try { await db.collection('bookers').doc(bookerId).update({ permissions: perms }); } catch (_) {}
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
                 timer: 1500, icon: 'success',
-                title: `✅ ${labelMap[perm] || perm} ${perms[perm] ? 'ON' : 'OFF'}!`
+                title: `✅ ${labelMap[perm] || perm} ${perms[perm] ? ebT('ON', 'آن') : ebT('OFF', 'آف')}!`
             });
             loadBookers();
         } catch (e) {
-            Swal.fire('Error', e.code, 'error');
+            Swal.fire(ebT('Error', 'خرابی'), e.code || e.message, 'error');
         }
     }
 
@@ -874,30 +2064,38 @@
                 status: newStatus,
                 statusChangedAt: new Date().toISOString()
             });
+            try {
+                await db.collection('bookers').doc(bookerId).update({
+                    status: newStatus,
+                    statusChangedAt: new Date().toISOString()
+                });
+            } catch (_) {}
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
                 timer: 1800, icon: 'success',
-                title: newStatus === 'blocked' ? '🚫 Booker blocked!' : '✅ Booker unblocked!'
+                title: newStatus === 'blocked'
+                    ? `🚫 ${ebT('Staff member blocked!', 'اسٹاف ممبر بلاک کر دیا گیا!')}`
+                    : `✅ ${ebT('Staff member unblocked!', 'اسٹاف ممبر ان بلاک کر دیا گیا!')}`
             });
             loadBookers();
         } catch (e) {
-            Swal.fire('Error', e.code, 'error');
+            Swal.fire(ebT('Error', 'خرابی'), e.code || e.message, 'error');
         }
     }
 
     // ============================================
-    // 🗑️ DELETE BOOKER (soft delete)
+    // 🗑️ DELETE STAFF (soft delete)
     // ============================================
     async function deleteBooker(bookerId, name) {
         const result = await Swal.fire({
-            title: '🗑️ Delete Booker?',
-            html: `<b>${name}</b> ko delete karna hai?<br>
-                   <small style="color:#e74c3c;">Booker login NAHI kar payega.</small>`,
+            title: `🗑️ ${ebT('Delete Staff Member?', 'اسٹاف ممبر حذف کریں؟')}`,
+            html: `${ebT(`Are you sure you want to delete <b>${name}</b>?`, `کیا آپ واقعی <b>${name}</b> کو حذف کرنا چاہتے ہیں؟`)}<br>
+                   <small style="color:#e74c3c;">${ebT('This staff member will no longer be able to log in.', 'یہ اسٹاف ممبر اب لاگ اِن نہیں کر سکے گا۔')}</small>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#c0392b',
-            confirmButtonText: '🗑️ Delete',
-            cancelButtonText: 'Cancel'
+            confirmButtonText: `🗑️ ${ebT('Delete', 'حذف کریں')}`,
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں')
         });
         if (!result.isConfirmed) return;
 
@@ -906,38 +2104,48 @@
                 status: 'deleted',
                 deletedAt: new Date().toISOString()
             });
+            try {
+                await db.collection('bookers').doc(bookerId).update({
+                    status: 'deleted',
+                    deletedAt: new Date().toISOString()
+                });
+            } catch (_) {}
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
                 timer: 1800, icon: 'success',
-                title: '🗑️ Booker deleted!'
+                title: `🗑️ ${ebT('Staff member deleted!', 'اسٹاف ممبر حذف کر دیا گیا!')}`
             });
             loadBookers();
         } catch (e) {
-            Swal.fire('Error', e.code, 'error');
+            Swal.fire(ebT('Error', 'خرابی'), e.code || e.message, 'error');
         }
     }
 
-    const oLogout = document.getElementById('logoutBtn');
-    if (oLogout) {
-        oLogout.addEventListener('click', async () => {
-            const result = await Swal.fire({
-                title: 'Logout?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#e74c3c',
-                confirmButtonText: 'Yes',
-                cancelButtonText: 'Cancel'
-            });
-            if (result.isConfirmed) {
-                await auth.signOut();
-                window.location.href = 'auth.html';
+    // ============================================
+    // 🌐 INITIAL BILINGUAL SYNC & LIVE LANGUAGE SWITCH LISTENER
+    // ============================================
+    ebApplyBilingualDom(document);
+    ebRefreshStaticSelects();
+
+    if (!window.__ebOwnerLangBound) {
+        window.__ebOwnerLangBound = true;
+        window.addEventListener('eb-lang-changed', () => {
+            applyCategoryOwnerUI();
+            updateBookerLimitBadge();
+            renderExecutiveStaffKPIs();
+            renderBookersList();
+            if (lastAuditStaffId && document.getElementById('staffAuditModalOverlay')?.style.display === 'flex') {
+                window.openStaffAuditModal(lastAuditStaffId);
+            }
+            if (lastShareStaffObj && document.getElementById('shareModalOverlay')?.style.display === 'flex') {
+                openShareModal(lastShareStaffObj);
             }
         });
     }
 </script>
 
-    <!-- 🧭 SIDEBAR SYSTEM -->
+<!-- 🧭 SIDEBAR SYSTEM -->
 <script src="sidebar.js"></script>
-    
+
 </body>
 </html>

@@ -28,6 +28,7 @@ import {
   Clock,
   Lock
 } from 'lucide-react';
+import LiveGpsMapModal, { GpsMapPayload } from './components/LiveGpsMapModal';
 
 interface ModuleCard {
   id: string;
@@ -158,6 +159,8 @@ export default function App() {
     return localStorage.getItem('eb_session_autolock') !== 'false';
   });
   const [sessionExpired, setSessionExpired] = useState<boolean>(false);
+  const [mapsQuotaExceeded, setMapsQuotaExceeded] = useState<boolean>(false);
+  const [gpsMapPayload, setGpsMapPayload] = useState<GpsMapPayload | null>(null);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -320,6 +323,8 @@ export default function App() {
         }
         lastActivityRef.current = Date.now();
         setSessionExpired(false);
+      } else if (data.type === 'OPEN_GPS_MAP' && data.payload) {
+        setGpsMapPayload(data.payload as GpsMapPayload);
       } else if (
         data.type === 'TOAST' ||
         data.type === 'NOTIFY' ||
@@ -337,6 +342,10 @@ export default function App() {
       }
     };
 
+    const handleGmpQuotaExceeded = () => {
+      setMapsQuotaExceeded(true);
+    };
+
     const handleOnline = () => {
       setConnectionStatus('connected');
       setStatusTooltip('Online');
@@ -348,11 +357,13 @@ export default function App() {
     };
 
     window.addEventListener('message', handleMessage);
+    window.addEventListener('gmp-quota-exceeded', handleGmpQuotaExceeded);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
     return () => {
       window.removeEventListener('message', handleMessage);
+      window.removeEventListener('gmp-quota-exceeded', handleGmpQuotaExceeded);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
@@ -470,6 +481,24 @@ export default function App() {
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
       isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'
     }`}>
+      {/* Google Maps Platform Quota Defense Banner */}
+      {mapsQuotaExceeded && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
+          <span>
+            Google Maps Platform quota reached. If you are the app owner, visit{' '}
+            <a
+              href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-semibold text-amber-950 hover:text-amber-800"
+            >
+              maps developer site
+            </a>{' '}
+            for instructions to update your account.
+          </span>
+        </div>
+      )}
+
       {/* Top Application Bar */}
       <header className={`px-4 py-2.5 flex items-center justify-between sticky top-0 z-50 shadow-md transition-colors duration-200 ${
         isDark 
@@ -1019,6 +1048,11 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* 📍 LIVE ORDER BOOKER GOOGLE MAPS RADAR MODAL */}
+      <LiveGpsMapModal
+        payload={gpsMapPayload}
+        onClose={() => setGpsMapPayload(null)}
+      />
     </div>
   );
 }

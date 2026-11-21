@@ -1,7 +1,7 @@
 # NH POS & Wholesale Distribution ERP System (Master Documentation)
 
-> **Documentation Version:** 9.0 (Updated: Distributor & FMCG Agency 100% Complete — All 7 Phases [Sub-Phases A–G] Audited, All 11 Print & Thermal Templates Verified, and Master Automated Test Suite Certified)  
-> **Active PWA Version:** `5.7.4` (`nhpos-pwa-v5.7.4-live`)  
+> **Documentation Version:** 10.0 (Updated: All 15 Sidebar Options [#1–#15] 100% Audited & Upgraded, 10–25+ Sub-Agency Hub, Universal SQL/CSV-to-Cloud Converter, 8-Tab Profit Engine, and 100% Per-Category Mix-Fix Isolation Certified)  
+> **Active PWA Version:** `5.8.1` (`nhpos-pwa-v5.8.1-live`)  
 > **Architecture:** Vite + React Shell + Progressive Web App (PWA) + HTML5/ES6 Standalone Core Modules  
 > **Backend Integration:** Cloud Functions / Firebase & Netlify Ready Architecture (Secrets Protected)  
 > **Languages:** Dual Language Documentation — **Roman Urdu** (حصہ اول) & **Pure Urdu** (حصہ دوم)
@@ -24,6 +24,7 @@
    - 1.11 [1 Category = 1 Independent Database (Category Switch Data Protection)](#111-1-category--1-independent-database-category-switch-data-protection)
    - 1.12 [Multi-Distribution (5–10+ Agencies) Management & Profit Comparison](#112-multi-distribution-510-agencies-management--profit-comparison)
    - 1.13 [20 Business Categories & Completed 7-Phase Audits (Master Changelog)](#113-20-business-categories--completed-7-phase-audits-master-changelog)
+   - 1.14 [All 15 Sidebar Options (A-to-Z Complete Audit & Advanced Upgrades)](#114-all-15-sidebar-options-a-to-z-complete-audit--advanced-upgrades)
 2. [PART 2: خالص اردو ماسٹر گائیڈ (PURE URDU DOCUMENTATION)](#part-2-خالص-اردو-ماسٹر-گائیڈ-pure-urdu-documentation)
    - 2.1 [سافٹ ویئر کا تعارف اور خصوصیات](#21-سافٹ-ویئر-کا-تعارف-اور-خصوصیات)
    - 2.2 [سسٹم آرکیٹیکچر اور کلاؤڈ رولز](#22-سسٹم-آرکیٹیکچر-اور-کلاؤڈ-رولز)
@@ -38,6 +39,7 @@
    - 2.11 [ہر کیٹیگری کا الگ ڈیٹابیس (1 Category = 1 Database) اور ڈیٹا تحفظ](#211-ہر-کیٹیگری-کا-الگ-ڈیٹابیس-1-category--1-database-اور-ڈیٹا-تحفظ)
    - 2.12 [ملٹی ڈسٹری بیوشن (5 تا 10+ ایجنسیز) اور منافع کا مکمل مقابلہ](#212-ملٹی-ڈسٹری-بیوشن-5-تا-10-ایجنسیز-اور-منافع-کا-مکمل-مقابلہ)
    - 2.13 [کاروباری کیٹیگریز اور مکمل شدہ 7 فیزز آڈٹ لاگ (Changelog)](#213-کاروباری-کیٹیگریز-اور-مکمل-شدہ-7-فیزز-آڈٹ-لاگ-changelog)
+   - 2.14 [سائیڈ بار کے تمام 15 آپشنز (A-to-Z مکمل اپگریڈ اور آڈٹ ریکارڈ)](#214-سائیڈ-بار-کے-تمام-15-آپشنز-a-to-z-مکمل-اپگریڈ-اور-آڈٹ-ریکارڈ)
 
 ---
 
@@ -276,6 +278,38 @@ Har category ke boxes, units, aur items doosri category se **100% isolated** hai
 | Other 14 Categories | `general`, `garments`, `electronics`, `hardware`, `auto`, `footwear`, `cosmetics`, `bakeries`, `fertilizer`, `furniture`, `jewelry`, `computers`, `optics`, `other` | Full dynamic industry fields, units, subcategories, customer segments, and strict cross-category UI/database isolation active in `public/business-categories.js`. |
 
 ---
+
+## 1.14 All 15 Sidebar Options (A-to-Z Complete Audit & Advanced Upgrades — `v5.8.1`)
+Sidebar ke tamam **15 ke 15 options** ko kram-waar (1 se 15 tak) mukammal audit, bug-fix aur upgrade kiya gaya hai taake har Business Category (`books`, `mobile`, `medical`, `wholesaler`, `restaurant`, `distributor`, aur aagay aane wali tamam categories) 100% dedicated software ki tarah kaam karein:
+
+1. **#1 Dashboard (`dashboard.html`):** Category-isolated KPIs, Today's Sales, Pending Orders, Low Stock Alerts, aur Staff/Booker Performance cards.
+2. **#2 Create New Bill / POS (`bills.html` & `bills.js`):** Category-specific billing inputs (Restaurant KOT & Table/Delivery, Medical Loose Strip/Tablet & FEFO Expiry guard, Mobile 15-Digit IMEI & Trade-In, Wholesaler Bardana/Tulai/Bilty, Books Session/Specimen, Distributor Carton/Bonus `12+1` & T.O %) + 11 Print & Thermal Templates.
+3. **#3 Booker Orders & Dispatch (`booker-orders.html` & `booker-orders.js`):** Field Order Booker / Waiter KOT / Salesman orders queue, consolidated Van Loading Challan & Godown Gate Pass, aur 1-click Invoice conversion.
+4. **#4 Delivery & Sale Returns (`delivery-returns.html` & `delivery-returns.js`):** Van Supplyman cash/khata settlement aur Customer/Delivery Unsold Return Inward (`0 Profit / 0 Loss` stock restoration).
+5. **#5 Damage, Expire & Claims (`delivery-returns.html?tab=claims`):** Category-isolated claim reasons (`cat_dist_*`, Kitchen Wastage, Medical Short-Expiry, Mobile DOA/LCD fault, Books Misprint, Mandi Moisture/Shortage) + Principal/Supplier Claim Recovery Ledger.
+6. **#6 Stock & Inventory Manager (`stock.html` & `stock.js`):** Dynamic industry fields, custom Brand/Principal/Kitchen Station/Publisher manager, barcode generator, aur multi-tier pricing.
+7. **#7 Customers & Khata (`customers.html` & `customers.js`):** Category-specific customer segments, Weekly PJP Route (`پیر تا ہفتہ`) filter, Credit Limit guard, aur WhatsApp Khata Ledger statement.
+8. **#8 Daily Expenses & Payroll (`expenses.html` & `expenses.js`):** Category-specific expense categories, Staff Salary Payroll generator, Commission %, aur Peshgi (Advance) deduction.
+9. **#9 Low Stock Alerts & FEFO Expiry Radar (`alerts.html` & `alerts.js`):** Out-of-Stock, Low Stock, Expired, Critical (`<=30d`) aur Warning (`<=90d`) Batch Radar + Master Carton reorder calculator & WhatsApp Purchase Order.
+10. **#10 Multi-Agency / Sub-Branch Hub (`multi-agency.html` & `multi-agency.js`):**
+    - Sidebar mein **`SETTINGS` section ke bilkul upar** (`🏢 Sub-Agency / Branch Switcher` + `📊 + Add / Audit`) relocate kiya gaya hai taake jin owners ki ek hi agency ho unhein top par clutter na dikhe, aur jin ke paas **10, 20 ya 25+ Sub-Agencies** hon woh aasani se switch aur compare kar sakein.
+    - **6-Tab A-to-Z Audit Matrix** (Financial P&L, Stock & Fast/Slow Moving, Staff & Payroll, Customer Khata & Recovery, Claims/Returns/Orders, Expense Breakdown), **8 Min/Max Spotlight Cards**, **Head-to-Head Branch Comparator**, aur **Deep Branch Audit Modal**.
+11. **#11 Staff, Bookers & Team Performance Hub (`owner.html`):**
+    - Category-isolated staff roles & logins (`Order Booker`, `Waiter / Captain`, `Pharmacist`, `Sales Advisor / Lab Tech`, `Mandi Munshi`, `Delivery Rider`).
+    - **6 Team Performance & Payroll KPI Cards**, Monthly Sales Target Progress Bars, Auto Commission calculation, **1-Click Payroll Sync (`payroll_staff`)**, aur **Deep Staff Audit Modal** with WhatsApp report.
+12. **#12 Profit Analytics & COGS Engine (`profit.html` & `profit.js`):**
+    - **8 Category-Adaptive Profit Views** (Bill-wise, Item-wise, Customer-wise, Category-wise, Daily/Monthly Trend, Expense vs Gross Profit, **Tab #7: Principal Agency / Kitchen Station / Publisher / Pharma Company Profit**, aur **Tab #8: Staff / Booker / Waiter Profit Contribution**).
+    - Final Net Profit mein unrecovered **Damage / Expiry / Wastage Claims Loss** ki automatic deduction aur Sub-Agency switcher support.
+13. **#13 Reports & Analytics Engine (`reports.html` & `reports.js`):**
+    - `getCategoryReportMeta()` ke zariye tamam **7 General Report Tabs** (`Sales`, `Best Sellers`, `Slow & Dead Stock`, `Claims & Returns`, `Damage & Lost`, `Staff Performance`, `Customer Khata Aging`) aur **Category-Specific Report Tabs** ke Titles, KPIs aur Table Columns active category ke mutabiq 100% isolate kiye gaye hain.
+14. **#14 Advanced Backup, Restore & Universal SQL/CSV Converter (`backup.html` & `backup.js`):**
+    - **5-Format Complete Agency Backup Download:** `.JSON` Snapshot, `.SQL` Full Database Dump (`CREATE TABLE` + `INSERT INTO`), `.XLS` Multi-Sheet Microsoft Excel Workbook, `.CSV` Master Archive, aur `.HTML` Printable Audit Book.
+    - **Universal `.SQL` & `.CSV` Converter Studio (No-SQL Bridge):** Kisi bhi puranay software (MySQL, PostgreSQL, SQLite, PHP POS, Busy/Tally) ki `.sql` ya `.csv` file ko direct upload ya paste kar ke auto-map کرنے، live preview dekhne، `.JSON` mein convert karne ya seedha Cloud Database mein Merge/Clean Restore karne ka mukammal engine.
+15. **#15 Cloud Sync, Shift Schedule & Agency Settings (`settings.html` & `settings.js`):**
+    - **Category-Specific Operational & Industry Rules (`categorySettings[activeCat]`):** Har category ke apne khususiyat ke usool (Restaurant KOT/Service Charge, Medical License/FEFO Guard, Mobile IMEI/Warranty, Books Session/Specimen, Wholesaler Bardana/Arhat, Distributor Free Bonus Scheme/PJP).
+    - **Live Local Cache Inspector & Admin Force Sync:** PKT 2-Shift Cloud Sync (12 AM–12 PM & 12 PM–12 AM) ke sath active category ke cached Stock & Customers counter aur Owner/Admin Force Re-Sync button.
+
+---
 ---
 
 # PART 2: خالص اردو ماسٹر گائیڈ (PURE URDU DOCUMENTATION)
@@ -439,3 +473,25 @@ Har category ke boxes, units, aur items doosri category se **100% isolated** hai
 * **📦 Wholesaler & Bulk Mandi (`wholesaler`):** مکمل 7 فیزز آڈٹ شدہ (تھوک منڈی سسٹم: بوری، کٹہ، پیٹی، توڑا، من 40 کلو، باردانہ وزن کٹوتی، 3 ٹیئر ہول سیل ریٹ، بلٹی/گیٹ پاس/ٹرک/ڈرائیور/باردانہ مزدوری چارجز اور منڈی کلیم واؤچر)۔
 * **🍔 Restaurant, Fast Food & Cafe (`restaurant`):** مکمل 7 فیزز آڈٹ شدہ (فاسٹ فوڈ، پیزا، بروسٹ، باربی کیو، کیفے اسٹیشنز، سائز و فلیور ویرینٹس، کومبو ڈیلز، کچن KOT زون، ڈائن ان ٹیبل/ٹیک اوے/ہوم ڈلیوری رائیڈر فیس، اور فوڈ کاسٹ کیلکولیٹر)۔
 * **🚚 Distributor & FMCG Agency (`distributor`):** **مکمل 7 فیزز آڈٹ شدہ (100% Complete — Phases A to G Certified):** ہول سیلر سے بالکل الگ، 100 فیصد برانڈ نیوٹرل ایف ایم سی جی ایجنسی سسٹم (بسکٹ، نمکو، چپس، بے بی ڈائپرز، مشروبات، صابن، چائے، کنفیکشنری — بغیر کسی فکس کمپنی نام کے، کسٹم کمپنی/ایجنسی `+ Add / ✏️ Edit / 🗑️ Delete` منیجر، ماسٹر کارٹن و ڈبہ پیکنگ، پرنٹڈ MRP بمقابلہ ٹریڈ پرائس TP، ٹریڈ آفر T.O %، فری اسکیم/بونس رولز `12+1` آٹو کیلکولیشن، ہفتہ وار روٹ پلان `Weekly Route Day / PJP Beat — پیر تا ہفتہ`، `📅 Today's Route / آج کا ہفتہ وار روٹ` فلٹر، کنسولیڈیٹڈ ماسٹر کارٹن + لوز پیسز وین لوڈنگ چالان و گودام گیٹ پاس، وین ڈلیوری کیش/کھاتہ سیٹلمنٹ، ان سولڈ واپسی مال، کمپنی ایکسپائری/ڈیمج کلیمز، ڈلیوری وین ڈیزل/فیول، بکر روٹ الاؤنس/بھتہ، گودام لوڈنگ مزدوری، اسٹاف تنخواہ و پیشگی کٹوتی، 4 موڈ ایف ایم سی جی رپورٹس، 10+ پرنسپل کمپنیز منافع مقابلہ، ملٹی ایجنسی برانچ آئسولیشن، کم اسٹاک و FEFO ایکسپائری الرٹس، ہر کیٹیگری کا الگ محفوظ بیک اپ و ریسٹور سسٹم، تمام 11 پرنٹ و تھرمل بل ٹیمپلیٹس، اور مکمل آٹومیٹڈ ٹیسٹنگ سوئیٹ)۔
+
+---
+
+## 2.14 سائیڈ بار کے تمام 15 آپشنز (A-to-Z مکمل اپگریڈ اور آڈٹ ریکارڈ — `v5.8.1`)
+سائیڈ بار کے تمام **15 آپشنز (نمبر 1 سے 15 تک)** کو مکمل طور پر اپگریڈ اور ٹیسٹ کیا جا چکا ہے تاکہ ہر کاروباری کیٹیگری ایک 100 فیصد مخصوص (Dedicated) سافٹ ویئر کی طرح کام کرے اور کسی ایک کیٹیگری کا ڈیٹا، الفاظ یا اسٹاف لاگ ان دوسری کیٹیگری میں مکس نہ ہو:
+
+1. **#1 ڈیش بورڈ (`dashboard.html`):** ہر کیٹیگری کے الگ اعداد و شمار، آج کی سیلز، آرڈرز اور اسٹاف پرفارمنس۔
+2. **#2 نیا بل بنائیں / POS (`bills.html`):** کیٹیگری کے مطابق مخصوص بلنگ باکسز اور 11 پرنٹ و تھرمل ٹیمپلیٹس۔
+3. **#3 آرڈر بکر آرڈرز و ڈسپیچ (`booker-orders.html`):** فیلڈ آرڈرز، کچن KOT، وین لوڈنگ چالان اور گودام گیٹ پاس۔
+4. **#4 ڈلیوری اور سیل ریٹرن (`delivery-returns.html`):** وین سپلائی سیٹلمنٹ اور واپس آنے والے مال کی اسٹاک میں بحالی۔
+5. **#5 ڈیمیج، ایکسپائری اور کلیمز (`delivery-returns.html?tab=claims`):** ہر کیٹیگری کی الگ کلیم وجوہات اور کمپنی/سپلائر کلیم ریکوری۔
+6. **#6 اسٹاک اور انوینٹری مینیجر (`stock.html`):** ہر کیٹیگری کے الگ یونٹس، برانڈز/کمپنیز اور ریٹس۔
+7. **#7 کسٹمرز اور کھاتہ رجسٹر (`customers.html`):** ہفتہ وار روٹ (PJP)، کسٹمر سیگمنٹس، کریڈٹ لمٹ اور واٹس ایپ کھاتہ اسٹیٹمنٹ۔
+8. **#8 روزانہ اخراجات اور اسٹاف تنخواہ (`expenses.html`):** کیٹیگری کے مطابق اخراجات کی مدات، تنخواہ، کمیشن اور پیشگی کٹوتی۔
+9. **#9 کم اسٹاک الرٹس اور ایکسپائری ریڈار (`alerts.html`):** کم اسٹاک، ایکسپائرڈ اور نیئر ایکسپائری (`30/90` دن) ریڈار اور کارٹن ری آرڈر کیلکولیٹر۔
+10. **#10 ملٹی ایجنسی / سب برانچ ہب (`multi-agency.html`):** سائیڈ بار میں سیٹنگز کے بالکل اوپر منتقل کیا گیا؛ 10 سے 25+ سب ایجنسیز کا 6-ٹیب اے ٹو زیڈ آڈٹ میٹرکس، کم از کم/زیادہ سے زیادہ اسپاٹ لائٹ کارڈز اور برانچ مقابلہ۔
+11. **#11 اسٹاف، بکرز اور ٹیم پرفارمنس (`owner.html`):** ہر کیٹیگری کے الگ اسٹاف رولز، ماہانہ ٹارگٹ، کمیشن، 1-کلک پے رول سنک اور ڈیپ اسٹاف آڈٹ موڈل۔
+12. **#12 پرافٹ اینالٹکس اور خالص منافع (`profit.html`):** 8 منافع رپورٹس (بشمول ٹیب #7 کمپنی/اسٹیشن/پبلشر منافع اور ٹیب #8 اسٹاف منافع شیئر + کلیم لاس کٹوتی)۔
+13. **#13 رپورٹس اور اینالٹکس انجن (`reports.html`):** تمام 7 جنرل رپورٹس اور کیٹیگری رپورٹس کے ٹائٹلز اور کالمز ایکٹیو کیٹیگری کے مطابق 100 فیصد الگ۔
+14. **#14 ایڈوانسڈ بیک اپ، ریسٹور اور یونیورسل SQL/CSV کنورٹر (`backup.html`):** 5 فارمیٹس (`.JSON`, `.SQL`, `.XLS`, `.CSV`, `.HTML`) میں مکمل بیک اپ ڈاؤن لوڈ اور کسی بھی پرانے سافٹ ویئر کی `.SQL` یا `.CSV` فائل کو براہِ راست کنورٹ اور کلاؤڈ میں اپلوڈ کرنے کا اسٹوڈیو۔
+15. **#15 کلاؤڈ سنک، شفٹ شیڈول اور ایجنسی سیٹنگز (`settings.html`):** ہر کیٹیگری کے الگ آپریشنل اصول (`categorySettings`)، لائیو لوکل کیشے انسپکٹر اور ایڈمن فورس کلاؤڈ سنک۔
+

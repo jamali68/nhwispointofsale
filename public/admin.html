@@ -252,22 +252,22 @@
     <!-- ===== 📑 SUPER ADMIN EXECUTIVE TABS ===== -->
     <div class="admin-nav" id="adminTabsNav">
         <button type="button" class="admin-nav-btn active" data-tab="tabOverview">
-            <i class="fas fa-chart-pie"></i> Executive Overview <span class="ur-sub">(پلیٹ فارم خلاصہ)</span>
+            <i class="fas fa-chart-pie"></i> <span data-eb-en="Executive Overview" data-eb-ur="پلیٹ فارم خلاصہ">Executive Overview</span>
         </button>
         <button type="button" class="admin-nav-btn" data-tab="tabLeaderboard">
-            <i class="fas fa-trophy"></i> Rankings &amp; Store Intelligence <span class="ur-sub">(رینکنگ و کارکردگی)</span>
+            <i class="fas fa-trophy"></i> <span data-eb-en="Rankings &amp; Store Intelligence" data-eb-ur="رینکنگ و کارکردگی">Rankings &amp; Store Intelligence</span>
         </button>
         <button type="button" class="admin-nav-btn" data-tab="tabAgencies">
-            <i class="fas fa-building"></i> Client Stores &amp; Agencies (<span id="tabAgencyCountBadge">0</span>)
+            <i class="fas fa-building"></i> <span data-eb-en="Client Stores &amp; Agencies" data-eb-ur="کلائنٹ اسٹورز اور ایجنسیاں">Client Stores &amp; Agencies</span> (<span id="tabAgencyCountBadge">0</span>)
         </button>
         <button type="button" class="admin-nav-btn" data-tab="tabPackages">
-            <i class="fas fa-cubes"></i> Customizable Packages <span class="ur-sub">(پیکیج مینیجر)</span>
+            <i class="fas fa-cubes"></i> <span data-eb-en="Customizable Packages" data-eb-ur="پیکیج مینیجر">Customizable Packages</span>
         </button>
         <button type="button" class="admin-nav-btn" data-tab="tabRequests">
-            <i class="fas fa-inbox"></i> Upgrade Requests (<span id="tabUpgradeCountBadge">0</span>)
+            <i class="fas fa-inbox"></i> <span data-eb-en="Upgrade Requests" data-eb-ur="اپ گریڈ درخواستیں">Upgrade Requests</span> (<span id="tabUpgradeCountBadge">0</span>)
         </button>
         <button type="button" class="admin-nav-btn" data-tab="tabCreateAgency">
-            <i class="fas fa-plus-circle"></i> Register Store <span class="ur-sub">(نئی دکان رجسٹریشن)</span>
+            <i class="fas fa-plus-circle"></i> <span data-eb-en="Register Store" data-eb-ur="نئی دکان رجسٹریشن">Register Store</span>
         </button>
     </div>
 
@@ -278,50 +278,50 @@
         <div class="panel-card" style="border-top-color:#10b981;">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div>
-                    <h2><i class="fas fa-coins"></i> SaaS Platform Executive Command Center</h2>
-                    <small class="header-note">تمام رجسٹرڈ ایجنسیوں کی مجموعی سیلز، بلز، اسٹاک اور ماہانہ آمدنی کا لائیو جائزہ</small>
+                    <h2><i class="fas fa-coins"></i> <span data-eb-en="SaaS Platform Executive Command Center" data-eb-ur="ساس پلیٹ فارم ایگزیکٹو کمانڈ سینٹر">SaaS Platform Executive Command Center</span></h2>
+                    <small class="header-note" data-eb-en="Live overview of total sales, invoices, inventory, and monthly recurring revenue across all registered agencies" data-eb-ur="تمام رجسٹرڈ ایجنسیوں کی مجموعی سیلز، بلز، اسٹاک اور ماہانہ آمدنی کا لائیو جائزہ">Live overview of total sales, invoices, inventory, and monthly recurring revenue across all registered agencies</small>
                 </div>
                 <button class="btn btn-sm" id="refreshAdminBtn" style="background:#0284c7; color:#fff; font-weight:bold;">
-                    <i class="fas fa-sync-alt"></i> Refresh Platform Data
+                    <i class="fas fa-sync-alt"></i> <span data-eb-en="Refresh Platform Data" data-eb-ur="پلیٹ فارم ڈیٹا ریفریش کریں">Refresh Platform Data</span>
                 </button>
             </div>
 
             <!-- 9-Card Platform KPI Matrix -->
             <div class="saas-metrics-grid">
                 <div class="saas-metric-card" style="--card-accent:#10b981;">
-                    <div class="saas-metric-lbl">Monthly Recurring Revenue (MRR)</div>
+                    <div class="saas-metric-lbl" data-eb-en="Monthly Recurring Revenue (MRR)" data-eb-ur="ماہانہ آمدنی (MRR)" data-eb-compact="1">Monthly Recurring Revenue (MRR)</div>
                     <div class="saas-metric-val" id="metricMRR" style="color:#10b981;">Rs 0</div>
                 </div>
                 <div class="saas-metric-card" style="--card-accent:#0284c7;">
-                    <div class="saas-metric-lbl">Total Registered Stores</div>
+                    <div class="saas-metric-lbl" data-eb-en="Total Registered Stores" data-eb-ur="کل رجسٹرڈ اسٹورز" data-eb-compact="1">Total Registered Stores</div>
                     <div class="saas-metric-val" id="metricTotalAgencies">0</div>
                 </div>
                 <div class="saas-metric-card" style="--card-accent:#16a34a;">
-                    <div class="saas-metric-lbl">Active Paid Subscriptions</div>
+                    <div class="saas-metric-lbl" data-eb-en="Active Paid Subscriptions" data-eb-ur="فعال پیڈ سبسکرپشنز" data-eb-compact="1">Active Paid Subscriptions</div>
                     <div class="saas-metric-val" id="metricActiveSubs" style="color:#16a34a;">0</div>
                 </div>
                 <div class="saas-metric-card" style="--card-accent:#f59e0b;">
-                    <div class="saas-metric-lbl">Expiring in 7 Days</div>
+                    <div class="saas-metric-lbl" data-eb-en="Expiring in 7 Days" data-eb-ur="7 دن میں ختم ہونے والی" data-eb-compact="1">Expiring in 7 Days</div>
                     <div class="saas-metric-val" id="metricDueSubs" style="color:#f59e0b;">0</div>
                 </div>
                 <div class="saas-metric-card" style="--card-accent:#ef4444;">
-                    <div class="saas-metric-lbl">Expired / Overdue Stores</div>
+                    <div class="saas-metric-lbl" data-eb-en="Expired / Overdue Stores" data-eb-ur="میعاد ختم / زائد المیعاد" data-eb-compact="1">Expired / Overdue Stores</div>
                     <div class="saas-metric-val" id="metricExpiredSubs" style="color:#ef4444;">0</div>
                 </div>
                 <div class="saas-metric-card" style="--card-accent:#64748b;">
-                    <div class="saas-metric-lbl">Inactive / Suspended Stores</div>
+                    <div class="saas-metric-lbl" data-eb-en="Inactive / Suspended Stores" data-eb-ur="غیر فعال / معطل اسٹورز" data-eb-compact="1">Inactive / Suspended Stores</div>
                     <div class="saas-metric-val" id="metricSuspendedSubs" style="color:#64748b;">0</div>
                 </div>
                 <div class="saas-metric-card" style="--card-accent:#8b5cf6;">
-                    <div class="saas-metric-lbl">Total Platform Gross Sales</div>
+                    <div class="saas-metric-lbl" data-eb-en="Total Platform Gross Sales" data-eb-ur="پلیٹ فارم کی کل سیلز" data-eb-compact="1">Total Platform Gross Sales</div>
                     <div class="saas-metric-val" id="metricTotalPlatformSales" style="color:#8b5cf6;">Rs 0</div>
                 </div>
                 <div class="saas-metric-card" style="--card-accent:#0ea5e9;">
-                    <div class="saas-metric-lbl">Total Invoices &amp; Bills Printed</div>
+                    <div class="saas-metric-lbl" data-eb-en="Total Invoices &amp; Bills Printed" data-eb-ur="کل پرنٹ شدہ بلز" data-eb-compact="1">Total Invoices &amp; Bills Printed</div>
                     <div class="saas-metric-val" id="metricTotalPlatformBills" style="color:#0ea5e9;">0</div>
                 </div>
                 <div class="saas-metric-card" style="--card-accent:#10b981;">
-                    <div class="saas-metric-lbl">Today's Platform Bills</div>
+                    <div class="saas-metric-lbl" data-eb-en="Today's Platform Bills" data-eb-ur="آج کے کل بلز" data-eb-compact="1">Today's Platform Bills</div>
                     <div class="saas-metric-val" id="metricTodayPlatformBills" style="color:#10b981;">0</div>
                 </div>
             </div>
@@ -334,19 +334,19 @@
                     </div>
                     <div>
                         <div style="font-size:13.5px; font-weight:800; color:#f8fafc;">
-                            Developer Support &amp; Cloud SLA: <span style="color:#22c55e;">+923346800959</span>
+                            <span data-eb-en="Developer Support &amp; Cloud SLA:" data-eb-ur="ڈویلپر سپورٹ اور کلاؤڈ SLA:">Developer Support &amp; Cloud SLA:</span> <span style="color:#22c55e;">+923346800959</span>
                         </div>
-                        <div style="font-size:11.5px; color:#94a3b8;">
-                            سافٹ ویئر کے لائیو سرورز، نیٹلی فائی سرور لیس فنکشنز اور فائر بیس کلاؤڈ الرٹس فعال ہیں۔
+                        <div style="font-size:11.5px; color:#94a3b8;" data-eb-en="Live servers, Netlify serverless functions, and Firebase cloud alerts are active." data-eb-ur="سافٹ ویئر کے لائیو سرورز، نیٹلی فائی سرور لیس فنکشنز اور فائر بیس کلاؤڈ الرٹس فعال ہیں۔">
+                            Live servers, Netlify serverless functions, and Firebase cloud alerts are active.
                         </div>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px;">
                     <a href="https://wa.me/923346800959?text=Assalam-o-Alaikum%20Developer!%20Super%20Admin%20Support" target="_blank" class="btn btn-sm" style="background:#25D366; color:#fff; text-decoration:none; font-weight:800; display:inline-flex; align-items:center; gap:6px;">
-                        <i class="fab fa-whatsapp"></i> WhatsApp Dev
+                        <i class="fab fa-whatsapp"></i> <span data-eb-en="WhatsApp Dev" data-eb-ur="ڈویلپر واٹس ایپ">WhatsApp Dev</span>
                     </a>
                     <button type="button" class="btn btn-sm" style="background:#8b5cf6; color:#fff; font-weight:800;" onclick="switchAdminTab('tabLeaderboard')">
-                        <i class="fas fa-trophy"></i> View Rankings
+                        <i class="fas fa-trophy"></i> <span data-eb-en="View Rankings" data-eb-ur="رینکنگ دیکھیں">View Rankings</span>
                     </button>
                 </div>
             </div>
@@ -361,34 +361,34 @@
         <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
                 <div style="font-weight:800; font-size:15px; color:#0f172a;">
-                    <i class="fas fa-graduation-cap" style="color:#8b5cf6;"></i> Store Performance &amp; Stock Grading Intelligence (کارکردگی و اسٹاک درجہ بندی)
+                    <i class="fas fa-graduation-cap" style="color:#8b5cf6;"></i> <span data-eb-en="Store Performance &amp; Stock Grading Intelligence" data-eb-ur="کارکردگی و اسٹاک درجہ بندی">Store Performance &amp; Stock Grading Intelligence</span>
                 </div>
-                <small style="color:#64748b;">سیلز، بلنگ اسپیڈ اور گودام کے اسٹاک والیم کے مطابق مکمل تجزیہ</small>
+                <small style="color:#64748b;" data-eb-en="Complete analysis based on sales, billing velocity, and warehouse inventory volume" data-eb-ur="سیلز، بلنگ اسپیڈ اور گودام کے اسٹاک والیم کے مطابق مکمل تجزیہ">Complete analysis based on sales, billing velocity, and warehouse inventory volume</small>
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
                 <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:10px; padding:10px 14px;">
-                    <div style="font-weight:800; color:#b45309; font-size:12.5px;">⭐ Grade A (Top Performer)</div>
-                    <div style="font-size:11px; color:#92400e; margin-top:2px;">سیلز &gt; Rs 50,000 یا 30+ بلز — ٹاپ حجم</div>
+                    <div style="font-weight:800; color:#b45309; font-size:12.5px;" data-eb-en="⭐ Grade A (Top Performer)" data-eb-ur="گریڈ A (ٹاپ پرفارمر)">⭐ Grade A (Top Performer)</div>
+                    <div style="font-size:11px; color:#92400e; margin-top:2px;" data-eb-en="Sales > Rs 50,000 or 30+ bills — Top Volume" data-eb-ur="سیلز > Rs 50,000 یا 30+ بلز — ٹاپ حجم">Sales &gt; Rs 50,000 or 30+ bills — Top Volume</div>
                 </div>
                 <div style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:10px; padding:10px 14px;">
-                    <div style="font-weight:800; color:#0369a1; font-size:12.5px;">🥈 Grade B (Steady Medium)</div>
-                    <div style="font-size:11px; color:#075985; margin-top:2px;">سیلز Rs 15k - 50k یا 10 - 30 بلز</div>
+                    <div style="font-weight:800; color:#0369a1; font-size:12.5px;" data-eb-en="🥈 Grade B (Steady Medium)" data-eb-ur="گریڈ B (متوازن کارکردگی)">🥈 Grade B (Steady Medium)</div>
+                    <div style="font-size:11px; color:#075985; margin-top:2px;" data-eb-en="Sales Rs 15k – 50k or 10 – 30 bills" data-eb-ur="سیلز Rs 15k - 50k یا 10 - 30 بلز">Sales Rs 15k – 50k or 10 – 30 bills</div>
                 </div>
                 <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:10px; padding:10px 14px;">
-                    <div style="font-weight:800; color:#475569; font-size:12.5px;">🥉 Grade C (Starter)</div>
-                    <div style="font-size:11px; color:#334155; margin-top:2px;">شروعاتی سیلز و کم بلز حجم</div>
+                    <div style="font-weight:800; color:#475569; font-size:12.5px;" data-eb-en="🥉 Grade C (Starter)" data-eb-ur="گریڈ C (ابتدائی)">🥉 Grade C (Starter)</div>
+                    <div style="font-size:11px; color:#334155; margin-top:2px;" data-eb-en="Early-stage sales &amp; low billing volume" data-eb-ur="شروعاتی سیلز و کم بلز حجم">Early-stage sales &amp; low billing volume</div>
                 </div>
                 <div style="background:#dcfce7; border:1px solid #86efac; border-radius:10px; padding:10px 14px;">
-                    <div style="font-weight:800; color:#15803d; font-size:12.5px;">🟢 High Stock (Top Warehouse)</div>
-                    <div style="font-size:11px; color:#166534; margin-top:2px;">500+ یونٹس یا 100+ ورائٹی آئٹمز</div>
+                    <div style="font-weight:800; color:#15803d; font-size:12.5px;" data-eb-en="🟢 High Stock (Top Warehouse)" data-eb-ur="زیادہ اسٹاک (ٹاپ گودام)">🟢 High Stock (Top Warehouse)</div>
+                    <div style="font-size:11px; color:#166534; margin-top:2px;" data-eb-en="500+ units or 100+ distinct items" data-eb-ur="500+ یونٹس یا 100+ ورائٹی آئٹمز">500+ units or 100+ distinct items</div>
                 </div>
                 <div style="background:#fef9c3; border:1px solid #fde047; border-radius:10px; padding:10px 14px;">
-                    <div style="font-weight:800; color:#854d0e; font-size:12.5px;">🟡 Medium Stock (Standard)</div>
-                    <div style="font-size:11px; color:#713f12; margin-top:2px;">50 تا 500 یونٹس معتدل اسٹاک</div>
+                    <div style="font-weight:800; color:#854d0e; font-size:12.5px;" data-eb-en="🟡 Medium Stock (Standard)" data-eb-ur="درمیانہ اسٹاک (معیاری)">🟡 Medium Stock (Standard)</div>
+                    <div style="font-size:11px; color:#713f12; margin-top:2px;" data-eb-en="50 to 500 units moderate stock" data-eb-ur="50 تا 500 یونٹس معتدل اسٹاک">50 to 500 units moderate stock</div>
                 </div>
                 <div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:10px; padding:10px 14px;">
-                    <div style="font-weight:800; color:#b91c1c; font-size:12.5px;">🔴 Low Stock (Alert / Restock)</div>
-                    <div style="font-size:11px; color:#991b1b; margin-top:2px;">50 سے کم یونٹس یا الرٹ پر آئٹمز</div>
+                    <div style="font-weight:800; color:#b91c1c; font-size:12.5px;" data-eb-en="🔴 Low Stock (Alert / Restock)" data-eb-ur="کم اسٹاک (الرٹ / ری اسٹاک)">🔴 Low Stock (Alert / Restock)</div>
+                    <div style="font-size:11px; color:#991b1b; margin-top:2px;" data-eb-en="Under 50 units or low-stock alert items" data-eb-ur="50 سے کم یونٹس یا الرٹ پر آئٹمز">Under 50 units or low-stock alert items</div>
                 </div>
             </div>
         </div>
@@ -399,12 +399,12 @@
             <div class="leaderboard-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                     <div style="font-weight:800; font-size:14px; color:#0f172a;">
-                        🏆 Top Sales Leaderboard <span class="ur-sub">(سب سے زیادہ سیلز)</span>
+                        <span data-eb-en="🏆 Top Sales Leaderboard" data-eb-ur="سب سے زیادہ سیلز">🏆 Top Sales Leaderboard</span>
                     </div>
-                    <span class="branch-badge" style="background:#fef3c7; color:#b45309; font-weight:800;">By Revenue</span>
+                    <span class="branch-badge" style="background:#fef3c7; color:#b45309; font-weight:800;" data-eb-en="By Revenue" data-eb-ur="آمدنی کے لحاظ سے">By Revenue</span>
                 </div>
                 <div id="leaderboardSalesList" style="overflow-x:auto;">
-                    <div class="loading-inline">Loading sales ranking...</div>
+                    <div class="loading-inline" data-eb-en="Loading sales ranking..." data-eb-ur="سیلز رینکنگ لوڈ ہو رہی ہے...">Loading sales ranking...</div>
                 </div>
             </div>
 
@@ -412,12 +412,12 @@
             <div class="leaderboard-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                     <div style="font-weight:800; font-size:14px; color:#0f172a;">
-                        🧾 Top Bill Generators <span class="ur-sub">(سب سے زیادہ بل بنانے والے)</span>
+                        <span data-eb-en="🧾 Top Bill Generators" data-eb-ur="سب سے زیادہ بل بنانے والے">🧾 Top Bill Generators</span>
                     </div>
-                    <span class="branch-badge" style="background:#e0f2fe; color:#0369a1; font-weight:800;">By Total Invoices</span>
+                    <span class="branch-badge" style="background:#e0f2fe; color:#0369a1; font-weight:800;" data-eb-en="By Total Invoices" data-eb-ur="کل بلز کے لحاظ سے">By Total Invoices</span>
                 </div>
                 <div id="leaderboardBillsList" style="overflow-x:auto;">
-                    <div class="loading-inline">Loading bills ranking...</div>
+                    <div class="loading-inline" data-eb-en="Loading bills ranking..." data-eb-ur="بلز رینکنگ لوڈ ہو رہی ہے...">Loading bills ranking...</div>
                 </div>
             </div>
 
@@ -425,12 +425,12 @@
             <div class="leaderboard-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                     <div style="font-weight:800; font-size:14px; color:#0f172a;">
-                        📦 Top Inventory Holding <span class="ur-sub">(سب سے بڑا اسٹاک رکھنے والی دکانیں)</span>
+                        <span data-eb-en="📦 Top Inventory Holding" data-eb-ur="سب سے بڑا اسٹاک رکھنے والی دکانیں">📦 Top Inventory Holding</span>
                     </div>
-                    <span class="branch-badge" style="background:#dcfce7; color:#15803d; font-weight:800;">By Stock Items</span>
+                    <span class="branch-badge" style="background:#dcfce7; color:#15803d; font-weight:800;" data-eb-en="By Stock Items" data-eb-ur="اسٹاک آئٹمز کے لحاظ سے">By Stock Items</span>
                 </div>
                 <div id="leaderboardStockList" style="overflow-x:auto;">
-                    <div class="loading-inline">Loading stock ranking...</div>
+                    <div class="loading-inline" data-eb-en="Loading stock ranking..." data-eb-ur="اسٹاک رینکنگ لوڈ ہو رہی ہے...">Loading stock ranking...</div>
                 </div>
             </div>
 
@@ -438,12 +438,12 @@
             <div class="leaderboard-card">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                     <div style="font-weight:800; font-size:14px; color:#b91c1c;">
-                        ⚠️ Stock Alert Watchlist <span class="ur-sub">(کم اسٹاک کی الرٹ واچ لسٹ)</span>
+                        <span data-eb-en="⚠️ Stock Alert Watchlist" data-eb-ur="کم اسٹاک کی الرٹ واچ لسٹ">⚠️ Stock Alert Watchlist</span>
                     </div>
-                    <span class="branch-badge" style="background:#fee2e2; color:#b91c1c; font-weight:800;">Needs Reorder</span>
+                    <span class="branch-badge" style="background:#fee2e2; color:#b91c1c; font-weight:800;" data-eb-en="Needs Reorder" data-eb-ur="ری آرڈر درکار">Needs Reorder</span>
                 </div>
                 <div id="leaderboardAlertsList" style="overflow-x:auto;">
-                    <div class="loading-inline">Loading stock warnings...</div>
+                    <div class="loading-inline" data-eb-en="Loading stock warnings..." data-eb-ur="اسٹاک الرٹس لوڈ ہو رہے ہیں...">Loading stock warnings...</div>
                 </div>
             </div>
         </div>
@@ -456,44 +456,44 @@
         <div class="panel-card" style="border-top-color:#f59e0b;">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div>
-                    <h2><i class="fas fa-building"></i> Client Agencies &amp; Store Governance (<span id="agencyCount">0</span>)</h2>
-                    <small class="header-note">دکانوں کی مکمل نگرانی، ماڈیولز لاک و ان لاک، سسپنڈ اور فیس کی تجدید</small>
+                    <h2><i class="fas fa-building"></i> <span data-eb-en="Client Agencies &amp; Store Governance" data-eb-ur="کلائنٹ ایجنسیاں اور اسٹور نگرانی">Client Agencies &amp; Store Governance</span> (<span id="agencyCount">0</span>)</h2>
+                    <small class="header-note" data-eb-en="Complete store governance, module lock/unlock, account suspension, and subscription renewal" data-eb-ur="دکانوں کی مکمل نگرانی، ماڈیولز لاک و ان لاک، سسپنڈ اور فیس کی تجدید">Complete store governance, module lock/unlock, account suspension, and subscription renewal</small>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <input type="text" id="agencySearchInput" placeholder="🔍 Search name, email, phone..." style="padding:7px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; min-width:180px; background:#fff; outline:none; color:#1e293b;">
+                    <input type="text" id="agencySearchInput" placeholder="🔍 Search name, email, phone..." data-eb-ph-en="🔍 Search name, email, phone..." data-eb-ph-ur="🔍 نام، ای میل یا فون تلاش کریں..." style="padding:7px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; min-width:180px; background:#fff; outline:none; color:#1e293b;">
                     <select id="agencyCategoryFilter" style="padding:7px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:600; background:#fff; outline:none; color:#1e293b;">
-                        <option value="all">📂 All Business Types</option>
+                        <option value="all" data-eb-en="📂 All Business Types" data-eb-ur="تمام کاروباری اقسام">📂 All Business Types</option>
                     </select>
                     <select id="agencyStatusFilter" style="padding:7px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:600; background:#fff; outline:none; color:#1e293b;">
-                        <option value="all">⚡ All Statuses</option>
-                        <option value="active">🟢 Active</option>
-                        <option value="due">🟠 Expiring in 7 Days</option>
-                        <option value="expired">🔴 Expired</option>
-                        <option value="suspended">⛔ Suspended / Frozen</option>
+                        <option value="all" data-eb-en="⚡ All Statuses" data-eb-ur="تمام اسٹیٹس">⚡ All Statuses</option>
+                        <option value="active" data-eb-en="🟢 Active" data-eb-ur="فعال">🟢 Active</option>
+                        <option value="due" data-eb-en="🟠 Expiring in 7 Days" data-eb-ur="7 دن میں ختم">🟠 Expiring in 7 Days</option>
+                        <option value="expired" data-eb-en="🔴 Expired" data-eb-ur="میعاد ختم">🔴 Expired</option>
+                        <option value="suspended" data-eb-en="⛔ Suspended / Frozen" data-eb-ur="معطل / منجمد">⛔ Suspended / Frozen</option>
                     </select>
                     <select id="agencyGradeFilter" style="padding:7px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:600; background:#fff; outline:none; color:#1e293b;">
-                        <option value="all">⭐ All Grades</option>
-                        <option value="A">⭐ Grade A (Top Performer)</option>
-                        <option value="B">🥈 Grade B (Medium)</option>
-                        <option value="C">🥉 Grade C (Starter)</option>
+                        <option value="all" data-eb-en="⭐ All Grades" data-eb-ur="تمام گریڈز">⭐ All Grades</option>
+                        <option value="A" data-eb-en="⭐ Grade A (Top Performer)" data-eb-ur="گریڈ A (ٹاپ پرفارمر)">⭐ Grade A (Top Performer)</option>
+                        <option value="B" data-eb-en="🥈 Grade B (Medium)" data-eb-ur="گریڈ B (درمیانہ)">🥈 Grade B (Medium)</option>
+                        <option value="C" data-eb-en="🥉 Grade C (Starter)" data-eb-ur="گریڈ C (ابتدائی)">🥉 Grade C (Starter)</option>
                     </select>
                     <select id="agencyStockFilter" style="padding:7px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:600; background:#fff; outline:none; color:#1e293b;">
-                        <option value="all">📦 All Stock Levels</option>
-                        <option value="high">🟢 High Stock (Top Inventory)</option>
-                        <option value="medium">🟡 Medium Stock (Moderate)</option>
-                        <option value="low">🔴 Low Stock (Alert / Restock)</option>
+                        <option value="all" data-eb-en="📦 All Stock Levels" data-eb-ur="تمام اسٹاک لیولز">📦 All Stock Levels</option>
+                        <option value="high" data-eb-en="🟢 High Stock (Top Inventory)" data-eb-ur="زیادہ اسٹاک">🟢 High Stock (Top Inventory)</option>
+                        <option value="medium" data-eb-en="🟡 Medium Stock (Moderate)" data-eb-ur="درمیانہ اسٹاک">🟡 Medium Stock (Moderate)</option>
+                        <option value="low" data-eb-en="🔴 Low Stock (Alert / Restock)" data-eb-ur="کم اسٹاک / الرٹ">🔴 Low Stock (Alert / Restock)</option>
                     </select>
                     <select id="agencySortFilter" style="padding:7px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:12px; font-weight:600; background:#fff; outline:none; color:#1e293b;">
-                        <option value="sales">💰 Sort: Highest Sales</option>
-                        <option value="bills">🧾 Sort: Most Bills</option>
-                        <option value="today">⚡ Sort: Most Today Bills</option>
-                        <option value="stockHigh">📦 Sort: Highest Stock</option>
-                        <option value="stockLow">⚠️ Sort: Lowest Stock</option>
+                        <option value="sales" data-eb-en="💰 Sort: Highest Sales" data-eb-ur="ترتیب: سب سے زیادہ سیلز">💰 Sort: Highest Sales</option>
+                        <option value="bills" data-eb-en="🧾 Sort: Most Bills" data-eb-ur="ترتیب: سب سے زیادہ بلز">🧾 Sort: Most Bills</option>
+                        <option value="today" data-eb-en="⚡ Sort: Most Today Bills" data-eb-ur="ترتیب: آج کے سب سے زیادہ بلز">⚡ Sort: Most Today Bills</option>
+                        <option value="stockHigh" data-eb-en="📦 Sort: Highest Stock" data-eb-ur="ترتیب: سب سے زیادہ اسٹاک">📦 Sort: Highest Stock</option>
+                        <option value="stockLow" data-eb-en="⚠️ Sort: Lowest Stock" data-eb-ur="ترتیب: سب سے کم اسٹاک">⚠️ Sort: Lowest Stock</option>
                     </select>
                 </div>
             </div>
             <div id="agenciesList">
-                <div class="loading-inline">Loading client agencies and live performance metrics...</div>
+                <div class="loading-inline" data-eb-en="Loading client agencies and live performance metrics..." data-eb-ur="کلائنٹ ایجنسیاں اور لائیو کارکردگی ڈیٹا لوڈ ہو رہا ہے...">Loading client agencies and live performance metrics...</div>
             </div>
         </div>
     </div>
@@ -505,16 +505,16 @@
         <div class="panel-card" style="border-top-color:#8b5cf6;">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div>
-                    <h2><i class="fas fa-cubes"></i> Customizable SaaS Package Tiers &amp; Pricing Controls</h2>
-                    <small class="header-note">تمام پیکیجز کے نام، قیمت، بلز، آئٹمز اور بکرز کی لمٹس 100% کسٹمائز کریں یا نیا پیکیج بنائیں</small>
+                    <h2><i class="fas fa-cubes"></i> <span data-eb-en="Customizable SaaS Package Tiers &amp; Pricing Controls" data-eb-ur="ساس پیکیج ٹائرز اور قیمت کنٹرول">Customizable SaaS Package Tiers &amp; Pricing Controls</span></h2>
+                    <small class="header-note" data-eb-en="100% customize package names, fees, bills, items, and booker limits or create a new package" data-eb-ur="تمام پیکیجز کے نام، قیمت، بلز، آئٹمز اور بکرز کی لمٹس 100% کسٹمائز کریں یا نیا پیکیج بنائیں">100% customize package names, fees, bills, items, and booker limits or create a new package</small>
                 </div>
                 <button type="button" class="btn btn-sm" id="btnAddNewPackage" style="background:#10b981; color:#fff; font-weight:800; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
-                    <i class="fas fa-plus"></i> ➕ Create New Custom Package
+                    <i class="fas fa-plus"></i> <span data-eb-en="➕ Create New Custom Package" data-eb-ur="نیا کسٹم پیکیج بنائیں">➕ Create New Custom Package</span>
                 </button>
             </div>
 
             <div id="packagesEditor">
-                <div class="loading-inline">Loading customizable packages...</div>
+                <div class="loading-inline" data-eb-en="Loading customizable packages..." data-eb-ur="پیکیجز لوڈ ہو رہے ہیں...">Loading customizable packages...</div>
             </div>
         </div>
     </div>
@@ -526,15 +526,15 @@
         <div class="panel-card" style="border-top-color:#10b981;">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div>
-                    <h2><i class="fas fa-inbox"></i> Incoming Package Upgrade &amp; Fee Requests (<span id="upgradeReqCount">0</span>)</h2>
-                    <small class="header-note">کلائنٹس کی طرف سے پیکیج اپ گریڈ اور فیس ادائیگی کی درخواستیں — 1 کلک میں ان لاک کریں</small>
+                    <h2><i class="fas fa-inbox"></i> <span data-eb-en="Incoming Package Upgrade &amp; Fee Requests" data-eb-ur="پیکیج اپ گریڈ اور فیس درخواستیں">Incoming Package Upgrade &amp; Fee Requests</span> (<span id="upgradeReqCount">0</span>)</h2>
+                    <small class="header-note" data-eb-en="Package upgrade and fee payment requests from clients — unlock in 1 click" data-eb-ur="کلائنٹس کی طرف سے پیکیج اپ گریڈ اور فیس ادائیگی کی درخواستیں — 1 کلک میں ان لاک کریں">Package upgrade and fee payment requests from clients — unlock in 1 click</small>
                 </div>
                 <button class="btn btn-sm" style="background:#0284c7; color:#fff; font-weight:bold;" onclick="loadUpgradeRequests()">
-                    <i class="fas fa-sync-alt"></i> Refresh Requests
+                    <i class="fas fa-sync-alt"></i> <span data-eb-en="Refresh Requests" data-eb-ur="درخواستیں ریفریش کریں">Refresh Requests</span>
                 </button>
             </div>
             <div id="upgradeRequestsList">
-                <div class="loading-inline">Loading requests...</div>
+                <div class="loading-inline" data-eb-en="Loading requests..." data-eb-ur="درخواستیں لوڈ ہو رہی ہیں...">Loading requests...</div>
             </div>
         </div>
     </div>
@@ -545,80 +545,71 @@
     <div class="admin-tab-pane" id="tabCreateAgency">
         <div class="panel-card" style="border-top-color:#3b82f6;">
             <div class="card-header">
-                <h2><i class="fas fa-plus-circle"></i> Register New Store &amp; Assign Package</h2>
-                <small class="header-note">نیا کلائنٹ رجسٹر کریں۔ ازخود بنیادی 🆓 Free Starter پیکیج منتخب رہے گا</small>
+                <h2><i class="fas fa-plus-circle"></i> <span data-eb-en="Register New Store &amp; Assign Package" data-eb-ur="نیا اسٹور رجسٹر کریں اور پیکیج تفویض کریں">Register New Store &amp; Assign Package</span></h2>
+                <small class="header-note" data-eb-en="Register a new client store. Free Starter package is selected by default." data-eb-ur="نیا کلائنٹ رجسٹر کریں۔ ازخود بنیادی Free Starter پیکیج منتخب رہے گا">Register a new client store. Free Starter package is selected by default.</small>
             </div>
             <form id="createAgencyForm" class="panel-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>🏢 Agency / Store Business Name *</label>
-                        <input type="text" id="agName" placeholder="e.g. GS Bag House" required maxlength="60">
+                        <label data-eb-en="🏢 Agency / Store Business Name *" data-eb-ur="ایجنسی / دکان کا نام *">🏢 Agency / Store Business Name *</label>
+                        <input type="text" id="agName" placeholder="e.g. GS Bag House" data-eb-ph-en="e.g. GS Bag House" data-eb-ph-ur="مثلاً جی ایس بیگ ہاؤس" required maxlength="60">
                     </div>
                     <div class="form-group">
-                        <label>🏪 Business Type Category *</label>
+                        <label data-eb-en="🏪 Business Type Category *" data-eb-ur="کاروبار کی قسم *">🏪 Business Type Category *</label>
                         <select id="agType" required>
-                            <option value="books">📚 Book Depot &amp; Stationery (بک ڈپو و اسٹیشنری / بک پوائنٹ)</option>
-                            <option value="mobile">📱 Mobile Shop &amp; Accessories (موبائل اور ایسیسریز)</option>
-                            <option value="medical">💊 Medical Store &amp; Pharmacy (میڈیکل اسٹور و فارمیسی)</option>
-                            <option value="shoes">👟 Shoe Store &amp; Footwear (جوتے و فٹ ویئر)</option>
-                            <option value="garments">👕 Garments &amp; Clothing (گارمنٹس و ملبوسات)</option>
-                            <option value="general">🛒 General Store &amp; Kiryana (جنرل اسٹور و کریانہ)</option>
-                            <option value="wholesaler">📦 Wholesaler &amp; Bulk Distribution (تھوک ڈیلر)</option>
-                            <option value="confectionery">🍪 Confectionery &amp; Biscuits (کنفیکشنری و بسکٹ)</option>
-                            <option value="hardware">🔧 Hardware, Sanitary &amp; Paint (ہارڈویئر و سینیٹری)</option>
-                            <option value="electronics">💻 Electronics &amp; Home Appliances (الیکٹرانکس)</option>
-                            <option value="cosmetics">💄 Cosmetics &amp; Beauty (کاسمیٹکس)</option>
-                            <option value="auto_parts">🚗 Auto Parts &amp; Spare Parts (آٹو پارٹس)</option>
-                            <option value="bakery">🍞 Bakery, Sweets &amp; Cafe (بیکری و مٹھائی)</option>
-                            <option value="furniture">🪑 Furniture &amp; Decor (فرنیچر)</option>
-                            <option value="other">💼 Other Business (دیگر کاروبار)</option>
+                            <option value="distributor" data-eb-en="🚚 Distributor &amp; FMCG Agency" data-eb-ur="ڈسٹری بیوٹر و ایجنسی">🚚 Distributor &amp; FMCG Agency</option>
+                            <option value="restaurant" data-eb-en="🍔 Restaurant, Fast Food &amp; Cafe" data-eb-ur="ریسٹورنٹ و فاسٹ فوڈ">🍔 Restaurant, Fast Food &amp; Cafe</option>
+                            <option value="books" data-eb-en="📚 Book Depot &amp; Stationery" data-eb-ur="بک ڈپو و اسٹیشنری">📚 Book Depot &amp; Stationery</option>
+                            <option value="medical" data-eb-en="💊 Medical Store &amp; Pharmacy" data-eb-ur="میڈیکل اسٹور و فارمیسی">💊 Medical Store &amp; Pharmacy</option>
+                            <option value="mobile" data-eb-en="📱 Mobile Shop &amp; Accessories" data-eb-ur="موبائل اور ایسیسریز">📱 Mobile Shop &amp; Accessories</option>
+                            <option value="wholesaler" data-eb-en="📦 Wholesaler &amp; Bulk Distribution" data-eb-ur="تھوک ڈیلر">📦 Wholesaler &amp; Bulk Distribution</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>📧 Owner Email (Login ID) *</label>
-                        <input type="email" id="agEmail" placeholder="client@example.com" required>
+                        <label data-eb-en="📧 Owner Email (Login ID) *" data-eb-ur="مالک کا ای میل (لاگ اِن آئی ڈی) *">📧 Owner Email (Login ID) *</label>
+                        <input type="email" id="agEmail" placeholder="client@example.com" data-eb-ph-en="client@example.com" data-eb-ph-ur="client@example.com" required>
                     </div>
                     <div class="form-group">
-                        <label>🔑 Owner Password (min 6 chars) *</label>
-                        <input type="text" id="agPassword" placeholder="Default Password" required minlength="6">
+                        <label data-eb-en="🔑 Owner Password (min 6 chars) *" data-eb-ur="پاسورڈ (کم از کم 6 حروف) *">🔑 Owner Password (min 6 chars) *</label>
+                        <input type="text" id="agPassword" placeholder="Default Password" data-eb-ph-en="Default Password" data-eb-ph-ur="بنیادی پاسورڈ" required minlength="6">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>💳 SaaS Package Tier (Default: Free) *</label>
+                        <label data-eb-en="💳 SaaS Package Tier (Default: Free) *" data-eb-ur="ساس پیکیج ٹائر (بنیادی: فری) *">💳 SaaS Package Tier (Default: Free) *</label>
                         <select id="agPackage" required>
                             <!-- Dynamically populated, default Free -->
                             <option value="free" selected>🆓 Free Starter (Rs. 0 / mo)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>💵 Monthly Fee Charged (PKR) *</label>
+                        <label data-eb-en="💵 Monthly Fee Charged (PKR) *" data-eb-ur="ماہانہ فیس (روپے) *">💵 Monthly Fee Charged (PKR) *</label>
                         <input type="number" id="agMonthlyFee" placeholder="0" value="0" min="0" required>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>📱 Owner Mobile (For WhatsApp Bills)</label>
-                        <input type="tel" id="agMobile" placeholder="03001234567">
+                        <label data-eb-en="📱 Owner Mobile (For WhatsApp Bills)" data-eb-ur="مالک کا موبائل (واٹس ایپ بلز کے لیے)">📱 Owner Mobile (For WhatsApp Bills)</label>
+                        <input type="tel" id="agMobile" placeholder="03001234567" data-eb-ph-en="03001234567" data-eb-ph-ur="03001234567">
                     </div>
                     <div class="form-group">
-                        <label>📅 Subscription Duration *</label>
+                        <label data-eb-en="📅 Subscription Duration *" data-eb-ur="سبسکرپشن کی مدت *">📅 Subscription Duration *</label>
                         <select id="agDuration">
-                            <option value="1">1 Month (30 Days)</option>
-                            <option value="3">3 Months (Quarterly)</option>
-                            <option value="6">6 Months (Bi-Annual)</option>
-                            <option value="12">1 Year (Annual)</option>
+                            <option value="1" data-eb-en="1 Month (30 Days)" data-eb-ur="1 مہینہ (30 دن)">1 Month (30 Days)</option>
+                            <option value="3" data-eb-en="3 Months (Quarterly)" data-eb-ur="3 مہینے (سہ ماہی)">3 Months (Quarterly)</option>
+                            <option value="6" data-eb-en="6 Months (Bi-Annual)" data-eb-ur="6 مہینے (ششماہی)">6 Months (Bi-Annual)</option>
+                            <option value="12" data-eb-en="1 Year (Annual)" data-eb-ur="1 سال (سالانہ)">1 Year (Annual)</option>
                         </select>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary" id="createAgencyBtn" style="background:#10b981; font-weight:800; padding:12px;">
-                    <i class="fas fa-check-circle"></i> CREATE AGENCY &amp; ACTIVATE SUBSCRIPTION
+                    <i class="fas fa-check-circle"></i> <span data-eb-en="CREATE AGENCY &amp; ACTIVATE SUBSCRIPTION" data-eb-ur="ایجنسی بنائیں اور سبسکرپشن فعال کریں">CREATE AGENCY &amp; ACTIVATE SUBSCRIPTION</span>
                 </button>
             </form>
         </div>
@@ -656,19 +647,126 @@
     let currentAdminUid = null;
     let allAgencies = [];
     let allLoadedPackages = {};
+    let allUpgradeRequests = [];
+
+    // ============================================
+    // 🌐 UNIFIED BILINGUAL HELPERS (Sidebar-Controlled)
+    // ============================================
+    function ebIsMix() {
+        return !!(window.ebLang && typeof window.ebLang.isMix === 'function' && window.ebLang.isMix());
+    }
+    function ebT(en, ur) {
+        return (ebIsMix() && ur) ? ur : en;
+    }
+    function ebMix(en, ur) {
+        if (!ebIsMix() || !ur) return en;
+        return `${en} <span class="eb-ur-sub">(${ur})</span>`;
+    }
+    function ebCompact(en, ur) {
+        if (!ebIsMix() || !ur) return en;
+        return `${en}<span class="eb-ur-compact">${ur}</span>`;
+    }
+    function ebApplyBilingualDom(root) {
+        const scope = root || document;
+        const mix = ebIsMix();
+        scope.querySelectorAll('[data-eb-en]').forEach(el => {
+            if (el.tagName === 'OPTION') return;
+            const en = el.getAttribute('data-eb-en') || '';
+            const ur = el.getAttribute('data-eb-ur') || '';
+            const compact = el.getAttribute('data-eb-compact') === '1';
+            if (mix && ur) {
+                el.innerHTML = compact
+                    ? `${en}<span class="eb-ur-compact">${ur}</span>`
+                    : `${en} <span class="eb-ur-sub">(${ur})</span>`;
+            } else {
+                el.textContent = en;
+            }
+        });
+        scope.querySelectorAll('[data-eb-ph-en]').forEach(el => {
+            const en = el.getAttribute('data-eb-ph-en') || '';
+            const ur = el.getAttribute('data-eb-ph-ur') || '';
+            el.setAttribute('placeholder', (mix && ur) ? `${en} — ${ur}` : en);
+        });
+    }
+    function ebBilingualizeSelectOptions(sel) {
+        if (!sel) return;
+        const mix = ebIsMix();
+        const prev = sel.value;
+        Array.from(sel.options).forEach(opt => {
+            const en = opt.getAttribute('data-eb-en') || opt.textContent;
+            const ur = opt.getAttribute('data-eb-ur') || '';
+            opt.textContent = (mix && ur) ? `${en} (${ur})` : en;
+        });
+        if (prev) sel.value = prev;
+    }
+    function ebPopulateCategoryFilter(catSel) {
+        if (!catSel) return;
+        const prev = catSel.value || currentAgencyTypeFilter || 'all';
+        const mix = ebIsMix();
+        let html = `<option value="all" data-eb-en="📂 All Business Types" data-eb-ur="تمام کاروباری اقسام">${mix ? '📂 All Business Types (تمام کاروباری اقسام)' : '📂 All Business Types'}</option>`;
+        if (window.BusinessCategories) {
+            const cats = typeof window.BusinessCategories.getCompletedCategories === 'function'
+                ? window.BusinessCategories.getCompletedCategories()
+                : (typeof window.BusinessCategories.getAll === 'function' ? window.BusinessCategories.getAll() : []);
+            cats.forEach(c => {
+                const en = `${c.icon || '🏢'} ${c.nameEn || c.id}`;
+                const ur = c.nameUr || '';
+                const txt = (mix && ur) ? `${en} (${ur})` : en;
+                html += `<option value="${c.id}" data-eb-en="${en}" data-eb-ur="${ur}">${txt}</option>`;
+            });
+        }
+        catSel.innerHTML = html;
+        if (prev && Array.from(catSel.options).some(o => o.value === prev)) {
+            catSel.value = prev;
+        }
+    }
+    function ebRefreshStaticSelects() {
+        ebPopulateCategoryFilter(document.getElementById('agencyCategoryFilter'));
+        ['agencyStatusFilter', 'agencyGradeFilter', 'agencyStockFilter', 'agencySortFilter', 'agType', 'agDuration'].forEach(id => {
+            ebBilingualizeSelectOptions(document.getElementById(id));
+        });
+    }
+    function getGradeBadgeHtml(grade) {
+        if (grade === 'A') {
+            return `<span class="branch-badge" style="background:#fef3c7; color:#b45309; font-weight:800; border:1px solid #fde68a;">⭐ ${ebMix('Grade A (Top Performer)', 'گریڈ A')}</span>`;
+        }
+        if (grade === 'B') {
+            return `<span class="branch-badge" style="background:#e0f2fe; color:#0369a1; font-weight:800; border:1px solid #bae6fd;">🥈 ${ebMix('Grade B (Steady Medium)', 'گریڈ B')}</span>`;
+        }
+        return `<span class="branch-badge" style="background:#f1f5f9; color:#475569; font-weight:800; border:1px solid #cbd5e1;">🥉 ${ebMix('Grade C (Starter)', 'گریڈ C')}</span>`;
+    }
+    function getStockGradeBadgeHtml(stockGrade) {
+        if (stockGrade === 'high') {
+            return `<span class="branch-badge" style="background:#dcfce7; color:#15803d; font-weight:800; border:1px solid #86efac;">🟢 ${ebMix('High Stock (Top)', 'زیادہ اسٹاک')}</span>`;
+        }
+        if (stockGrade === 'low') {
+            return `<span class="branch-badge" style="background:#fee2e2; color:#b91c1c; font-weight:800; border:1px solid #fca5a5;">🔴 ${ebMix('Low Stock', 'کم اسٹاک')}</span>`;
+        }
+        return `<span class="branch-badge" style="background:#fef9c3; color:#854d0e; font-weight:800; border:1px solid #fde047;">🟡 ${ebMix('Medium Stock', 'درمیانہ اسٹاک')}</span>`;
+    }
+    function getBillVelocityBadgeHtml(billVelocity) {
+        if (billVelocity === 'top') {
+            return `<span class="stat-pill" style="background:#dbeafe; color:#1d4ed8; font-weight:800; border:1px solid #93c5fd;">⚡ ${ebMix('Top Bill Generator', 'تیز بل جنریٹر')}</span>`;
+        }
+        if (billVelocity === 'steady') {
+            return `<span class="stat-pill" style="background:#f1f5f9; color:#0369a1; font-weight:700;">📄 ${ebMix('Steady Generator', 'متوازن بلنگ')}</span>`;
+        }
+        return `<span class="stat-pill" style="font-size:11px; color:#64748b;">⏳ ${ebMix('Starter Volume', 'ابتدائی حجم')}</span>`;
+    }
 
     const ADMIN_PACKAGE_MODULE_DEFS = [
-        { id: 'booker_orders', label: '📋 Booker Orders' },
-        { id: 'delivery_returns', label: '🚚 Van Dispatch & Return' },
-        { id: 'claims', label: '⚠️ Damage & Claims' },
-        { id: 'expenses', label: '💸 Daily Expenses & Payroll' },
-        { id: 'alerts', label: '🔔 Low Stock Alerts' },
-        { id: 'reports', label: '📊 Sales & Wholesale Reports' },
-        { id: 'profit', label: '💰 Profit Analytics' },
-        { id: 'owner', label: '👥 Staff & Bookers' },
-        { id: 'backup', label: '💾 Backup & Restore' },
-        { id: 'session_security', label: '⏱️ Session Timeout Control' },
-        { id: 'multi_agency', label: '🏢 Multi-Branch Hub' }
+        { id: 'booker_orders', label: '📋 Booker Orders', labelUr: 'بکر آرڈرز' },
+        { id: 'delivery_returns', label: '🚚 Van Dispatch & Return', labelUr: 'وین ڈسپیچ و واپسی' },
+        { id: 'claims', label: '⚠️ Damage & Claims', labelUr: 'ڈیمیج و کلیمز' },
+        { id: 'expenses', label: '💸 Daily Expenses & Payroll', labelUr: 'اخراجات و تنخواہ' },
+        { id: 'alerts', label: '🔔 Low Stock Alerts', labelUr: 'کم اسٹاک الرٹس' },
+        { id: 'reports', label: '📊 Sales & Wholesale Reports', labelUr: 'سیلز رپورٹس' },
+        { id: 'profit', label: '💰 Profit Analytics', labelUr: 'منافع تجزیہ' },
+        { id: 'owner', label: '👥 Staff & Bookers', labelUr: 'اسٹاف و بکرز' },
+        { id: 'backup', label: '💾 Backup & Restore', labelUr: 'بیک اپ و بحالی' },
+        { id: 'session_security', label: '⏱️ Session Timeout Control', labelUr: 'سیشن لاک کنٹرول' },
+        { id: 'multi_agency', label: '🏢 Multi-Branch Hub', labelUr: 'ملٹی برانچ ہب' },
+        { id: 'gps_tracking', label: '📍 GPS Live Tracking (Paid — Default OFF)', labelUr: 'لائیو GPS ٹریکنگ' }
     ];
 
     const CORE_ALWAYS_MODULES = {
@@ -688,7 +786,8 @@
                 ...CORE_ALWAYS_MODULES,
                 booker_orders: false, delivery_returns: false, claims: false,
                 expenses: false, alerts: false, reports: false, profit: false,
-                owner: false, backup: false, session_security: false, multi_agency: false
+                owner: false, backup: false, session_security: false, multi_agency: false,
+                gps_tracking: false
             }
         },
         starter_single: {
@@ -702,7 +801,8 @@
                 ...CORE_ALWAYS_MODULES,
                 booker_orders: true, delivery_returns: true, claims: true,
                 expenses: true, alerts: true, reports: true, profit: true,
-                owner: true, backup: true, session_security: true, multi_agency: false
+                owner: true, backup: true, session_security: true, multi_agency: false,
+                gps_tracking: false
             }
         },
         wholesale_dist: {
@@ -716,7 +816,8 @@
                 ...CORE_ALWAYS_MODULES,
                 booker_orders: true, delivery_returns: true, claims: true,
                 expenses: true, alerts: true, reports: true, profit: true,
-                owner: true, backup: true, session_security: true, multi_agency: false
+                owner: true, backup: true, session_security: true, multi_agency: false,
+                gps_tracking: false
             }
         },
         multi_pro: {
@@ -730,7 +831,8 @@
                 ...CORE_ALWAYS_MODULES,
                 booker_orders: true, delivery_returns: true, claims: true,
                 expenses: true, alerts: true, reports: true, profit: true,
-                owner: true, backup: true, session_security: true, multi_agency: true
+                owner: true, backup: true, session_security: true, multi_agency: true,
+                gps_tracking: false
             }
         },
         enterprise_multi: {
@@ -744,7 +846,8 @@
                 ...CORE_ALWAYS_MODULES,
                 booker_orders: true, delivery_returns: true, claims: true,
                 expenses: true, alerts: true, reports: true, profit: true,
-                owner: true, backup: true, session_security: true, multi_agency: true
+                owner: true, backup: true, session_security: true, multi_agency: true,
+                gps_tracking: false
             }
         }
     };
@@ -798,8 +901,11 @@
         try {
             const doc = await db.collection('users').doc(user.uid).get();
             if (!doc.exists || doc.data().role !== 'super-admin') {
-                Swal.fire('⛔ Access Denied', 'Sirf Super Admin yahan aa sakta hai!', 'error')
-                    .then(() => window.location.href = 'dashboard.html');
+                Swal.fire(
+                    `⛔ ${ebT('Access Denied', 'رسائی ممنوع')}`,
+                    ebT('Only Super Admin can access this panel!', 'صرف سپر ایڈمن اس پینل تک رسائی حاصل کر سکتا ہے!'),
+                    'error'
+                ).then(() => window.location.href = 'dashboard.html');
                 return;
             }
             currentAdminUid = user.uid;
@@ -848,7 +954,7 @@
         } catch (e) {
             console.error('Load packages error:', e);
             if (container) {
-                container.innerHTML = '<div class="error-inline">⚠️ Packages load failed: ' + e.message + '</div>';
+                container.innerHTML = `<div class="error-inline">⚠️ ${ebMix('Packages load failed:', 'پیکیجز لوڈ کرنے میں خرابی:')} ${e.message}</div>`;
             }
         }
     }
@@ -856,11 +962,13 @@
     function populateCreateAgencyPackageSelect() {
         const sel = document.getElementById('agPackage');
         if (!sel) return;
+        const prevVal = sel.value;
 
         let html = '';
         for (const [id, pkg] of Object.entries(allLoadedPackages)) {
-            const isSelected = (id === 'free') ? 'selected' : '';
-            const feeText = pkg.fee ? `Rs. ${Number(pkg.fee).toLocaleString()} / mo` : 'Rs. 0 / mo';
+            const isSelected = (prevVal ? id === prevVal : id === 'free') ? 'selected' : '';
+            const moLbl = ebT('mo', 'ماہ');
+            const feeText = pkg.fee ? `Rs. ${Number(pkg.fee).toLocaleString()} / ${moLbl}` : `Rs. 0 / ${moLbl}`;
             html += `<option value="${id}" ${isSelected}>${pkg.name || id} (${feeText})</option>`;
         }
         sel.innerHTML = html;
@@ -876,6 +984,9 @@
         const container = document.getElementById('packagesEditor');
         if (!container) return;
 
+        const mix = ebIsMix();
+        const urHint = (ur) => mix ? `<span style="color:#64748b; font-weight:normal;">${ur}</span>` : '';
+
         let html = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">';
 
         for (const [id, pkg] of Object.entries(pkgs)) {
@@ -888,14 +999,14 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <span style="font-size:10.5px; font-weight:800; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:10px;">ID: ${id}</span>
                     <span class="branch-badge ${isMulti ? 'badge-pkg-multi' : 'badge-pkg-single'}">
-                        ${isMulti ? '🏢 Multi-Agency' : '🏪 Single Agency'}
+                        ${isMulti ? `🏢 ${ebMix('Multi-Agency', 'ملٹی ایجنسی')}` : `🏪 ${ebMix('Single Agency', 'سنگل ایجنسی')}`}
                     </span>
                 </div>
 
                 <div class="form-group" style="margin-bottom:8px;">
                     <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
                         <span>✏️ Package Display Name</span>
-                        <span style="color:#64748b; font-weight:normal;">پیکیج کا نام</span>
+                        ${urHint('پیکیج کا نام')}
                     </label>
                     <input type="text" class="lim-name" value="${(pkg.name || id).replace(/"/g, '&quot;')}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
                 </div>
@@ -903,7 +1014,7 @@
                 <div class="form-group" style="margin-bottom:8px;">
                     <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
                         <span>💵 Monthly Fee / Price (PKR)</span>
-                        <span style="color:#64748b; font-weight:normal;">ماہانہ فیس</span>
+                        ${urHint('ماہانہ فیس')}
                     </label>
                     <input type="number" class="lim-fee" value="${pkg.fee !== undefined ? pkg.fee : 0}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0284c7;">
                 </div>
@@ -911,25 +1022,25 @@
                 <div class="form-group" style="margin-bottom:8px;">
                     <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
                         <span>📄 Monthly Bills Limit</span>
-                        <span style="color:#64748b; font-weight:normal;">ماہانہ بلز کی لمٹ</span>
+                        ${urHint('ماہانہ بلز کی لمٹ')}
                     </label>
                     <input type="number" class="lim-bills" value="${lim.monthlyBills !== undefined ? lim.monthlyBills : 150}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
-                    <small style="font-size:10px; color:#64748b;">(99999 = لامحدود Unlimited Bills)</small>
+                    <small style="font-size:10px; color:#64748b;">${ebMix('(99999 = Unlimited Bills)', '99999 = لامحدود بلز')}</small>
                 </div>
 
                 <div class="form-group" style="margin-bottom:8px;">
                     <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
                         <span>📦 Max Stock Items</span>
-                        <span style="color:#64748b; font-weight:normal;">آئٹمز کی زیادہ سے زیادہ تعداد</span>
+                        ${urHint('آئٹمز کی زیادہ سے زیادہ تعداد')}
                     </label>
                     <input type="number" class="lim-items" value="${lim.maxItems !== undefined ? lim.maxItems : 50}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
-                    <small style="font-size:10px; color:#64748b;">(99999 = لامحدود Items)</small>
+                    <small style="font-size:10px; color:#64748b;">${ebMix('(99999 = Unlimited Items)', '99999 = لامحدود آئٹمز')}</small>
                 </div>
 
                 <div class="form-group" style="margin-bottom:8px;">
                     <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
                         <span>👥 Max Order Bookers / Staff</span>
-                        <span style="color:#64748b; font-weight:normal;">آرڈر بکرز لمٹ</span>
+                        ${urHint('آرڈر بکرز لمٹ')}
                     </label>
                     <input type="number" class="lim-bookers" value="${lim.maxBookers !== undefined ? lim.maxBookers : 1}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
                 </div>
@@ -937,7 +1048,7 @@
                 <div class="form-group" style="margin-bottom:10px;">
                     <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
                         <span>🏢 Max Branches Allowed</span>
-                        <span style="color:#64748b; font-weight:normal;">برانچز لمٹ</span>
+                        ${urHint('برانچز لمٹ')}
                     </label>
                     <input type="number" class="lim-branches" value="${lim.maxBranches || 1}" min="1" max="25" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
                 </div>
@@ -945,15 +1056,17 @@
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:12px;">
                     <div style="font-size:11px; font-weight:800; color:#0f172a; margin-bottom:6px; display:flex; justify-content:space-between;">
                         <span>🧩 Package Modules (Lock / Unlock):</span>
-                        <span style="color:#64748b; font-weight:normal;">اس پیکیج میں اجازت شدہ ماڈیولز</span>
+                        ${urHint('اس پیکیج میں اجازت شدہ ماڈیولز')}
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:11px;">
                         ${ADMIN_PACKAGE_MODULE_DEFS.map(m => {
                             const defaultMods = (DEFAULT_SAAS_PACKAGES[id] && DEFAULT_SAAS_PACKAGES[id].allowedModules) || {};
                             const pkgMods = pkg.allowedModules || defaultMods;
-                            const isChecked = pkgMods[m.id] !== undefined ? pkgMods[m.id] === true : (id !== 'free' && (m.id !== 'multi_agency' || isMulti));
+                            const isChecked = m.id === 'gps_tracking'
+                                ? pkgMods[m.id] === true
+                                : (pkgMods[m.id] !== undefined ? pkgMods[m.id] === true : (id !== 'free' && (m.id !== 'multi_agency' || isMulti)));
                             return `<label style="display:flex; align-items:center; gap:5px; cursor:pointer; color:#334155;">
-                                <input type="checkbox" class="pkg-mod-chk" data-mod="${m.id}" ${isChecked ? 'checked' : ''}> ${m.label}
+                                <input type="checkbox" class="pkg-mod-chk" data-mod="${m.id}" ${isChecked ? 'checked' : ''}> <span>${ebMix(m.label, m.labelUr)}</span>
                             </label>`;
                         }).join('')}
                     </div>
@@ -961,7 +1074,7 @@
 
                 <div style="display:flex; gap:8px;">
                     <button class="btn btn-sm btn-save-pkg" style="flex:1; background:#8b5cf6; color:#fff; font-weight:800; padding:8px; border-radius:8px; border:none; cursor:pointer;" onclick="savePackageLimits('${id}')">
-                        💾 Save Changes
+                        💾 ${ebMix('Save Changes', 'تبدیلیاں محفوظ کریں')}
                     </button>
                     ${isCustom ? `
                     <button class="btn btn-sm" style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:8px 12px; border-radius:8px; font-weight:bold;" onclick="deletePackageTier('${id}')" title="Delete Custom Package">
@@ -1014,11 +1127,11 @@
 
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
-                timer: 1800, icon: 'success', title: `✅ ${name} saved with module rules!`
+                timer: 1800, icon: 'success', title: `✅ ${ebT(`${name} saved with module rules!`, `${name} ماڈیول قواعد کے ساتھ محفوظ ہو گیا!`)}`
             });
             await loadPackages();
         } catch (e) {
-            Swal.fire('Error', 'Save failed: ' + e.message, 'error');
+            Swal.fire(ebT('Error', 'خرابی'), `${ebT('Save failed:', 'محفوظ کرنے میں ناکامی:')} ${e.message}`, 'error');
         }
     }
 
@@ -1027,34 +1140,34 @@
     if (btnNewPkg) {
         btnNewPkg.onclick = async () => {
             const { value: formValues } = await Swal.fire({
-                title: '➕ Create New Package Plan',
+                title: `➕ ${ebT('Create New Package Plan', 'نیا پیکیج پلان بنائیں')}`,
                 html: `
                     <div style="text-align:left; font-size:13px; display:flex; flex-direction:column; gap:10px;">
                         <div>
-                            <label><b>Package ID (unique lowercase, no spaces):</b></label>
+                            <label><b>${ebMix('Package ID (unique lowercase, no spaces):', 'پیکیج آئی ڈی (بغیر اسپیس):')}</b></label>
                             <input id="newPkgId" class="swal2-input" placeholder="e.g. vip_diamond" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                         </div>
                         <div>
-                            <label><b>Display Name:</b></label>
+                            <label><b>${ebMix('Display Name:', 'پیکیج کا نام:')}</b></label>
                             <input id="newPkgName" class="swal2-input" placeholder="e.g. 💎 VIP Diamond Unlimited" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                             <div>
-                                <label><b>Monthly Fee (PKR):</b></label>
+                                <label><b>${ebMix('Monthly Fee (PKR):', 'ماہانہ فیس (روپے):')}</b></label>
                                 <input type="number" id="newPkgFee" class="swal2-input" placeholder="7000" value="7000" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                             </div>
                             <div>
-                                <label><b>Max Branches:</b></label>
+                                <label><b>${ebMix('Max Branches:', 'زیادہ سے زیادہ برانچز:')}</b></label>
                                 <input type="number" id="newPkgBranches" class="swal2-input" value="5" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                             </div>
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                             <div>
-                                <label><b>Max Items Limit:</b></label>
+                                <label><b>${ebMix('Max Items Limit:', 'آئٹمز لمٹ:')}</b></label>
                                 <input type="number" id="newPkgItems" class="swal2-input" value="5000" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                             </div>
                             <div>
-                                <label><b>Monthly Bills Limit:</b></label>
+                                <label><b>${ebMix('Monthly Bills Limit:', 'ماہانہ بلز لمٹ:')}</b></label>
                                 <input type="number" id="newPkgBills" class="swal2-input" value="99999" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                             </div>
                         </div>
@@ -1062,7 +1175,8 @@
                 `,
                 focusConfirm: false,
                 showCancelButton: true,
-                confirmButtonText: 'Create Package',
+                confirmButtonText: ebT('Create Package', 'پیکیج بنائیں'),
+                cancelButtonText: ebT('Cancel', 'منسوخ کریں'),
                 confirmButtonColor: '#10b981',
                 preConfirm: () => {
                     const rawId = document.getElementById('newPkgId').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
@@ -1072,7 +1186,7 @@
                     const items = parseInt(document.getElementById('newPkgItems').value) || 500;
                     const bills = parseInt(document.getElementById('newPkgBills').value) || 99999;
                     if (!rawId || !name) {
-                        Swal.showValidationMessage('ID aur Name darj karein!');
+                        Swal.showValidationMessage(ebT('Please enter both Package ID and Display Name!', 'پیکیج آئی ڈی اور نام دونوں درج کریں!'));
                         return false;
                     }
                     return { id: rawId, name, fee, branches, items, bills };
@@ -1105,10 +1219,14 @@
                     if (window.SaaSModules && typeof window.SaaSModules.syncPackagesFromCloud === 'function') {
                         await window.SaaSModules.syncPackagesFromCloud(db);
                     }
-                    Swal.fire('Success', `Package ${formValues.name} ban gaya!`, 'success');
+                    Swal.fire(
+                        ebT('Success', 'کامیابی'),
+                        ebT(`Package ${formValues.name} created successfully!`, `پیکیج ${formValues.name} کامیابی سے بن گیا!`),
+                        'success'
+                    );
                     await loadPackages();
                 } catch (e) {
-                    Swal.fire('Error', e.message, 'error');
+                    Swal.fire(ebT('Error', 'خرابی'), e.message, 'error');
                 }
             }
         };
@@ -1116,20 +1234,21 @@
 
     async function deletePackageTier(pkgId) {
         const res = await Swal.fire({
-            title: `Delete Package ${pkgId}?`,
-            text: 'Is package ko delete kar diya jayega.',
+            title: ebT(`Delete Package ${pkgId}?`, `پیکیج ${pkgId} حذف کریں؟`),
+            text: ebT('This custom package tier will be permanently deleted.', 'یہ کسٹم پیکیج مستقل طور پر حذف ہو جائے گا۔'),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Yes, Delete'
+            confirmButtonText: ebT('Yes, Delete', 'جی ہاں، حذف کریں'),
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں')
         });
         if (res.isConfirmed) {
             try {
                 await db.collection('packages').doc(pkgId).delete();
-                Swal.fire('Deleted', 'Package removed.', 'success');
+                Swal.fire(ebT('Deleted', 'حذف ہو گیا'), ebT('Package removed.', 'پیکیج حذف کر دیا گیا۔'), 'success');
                 await loadPackages();
             } catch (e) {
-                Swal.fire('Error', e.message, 'error');
+                Swal.fire(ebT('Error', 'خرابی'), e.message, 'error');
             }
         }
     }
@@ -1147,9 +1266,7 @@
     function initAgencyFilters() {
         const catSel = document.getElementById('agencyCategoryFilter');
         if (catSel && !catSel.dataset.initialized) {
-            if (window.BusinessCategories) {
-                window.BusinessCategories.populateSelect(catSel, 'all', { includeAll: true, allLabel: '📂 All Business Types' });
-            }
+            ebPopulateCategoryFilter(catSel);
             catSel.dataset.initialized = 'true';
             catSel.addEventListener('change', function() {
                 currentAgencyTypeFilter = this.value;
@@ -1215,7 +1332,7 @@
             document.getElementById('tabAgencyCountBadge').innerText = allAgencies.length;
 
             if (allAgencies.length === 0) {
-                container.innerHTML = '<div class="empty-state">No client agencies registered yet.</div>';
+                container.innerHTML = `<div class="empty-state">${ebMix('No client agencies registered yet.', 'ابھی تک کوئی کلائنٹ ایجنسی رجسٹر نہیں ہوئی۔')}</div>`;
                 calculateRevenueMetrics();
                 return;
             }
@@ -1234,7 +1351,7 @@
         } catch (e) {
             console.error('Agencies load error:', e);
             if (container) {
-                container.innerHTML = '<div class="error-inline">Failed to load agencies: ' + e.message + '</div>';
+                container.innerHTML = `<div class="error-inline">${ebMix('Failed to load agencies:', 'ایجنسیاں لوڈ کرنے میں خرابی:')} ${e.message}</div>`;
             }
         }
     }
@@ -1272,35 +1389,26 @@
 
             // Performance Grading (A, B, C)
             let grade = 'C';
-            let gradeBadge = '<span class="branch-badge" style="background:#f1f5f9; color:#475569; font-weight:800; border:1px solid #cbd5e1;">🥉 Grade C (Starter)</span>';
             if (totalSales >= 50000 || totalBillsCount >= 30) {
                 grade = 'A';
-                gradeBadge = '<span class="branch-badge" style="background:#fef3c7; color:#b45309; font-weight:800; border:1px solid #fde68a;">⭐ Grade A (Top Performer)</span>';
             } else if (totalSales >= 15000 || totalBillsCount >= 10) {
                 grade = 'B';
-                gradeBadge = '<span class="branch-badge" style="background:#e0f2fe; color:#0369a1; font-weight:800; border:1px solid #bae6fd;">🥈 Grade B (Steady Medium)</span>';
             }
 
             // Stock Level Grading (High, Medium, Low)
             let stockGrade = 'medium';
-            let stockGradeBadge = '<span class="branch-badge" style="background:#fef9c3; color:#854d0e; font-weight:800; border:1px solid #fde047;">🟡 Medium Stock</span>';
             if (totalStockUnits >= 500 || stockItemsCount >= 100) {
                 stockGrade = 'high';
-                stockGradeBadge = '<span class="branch-badge" style="background:#dcfce7; color:#15803d; font-weight:800; border:1px solid #86efac;">🟢 High Stock (Top)</span>';
             } else if (totalStockUnits < 50 || lowStockCount > 3 || stockItemsCount < 20) {
                 stockGrade = 'low';
-                stockGradeBadge = '<span class="branch-badge" style="background:#fee2e2; color:#b91c1c; font-weight:800; border:1px solid #fca5a5;">🔴 Low Stock</span>';
             }
 
             // Bill Printing Generator Velocity Status
             let billVelocity = 'starter';
-            let billVelocityBadge = '<span class="stat-pill" style="font-size:11px; color:#64748b;">⏳ Starter Volume</span>';
             if (todayBillsCount >= 10 || totalBillsCount >= 50) {
                 billVelocity = 'top';
-                billVelocityBadge = '<span class="stat-pill" style="background:#dbeafe; color:#1d4ed8; font-weight:800; border:1px solid #93c5fd;">⚡ Top Bill Generator</span>';
             } else if (todayBillsCount >= 3 || totalBillsCount >= 15) {
                 billVelocity = 'steady';
-                billVelocityBadge = '<span class="stat-pill" style="background:#f1f5f9; color:#0369a1; font-weight:700;">📄 Steady Generator</span>';
             }
 
             ag.totalSales = totalSales;
@@ -1310,11 +1418,8 @@
             ag.stockUnits = totalStockUnits;
             ag.lowStockCount = lowStockCount;
             ag.grade = grade;
-            ag.gradeBadge = gradeBadge;
             ag.stockGrade = stockGrade;
-            ag.stockGradeBadge = stockGradeBadge;
             ag.billVelocity = billVelocity;
-            ag.billVelocityBadge = billVelocityBadge;
         });
     }
 
@@ -1373,9 +1478,9 @@
         const salesEl = document.getElementById('leaderboardSalesList');
         if (salesEl) {
             if (salesSorted.length === 0) {
-                salesEl.innerHTML = '<div class="empty-state">No sales data recorded yet.</div>';
+                salesEl.innerHTML = `<div class="empty-state">${ebMix('No sales data recorded yet.', 'ابھی تک سیلز ڈیٹا موجود نہیں ہے۔')}</div>`;
             } else {
-                let html = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Store Name</th><th>Category</th><th>Total Sales</th><th>Bills</th><th>Grade</th></tr></thead><tbody>';
+                let html = `<table class="leaderboard-table"><thead><tr><th>${ebCompact('Rank', 'درجہ')}</th><th>${ebCompact('Store Name', 'اسٹور کا نام')}</th><th>${ebCompact('Category', 'کیٹیگری')}</th><th>${ebCompact('Total Sales', 'کل سیلز')}</th><th>${ebCompact('Bills', 'بلز')}</th><th>${ebCompact('Grade', 'گریڈ')}</th></tr></thead><tbody>`;
                 salesSorted.slice(0, 10).forEach((ag, idx) => {
                     const rankClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : ''));
                     const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${idx + 1}`));
@@ -1383,13 +1488,13 @@
                     <tr>
                         <td><span class="rank-medal ${rankClass}">${medal}</span></td>
                         <td>
-                            <b>${ag.name || 'Store'}</b>
+                            <b>${ag.name || ebT('Store', 'اسٹور')}</b>
                             <div style="font-size:11px; color:#64748b;">${ag.ownerEmail || ''}</div>
                         </td>
                         <td><span style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${ag.businessType || 'General'}</span></td>
                         <td><b style="color:#10b981; font-size:14px;">Rs ${(ag.totalSales || 0).toLocaleString()}</b></td>
                         <td><span class="stat-pill">🧾 ${ag.totalBills || 0}</span></td>
-                        <td>${ag.gradeBadge || ''}</td>
+                        <td>${ag.grade ? getGradeBadgeHtml(ag.grade) : ''}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
@@ -1402,9 +1507,9 @@
         const billsEl = document.getElementById('leaderboardBillsList');
         if (billsEl) {
             if (billsSorted.length === 0) {
-                billsEl.innerHTML = '<div class="empty-state">No bills recorded yet.</div>';
+                billsEl.innerHTML = `<div class="empty-state">${ebMix('No bills recorded yet.', 'ابھی تک کوئی بل ریکارڈ نہیں ہوا۔')}</div>`;
             } else {
-                let html = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Store Name</th><th>Total Bills</th><th>Today</th><th>Printing Velocity</th><th>Grade</th></tr></thead><tbody>';
+                let html = `<table class="leaderboard-table"><thead><tr><th>${ebCompact('Rank', 'درجہ')}</th><th>${ebCompact('Store Name', 'اسٹور کا نام')}</th><th>${ebCompact('Total Bills', 'کل بلز')}</th><th>${ebCompact('Today', 'آج')}</th><th>${ebCompact('Printing Velocity', 'بلنگ رفتار')}</th><th>${ebCompact('Grade', 'گریڈ')}</th></tr></thead><tbody>`;
                 billsSorted.slice(0, 10).forEach((ag, idx) => {
                     const rankClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : ''));
                     const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${idx + 1}`));
@@ -1412,13 +1517,13 @@
                     <tr>
                         <td><span class="rank-medal ${rankClass}">${medal}</span></td>
                         <td>
-                            <b>${ag.name || 'Store'}</b>
+                            <b>${ag.name || ebT('Store', 'اسٹور')}</b>
                             <div style="font-size:11px; color:#64748b;">${ag.ownerMobile || ag.mobile || ''}</div>
                         </td>
                         <td><b style="color:#0284c7; font-size:14px;">${ag.totalBills || 0}</b></td>
                         <td><span style="background:#dcfce7; color:#15803d; font-size:11px; font-weight:800; padding:2px 8px; border-radius:10px;">⚡ ${ag.todayBills || 0}</span></td>
-                        <td>${ag.billVelocityBadge || ''}</td>
-                        <td>${ag.gradeBadge || ''}</td>
+                        <td>${ag.billVelocity ? getBillVelocityBadgeHtml(ag.billVelocity) : ''}</td>
+                        <td>${ag.grade ? getGradeBadgeHtml(ag.grade) : ''}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
@@ -1431,19 +1536,19 @@
         const stockEl = document.getElementById('leaderboardStockList');
         if (stockEl) {
             if (stockSorted.length === 0) {
-                stockEl.innerHTML = '<div class="empty-state">No stock items found.</div>';
+                stockEl.innerHTML = `<div class="empty-state">${ebMix('No stock items found.', 'کوئی اسٹاک آئٹم نہیں ملا۔')}</div>`;
             } else {
-                let html = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Store Name</th><th>Distinct Items</th><th>Total Units</th><th>Stock Level</th></tr></thead><tbody>';
+                let html = `<table class="leaderboard-table"><thead><tr><th>${ebCompact('Rank', 'درجہ')}</th><th>${ebCompact('Store Name', 'اسٹور کا نام')}</th><th>${ebCompact('Distinct Items', 'مختلف آئٹمز')}</th><th>${ebCompact('Total Units', 'کل یونٹس')}</th><th>${ebCompact('Stock Level', 'اسٹاک لیول')}</th></tr></thead><tbody>`;
                 stockSorted.slice(0, 10).forEach((ag, idx) => {
                     const rankClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : (idx === 2 ? 'rank-3' : ''));
                     const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `#${idx + 1}`));
                     html += `
                     <tr>
                         <td><span class="rank-medal ${rankClass}">${medal}</span></td>
-                        <td><b>${ag.name || 'Store'}</b></td>
-                        <td><b style="color:#8b5cf6; font-size:13.5px;">📦 ${ag.stockCount || 0} Items</b></td>
-                        <td><span class="stat-pill" style="font-weight:bold;">${(ag.stockUnits || 0).toLocaleString()} Units</span></td>
-                        <td>${ag.stockGradeBadge || ''}</td>
+                        <td><b>${ag.name || ebT('Store', 'اسٹور')}</b></td>
+                        <td><b style="color:#8b5cf6; font-size:13.5px;">📦 ${ag.stockCount || 0} ${ebT('Items', 'آئٹمز')}</b></td>
+                        <td><span class="stat-pill" style="font-weight:bold;">${(ag.stockUnits || 0).toLocaleString()} ${ebT('Units', 'یونٹس')}</span></td>
+                        <td>${ag.stockGrade ? getStockGradeBadgeHtml(ag.stockGrade) : ''}</td>
                     </tr>`;
                 });
                 html += '</tbody></table>';
@@ -1456,16 +1561,16 @@
         const alertEl = document.getElementById('leaderboardAlertsList');
         if (alertEl) {
             if (alertList.length === 0) {
-                alertEl.innerHTML = '<div style="padding:15px; color:#15803d; font-size:12.5px; text-align:center;">✅ All stores have adequate inventory stock!</div>';
+                alertEl.innerHTML = `<div style="padding:15px; color:#15803d; font-size:12.5px; text-align:center;">✅ ${ebMix('All stores have adequate inventory stock!', 'تمام اسٹورز کے پاس مناسب اسٹاک موجود ہے!')}</div>`;
             } else {
-                let html = '<table class="leaderboard-table"><thead><tr><th>Store Name</th><th>Category</th><th>Low Stock Items</th><th>Stock Status</th><th>Contact</th></tr></thead><tbody>';
+                let html = `<table class="leaderboard-table"><thead><tr><th>${ebCompact('Store Name', 'اسٹور کا نام')}</th><th>${ebCompact('Category', 'کیٹیگری')}</th><th>${ebCompact('Low Stock Items', 'کم اسٹاک آئٹمز')}</th><th>${ebCompact('Stock Status', 'اسٹاک اسٹیٹس')}</th><th>${ebCompact('Contact', 'رابطہ')}</th></tr></thead><tbody>`;
                 alertList.slice(0, 10).forEach(ag => {
                     html += `
                     <tr>
-                        <td><b>${ag.name || 'Store'}</b></td>
+                        <td><b>${ag.name || ebT('Store', 'اسٹور')}</b></td>
                         <td><span style="font-size:11px;">${ag.businessType || 'General'}</span></td>
-                        <td><span style="background:#fee2e2; color:#b91c1c; font-weight:800; font-size:11.5px; padding:3px 8px; border-radius:8px;">⚠️ ${ag.lowStockCount || 0} Items Low</span></td>
-                        <td>${ag.stockGradeBadge || ''}</td>
+                        <td><span style="background:#fee2e2; color:#b91c1c; font-weight:800; font-size:11.5px; padding:3px 8px; border-radius:8px;">⚠️ ${ag.lowStockCount || 0} ${ebT('Items Low', 'آئٹمز کم')}</span></td>
+                        <td>${ag.stockGrade ? getStockGradeBadgeHtml(ag.stockGrade) : ''}</td>
                         <td><a href="https://wa.me/${(ag.mobile || ag.ownerMobile || '').replace(/[^0-9]/g, '')}?text=Assalam-o-Alaikum!%20Your%20stock%20needs%20reorder." target="_blank" style="color:#25D366; text-decoration:none; font-weight:bold;"><i class="fab fa-whatsapp"></i> ${ag.mobile || ag.ownerMobile || '—'}</a></td>
                     </tr>`;
                 });
@@ -1554,7 +1659,7 @@
         });
 
         if (filtered.length === 0) {
-            container.innerHTML = '<div class="empty-state">Koi client agency match nahi hui! Search ya filters tabdeel karein.</div>';
+            container.innerHTML = `<div class="empty-state">${ebMix('No client agency matched! Try changing search or filters.', 'کوئی کلائنٹ ایجنسی نہیں ملی! تلاش یا فلٹرز تبدیل کریں۔')}</div>`;
             return;
         }
 
@@ -1569,88 +1674,88 @@
 
             // Category badge
             const catObj = window.BusinessCategories ? window.BusinessCategories.getById(ag.businessType) : null;
-            const catBadge = catObj 
-                ? `<span class="branch-badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;"><i class="fas fa-tag"></i> ${catObj.icon} ${catObj.nameEn}</span>`
+            const catBadge = catObj
+                ? `<span class="branch-badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;"><i class="fas fa-tag"></i> ${catObj.icon} ${ebMix(catObj.nameEn, catObj.nameUr || '')}</span>`
                 : `<span class="branch-badge" style="background:#f1f5f9; color:#475569;"><i class="fas fa-tag"></i> 💼 ${ag.businessType || 'General'}</span>`;
 
             // Status Evaluation
-            let statusBadge = '<span class="branch-badge badge-sub-active">🟢 Active</span>';
+            let statusBadge = `<span class="branch-badge badge-sub-active">🟢 ${ebMix('Active', 'فعال')}</span>`;
             if (isSuspended) {
-                statusBadge = '<span class="branch-badge" style="background:#fee2e2; color:#991b1b; font-weight:bold;">⛔ SUSPENDED / FROZEN</span>';
+                statusBadge = `<span class="branch-badge" style="background:#fee2e2; color:#991b1b; font-weight:bold;">⛔ ${ebMix('SUSPENDED / FROZEN', 'معطل / منجمد')}</span>`;
             } else if (expiry < todayStr) {
-                statusBadge = '<span class="branch-badge badge-sub-expired">🔴 Expired / Locked</span>';
+                statusBadge = `<span class="branch-badge badge-sub-expired">🔴 ${ebMix('Expired / Locked', 'میعاد ختم / لاک')}</span>`;
             } else {
                 const daysLeft = Math.ceil((new Date(expiry) - new Date(todayStr)) / (1000 * 60 * 60 * 24));
                 if (daysLeft <= 7) {
-                    statusBadge = `<span class="branch-badge badge-sub-due">🟠 Expiring in ${daysLeft} Days</span>`;
+                    statusBadge = `<span class="branch-badge badge-sub-due">🟠 ${ebMix(`Expiring in ${daysLeft} Days`, `${daysLeft} دن باقی`)}</span>`;
                 }
             }
 
             // Suspend Button
             const suspendBtn = isSuspended
                 ? `<button class="btn btn-sm" style="background:#10b981; color:#fff;" onclick="toggleAgencySuspend('${ag.id}', false, '${(ag.name || '').replace(/'/g, "\\'")}')">
-                    <i class="fas fa-play"></i> Unfreeze
+                    <i class="fas fa-play"></i> ${ebT('Unfreeze', 'بحال کریں')}
                    </button>`
                 : `<button class="btn btn-sm" style="background:#f59e0b; color:#fff;" onclick="toggleAgencySuspend('${ag.id}', true, '${(ag.name || '').replace(/'/g, "\\'")}')">
-                    <i class="fas fa-pause"></i> Freeze / Suspend
+                    <i class="fas fa-pause"></i> ${ebT('Freeze / Suspend', 'معطل کریں')}
                    </button>`;
 
             html += `
             <div class="agency-item" data-id="${ag.id}" style="${isSuspended ? 'border-left: 4px solid #ef4444; background:#fffafb;' : ''}">
                 <div class="agency-header-row">
                     <div class="agency-name">
-                        <span>🏢 ${ag.name || 'Unnamed Agency'}</span>
+                        <span>🏢 ${ag.name || ebT('Unnamed Agency', 'بے نام ایجنسی')}</span>
                         ${catBadge}
                         ${statusBadge}
-                        ${ag.gradeBadge || ''}
-                        ${ag.stockGradeBadge || ''}
+                        ${ag.grade ? getGradeBadgeHtml(ag.grade) : ''}
+                        ${ag.stockGrade ? getStockGradeBadgeHtml(ag.stockGrade) : ''}
                     </div>
                     <div style="font-size:12px; font-weight:bold; color:#0f172a;">
-                        💳 Plan: <span style="background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:6px;">${pkgObj.name || pkgId.toUpperCase()}</span>
+                        💳 ${ebT('Plan:', 'پلان:')} <span style="background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:6px;">${pkgObj.name || pkgId.toUpperCase()}</span>
                     </div>
                 </div>
 
                 <div class="agency-meta">
-                    <span>📧 ${ag.ownerEmail || 'No Email'}</span>
+                    <span>📧 ${ag.ownerEmail || ebT('No Email', 'ای میل نہیں')}</span>
                     <span>📱 ${ag.mobile || ag.ownerMobile || '—'}</span>
-                    <span>💵 Fee: <b>Rs ${fee.toLocaleString()} / mo</b></span>
-                    <span>📅 Valid Till: <b>${expiry}</b></span>
+                    <span>💵 ${ebT('Fee:', 'فیس:')} <b>Rs ${fee.toLocaleString()} / ${ebT('mo', 'ماہ')}</b></span>
+                    <span>📅 ${ebT('Valid Till:', 'میعاد تا:')} <b>${expiry}</b></span>
                 </div>
 
                 <!-- 📊 Live Store Intelligence & Performance Bar -->
                 <div class="agency-stats-bar">
                     <div class="stat-pill" title="Total Lifetime Gross Sales">
-                        <i class="fas fa-sack-dollar" style="color:#10b981;"></i> Lifetime Sales: <b style="color:#10b981;">Rs ${(ag.totalSales || 0).toLocaleString()}</b>
+                        <i class="fas fa-sack-dollar" style="color:#10b981;"></i> ${ebT('Lifetime Sales:', 'کل سیلز:')} <b style="color:#10b981;">Rs ${(ag.totalSales || 0).toLocaleString()}</b>
                     </div>
                     <div class="stat-pill" title="Total Invoices Created">
-                        <i class="fas fa-file-invoice" style="color:#0284c7;"></i> Bills: <b>${ag.totalBills || 0}</b>
+                        <i class="fas fa-file-invoice" style="color:#0284c7;"></i> ${ebT('Bills:', 'بلز:')} <b>${ag.totalBills || 0}</b>
                     </div>
                     <div class="stat-pill" title="Bills Created Today">
-                        <i class="fas fa-bolt" style="color:#f59e0b;"></i> Today: <b style="color:#059669;">${ag.todayBills || 0}</b>
+                        <i class="fas fa-bolt" style="color:#f59e0b;"></i> ${ebT('Today:', 'آج:')} <b style="color:#059669;">${ag.todayBills || 0}</b>
                     </div>
-                    ${ag.billVelocityBadge || ''}
+                    ${ag.billVelocity ? getBillVelocityBadgeHtml(ag.billVelocity) : ''}
                     <div class="stat-pill" title="Total Stock Items & Units">
-                        <i class="fas fa-boxes-stacked" style="color:#8b5cf6;"></i> Stock: <b>${ag.stockCount || 0} Items</b> (<span style="color:#6366f1; font-weight:bold;">${(ag.stockUnits || 0).toLocaleString()} Units</span>)
-                        ${(ag.lowStockCount || 0) > 0 ? `<span style="background:#fee2e2; color:#ef4444; padding:1px 6px; border-radius:10px; font-size:10px; margin-left:4px;">${ag.lowStockCount} Low Alert</span>` : ''}
+                        <i class="fas fa-boxes-stacked" style="color:#8b5cf6;"></i> ${ebT('Stock:', 'اسٹاک:')} <b>${ag.stockCount || 0} ${ebT('Items', 'آئٹمز')}</b> (<span style="color:#6366f1; font-weight:bold;">${(ag.stockUnits || 0).toLocaleString()} ${ebT('Units', 'یونٹس')}</span>)
+                        ${(ag.lowStockCount || 0) > 0 ? `<span style="background:#fee2e2; color:#ef4444; padding:1px 6px; border-radius:10px; font-size:10px; margin-left:4px;">${ag.lowStockCount} ${ebT('Low Alert', 'کم اسٹاک الرٹ')}</span>` : ''}
                     </div>
                 </div>
 
                 <div class="agency-actions">
                     <button class="btn btn-sm" style="background:#10b981; color:#fff;" onclick="quickUnlockAgency('${ag.id}', '${(ag.name || '').replace(/'/g, "\\'")}')" title="Unlock all features instantly">
-                        ⚡ 1-Click Unlock
+                        ⚡ ${ebT('1-Click Unlock', '1-کلک ان لاک')}
                     </button>
                     <button class="btn btn-sm" style="background:#0284c7; color:#fff;" onclick="editPackageAndFee('${ag.id}')" title="Configure packages & module locks">
-                        ⚙️ Modules &amp; Tiers
+                        ⚙️ ${ebT('Modules & Tiers', 'ماڈیولز و ٹائرز')}
                     </button>
                     <button class="btn btn-sm" style="background:#059669; color:#fff;" onclick="openPaymentModal('${ag.id}', '${(ag.name || '').replace(/'/g, "\\'")}', ${fee}, '${expiry}')">
-                        💳 Record Fee
+                        💳 ${ebT('Record Fee', 'فیس درج کریں')}
                     </button>
                     <button class="btn btn-sm" style="background:#6366f1; color:#fff;" onclick="inspectAgencyStore('${ag.id}', '${(ag.name || '').replace(/'/g, "\\'")}')" title="View shop as owner">
-                        👁️ Inspect Store
+                        👁️ ${ebT('Inspect Store', 'اسٹور دیکھیں')}
                     </button>
                     ${suspendBtn}
                     <button class="btn btn-sm" style="background:#ef4444; color:#fff;" onclick="deleteAgency('${ag.id}', '${(ag.name || '').replace(/'/g, "\\'")}')">
-                        🗑️ Delete
+                        🗑️ ${ebT('Delete', 'حذف کریں')}
                     </button>
                 </div>
             </div>`;
@@ -1675,13 +1780,16 @@
     // ⚡ 1-Click Quick Unlock All Modules for an Agency
     async function quickUnlockAgency(agencyId, agencyName) {
         const res = await Swal.fire({
-            title: `🔓 Unlock All Modules?`,
-            html: `کیا آپ <b>${agencyName}</b> کے لیے تمام ماڈیولز (Enterprise Unlimited) ایک کلک میں ان لاک کرنا چاہتے ہیں؟`,
+            title: `🔓 ${ebT('Unlock All Modules?', 'تمام ماڈیولز ان لاک کریں؟')}`,
+            html: ebT(
+                `Are you sure you want to unlock all modules (<b>Enterprise Unlimited</b>) for <b>${agencyName}</b> in 1 click?`,
+                `کیا آپ <b>${agencyName}</b> کے لیے تمام ماڈیولز (<b>Enterprise Unlimited</b>) ایک کلک میں ان لاک کرنا چاہتے ہیں؟`
+            ),
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#10b981',
-            confirmButtonText: '⚡ جی ہاں، سب ان لاک کریں!',
-            cancelButtonText: 'منسوخ'
+            confirmButtonText: `⚡ ${ebT('Yes, Unlock All!', 'جی ہاں، سب ان لاک کریں!')}`,
+            cancelButtonText: ebT('Cancel', 'منسوخ')
         });
 
         if (res.isConfirmed) {
@@ -1702,25 +1810,30 @@
                 });
                 Swal.fire({
                     toast: true, position: 'top-end', timer: 2500,
-                    icon: 'success', title: `🎉 ${agencyName} ke tamam modules unlock ho gaye!`
+                    icon: 'success', title: `🎉 ${ebT(`All modules unlocked for ${agencyName}!`, `${agencyName} کے تمام ماڈیولز ان لاک ہو گئے!`)}`
                 });
                 await loadAgencies();
             } catch (e) {
-                Swal.fire('Error', e.message, 'error');
+                Swal.fire(ebT('Error', 'خرابی'), e.message, 'error');
             }
         }
     }
 
     // Freeze / Suspend Agency Toggle
     async function toggleAgencySuspend(agencyId, doSuspend, agencyName) {
-        const actionText = doSuspend ? 'Freeze / Suspend' : 'Unfreeze / Activate';
+        const actionEn = doSuspend ? 'Freeze / Suspend' : 'Unfreeze / Activate';
+        const actionUr = doSuspend ? 'معطل / منجمد' : 'بحال / فعال';
         const res = await Swal.fire({
-            title: `${actionText} Agency?`,
-            html: `Are you sure you want to <b>${actionText}</b> <b>${agencyName}</b>?`,
+            title: ebT(`${actionEn} Agency?`, `ایجنسی ${actionUr} کریں؟`),
+            html: ebT(
+                `Are you sure you want to <b>${actionEn}</b> <b>${agencyName}</b>?`,
+                `کیا آپ واقعی <b>${agencyName}</b> کو <b>${actionUr}</b> کرنا چاہتے ہیں؟`
+            ),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: doSuspend ? '#ef4444' : '#10b981',
-            confirmButtonText: `Yes, ${actionText}`
+            confirmButtonText: ebT(`Yes, ${actionEn}`, `جی ہاں، ${actionUr}`),
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں')
         });
 
         if (res.isConfirmed) {
@@ -1732,11 +1845,14 @@
                 });
                 Swal.fire({
                     toast: true, position: 'top-end', timer: 2000,
-                    icon: 'success', title: `Agency ${doSuspend ? 'Frozen' : 'Activated'}!`
+                    icon: 'success',
+                    title: doSuspend
+                        ? ebT('Agency Frozen!', 'ایجنسی معطل کر دی گئی!')
+                        : ebT('Agency Activated!', 'ایجنسی بحال کر دی گئی!')
                 });
                 await loadAgencies();
             } catch (e) {
-                Swal.fire('Error', 'Status change failed: ' + e.message, 'error');
+                Swal.fire(ebT('Error', 'خرابی'), `${ebT('Status change failed:', 'اسٹیٹس تبدیلی ناکام:')} ${e.message}`, 'error');
             }
         }
     }
@@ -1746,40 +1862,41 @@
     // ============================================
     async function openPaymentModal(agencyId, agencyName, currentFee, currentExpiry) {
         const { value: formValues } = await Swal.fire({
-            title: `💳 Record Fee for ${agencyName}`,
+            title: `💳 ${ebT(`Record Fee for ${agencyName}`, `${agencyName} کی فیس درج کریں`)}`,
             html: `
                 <div style="text-align:left; font-size:13px;">
                     <div style="margin-bottom:12px;">
-                        <label><b>Fee Amount (PKR):</b></label>
+                        <label><b>${ebMix('Fee Amount (PKR):', 'فیس کی رقم (روپے):')}</b></label>
                         <input type="number" id="swalFeeAmount" value="${currentFee}" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
                     </div>
                     <div style="margin-bottom:12px;">
-                        <label><b>Extend Duration:</b></label>
+                        <label><b>${ebMix('Extend Duration:', 'مدت میں توسیع:')}</b></label>
                         <select id="swalExtendMonths" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
-                            <option value="1">1 Month (30 Days)</option>
-                            <option value="3">3 Months (Quarterly)</option>
-                            <option value="6">6 Months (Bi-Annual)</option>
-                            <option value="12">1 Year (Annual)</option>
+                            <option value="1">${ebT('1 Month (30 Days)', '1 مہینہ (30 دن)')}</option>
+                            <option value="3">${ebT('3 Months (Quarterly)', '3 مہینے (سہ ماہی)')}</option>
+                            <option value="6">${ebT('6 Months (Bi-Annual)', '6 مہینے (ششماہی)')}</option>
+                            <option value="12">${ebT('1 Year (Annual)', '1 سال (سالانہ)')}</option>
                         </select>
                     </div>
                     <div style="margin-bottom:12px;">
-                        <label><b>Payment Method:</b></label>
+                        <label><b>${ebMix('Payment Method:', 'ادائیگی کا طریقہ:')}</b></label>
                         <select id="swalPayMethod" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
-                            <option value="cash">Cash in Hand</option>
+                            <option value="cash">${ebT('Cash in Hand', 'نقد ادائیگی')}</option>
                             <option value="easypaisa">Easypaisa</option>
                             <option value="jazzcash">JazzCash</option>
-                            <option value="bank">Bank Transfer / Raast</option>
+                            <option value="bank">${ebT('Bank Transfer / Raast', 'بینک ٹرانسفر / راست')}</option>
                         </select>
                     </div>
                     <div>
-                        <label><b>Payment Note / Reference ID:</b></label>
-                        <input type="text" id="swalPayNote" placeholder="e.g. Received via JazzCash Trx 83948" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
+                        <label><b>${ebMix('Payment Note / Reference ID:', 'ادائیگی نوٹ / ریفرنس آئی ڈی:')}</b></label>
+                        <input type="text" id="swalPayNote" placeholder="${ebT('e.g. Received via JazzCash Trx 83948', 'مثلاً جیز کیش ٹرانزیکشن 83948')}" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
                     </div>
                 </div>
             `,
             focusConfirm: false,
             showCancelButton: true,
-            confirmButtonText: 'Record Payment &amp; Extend',
+            confirmButtonText: ebT('Record Payment & Extend', 'ادائیگی محفوظ کریں اور توسیع دیں'),
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں'),
             confirmButtonColor: '#10b981',
             preConfirm: () => {
                 return {
@@ -1826,15 +1943,18 @@
 
                 Swal.fire({
                     icon: 'success',
-                    title: 'Payment Recorded!',
-                    html: `<b>${agencyName}</b> subscription extended till: <b>${newExpiryStr}</b>`
+                    title: ebT('Payment Recorded!', 'ادائیگی درج ہو گئی!'),
+                    html: ebT(
+                        `<b>${agencyName}</b> subscription extended till: <b>${newExpiryStr}</b>`,
+                        `<b>${agencyName}</b> کی سبسکرپشن <b>${newExpiryStr}</b> تک بڑھا دی گئی ہے`
+                    )
                 });
 
                 await loadAgencies();
 
             } catch (e) {
                 console.error('Payment record error:', e);
-                Swal.fire('Error', 'Payment record failed: ' + e.message, 'error');
+                Swal.fire(ebT('Error', 'خرابی'), `${ebT('Payment record failed:', 'ادائیگی محفوظ کرنے میں ناکامی:')} ${e.message}`, 'error');
             }
         }
     }
@@ -1846,10 +1966,15 @@
         const ag = allAgencies.find(a => a.id === agencyId);
         if (!ag) return;
 
+        const mix = ebIsMix();
         let catOptionsHtml = '';
         if (window.BusinessCategories) {
-            window.BusinessCategories.getAll().forEach(c => {
-                catOptionsHtml += `<option value="${c.id}" ${ag.businessType === c.id ? 'selected' : ''}>${c.icon} ${c.nameUr} (${c.nameEn})</option>`;
+            const adminCats = typeof window.BusinessCategories.getCompletedCategories === 'function'
+                ? window.BusinessCategories.getCompletedCategories()
+                : window.BusinessCategories.getAll();
+            adminCats.forEach(c => {
+                const labelTxt = (mix && c.nameUr) ? `${c.icon} ${c.nameEn} (${c.nameUr})` : `${c.icon} ${c.nameEn}`;
+                catOptionsHtml += `<option value="${c.id}" ${ag.businessType === c.id ? 'selected' : ''}>${labelTxt}</option>`;
             });
         }
 
@@ -1864,12 +1989,12 @@
         const curPerms = ag.permissions || {};
 
         const { value: formValues } = await Swal.fire({
-            title: `⚙️ Modules &amp; Tiers: ${ag.name}`,
+            title: `⚙️ ${ebT('Modules & Tiers:', 'ماڈیولز و ٹائرز:')} ${ag.name}`,
             width: '680px',
             html: `
                 <div style="text-align:left; font-size:13px; line-height:1.5;">
                     <div style="margin-bottom:12px;">
-                        <label><b>🏪 Business Category (کاروبار کی قسم):</b></label>
+                        <label><b>🏪 ${ebMix('Business Category:', 'کاروبار کی قسم:')}</b></label>
                         <select id="swalEditBizType" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px; font-weight:bold; color:#0f172a;">
                             ${catOptionsHtml}
                         </select>
@@ -1877,30 +2002,30 @@
 
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
                         <div>
-                            <label><b>Package Tier:</b></label>
+                            <label><b>${ebMix('Package Tier:', 'پیکیج ٹائر:')}</b></label>
                             <select id="swalEditPkg" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
                                 ${pkgOptionsHtml}
                             </select>
                         </div>
                         <div>
-                            <label><b>Monthly Fee (PKR):</b></label>
+                            <label><b>${ebMix('Monthly Fee (PKR):', 'ماہانہ فیس (روپے):')}</b></label>
                             <input type="number" id="swalEditFee" value="${ag.monthlyFee !== undefined ? ag.monthlyFee : 0}" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin-top:4px;">
                         </div>
                     </div>
 
                     <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:12px;">
-                        <b style="color:#0f172a; font-size:12px; display:block; margin-bottom:6px;">📊 Custom Package Limits:</b>
+                        <b style="color:#0f172a; font-size:12px; display:block; margin-bottom:6px;">📊 ${ebMix('Custom Package Limits:', 'کسٹم پیکیج لمٹس:')}</b>
                         <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
                             <div>
-                                <label style="font-size:11px; color:#475569;">Max Staff / Bookers</label>
+                                <label style="font-size:11px; color:#475569;">${ebMix('Max Staff / Bookers', 'زیادہ سے زیادہ اسٹاف')}</label>
                                 <input type="number" id="swalLimitBookers" value="${curLimits.maxBookers || 10}" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
                             </div>
                             <div>
-                                <label style="font-size:11px; color:#475569;">Max Stock Items</label>
+                                <label style="font-size:11px; color:#475569;">${ebMix('Max Stock Items', 'اسٹاک آئٹمز لمٹ')}</label>
                                 <input type="number" id="swalLimitItems" value="${curLimits.maxItems || 500}" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
                             </div>
                             <div>
-                                <label style="font-size:11px; color:#475569;">Monthly Bills</label>
+                                <label style="font-size:11px; color:#475569;">${ebMix('Monthly Bills', 'ماہانہ بلز')}</label>
                                 <input type="number" id="swalLimitBills" value="${curLimits.monthlyBills || 1500}" style="width:100%; box-sizing:border-box; padding:6px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
                             </div>
                         </div>
@@ -1908,51 +2033,54 @@
 
                     <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <b style="color:#166534; font-size:12px;"><i class="fas fa-lock"></i> SaaS Module Locks &amp; Permissions:</b>
-                            <small style="color:#15803d; font-size:11px;">(Uncheck to lock module for client)</small>
+                            <b style="color:#166534; font-size:12px;"><i class="fas fa-lock"></i> ${ebMix('SaaS Module Locks & Permissions:', 'ماڈیول لاکس اور اجازتیں:')}</b>
+                            <small style="color:#15803d; font-size:11px;">${ebT('(Uncheck to lock module for client)', '(کلائنٹ کے لیے ماڈیول لاک کرنے کو اَن چیک کریں)')}</small>
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px;">
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permBookerOrders" ${curPerms.booker_orders !== false ? 'checked' : ''}> 📋 Booker Orders
+                                <input type="checkbox" id="permBookerOrders" ${curPerms.booker_orders !== false ? 'checked' : ''}> <span>${ebMix('📋 Booker Orders', 'بکر آرڈرز')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permStock" ${curPerms.stock !== false ? 'checked' : ''}> 📦 Stock &amp; Schemes
+                                <input type="checkbox" id="permStock" ${curPerms.stock !== false ? 'checked' : ''}> <span>${ebMix('📦 Stock & Schemes', 'اسٹاک اور اسکیمیں')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permKhata" ${curPerms.customers !== false ? 'checked' : ''}> 👥 Customer Khata Ledger
+                                <input type="checkbox" id="permKhata" ${curPerms.customers !== false ? 'checked' : ''}> <span>${ebMix('👥 Customer Khata Ledger', 'کسٹمر کھاتہ لیجر')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px; color:#b45309; font-weight:bold;">
-                                <input type="checkbox" id="permProfit" ${curPerms.profit !== false ? 'checked' : ''}> 💰 Profit Analytics (Premium)
+                                <input type="checkbox" id="permProfit" ${curPerms.profit !== false ? 'checked' : ''}> <span>${ebMix('💰 Profit Analytics (Premium)', 'منافع تجزیہ')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permExpenses" ${curPerms.expenses !== false ? 'checked' : ''}> 💸 Daily Expenses Register
+                                <input type="checkbox" id="permExpenses" ${curPerms.expenses !== false ? 'checked' : ''}> <span>${ebMix('💸 Daily Expenses Register', 'روزانہ اخراجات')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permReports" ${curPerms.reports !== false ? 'checked' : ''}> 📊 Advanced Sales Reports
+                                <input type="checkbox" id="permReports" ${curPerms.reports !== false ? 'checked' : ''}> <span>${ebMix('📊 Advanced Sales Reports', 'سیلز رپورٹس')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permClaims" ${curPerms.claims !== false ? 'checked' : ''}> ⚠️ Damage &amp; Claims
+                                <input type="checkbox" id="permClaims" ${curPerms.claims !== false ? 'checked' : ''}> <span>${ebMix('⚠️ Damage & Claims', 'ڈیمیج و کلیمز')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permDelivery" ${curPerms.delivery_returns !== false ? 'checked' : ''}> 🚚 Van Dispatch &amp; Return
+                                <input type="checkbox" id="permDelivery" ${curPerms.delivery_returns !== false ? 'checked' : ''}> <span>${ebMix('🚚 Van Dispatch & Return', 'وین ڈسپیچ و واپسی')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permOwner" ${curPerms.owner !== false ? 'checked' : ''}> 👥 Bookers &amp; Staff (PINs)
+                                <input type="checkbox" id="permOwner" ${curPerms.owner !== false ? 'checked' : ''}> <span>${ebMix('👥 Bookers & Staff (PINs)', 'اسٹاف و بکرز')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permBackup" ${curPerms.backup !== false ? 'checked' : ''}> 💾 Backup &amp; Restore
+                                <input type="checkbox" id="permBackup" ${curPerms.backup !== false ? 'checked' : ''}> <span>${ebMix('💾 Backup & Restore', 'بیک اپ و بحالی')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px; color:#0284c7; font-weight:bold;">
-                                <input type="checkbox" id="permSessionSecurity" ${curPerms.session_security !== false ? 'checked' : ''}> ⏱️ Session Timeout Control
+                                <input type="checkbox" id="permSessionSecurity" ${curPerms.session_security !== false ? 'checked' : ''}> <span>${ebMix('⏱️ Session Timeout Control', 'سیشن لاک کنٹرول')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                <input type="checkbox" id="permAlerts" ${curPerms.alerts !== false ? 'checked' : ''}> 🔔 Low Stock Alerts
+                                <input type="checkbox" id="permAlerts" ${curPerms.alerts !== false ? 'checked' : ''}> <span>${ebMix('🔔 Low Stock Alerts', 'کم اسٹاک الرٹس')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px; color:#db2777; font-weight:bold;">
-                                <input type="checkbox" id="permMultiBranch" ${curPerms.multi_agency ? 'checked' : ''}> 🏢 Multi-Branch Hub
+                                <input type="checkbox" id="permMultiBranch" ${curPerms.multi_agency ? 'checked' : ''}> <span>${ebMix('🏢 Multi-Branch Hub', 'ملٹی برانچ ہب')}</span>
                             </label>
                             <label style="cursor:pointer; display:flex; align-items:center; gap:6px; color:#0284c7; font-weight:bold;">
-                                <input type="checkbox" id="permImageUrlInput" ${curPerms.image_url_input === true ? 'checked' : ''}> 🔗 Image Web Link Box (URL)
+                                <input type="checkbox" id="permImageUrlInput" ${curPerms.image_url_input === true ? 'checked' : ''}> <span>${ebMix('🔗 Image Web Link Box (URL)', 'تصویر ویب لنک باکس')}</span>
+                            </label>
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:6px; color:#059669; font-weight:800; grid-column:1 / -1; background:#ecfdf5; border:1px solid #6ee7b7; padding:7px 10px; border-radius:7px; margin-top:4px;">
+                                <input type="checkbox" id="permGpsTracking" ${curPerms.gps_tracking === true ? 'checked' : ''}> <span>${ebMix('📍 GPS Live Location & Booker Check-In (Paid Add-On — Default Locked 🔒)', 'لائیو GPS لوکیشن اور بکر چیک اِن (پیڈ ایڈ آن)')}</span>
                             </label>
                         </div>
                     </div>
@@ -1960,7 +2088,8 @@
             `,
             focusConfirm: false,
             showCancelButton: true,
-            confirmButtonText: '💾 Save All Settings',
+            confirmButtonText: `💾 ${ebT('Save All Settings', 'تمام ترتیبات محفوظ کریں')}`,
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں'),
             confirmButtonColor: '#0284c7',
             didOpen: () => {
                 const pkgSel = document.getElementById('swalEditPkg');
@@ -1977,7 +2106,8 @@
                     backup: 'permBackup',
                     session_security: 'permSessionSecurity',
                     alerts: 'permAlerts',
-                    multi_agency: 'permMultiBranch'
+                    multi_agency: 'permMultiBranch',
+                    gps_tracking: 'permGpsTracking'
                 };
                 if (pkgSel) {
                     pkgSel.addEventListener('change', function() {
@@ -2028,7 +2158,8 @@
                         session_security: document.getElementById('permSessionSecurity') ? document.getElementById('permSessionSecurity').checked : true,
                         alerts: document.getElementById('permAlerts').checked,
                         multi_agency: document.getElementById('permMultiBranch').checked,
-                        image_url_input: document.getElementById('permImageUrlInput') ? document.getElementById('permImageUrlInput').checked : false
+                        image_url_input: document.getElementById('permImageUrlInput') ? document.getElementById('permImageUrlInput').checked : false,
+                        gps_tracking: document.getElementById('permGpsTracking') ? document.getElementById('permGpsTracking').checked : false
                     }
                 };
             }
@@ -2050,14 +2181,14 @@
                 Swal.fire({
                     toast: true, position: 'top-end', showConfirmButton: false,
                     timer: 2000, icon: 'success',
-                    title: `✅ ${ag.name} settings updated!`
+                    title: `✅ ${ebT(`${ag.name} settings updated!`, `${ag.name} کی ترتیبات محفوظ ہو گئیں!`)}`
                 });
 
                 await loadAgencies();
 
             } catch (e) {
                 console.error('Update agency error:', e);
-                Swal.fire('Error', 'Update failed: ' + e.message, 'error');
+                Swal.fire(ebT('Error', 'خرابی'), `${ebT('Update failed:', 'اپڈیٹ ناکام:')} ${e.message}`, 'error');
             }
         }
     }
@@ -2065,20 +2196,21 @@
     // Delete agency
     async function deleteAgency(agencyId, agencyName) {
         const res = await Swal.fire({
-            title: `🗑️ Delete ${agencyName}?`,
-            text: 'Is agency ka sara record permanently delete ho jayega!',
+            title: `🗑️ ${ebT(`Delete ${agencyName}?`, `${agencyName} کو حذف کریں؟`)}`,
+            text: ebT('All records for this agency will be permanently deleted!', 'اس ایجنسی کا تمام ریکارڈ مستقل طور پر حذف ہو جائے گا!'),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Yes, Delete'
+            confirmButtonText: ebT('Yes, Delete', 'جی ہاں، حذف کریں'),
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں')
         });
         if (res.isConfirmed) {
             try {
                 await db.collection('agencies').doc(agencyId).delete();
-                Swal.fire('Deleted!', 'Agency removed.', 'success');
+                Swal.fire(ebT('Deleted!', 'حذف ہو گیا!'), ebT('Agency removed.', 'ایجنسی حذف کر دی گئی۔'), 'success');
                 await loadAgencies();
             } catch (e) {
-                Swal.fire('Error', e.message, 'error');
+                Swal.fire(ebT('Error', 'خرابی'), e.message, 'error');
             }
         }
     }
@@ -2086,77 +2218,88 @@
     // ============================================
     // 📩 INCOMING PACKAGE UPGRADE & FEE PAYMENT REQUESTS
     // ============================================
+    function renderUpgradeRequests() {
+        const container = document.getElementById('upgradeRequestsList');
+        if (!container) return;
+
+        if (!allUpgradeRequests || allUpgradeRequests.length === 0) {
+            container.innerHTML = `<div class="empty-state" style="padding:15px; color:#64748b; font-size:12.5px;">${ebMix('No pending upgrade requests. All clients are active!', 'کوئی زیر التواء درخواست نہیں ہے۔ سب کلائنٹس ایکٹو ہیں!')}</div>`;
+            const countBadge = document.getElementById('upgradeReqCount');
+            if (countBadge) countBadge.innerText = '0';
+            const tabBadge = document.getElementById('tabUpgradeCountBadge');
+            if (tabBadge) tabBadge.innerText = '0';
+            return;
+        }
+
+        let pendingCount = 0;
+        let html = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">';
+        allUpgradeRequests.forEach(req => {
+            const isPending = req.status === 'pending';
+            if (isPending) pendingCount++;
+
+            const dateStr = req.createdAt ? new Date(req.createdAt).toLocaleDateString() : ebT('Recent', 'حالیہ');
+            const pkgName = req.requestedPackageId ? req.requestedPackageId.toUpperCase() : 'PRO';
+
+            html += `
+            <div style="border:1.5px solid ${isPending ? '#10b981' : '#e2e8f0'}; border-radius:10px; padding:12px; background:${isPending ? '#f0fdf4' : '#f8fafc'};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <b style="font-size:13.5px; color:#0f172a;">🏢 ${req.agencyName || ebT('Agency', 'ایجنسی')}</b>
+                    <span class="branch-badge" style="background:${isPending ? '#dcfce7' : '#f1f5f9'}; color:${isPending ? '#15803d' : '#64748b'}; font-weight:800; font-size:10px;">
+                        ${isPending ? `⏳ ${ebT('PENDING', 'زیر التواء')}` : `✅ ${ebT('APPROVED', 'منظور شدہ')}`}
+                    </span>
+                </div>
+                <div style="font-size:11.5px; color:#475569; margin-bottom:4px;">
+                    <span>📧 ${req.userEmail || '—'}</span> &nbsp;|&nbsp; <span>📅 ${dateStr}</span>
+                </div>
+                <div style="font-size:12px; margin-bottom:6px;">
+                    ${ebT('Target:', 'مطلوبہ پیکیج:')} <b style="color:#0284c7;">${pkgName}</b>
+                </div>
+                ${isPending ? `
+                <div style="display:flex; gap:6px; margin-top:8px;">
+                    <button class="btn btn-sm" style="background:#10b981; color:#fff; font-size:11px; flex:1;" onclick="approveUpgradeRequest('${req.id}', '${req.agencyId}', '${req.requestedPackageId}', '${(req.agencyName || '').replace(/'/g, "\\'")}')">
+                        <i class="fas fa-check"></i> ${ebT('Unlock & Approve', 'ان لاک اور منظور کریں')}
+                    </button>
+                    <button class="btn btn-sm" style="background:#ef4444; color:#fff; font-size:11px;" onclick="dismissUpgradeRequest('${req.id}')">
+                        <i class="fas fa-times"></i> ${ebT('Dismiss', 'مسترد')}
+                    </button>
+                </div>` : ''}
+            </div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+
+        const countBadge = document.getElementById('upgradeReqCount');
+        if (countBadge) countBadge.innerText = pendingCount;
+        const tabBadge = document.getElementById('tabUpgradeCountBadge');
+        if (tabBadge) tabBadge.innerText = pendingCount;
+    }
+
     async function loadUpgradeRequests() {
         const container = document.getElementById('upgradeRequestsList');
         if (!container) return;
         try {
             const snap = await db.collection('upgradeRequests').orderBy('createdAt', 'desc').limit(25).get();
-            if (snap.empty) {
-                container.innerHTML = '<div class="empty-state" style="padding:15px; color:#64748b; font-size:12.5px;">کوئی زیر التواء درخواست نہیں ہے۔ سب کلائنٹس ایکٹو ہیں!</div>';
-                const countBadge = document.getElementById('upgradeReqCount');
-                if (countBadge) countBadge.innerText = '0';
-                const tabBadge = document.getElementById('tabUpgradeCountBadge');
-                if (tabBadge) tabBadge.innerText = '0';
-                return;
-            }
-
-            let pendingCount = 0;
-            let html = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">';
-            snap.forEach(doc => {
-                const req = doc.data();
-                const isPending = req.status === 'pending';
-                if (isPending) pendingCount++;
-
-                const dateStr = req.createdAt ? new Date(req.createdAt).toLocaleDateString() : 'Recent';
-                const pkgName = req.requestedPackageId ? req.requestedPackageId.toUpperCase() : 'PRO';
-
-                html += `
-                <div style="border:1.5px solid ${isPending ? '#10b981' : '#e2e8f0'}; border-radius:10px; padding:12px; background:${isPending ? '#f0fdf4' : '#f8fafc'};">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <b style="font-size:13.5px; color:#0f172a;">🏢 ${req.agencyName || 'Agency'}</b>
-                        <span class="branch-badge" style="background:${isPending ? '#dcfce7' : '#f1f5f9'}; color:${isPending ? '#15803d' : '#64748b'}; font-weight:800; font-size:10px;">
-                            ${isPending ? '⏳ PENDING' : '✅ APPROVED'}
-                        </span>
-                    </div>
-                    <div style="font-size:11.5px; color:#475569; margin-bottom:4px;">
-                        <span>📧 ${req.userEmail || '—'}</span> &nbsp;|&nbsp; <span>📅 ${dateStr}</span>
-                    </div>
-                    <div style="font-size:12px; margin-bottom:6px;">
-                        Target: <b style="color:#0284c7;">${pkgName}</b>
-                    </div>
-                    ${isPending ? `
-                    <div style="display:flex; gap:6px; margin-top:8px;">
-                        <button class="btn btn-sm" style="background:#10b981; color:#fff; font-size:11px; flex:1;" onclick="approveUpgradeRequest('${doc.id}', '${req.agencyId}', '${req.requestedPackageId}', '${req.agencyName}')">
-                            <i class="fas fa-check"></i> Unlock &amp; Approve
-                        </button>
-                        <button class="btn btn-sm" style="background:#ef4444; color:#fff; font-size:11px;" onclick="dismissUpgradeRequest('${doc.id}')">
-                            <i class="fas fa-times"></i> Dismiss
-                        </button>
-                    </div>` : ''}
-                </div>`;
-            });
-            html += '</div>';
-            container.innerHTML = html;
-
-            const countBadge = document.getElementById('upgradeReqCount');
-            if (countBadge) countBadge.innerText = pendingCount;
-            const tabBadge = document.getElementById('tabUpgradeCountBadge');
-            if (tabBadge) tabBadge.innerText = pendingCount;
-
+            allUpgradeRequests = [];
+            snap.forEach(doc => allUpgradeRequests.push({ id: doc.id, ...doc.data() }));
+            renderUpgradeRequests();
         } catch (e) {
             console.error('Upgrade requests error:', e);
-            container.innerHTML = '<div class="error-inline">Failed to load requests: ' + e.message + '</div>';
+            container.innerHTML = `<div class="error-inline">${ebMix('Failed to load requests:', 'درخواستیں لوڈ کرنے میں خرابی:')} ${e.message}</div>`;
         }
     }
 
     async function approveUpgradeRequest(reqId, agencyId, targetPackageId, agencyName) {
         const res = await Swal.fire({
-            title: `Approve Upgrade for ${agencyName}?`,
-            text: `Agency ko ${targetPackageId.toUpperCase()} package par unlock kar diya jayega.`,
+            title: ebT(`Approve Upgrade for ${agencyName}?`, `${agencyName} کا اپ گریڈ منظور کریں؟`),
+            text: ebT(
+                `This agency will be unlocked on the ${targetPackageId.toUpperCase()} package.`,
+                `اس ایجنسی کو ${targetPackageId.toUpperCase()} پیکیج پر ان لاک کر دیا جائے گا۔`
+            ),
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#10b981',
-            confirmButtonText: 'Yes, Approve & Unlock'
+            confirmButtonText: ebT('Yes, Approve & Unlock', 'جی ہاں، منظور اور ان لاک کریں'),
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں')
         });
 
         if (res.isConfirmed) {
@@ -2182,26 +2325,30 @@
 
                 Swal.fire({
                     icon: 'success',
-                    title: '🎉 Package Unlocked!',
-                    html: `<b>${agencyName}</b> ko <b>${targetPackageId.toUpperCase()}</b> par unlock kar diya gaya hai!<br>Valid till: <b>${newExpiryStr}</b>`
+                    title: `🎉 ${ebT('Package Unlocked!', 'پیکیج ان لاک ہو گیا!')}`,
+                    html: ebT(
+                        `<b>${agencyName}</b> has been unlocked on <b>${targetPackageId.toUpperCase()}</b>!<br>Valid till: <b>${newExpiryStr}</b>`,
+                        `<b>${agencyName}</b> کو <b>${targetPackageId.toUpperCase()}</b> پر ان لاک کر دیا گیا ہے!<br>میعاد تا: <b>${newExpiryStr}</b>`
+                    )
                 });
 
                 await loadUpgradeRequests();
                 await loadAgencies();
             } catch (e) {
                 console.error('Approve upgrade error:', e);
-                Swal.fire('Error', 'Approval failed: ' + e.message, 'error');
+                Swal.fire(ebT('Error', 'خرابی'), `${ebT('Approval failed:', 'منظوری ناکام:')} ${e.message}`, 'error');
             }
         }
     }
 
     async function dismissUpgradeRequest(reqId) {
         const res = await Swal.fire({
-            title: 'Dismiss Request?',
+            title: ebT('Dismiss Request?', 'درخواست مسترد کریں؟'),
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Yes, Dismiss'
+            confirmButtonText: ebT('Yes, Dismiss', 'جی ہاں، مسترد کریں'),
+            cancelButtonText: ebT('Cancel', 'منسوخ کریں')
         });
         if (res.isConfirmed) {
             try {
@@ -2216,14 +2363,14 @@
     // Refresh button
     document.getElementById('refreshAdminBtn').addEventListener('click', async () => {
         const btn = document.getElementById('refreshAdminBtn');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${ebT('Refreshing...', 'ریفریش ہو رہا ہے...')}`;
         btn.disabled = true;
         await loadAgencies();
         await loadPackages();
         await loadUpgradeRequests();
-        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Platform Data';
+        btn.innerHTML = `<i class="fas fa-sync-alt"></i> <span data-eb-en="Refresh Platform Data" data-eb-ur="پلیٹ فارم ڈیٹا ریفریش کریں">${ebMix('Refresh Platform Data', 'پلیٹ فارم ڈیٹا ریفریش کریں')}</span>`;
         btn.disabled = false;
-        Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, icon: 'success', title: 'Data updated!' });
+        Swal.fire({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, icon: 'success', title: ebT('Data updated!', 'ڈیٹا اپڈیٹ ہو گیا!') });
     });
 
     // ============================================
@@ -2242,13 +2389,13 @@
         const durationMonths = parseInt(document.getElementById('agDuration').value) || 1;
 
         if (!name || !email || password.length < 6) {
-            Swal.fire('⚠️', 'Tamam zaroori fields darj karein!', 'warning');
+            Swal.fire('⚠️', ebT('Please fill all required fields (password min 6 chars)!', 'تمام ضروری فیلڈز درج کریں (پاسورڈ کم از کم 6 حروف)!'), 'warning');
             return;
         }
 
         const createBtn = document.getElementById('createAgencyBtn');
         createBtn.disabled = true;
-        createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Agency & Owner...';
+        createBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${ebT('Creating Agency & Owner...', 'ایجنسی اور مالک اکاؤنٹ بنایا جا رہا ہے...')}`;
 
         try {
             // Secondary Firebase App to create user without logging out current Super Admin
@@ -2312,15 +2459,15 @@
             });
 
             createBtn.disabled = false;
-            createBtn.innerHTML = '<i class="fas fa-check-circle"></i> CREATE AGENCY & ACTIVATE SUBSCRIPTION';
+            createBtn.innerHTML = `<i class="fas fa-check-circle"></i> <span data-eb-en="CREATE AGENCY &amp; ACTIVATE SUBSCRIPTION" data-eb-ur="ایجنسی بنائیں اور سبسکرپشن فعال کریں">${ebMix('CREATE AGENCY & ACTIVATE SUBSCRIPTION', 'ایجنسی بنائیں اور سبسکرپشن فعال کریں')}</span>`;
             document.getElementById('createAgencyForm').reset();
             document.getElementById('agPackage').value = 'free';
             document.getElementById('agMonthlyFee').value = '0';
 
             Swal.fire({
                 icon: 'success',
-                title: '🎉 Agency Created & Subscription Active!',
-                html: `<b>${name}</b><br>Owner: <b>${email}</b><br>Plan: <b>${pkgId.toUpperCase()}</b><br>Validity Till: <b>${expDateStr}</b><br>Fee: Rs ${monthlyFee.toLocaleString()} / mo`
+                title: `🎉 ${ebT('Agency Created & Subscription Active!', 'ایجنسی بن گئی اور سبسکرپشن فعال ہے!')}`,
+                html: `<b>${name}</b><br>${ebT('Owner:', 'مالک:')} <b>${email}</b><br>${ebT('Plan:', 'پلان:')} <b>${pkgId.toUpperCase()}</b><br>${ebT('Valid Till:', 'میعاد تا:')} <b>${expDateStr}</b><br>${ebT('Fee:', 'فیس:')} Rs ${monthlyFee.toLocaleString()} / ${ebT('mo', 'ماہ')}`
             });
 
             await loadAgencies();
@@ -2328,11 +2475,34 @@
 
         } catch (error) {
             createBtn.disabled = false;
-            createBtn.innerHTML = '<i class="fas fa-check-circle"></i> CREATE AGENCY & ACTIVATE SUBSCRIPTION';
+            createBtn.innerHTML = `<i class="fas fa-check-circle"></i> <span data-eb-en="CREATE AGENCY &amp; ACTIVATE SUBSCRIPTION" data-eb-ur="ایجنسی بنائیں اور سبسکرپشن فعال کریں">${ebMix('CREATE AGENCY & ACTIVATE SUBSCRIPTION', 'ایجنسی بنائیں اور سبسکرپشن فعال کریں')}</span>`;
             console.error('Agency creation failed:', error);
-            Swal.fire('❌ Error', 'Agency create nahi hui: ' + error.message, 'error');
+            Swal.fire(`❌ ${ebT('Error', 'خرابی')}`, `${ebT('Failed to create agency:', 'ایجنسی نہیں بن سکی:')} ${error.message}`, 'error');
         }
     });
+
+    // ============================================
+    // 🌐 INITIAL BILINGUAL SYNC & LIVE LANGUAGE SWITCH LISTENER
+    // ============================================
+    ebApplyBilingualDom(document);
+    ebRefreshStaticSelects();
+
+    if (!window.__ebAdminLangBound) {
+        window.__ebAdminLangBound = true;
+        window.addEventListener('eb-lang-changed', () => {
+            ebApplyBilingualDom(document);
+            ebRefreshStaticSelects();
+            if (Object.keys(allLoadedPackages).length > 0) {
+                renderPackages(allLoadedPackages);
+                populateCreateAgencyPackageSelect();
+            }
+            if (allAgencies.length > 0) {
+                renderLeaderboards();
+                renderAgenciesList();
+            }
+            renderUpgradeRequests();
+        });
+    }
 </script>
 
 <!-- 🧭 SIDEBAR SYSTEM -->

@@ -117,29 +117,32 @@
     <!-- ===== 🔝 EXECUTIVE HEADER ===== -->
     <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
         <div>
-            <h1 style="font-size: 20px; font-weight: 900; color: #0f172a; display: flex; align-items: center; gap: 10px; margin: 0;">
-                <i class="fas fa-sack-dollar" style="color: #10b981; font-size: 24px;"></i> 
-                Advanced Profit &amp; Loss Analytics (منافع کی تفصیلی رپورٹ)
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                <span id="profitActiveCategoryBadge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:3px 10px; border-radius:8px; font-size:11.5px; font-weight:800;"><span data-eb-en="🏢 Category Workspace" data-eb-ur="کیٹیگری ورک اسپیس">🏢 Category Workspace</span></span>
+            </div>
+            <h1 id="profitMainTitle" style="font-size: 20px; font-weight: 900; color: #0f172a; display: flex; align-items: center; gap: 10px; margin: 0;">
+                <i class="fas fa-sack-dollar" style="color: #10b981; font-size: 24px;"></i>
+                <span data-eb-en="Advanced Profit &amp; Loss Analytics" data-eb-ur="منافع کی تفصیلی رپورٹ">Advanced Profit &amp; Loss Analytics</span>
             </h1>
-            <p style="font-size: 12px; color: #64748b; margin: 3px 0 0 0;">
-                ریئل ٹائم آئٹم وار، بل وار، روزانہ، ہفتہ وار، ماہانہ اور گاہک وار خالص منافع و مارجن رپورٹ
+            <p id="profitMainSub" style="font-size: 12px; color: #64748b; margin: 3px 0 0 0;" data-eb-en="Real-time item, bill, daily, weekly, monthly, customer &amp; staff net profit and margin audit" data-eb-ur="ریئل ٹائم آئٹم، بل، روزانہ، ہفتہ وار، ماہانہ، گاہک اور اسٹاف خالص منافع و مارجن رپورٹ" data-eb-compact="1">
+                Real-time item, bill, daily, weekly, monthly, customer &amp; staff net profit and margin audit
             </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <a href="expenses.html" class="btn btn-sm" style="background:#ef4444; color:#fff; text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-weight:bold;" title="Manage Business Expenses">
-                <i class="fas fa-wallet"></i> Expenses (اخراجات)
+                <i class="fas fa-wallet"></i> <span data-eb-en="Expenses" data-eb-ur="اخراجات">Expenses</span>
             </a>
             <button class="btn btn-sm" id="btnRefreshProfit" style="background:#0284c7; color:#fff;" title="Reload Data">
-                <i class="fas fa-rotate"></i> Refresh
+                <i class="fas fa-rotate"></i> <span data-eb-en="Refresh" data-eb-ur="تازہ کریں">Refresh</span>
             </button>
             <button class="btn btn-sm" id="btnExportProfitCSV" style="background:#10b981; color:#fff;" title="Download Excel CSV">
-                <i class="fas fa-file-excel"></i> Export CSV
+                <i class="fas fa-file-excel"></i> <span data-eb-en="Export CSV" data-eb-ur="ایکسل سی ایس وی">Export CSV</span>
             </button>
             <button class="btn btn-sm" id="btnThermalProfitSlip" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; font-weight:800;" title="Print 80mm/58mm Thermal Profit Closing Slip">
-                🧾 Thermal Profit Slip
+                🧾 <span data-eb-en="Thermal Profit Slip" data-eb-ur="تھرمل منافع پرچی">Thermal Profit Slip</span>
             </button>
             <button class="btn btn-sm" id="btnPrintProfit" style="background:#475569; color:#fff;" title="Print Report">
-                <i class="fas fa-print"></i> Print
+                <i class="fas fa-print"></i> <span data-eb-en="Print" data-eb-ur="پرنٹ">Print</span>
             </button>
         </div>
     </div>
@@ -149,54 +152,54 @@
         <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
             <div class="kpi-icon" style="color:#3b82f6;"><i class="fas fa-cash-register"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title">Total Sales (کل فروخت)</span>
+                <span class="kpi-title" id="kpiTitleSales" data-eb-en="Total Sales" data-eb-ur="کل فروخت">Total Sales</span>
                 <span class="kpi-val" id="kpiRevenue">Rs --</span>
-                <small class="kpi-sub" id="kpiBillCount">-- Bills Issued</small>
+                <small class="kpi-sub" id="kpiBillCount" data-eb-en="-- Bills Issued" data-eb-ur="جاری کردہ بلز">-- Bills Issued</small>
             </div>
         </div>
 
         <div class="kpi-card" style="border-left: 4px solid #f59e0b;">
             <div class="kpi-icon" style="color:#f59e0b;"><i class="fas fa-boxes-packing"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title">Cost of Goods (خرید لاگت)</span>
+                <span class="kpi-title" id="kpiTitleCogs" data-eb-en="Cost of Goods" data-eb-ur="خرید لاگت">Cost of Goods</span>
                 <span class="kpi-val" id="kpiCost">Rs --</span>
-                <small class="kpi-sub" id="kpiCostRatio">--% of Sales</small>
+                <small class="kpi-sub" id="kpiCostRatio" data-eb-en="--% of Sales" data-eb-ur="فروخت کا تناسب">--% of Sales</small>
             </div>
         </div>
 
         <div class="kpi-card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
             <div class="kpi-icon" style="color:#10b981;"><i class="fas fa-hand-holding-dollar"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title" style="color:#15803d; font-weight:bold;">Net Gross Profit (خالص منافع)</span>
+                <span class="kpi-title" style="color:#15803d; font-weight:bold;" data-eb-en="Gross Profit" data-eb-ur="خام منافع">Gross Profit</span>
                 <span class="kpi-val" id="kpiNetProfit" style="color:#15803d;">Rs --</span>
-                <small class="kpi-sub" id="kpiMarginStatus" style="color:#166534; font-weight:bold;">--% Gross Margin</small>
+                <small class="kpi-sub" id="kpiMarginStatus" style="color:#166534; font-weight:bold;" data-eb-en="--% Gross Margin" data-eb-ur="خام مارجن">--% Gross Margin</small>
             </div>
         </div>
 
         <div class="kpi-card" style="border-left: 4px solid #8b5cf6;">
             <div class="kpi-icon" style="color:#8b5cf6;"><i class="fas fa-percent"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title">Overall Margin % (منافع کا تناسب)</span>
+                <span class="kpi-title" data-eb-en="Overall Margin %" data-eb-ur="منافع کا تناسب">Overall Margin %</span>
                 <span class="kpi-val" id="kpiMarginPct">--%</span>
-                <small class="kpi-sub">On Net Sales Volume</small>
+                <small class="kpi-sub" id="kpiClaimsSub" data-eb-en="Claims/Wastage Loss: Rs 0" data-eb-ur="کلیم/ضیاع نقصان">Claims/Wastage Loss: Rs 0</small>
             </div>
         </div>
 
         <div class="kpi-card" style="border-left: 4px solid #ef4444; background:#fff5f5;">
             <div class="kpi-icon" style="color:#ef4444;"><i class="fas fa-wallet"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title" style="color:#b91c1c;">Operating Expenses (اخراجات)</span>
+                <span class="kpi-title" style="color:#b91c1c;" data-eb-en="Expenses &amp; Salaries" data-eb-ur="اخراجات و تنخواہیں">Expenses &amp; Salaries</span>
                 <span class="kpi-val" id="kpiOperatingExpenses" style="color:#b91c1c;">Rs --</span>
-                <small class="kpi-sub" id="kpiExpenseSub">-- Expense Vouchers</small>
+                <small class="kpi-sub" id="kpiExpenseSub" data-eb-en="-- Expense Vouchers" data-eb-ur="اخراجات کے واؤچرز">-- Expense Vouchers</small>
             </div>
         </div>
 
         <div class="kpi-card" style="border-left: 4px solid #059669; background:#ecfdf5;">
             <div class="kpi-icon" style="color:#059669;"><i class="fas fa-sack-dollar"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title" style="color:#047857; font-weight:bold;">Final Net Profit (حتمی منافع)</span>
+                <span class="kpi-title" style="color:#047857; font-weight:bold;" data-eb-en="Final Net Profit" data-eb-ur="حتمی خالص منافع">Final Net Profit</span>
                 <span class="kpi-val" id="kpiFinalNetProfit" style="color:#047857;">Rs --</span>
-                <small class="kpi-sub" id="kpiFinalNetSub">Gross Profit - Expenses</small>
+                <small class="kpi-sub" id="kpiFinalNetSub" data-eb-en="Gross Profit - Expenses - Loss" data-eb-ur="خام منافع منفی اخراجات و نقصان">Gross Profit - Expenses - Loss</small>
             </div>
         </div>
     </div>
@@ -204,49 +207,52 @@
     <!-- ===== 📅 DATE FILTER & PRESETS BAR ===== -->
     <div class="date-filter-bar">
         <div class="date-presets" id="profitDatePresets">
-            <button class="date-preset-btn" data-preset="today">Today (آج)</button>
-            <button class="date-preset-btn" data-preset="yesterday">Yesterday (گزشتہ کل)</button>
-            <button class="date-preset-btn" data-preset="thisweek">This Week (اس ہفتے)</button>
-            <button class="date-preset-btn" data-preset="last7">Last 7 Days (7 دن)</button>
-            <button class="date-preset-btn active" data-preset="thismonth">This Month (موجودہ مہینہ)</button>
-            <button class="date-preset-btn" data-preset="lastmonth">Last Month (پچھلا مہینہ)</button>
-            <button class="date-preset-btn" data-preset="alltime">All Time (تمام)</button>
+            <button class="date-preset-btn" data-preset="today"><span data-eb-en="Today" data-eb-ur="آج">Today</span></button>
+            <button class="date-preset-btn" data-preset="yesterday"><span data-eb-en="Yesterday" data-eb-ur="گزشتہ کل">Yesterday</span></button>
+            <button class="date-preset-btn" data-preset="thisweek"><span data-eb-en="This Week" data-eb-ur="اس ہفتے">This Week</span></button>
+            <button class="date-preset-btn" data-preset="last7"><span data-eb-en="Last 7 Days" data-eb-ur="7 دن">Last 7 Days</span></button>
+            <button class="date-preset-btn active" data-preset="thismonth"><span data-eb-en="This Month" data-eb-ur="موجودہ مہینہ">This Month</span></button>
+            <button class="date-preset-btn" data-preset="lastmonth"><span data-eb-en="Last Month" data-eb-ur="پچھلا مہینہ">Last Month</span></button>
+            <button class="date-preset-btn" data-preset="alltime"><span data-eb-en="All Time" data-eb-ur="تمام">All Time</span></button>
         </div>
 
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <div class="custom-date-inputs">
                 <input type="date" id="profitDateStart" title="Start Date">
-                <span style="font-size:12px; color:#64748b; font-weight:bold;">to</span>
+                <span style="font-size:12px; color:#64748b; font-weight:bold;" data-eb-en="to" data-eb-ur="تا">to</span>
                 <input type="date" id="profitDateEnd" title="End Date">
                 <button class="btn btn-sm" id="btnApplyProfitDate" style="background:#0284c7; color:#fff;">
-                    Apply
+                    <span data-eb-en="Apply" data-eb-ur="لاگو کریں">Apply</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- ===== 📑 6 PROFIT VIEW TABS ===== -->
+    <!-- ===== 📑 8 CATEGORY-ADAPTIVE PROFIT VIEW TABS ===== -->
     <div class="report-tabs-nav" id="profitViewTabs">
-        <button class="report-tab-btn active" data-view="items">
-            <i class="fas fa-box-open"></i> 1. Items-wise Profit (آئٹم وار منافع)
+        <button class="report-tab-btn active" data-view="items" id="tabBtnItems">
+            <i class="fas fa-box-open"></i> <span data-eb-en="1. Items-wise Profit" data-eb-ur="آئٹم وار منافع">1. Items-wise Profit</span>
         </button>
-        <button class="report-tab-btn" data-view="bills">
-            <i class="fas fa-file-invoice"></i> 2. Bill-wise Profit (بل وار منافع)
+        <button class="report-tab-btn" data-view="bills" id="tabBtnBills">
+            <i class="fas fa-file-invoice"></i> <span data-eb-en="2. Bill-wise Profit" data-eb-ur="بل وار منافع">2. Bill-wise Profit</span>
         </button>
-        <button class="report-tab-btn" data-view="day">
-            <i class="fas fa-calendar-day"></i> 3. Day-wise Profit (روزانہ منافع)
+        <button class="report-tab-btn" data-view="day" id="tabBtnDay">
+            <i class="fas fa-calendar-day"></i> <span data-eb-en="3. Day-wise Profit" data-eb-ur="روزانہ منافع">3. Day-wise Profit</span>
         </button>
-        <button class="report-tab-btn" data-view="weekly">
-            <i class="fas fa-calendar-week"></i> 4. Weekly-wise Profit (ہفتہ وار منافع)
+        <button class="report-tab-btn" data-view="weekly" id="tabBtnWeekly">
+            <i class="fas fa-calendar-week"></i> <span data-eb-en="4. Weekly-wise Profit" data-eb-ur="ہفتہ وار منافع">4. Weekly-wise Profit</span>
         </button>
-        <button class="report-tab-btn" data-view="monthly">
-            <i class="fas fa-calendar-alt"></i> 5. Monthly-wise Profit (ماہانہ منافع)
+        <button class="report-tab-btn" data-view="monthly" id="tabBtnMonthly">
+            <i class="fas fa-calendar-alt"></i> <span data-eb-en="5. Monthly-wise Profit" data-eb-ur="ماہانہ منافع">5. Monthly-wise Profit</span>
         </button>
-        <button class="report-tab-btn" data-view="customer">
-            <i class="fas fa-users"></i> 6. Customer-wise Profit (گاہک وار منافع)
+        <button class="report-tab-btn" data-view="customer" id="tabBtnCustomer">
+            <i class="fas fa-users"></i> <span data-eb-en="6. Customer-wise Profit" data-eb-ur="گاہک وار منافع">6. Customer-wise Profit</span>
         </button>
-        <button class="report-tab-btn" data-view="agency_company">
-            <i class="fas fa-building"></i> 7. Agency / Company Profit (10+ ایجنسیز منافع مقابلہ)
+        <button class="report-tab-btn" data-view="agency_company" id="tabBtnBrandGroup">
+            <i class="fas fa-building"></i> <span data-eb-en="7. Agency / Company Profit" data-eb-ur="برانڈ و کمپنی منافع">7. Agency / Company Profit</span>
+        </button>
+        <button class="report-tab-btn" data-view="staff" id="tabBtnStaff">
+            <i class="fas fa-user-tie"></i> <span data-eb-en="8. Staff / Booker Profit" data-eb-ur="اسٹاف و بکر منافع">8. Staff / Booker Profit</span>
         </button>
     </div>
 
@@ -256,29 +262,29 @@
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
                 <h2 id="profitViewTitle" style="font-size:16px; font-weight:bold; color:#0f172a; margin:0;">
-                    <i class="fas fa-box-open" style="color:#10b981;"></i> Items-wise Profit Breakdown
+                    <i class="fas fa-box-open" style="color:#10b981;"></i> <span data-eb-en="Items-wise Profit Breakdown" data-eb-ur="آئٹم وار منافع کی تفصیل">Items-wise Profit Breakdown</span>
                 </h2>
-                <small class="header-note" id="profitViewSubTitle">ہر پراڈکٹ کی فروخت، خریداری لاگت، خالص منافع اور منافع کا تناسب</small>
+                <small class="header-note" id="profitViewSubTitle" data-eb-en="Sales, purchase cost, net profit and profit margin % for each product" data-eb-ur="ہر پراڈکٹ کی فروخت، خریداری لاگت، خالص منافع اور منافع کا تناسب" data-eb-compact="1">Sales, purchase cost, net profit and profit margin % for each product</small>
             </div>
 
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                 <select id="profitSortSelect" style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:600; outline:none; background:#fff;">
-                    <option value="profit_desc">Sort: Highest Profit First (زیادہ منافع)</option>
-                    <option value="profit_asc">Sort: Lowest Profit First (کم منافع)</option>
-                    <option value="sales_desc">Sort: Highest Sales (زیادہ فروخت)</option>
-                    <option value="margin_desc">Sort: Highest Margin % (بہترین مارجن)</option>
+                    <option value="profit_desc" data-eb-en="Sort: Highest Profit First" data-eb-ur="Sort: Highest Profit First (زیادہ منافع)">Sort: Highest Profit First</option>
+                    <option value="profit_asc" data-eb-en="Sort: Lowest Profit First" data-eb-ur="Sort: Lowest Profit First (کم منافع)">Sort: Lowest Profit First</option>
+                    <option value="sales_desc" data-eb-en="Sort: Highest Sales" data-eb-ur="Sort: Highest Sales (زیادہ فروخت)">Sort: Highest Sales</option>
+                    <option value="margin_desc" data-eb-en="Sort: Highest Margin %" data-eb-ur="Sort: Highest Margin % (بہترین مارجن)">Sort: Highest Margin %</option>
                 </select>
 
                 <div style="position:relative; width:100%; max-width:240px;">
                     <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>
-                    <input type="text" id="profitSearchInput" placeholder="Search in results..." style="width:100%; padding:6px 10px 6px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none;">
+                    <input type="text" id="profitSearchInput" placeholder="Search in results..." data-eb-ph-en="Search in results..." data-eb-ph-ur="Search in results... (نتائج میں تلاش کریں)" style="width:100%; padding:6px 10px 6px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none;">
                 </div>
             </div>
         </div>
 
         <!-- Data Table Container -->
         <div class="table-responsive" id="profitTableContainer">
-            <div class="loading-inline">Loading profit calculations...</div>
+            <div class="loading-inline" data-eb-en="Loading profit calculations..." data-eb-ur="منافع کا حساب لوڈ ہو رہا ہے...">Loading profit calculations...</div>
         </div>
     </div>
 
@@ -290,7 +296,7 @@
     <div class="profit-modal-box">
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:14px;">
             <h3 style="margin:0; font-size:17px; font-weight:bold; color:#0f172a; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-receipt" style="color:#0284c7;"></i> Bill Profit Breakdown: <span id="modalBillNo">INV-000</span>
+                <i class="fas fa-receipt" style="color:#0284c7;"></i> <span data-eb-en="Bill Profit Breakdown:" data-eb-ur="بل منافع کی تفصیل:">Bill Profit Breakdown:</span> <span id="modalBillNo">INV-000</span>
             </h3>
             <button onclick="closeBillProfitModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#64748b;">&times;</button>
         </div>
@@ -304,14 +310,14 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Item Name</th>
-                        <th style="text-align:center;">Qty</th>
-                        <th style="text-align:right;">Cost Price</th>
-                        <th style="text-align:right;">Sell Price</th>
-                        <th style="text-align:right;">Total Cost</th>
-                        <th style="text-align:right;">Total Sale</th>
-                        <th style="text-align:right;">Item Profit</th>
-                        <th style="text-align:center;">Margin %</th>
+                        <th data-eb-en="Item Name" data-eb-ur="آئٹم کا نام">Item Name</th>
+                        <th style="text-align:center;" data-eb-en="Qty" data-eb-ur="تعداد">Qty</th>
+                        <th style="text-align:right;" data-eb-en="Cost Price" data-eb-ur="خرید قیمت">Cost Price</th>
+                        <th style="text-align:right;" data-eb-en="Sell Price" data-eb-ur="فروخت قیمت">Sell Price</th>
+                        <th style="text-align:right;" data-eb-en="Total Cost" data-eb-ur="کل لاگت">Total Cost</th>
+                        <th style="text-align:right;" data-eb-en="Total Sale" data-eb-ur="کل فروخت">Total Sale</th>
+                        <th style="text-align:right;" data-eb-en="Item Profit" data-eb-ur="آئٹم منافع">Item Profit</th>
+                        <th style="text-align:center;" data-eb-en="Margin %" data-eb-ur="مارجن %">Margin %</th>
                     </tr>
                 </thead>
                 <tbody id="modalBillItemsTbody">
@@ -320,7 +326,7 @@
         </div>
 
         <div style="text-align:right; margin-top:16px;">
-            <button class="btn btn-sm" onclick="closeBillProfitModal()" style="background:#64748b; color:#fff;">Close</button>
+            <button class="btn btn-sm" onclick="closeBillProfitModal()" style="background:#64748b; color:#fff;"><span data-eb-en="Close" data-eb-ur="بند کریں">Close</span></button>
         </div>
     </div>
 </div>

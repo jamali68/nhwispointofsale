@@ -42,31 +42,31 @@
     <!-- ===== 👤 PERSONAL INFO ===== -->
     <div class="panel-card">
         <div class="card-header">
-            <h2><i class="fas fa-user"></i> Personal Information</h2>
+            <h2><i class="fas fa-user"></i> <span data-eb-en="Personal Information" data-eb-ur="ذاتی معلومات">Personal Information</span></h2>
         </div>
         <form id="personalForm" class="panel-form">
             <div class="form-row">
                 <div class="form-group">
-                    <label>👤 Full Name</label>
-                    <input type="text" id="pfName" maxlength="40" placeholder="Your Name">
+                    <label>👤 <span data-eb-en="Full Name" data-eb-ur="پورا نام">Full Name</span></label>
+                    <input type="text" id="pfName" maxlength="40" placeholder="Your Name" data-eb-ph-en="Your Name" data-eb-ph-ur="آپ کا نام">
                 </div>
                 <div class="form-group">
-                    <label>📱 Mobile Number</label>
+                    <label>📱 <span data-eb-en="Mobile Number" data-eb-ur="موبائل نمبر">Mobile Number</span></label>
                     <input type="tel" id="pfMobile" maxlength="15" placeholder="03xx-xxxxxxx">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>📧 Email (fixed)</label>
+                    <label>📧 <span data-eb-en="Email (fixed)" data-eb-ur="ای میل (مستقل)">Email (fixed)</span></label>
                     <input type="email" id="pfEmail" disabled style="background:#eef2f7; color:#7f8c8d;">
                 </div>
                 <div class="form-group">
-                    <label>🎭 My Role</label>
+                    <label>🎭 <span data-eb-en="My Role" data-eb-ur="میرا عہدہ">My Role</span></label>
                     <input type="text" id="pfRole" disabled style="background:#eef2f7; color:#7f8c8d;">
                 </div>
             </div>
             <button type="submit" class="btn btn-primary" id="savePersonalBtn">
-                💾 Save Personal Info
+                💾 <span data-eb-en="Save Personal Info" data-eb-ur="ذاتی معلومات محفوظ کریں" data-eb-compact="1">Save Personal Info</span>
             </button>
         </form>
     </div>
@@ -75,11 +75,11 @@
     <div class="panel-card" id="subscriptionCard" style="border-top-color:#10b981; display:none;">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div>
-                <h2><i class="fas fa-crown"></i> Subscription &amp; Package Status</h2>
-                <small class="header-note">پیکیج کی تفصیلات، فیس اسٹیٹس اور ماڈیولز لاک/ان لاک کنٹرول</small>
+                <h2><i class="fas fa-crown"></i> <span data-eb-en="Subscription & Package Status" data-eb-ur="پیکیج اور سبسکرپشن اسٹیٹس">Subscription &amp; Package Status</span></h2>
+                <small class="header-note" data-eb-en="Package details, fee status, and module lock/unlock controls" data-eb-ur="پیکیج کی تفصیلات، فیس اسٹیٹس اور ماڈیولز لاک/ان لاک کنٹرول">Package details, fee status, and module lock/unlock controls</small>
             </div>
             <button type="button" class="btn btn-sm" id="btnProfileUpgrade" style="background:#10b981; color:#fff; font-weight:bold; cursor:pointer;">
-                <i class="fas fa-unlock"></i> Upgrade / Pay Fee (ان لاک کریں)
+                <i class="fas fa-unlock"></i> <span data-eb-en="Upgrade / Pay Fee" data-eb-ur="پیکیج اپگریڈ کریں" data-eb-compact="1">Upgrade / Pay Fee</span>
             </button>
         </div>
 
@@ -88,121 +88,110 @@
             <div style="display:flex; align-items:center; gap:10px;">
                 <i class="fab fa-whatsapp" style="font-size:22px; color:#25D366;"></i>
                 <div>
-                    <div style="font-size:12px; font-weight:800; color:#14532d;">ڈویلپر واٹس ایپ رابطہ (Developer Official WhatsApp): <span style="color:#15803d;">+923346800959</span></div>
-                    <div style="font-size:11px; color:#64748b;">پیکیج لمٹس (بلز، آئٹمز، آرڈر بکرز) اور ماہانہ فیس کے حوالے سے فوری رابطہ کریں۔</div>
+                    <div style="font-size:12px; font-weight:800; color:#14532d;"><span data-eb-en="Developer Official WhatsApp:" data-eb-ur="ڈویلپر آفیشل واٹس ایپ رابطہ:">Developer Official WhatsApp:</span> <span style="color:#15803d;">+923346800959</span></div>
+                    <div style="font-size:11px; color:#64748b;" data-eb-en="Contact directly for package limits (bills, items, order bookers) and monthly fee support." data-eb-ur="پیکیج لمٹس (بلز، آئٹمز، آرڈر بکرز) اور ماہانہ فیس کے حوالے سے فوری رابطہ کریں۔">Contact directly for package limits (bills, items, order bookers) and monthly fee support.</div>
                 </div>
             </div>
             <a href="https://wa.me/923346800959?text=Assalam-o-Alaikum%20Developer!%20Easy%20Bill%20Package%20Support" target="_blank" style="background:#25D366; color:#fff; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:bold; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
-                <i class="fab fa-whatsapp"></i> Chat Developer
+                <i class="fab fa-whatsapp"></i> <span data-eb-en="Chat Developer" data-eb-ur="واٹس ایپ رابطہ" data-eb-compact="1">Chat Developer</span>
             </a>
         </div>
 
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:14px;">
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
-                <div style="font-size:11px; color:#64748b; font-weight:bold;">CURRENT PACKAGE</div>
+                <div style="font-size:11px; color:#64748b; font-weight:bold;" data-eb-en="CURRENT PACKAGE" data-eb-ur="موجودہ پیکیج" data-eb-compact="1">CURRENT PACKAGE</div>
                 <div style="font-size:15px; font-weight:800; color:#0f172a; margin-top:3px;" id="subPkgName">—</div>
             </div>
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
-                <div style="font-size:11px; color:#64748b; font-weight:bold;">STATUS</div>
+                <div style="font-size:11px; color:#64748b; font-weight:bold;" data-eb-en="STATUS" data-eb-ur="اسٹیٹس" data-eb-compact="1">STATUS</div>
                 <div style="font-size:14px; font-weight:800; margin-top:3px;" id="subStatusBadge">—</div>
             </div>
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
-                <div style="font-size:11px; color:#64748b; font-weight:bold;">VALIDITY EXPIRY</div>
+                <div style="font-size:11px; color:#64748b; font-weight:bold;" data-eb-en="VALIDITY EXPIRY" data-eb-ur="میعاد ختم" data-eb-compact="1">VALIDITY EXPIRY</div>
                 <div style="font-size:15px; font-weight:800; color:#0f172a; margin-top:3px;" id="subExpiryDate">—</div>
             </div>
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
-                <div style="font-size:11px; color:#64748b; font-weight:bold;">MONTHLY FEE</div>
+                <div style="font-size:11px; color:#64748b; font-weight:bold;" data-eb-en="MONTHLY FEE" data-eb-ur="ماہانہ فیس" data-eb-compact="1">MONTHLY FEE</div>
                 <div style="font-size:15px; font-weight:800; color:#0284c7; margin-top:3px;" id="subMonthlyFee">—</div>
             </div>
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
-                <div style="font-size:11px; color:#64748b; font-weight:bold;">PACKAGE LIMITS</div>
+                <div style="font-size:11px; color:#64748b; font-weight:bold;" data-eb-en="PACKAGE LIMITS" data-eb-ur="پیکیج لمٹس" data-eb-compact="1">PACKAGE LIMITS</div>
                 <div style="font-size:12px; font-weight:800; color:#475569; margin-top:3px;" id="subLimitsText">—</div>
             </div>
         </div>
         <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px; font-size:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <b style="color:#0f172a;">🔒 System Modules &amp; Feature Access:</b>
-                <span style="font-size:11px; color:#64748b;">(Lock 🔒 means package upgrade / renewal required)</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                <b style="color:#0f172a;">🔒 <span data-eb-en="System Modules & Feature Access:" data-eb-ur="سسٹم ماڈیولز اور فیچر رسائی:">System Modules &amp; Feature Access:</span></b>
+                <span style="font-size:11px; color:#64748b;" data-eb-en="(Lock 🔒 means package upgrade / renewal required)" data-eb-ur="(لاک 🔒 کا مطلب پیکیج اپگریڈ یا تجدید درکار ہے)">(Lock 🔒 means package upgrade / renewal required)</span>
             </div>
             <div id="subModulesGrid" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
         </div>
     </div>
 
-    <!-- ===== 🏢 BUSINESS INFO (Sirf OWNER ke liye!) ===== -->
+    <!-- ===== 🏢 BUSINESS INFO (Owner Only) ===== -->
     <div class="panel-card" id="businessCard" style="display:none;">
         <div class="card-header">
-            <h2><i class="fas fa-building"></i> My Business / Agency</h2>
-            <small class="header-note">Ye details aap ke bills par aur reports mein use hongi!</small>
+            <h2><i class="fas fa-building"></i> <span data-eb-en="My Business / Agency" data-eb-ur="میرا بزنس / ایجنسی">My Business / Agency</span></h2>
+            <small class="header-note" data-eb-en="These details will appear on your printed bills and reports." data-eb-ur="یہ تفصیلات آپ کے پرنٹ شدہ بلز اور رپورٹس پر استعمال ہوں گی۔">These details will appear on your printed bills and reports.</small>
         </div>
         <form id="businessForm" class="panel-form">
             <div id="pfCategoryWorkspaceBanner" style="display:none; margin-bottom:14px; padding:12px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;"></div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>🏢 Business Name *</label>
-                    <input type="text" id="pfBizName" maxlength="50" placeholder="Enter Shop / Agency Name for this Category" required>
+                    <label>🏢 <span data-eb-en="Business Name *" data-eb-ur="بزنس کا نام *">Business Name *</span></label>
+                    <input type="text" id="pfBizName" maxlength="50" placeholder="Enter Shop / Agency Name for this Category" data-eb-ph-en="Enter Shop / Agency Name for this Category" data-eb-ph-ur="اس کیٹیگری کے لیے دکان / ایجنسی کا نام درج کریں" required>
                 </div>
                 <div class="form-group">
-                    <label>🏪 Business Type *</label>
+                    <label>🏪 <span data-eb-en="Business Type *" data-eb-ur="بزنس کی قسم *">Business Type *</span></label>
                     <select id="pfBizType" class="select-input" required>
-                        <option value="books">📚 Book Depot &amp; Stationery (بک ڈپو، اسٹیشنری و بک پوائنٹ) — ✅ Complete</option>
-                        <option value="mobile">📱 Mobile Shop &amp; Accessories (موبائل اور ایسیسریز) — ✅ Complete</option>
-                        <option value="medical">💊 Medical Store &amp; Pharmacy (میڈیکل اسٹور و فارمیسی) — ✅ Complete</option>
-                        <option value="shoes">👟 Shoe Store &amp; Footwear (جوتے و فٹ ویئر) — 🚧 Under Development • Coming Soon</option>
-                        <option value="garments">👕 Garments &amp; Clothing (گارمنٹس و ملبوسات) — 🚧 Under Development • Coming Soon</option>
-                        <option value="general">🛒 General Store &amp; Kiryana (جنرل اسٹور و کریانہ) — 🚧 Under Development • Coming Soon</option>
-                        <option value="wholesaler">📦 Wholesaler &amp; Bulk Distribution (تھوک ڈیلر) — ✅ Complete</option>
-                        <option value="confectionery">🍪 Confectionery &amp; Biscuits (کنفیکشنری و بسکٹ) — 🚧 Under Development • Coming Soon</option>
-                        <option value="hardware">🔧 Hardware, Sanitary &amp; Paint (ہارڈویئر و سینیٹری) — 🚧 Under Development • Coming Soon</option>
-                        <option value="electronics">💻 Electronics &amp; Home Appliances (الیکٹرانکس) — 🚧 Under Development • Coming Soon</option>
-                        <option value="cosmetics">💄 Cosmetics &amp; Beauty (کاسمیٹکس) — 🚧 Under Development • Coming Soon</option>
-                        <option value="auto_parts">🚗 Auto Parts &amp; Spare Parts (آٹو پارٹس) — 🚧 Under Development • Coming Soon</option>
-                        <option value="bakery">🍞 Bakery, Sweets &amp; Cafe (بیکری و مٹھائی) — 🚧 Under Development • Coming Soon</option>
-                        <option value="restaurant">🍔 Restaurant, Fast Food &amp; Cafe (ریسٹورنٹ، فاسٹ فوڈ و کیفے) — 🛠️ Working / Under Development • Coming Soon</option>
-                        <option value="furniture">🪑 Furniture &amp; Decor (فرنیچر) — 🚧 Under Development • Coming Soon</option>
-                        <option value="other">💼 Other Business (دیگر کاروبار) — 🚧 Under Development • Coming Soon</option>
+                        <option value="distributor">🚚 Distributor &amp; FMCG Agency</option>
+                        <option value="restaurant">🍔 Restaurant, Fast Food &amp; Cafe</option>
+                        <option value="books">📚 Book Depot &amp; Stationery</option>
+                        <option value="medical">💊 Medical Store &amp; Pharmacy</option>
+                        <option value="mobile">📱 Mobile Shop &amp; Accessories</option>
+                        <option value="wholesaler">📦 Wholesaler &amp; Bulk Distribution</option>
                     </select>
                 </div>
             </div>
-            <!-- ✅ SIRF 2 MOBILES (Mobile 3 REMOVE!) -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>📱 Mobile 1 *</label>
+                    <label>📱 <span data-eb-en="Mobile 1 *" data-eb-ur="موبائل 1 *">Mobile 1 *</span></label>
                     <input type="tel" id="pfBizMobile" maxlength="15" placeholder="03xx-xxxxxxx">
                 </div>
                 <div class="form-group">
-                    <label>📱 Mobile 2 (optional)</label>
+                    <label>📱 <span data-eb-en="Mobile 2 (optional)" data-eb-ur="موبائل 2 (اختیاری)">Mobile 2 (optional)</span></label>
                     <input type="tel" id="pfBizMobile2" maxlength="15" placeholder="03xx-xxxxxxx">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>📍 Business Address (optional)</label>
-                    <input type="text" id="pfBizAddress" maxlength="100" placeholder="Street, Area, City">
+                    <label>📍 <span data-eb-en="Business Address (optional)" data-eb-ur="بزنس کا پتہ (اختیاری)">Business Address (optional)</span></label>
+                    <input type="text" id="pfBizAddress" maxlength="100" placeholder="Street, Area, City" data-eb-ph-en="Street, Area, City" data-eb-ph-ur="گلی، علاقہ، شہر">
                 </div>
                 <div class="form-group">
-                    <label>🏙️ City (optional)</label>
-                    <input type="text" id="pfBizCity" maxlength="30" placeholder="City">
+                    <label>🏙️ <span data-eb-en="City (optional)" data-eb-ur="شہر (اختیاری)">City (optional)</span></label>
+                    <input type="text" id="pfBizCity" maxlength="30" placeholder="City" data-eb-ph-en="City" data-eb-ph-ur="شہر">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>🔢 NTN Number (optional — likha to bill par show)</label>
+                    <label>🔢 <span data-eb-en="NTN Number (optional — shown on bill if filled)" data-eb-ur="این ٹی این نمبر (اختیاری — بل پر ظاہر ہوگا)">NTN Number (optional — shown on bill if filled)</span></label>
                     <input type="text" id="pfBizNTN" maxlength="20" placeholder="1234567-8">
                 </div>
                 <div class="form-group">
-                    <label>📋 Licence No (optional — likha to bill par show)</label>
-                    <input type="text" id="pfBizLic" maxlength="30" placeholder="Licence No">
+                    <label>📋 <span data-eb-en="Licence No (optional — shown on bill if filled)" data-eb-ur="لائسنس نمبر (اختیاری — بل پر ظاہر ہوگا)">Licence No (optional — shown on bill if filled)</span></label>
+                    <input type="text" id="pfBizLic" maxlength="30" placeholder="Licence No" data-eb-ph-en="Licence No" data-eb-ph-ur="لائسنس نمبر">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>🖼️ Agency Logo (optional — bill left side par)</label>
+                    <label>🖼️ <span data-eb-en="Agency Logo (optional — left side of bill)" data-eb-ur="ایجنسی لوگو (اختیاری — بل کے بائیں جانب)">Agency Logo (optional — left side of bill)</span></label>
                     <input type="file" id="pfBizLogo" accept="image/*" style="padding:8px; background:#fff; border:2px solid #e0e6e8; border-radius:10px;">
-                    <small id="logoStatus" style="color:#27ae60; font-weight:bold; display:none;">✅ Logo ready — Save dabayen!</small>
+                    <small id="logoStatus" style="color:#27ae60; font-weight:bold; display:none;">✅ Logo ready — Click Save!</small>
                     <div id="logoCompressStats" style="display:none;"></div>
                 </div>
                 <div class="form-group">
-                    <label>💳 Pay Type Default (CASH / CREDIT)</label>
+                    <label>💳 <span data-eb-en="Pay Type Default (CASH / CREDIT)" data-eb-ur="ڈفالٹ ادائیگی (نقد / ادھار)">Pay Type Default (CASH / CREDIT)</span></label>
                     <select id="pfPayType" class="select-input">
                         <option value="CASH">💵 CASH</option>
                         <option value="CREDIT">💳 CREDIT</option>
@@ -210,10 +199,10 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>🎨 Default Bill Template (Print design)</label>
+                <label>🎨 <span data-eb-en="Default Bill Template (Print design)" data-eb-ur="ڈفالٹ بل ٹیمپلیٹ (پرنٹ ڈیزائن)">Default Bill Template (Print design)</span></label>
                 <select id="pfTemplate" class="select-input">
                     <option value="template11">📦 Al-Raheem Agencies Cash Memo / Invoice (Phase 4 — FMCG Distribution)</option>
-                    <option value="template10">🏢 Hassan Distributor Corporate FMCG & Tax Invoice [101067] (Phase 5 — Complete)</option>
+                    <option value="template10">🏢 Hassan Distributor Corporate FMCG &amp; Tax Invoice [101067] (Phase 5 — Complete)</option>
                     <option value="template9">🇵🇰 Abid Traders Sales Invoice — Manthar Road Sadiqabad (Phase 6 — Complete)</option>
                     <option value="template8">🇵🇰 Classic Wholesale Urdu Grid (Ali Raza Traders Format)</option>
                     <option value="template7">📦 FMCG Corporate Cash Memo/Invoice (Al-Raheem / Cookania Format)</option>
@@ -224,7 +213,7 @@
                     <option value="template5">💎 Premium Full (All Boxes)</option>
                     <option value="template6">🧾 Thermal Slip (58mm / 80mm POS)</option>
                 </select>
-                <small id="templatePackageNote" style="color:#7f8c8d; font-size:11px; margin-top:4px; display:block;">
+                <small id="templatePackageNote" style="color:#7f8c8d; font-size:11px; margin-top:4px; display:block;" data-eb-en="💡 Super Admin allows specific templates according to agency package." data-eb-ur="💡 سپر ایڈمن ایجنسی پیکیج کے مطابق مخصوص ٹیمپلیٹس کی اجازت دیتا ہے۔">
                     💡 Super Admin allows specific templates according to agency package.
                 </small>
             </div>
@@ -232,75 +221,75 @@
             <!-- 🔢 BILL NUMBER PREFIX & RATE SWITCH SETTINGS -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>🔢 Custom Bill Serial Prefix (اختیاری انگلش الفاظ مثلاً A1 یا INV)</label>
-                    <input type="text" id="pfBillPrefix" maxlength="15" placeholder="خالی = صرف نمبر (مثلاً 1, 2, 42)">
-                    <small style="color:#64748b; font-size:11px;">خالی چھوڑنے پر بل نمبر صرف خالص نمبر (1, 2, 42) بنے گا۔ اگر کچھ لکھیں گے جیسے "A-" تو "A-42" بنے گا۔</small>
+                    <label>🔢 <span data-eb-en="Custom Bill Serial Prefix (optional e.g. A1 or INV)" data-eb-ur="کسٹم بل سیریل پریفکس (اختیاری مثلاً A1 یا INV)">Custom Bill Serial Prefix (optional e.g. A1 or INV)</span></label>
+                    <input type="text" id="pfBillPrefix" maxlength="15" placeholder="Blank = numbers only (e.g. 1, 2, 42)" data-eb-ph-en="Blank = numbers only (e.g. 1, 2, 42)" data-eb-ph-ur="خالی = صرف نمبر (مثلاً 1, 2, 42)">
+                    <small style="color:#64748b; font-size:11px;" data-eb-en="Leave blank for pure numeric bills (1, 2, 42). Entering a prefix like 'A-' generates 'A-42'." data-eb-ur="خالی چھوڑنے پر بل نمبر صرف خالص نمبر (1, 2, 42) بنے گا۔ اگر 'A-' لکھیں تو 'A-42' بنے گا۔">Leave blank for pure numeric bills (1, 2, 42). Entering a prefix like 'A-' generates 'A-42'.</small>
                 </div>
                 <div class="form-group">
-                    <label>👁️ Wholesale / Retail Rate Bar (بل پر ریٹ بٹن کا شو / ہائیڈ)</label>
+                    <label>👁️ <span data-eb-en="Wholesale / Retail Rate Bar (Show / Hide on Bill)" data-eb-ur="ہول سیل / پرچون ریٹ بار (بل پر ظاہر / پوشیدہ)">Wholesale / Retail Rate Bar (Show / Hide on Bill)</span></label>
                     <select id="pfAllowRateSwitch" class="select-input">
-                        <option value="yes">👁️ Show Rate Switcher (ظاہر رکھیں — ڈیفالٹ)</option>
-                        <option value="no">🙈 Hide Rate Switcher (بل اسکرین سے مکمل چھپا دیں)</option>
+                        <option value="yes">👁️ Show Rate Switcher (Default)</option>
+                        <option value="no">🙈 Hide Rate Switcher (Hide from billing screen)</option>
                     </select>
-                    <small style="color:#64748b; font-size:11px;">ہائیڈ کرنے پر بل پیج سے یہ بٹن غائب ہو جائے گا اور کسٹمر کی ٹائپ کے مطابق ریٹ خودکار لگے گا۔</small>
+                    <small style="color:#64748b; font-size:11px;" data-eb-en="When hidden, this toggle is removed from the billing screen and rates apply automatically by customer type." data-eb-ur="ہائیڈ کرنے پر بل پیج سے یہ بٹن غائب ہو جائے گا اور کسٹمر کی قسم کے مطابق ریٹ خودکار لگے گا۔">When hidden, this toggle is removed from the billing screen and rates apply automatically by customer type.</small>
                 </div>
             </div>
 
-            <!-- 🆕🖨️ PRINT BOXES & FIELDS CHECKBOXES (Kon kon si info print ho!) -->
+            <!-- 🆕🖨️ PRINT BOXES & FIELDS CHECKBOXES -->
             <div class="form-group" style="margin-top:15px; background: rgba(0,0,0,0.02); border: 1px solid #e0e6e8; border-radius: 10px; padding: 15px;">
                 <label style="font-weight:bold; color:var(--primary); font-size:14px; margin-bottom:10px; display:block;">
-                    🖨️ Print Information &amp; Boxes (Check / Uncheck to Show on Bill)
+                    🖨️ <span data-eb-en="Print Information & Boxes (Check / Uncheck to Show on Bill)" data-eb-ur="پرنٹ معلومات اور باکسز (بل پر دکھانے کے لیے چیک کریں)">Print Information &amp; Boxes (Check / Uncheck to Show on Bill)</span>
                 </label>
                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; font-size: 13px;">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowLogo" checked> 🖼️ Show Agency Logo
+                        <input type="checkbox" id="chkShowLogo" checked> 🖼️ <span data-eb-en="Show Agency Logo" data-eb-ur="ایجنسی لوگو">Show Agency Logo</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowOwnerName" checked> 👤 Show Owner Name
+                        <input type="checkbox" id="chkShowOwnerName" checked> 👤 <span data-eb-en="Show Owner Name" data-eb-ur="مالک کا نام">Show Owner Name</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowAddress" checked> 📍 Show Shop Address
+                        <input type="checkbox" id="chkShowAddress" checked> 📍 <span data-eb-en="Show Shop Address" data-eb-ur="دکان کا پتہ">Show Shop Address</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowMobiles" checked> 📱 Show Mobile Numbers
+                        <input type="checkbox" id="chkShowMobiles" checked> 📱 <span data-eb-en="Show Mobile Numbers" data-eb-ur="موبائل نمبرز">Show Mobile Numbers</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowNTN" checked> 🔢 Show NTN &amp; Licence
+                        <input type="checkbox" id="chkShowNTN" checked> 🔢 <span data-eb-en="Show NTN & Licence" data-eb-ur="این ٹی این و لائسنس">Show NTN &amp; Licence</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowCustomerPhone" checked> 📞 Customer Mobile
+                        <input type="checkbox" id="chkShowCustomerPhone" checked> 📞 <span data-eb-en="Customer Mobile" data-eb-ur="کسٹمر موبائل">Customer Mobile</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowCustomerAddress" checked> 🏠 Customer Address
+                        <input type="checkbox" id="chkShowCustomerAddress" checked> 🏠 <span data-eb-en="Customer Address" data-eb-ur="کسٹمر پتہ">Customer Address</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowDiscount" checked> 🏷️ Discount Row
+                        <input type="checkbox" id="chkShowDiscount" checked> 🏷️ <span data-eb-en="Discount Row" data-eb-ur="ڈسکاؤنٹ">Discount Row</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowTax" checked> 🧾 Tax Rate &amp; Amount
+                        <input type="checkbox" id="chkShowTax" checked> 🧾 <span data-eb-en="Tax Rate & Amount" data-eb-ur="ٹیکس ریٹ و رقم">Tax Rate &amp; Amount</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowPreviousBalance" checked> 💰 Previous Balance
+                        <input type="checkbox" id="chkShowPreviousBalance" checked> 💰 <span data-eb-en="Previous Balance" data-eb-ur="سابقہ بقایا">Previous Balance</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowReceivedAmount" checked> 💵 Cash Received
+                        <input type="checkbox" id="chkShowReceivedAmount" checked> 💵 <span data-eb-en="Cash Received" data-eb-ur="وصول شدہ رقم">Cash Received</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowBalance" checked> ⚖️ Remaining Balance
+                        <input type="checkbox" id="chkShowBalance" checked> ⚖️ <span data-eb-en="Remaining Balance" data-eb-ur="بقیہ رقم">Remaining Balance</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowThankYouNote" checked> 🙏 Thank You Message
+                        <input type="checkbox" id="chkShowThankYouNote" checked> 🙏 <span data-eb-en="Thank You Message" data-eb-ur="شکریہ پیغام">Thank You Message</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowSignatureAuthorized" checked> ✍️ Authorized Signature
+                        <input type="checkbox" id="chkShowSignatureAuthorized" checked> ✍️ <span data-eb-en="Authorized Signature" data-eb-ur="مجاز دستخط">Authorized Signature</span>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                        <input type="checkbox" id="chkShowSignatureCustomer" checked> ✍️ Customer Signature
+                        <input type="checkbox" id="chkShowSignatureCustomer" checked> ✍️ <span data-eb-en="Customer Signature" data-eb-ur="کسٹمر دستخط">Customer Signature</span>
                     </label>
                 </div>
             </div>
             <button type="submit" class="btn btn-primary" id="saveBizBtn">
-                💾 Save Business Info
+                💾 <span data-eb-en="Save Business Info" data-eb-ur="بزنس تفصیلات محفوظ کریں" data-eb-compact="1">Save Business Info</span>
             </button>
         </form>
     </div>
@@ -308,25 +297,25 @@
     <!-- ===== 🔑 CHANGE PASSWORD ===== -->
     <div class="panel-card">
         <div class="card-header">
-            <h2><i class="fas fa-key"></i> Change My Password</h2>
+            <h2><i class="fas fa-key"></i> <span data-eb-en="Change My Password" data-eb-ur="اپنا پاس ورڈ تبدیل کریں">Change My Password</span></h2>
         </div>
         <form id="passwordForm" class="panel-form">
             <div class="form-row">
                 <div class="form-group">
-                    <label>🔒 Current Password *</label>
+                    <label>🔒 <span data-eb-en="Current Password *" data-eb-ur="موجودہ پاس ورڈ *">Current Password *</span></label>
                     <input type="password" id="curPass" required minlength="6" autocomplete="current-password">
                 </div>
                 <div class="form-group">
-                    <label>🆕 New Password * (min 6)</label>
+                    <label>🆕 <span data-eb-en="New Password * (min 6)" data-eb-ur="نیا پاس ورڈ * (کم از کم 6 حروف)">New Password * (min 6)</span></label>
                     <input type="password" id="newPass" required minlength="6" autocomplete="new-password">
                 </div>
                 <div class="form-group">
-                    <label>🔄 Confirm New Password *</label>
+                    <label>🔄 <span data-eb-en="Confirm New Password *" data-eb-ur="نئے پاس ورڈ کی تصدیق *">Confirm New Password *</span></label>
                     <input type="password" id="confPass" required minlength="6">
                 </div>
             </div>
             <button type="submit" class="btn btn-primary" id="savePassBtn">
-                🔑 Change Password
+                🔑 <span data-eb-en="Change Password" data-eb-ur="پاس ورڈ تبدیل کریں" data-eb-compact="1">Change Password</span>
             </button>
         </form>
     </div>
@@ -358,40 +347,51 @@
     const db = firebase.firestore();
 
     // ============================================
-    // 📋 MAPS
+    // 🌐 UNIFIED BILINGUAL HELPERS (Sidebar-Controlled)
     // ============================================
-    const BUSINESS_TYPES = {
-        'medical': '🏪 Medical Store',
-        'general': '🏪 General Store',
-        'mobile': '📱 Mobile Shop',
-        'garments': '👔 Garments',
-        'shoes': '👟 Shoes Store',
-        'electric': '⚡ Electric/Electronics',
-        'hardware': '🔧 Hardware',
-        'cosmetics': '💄 Cosmetics',
-        'repair': '📱 Computer/Mobile Repair',
-        'autoparts': '🚗 Auto Parts',
-        'sabzi': '🥬 Sabzi/Fruit Mandi',
-        'chicken': '🍗 Chicken/Meat Shop',
-        'bakery': '🍞 Bakery/Food',
-        'books': '📚 Book Store',
-        'gift': '🎁 Gift Shop',
-        'furniture': '🏠 Furniture',
-        'workshop': '🛠️ Workshop',
-        'wholesaler': '📦 Wholesaler',
-        'restaurant': '🍔 Restaurant & Fast Food',
-        'fast_food': '🍔 Fast Food',
-        'cafe': '☕ Cafe & Fast Food',
-        'hotel': '🍽️ Restaurant & Hotel',
-        'medical': '💊 Medical Store & Pharmacy',
-        'other': '💼 Other'
-    };
+    function ebIsMix() {
+        if (window.ebLang && typeof window.ebLang.isMix === 'function') return window.ebLang.isMix();
+        return (localStorage.getItem('eb_app_language') || 'en') === 'en-ur';
+    }
+    function ebT(en, ur) {
+        return (ebIsMix() && ur) ? `${en} (${ur})` : en;
+    }
+    function ebMix(en, ur) {
+        return (ebIsMix() && ur) ? `${en} <span class="eb-ur-sub">(${ur})</span>` : en;
+    }
+    function ebCompact(en, ur) {
+        return (ebIsMix() && ur) ? `${en} <span class="eb-ur-compact">${ur}</span>` : en;
+    }
+    function ebApplyBilingualDom(root) {
+        const scope = root || document;
+        const isMix = ebIsMix();
+        scope.querySelectorAll('[data-eb-en]').forEach((el) => {
+            const en = el.getAttribute('data-eb-en') || '';
+            const ur = el.getAttribute('data-eb-ur') || '';
+            const compact = el.getAttribute('data-eb-compact') === '1';
+            if (isMix && ur) {
+                el.innerHTML = compact
+                    ? `${en} <span class="eb-ur-compact">${ur}</span>`
+                    : `${en} <span class="eb-ur-sub">(${ur})</span>`;
+            } else {
+                el.textContent = en;
+            }
+        });
+        scope.querySelectorAll('[data-eb-ph-en]').forEach((el) => {
+            const en = el.getAttribute('data-eb-ph-en') || '';
+            const ur = el.getAttribute('data-eb-ph-ur') || '';
+            el.setAttribute('placeholder', (isMix && ur) ? `${en} (${ur})` : en);
+        });
+    }
 
-    const ROLE_NAMES = {
-        'super-admin': '👑 Super Admin',
-        'owner': '🏢 Agency Owner',
-        'booker': '📕 Booker'
-    };
+    function getRoleDisplayName(role) {
+        const map = {
+            'super-admin': `👑 ${ebT('Super Admin', 'سپر ایڈمن')}`,
+            'owner': `🏢 ${ebT('Agency Owner', 'ایجنسی مالک')}`,
+            'booker': `📕 ${ebT('Order Booker', 'آرڈر بکر')}`
+        };
+        return map[role] || role || '';
+    }
 
     // ============================================
     // 🛡️ GUARD + LOAD PROFILE
@@ -400,7 +400,176 @@
     let myRole = null;
     let myAgencyId = null;
     let myEmail = null;
+    let myUserObj = null;
     let myAgencyObj = null;
+    let myAllowedTemplates = null;
+    let currentLogoStatusState = ''; // '' | 'optimizing' | 'ready'
+
+    function ebRefreshProfileSelects() {
+        const isMix = ebIsMix();
+
+        // 1. Business Type select (strictly completed categories, EN-clean in EN mode)
+        const bizSel = document.getElementById('pfBizType');
+        if (bizSel) {
+            const prevVal = bizSel.value;
+            if (window.BusinessCategories) {
+                const completedCats = typeof window.BusinessCategories.getCompletedCategories === 'function'
+                    ? window.BusinessCategories.getCompletedCategories()
+                    : (typeof window.BusinessCategories.getAll === 'function'
+                        ? window.BusinessCategories.getAll().filter(c =>
+                            (window.BusinessCategories.COMPLETED_CATEGORY_IDS || ['books', 'mobile', 'wholesaler', 'medical', 'restaurant', 'distributor']).includes(c.id))
+                        : []);
+                if (completedCats.length > 0) {
+                    bizSel.innerHTML = completedCats.map(c => {
+                        const txt = (isMix && c.nameUr) ? `${c.icon} ${c.nameEn} (${c.nameUr})` : `${c.icon} ${c.nameEn}`;
+                        return `<option value="${c.id}">${txt}</option>`;
+                    }).join('');
+                    if (prevVal && completedCats.some(c => c.id === prevVal)) {
+                        bizSel.value = prevVal;
+                    }
+                }
+            }
+        }
+
+        // 2. Pay Type select
+        const paySel = document.getElementById('pfPayType');
+        if (paySel) {
+            const prev = paySel.value;
+            const payLabels = {
+                CASH: { en: '💵 CASH', ur: 'نقد' },
+                CREDIT: { en: '💳 CREDIT', ur: 'ادھار' }
+            };
+            Array.from(paySel.options).forEach(opt => {
+                const entry = payLabels[opt.value];
+                if (entry) opt.textContent = (isMix && entry.ur) ? `${entry.en} (${entry.ur})` : entry.en;
+            });
+            paySel.value = prev;
+        }
+
+        // 3. Rate Switcher select
+        const rateSel = document.getElementById('pfAllowRateSwitch');
+        if (rateSel) {
+            const prev = rateSel.value;
+            const rateLabels = {
+                yes: { en: '👁️ Show Rate Switcher (Default)', ur: 'ظاہر رکھیں — ڈیفالٹ' },
+                no: { en: '🙈 Hide Rate Switcher (Hide from billing screen)', ur: 'بل اسکرین سے مکمل چھپا دیں' }
+            };
+            Array.from(rateSel.options).forEach(opt => {
+                const entry = rateLabels[opt.value];
+                if (entry) opt.textContent = (isMix && entry.ur) ? `${entry.en} (${entry.ur})` : entry.en;
+            });
+            rateSel.value = prev;
+        }
+
+        // 4. Default Bill Template select (preserving package locks)
+        const tSel = document.getElementById('pfTemplate');
+        if (tSel) {
+            const prev = tSel.value;
+            const tplLabels = {
+                template11: { en: '📦 Al-Raheem Agencies Cash Memo / Invoice (Phase 4 — FMCG Distribution)', ur: 'الرحیم ایجنسیز کیش میمو' },
+                template10: { en: '🏢 Hassan Distributor Corporate FMCG & Tax Invoice [101067] (Phase 5 — Complete)', ur: 'حسن ڈسٹریبیوٹر ٹیکس انوائس' },
+                template9: { en: '🇵🇰 Abid Traders Sales Invoice — Manthar Road Sadiqabad (Phase 6 — Complete)', ur: 'عابد ٹریڈرز سیلز انوائس' },
+                template8: { en: '🇵🇰 Classic Wholesale Urdu Grid (Ali Raza Traders Format)', ur: 'ہول سیل اردو گرڈ' },
+                template7: { en: '📦 FMCG Corporate Cash Memo/Invoice (Al-Raheem / Cookania Format)', ur: 'کارپوریٹ کیش میمو' },
+                template4: { en: '⚡ Modern Minimal (Default)', ur: 'جدید ٹیبل بل' },
+                template1: { en: '🇵🇰 Urdu Classic (Nastaliq)', ur: 'اردو کلاسک نستعلیق' },
+                template2: { en: '📋 Traders English (Big Header)', ur: 'انگلش ٹریڈرز' },
+                template3: { en: '🇵🇰 Urdu + English Mix', ur: 'اردو + انگلش مکس' },
+                template5: { en: '💎 Premium Full (All Boxes)', ur: 'پریمیم مکمل بل' },
+                template6: { en: '🧾 Thermal Slip (58mm / 80mm POS)', ur: 'تھرمل رسید' }
+            };
+            Array.from(tSel.options).forEach(opt => {
+                const entry = tplLabels[opt.value];
+                let baseTxt = entry ? ((isMix && entry.ur) ? `${entry.en} (${entry.ur})` : entry.en) : opt.textContent;
+                const locked = Array.isArray(myAllowedTemplates) && !myAllowedTemplates.includes(opt.value);
+                if (locked) {
+                    opt.textContent = `${baseTxt} 🔒 (${ebT('Upgrade package to unlock', 'پیکیج اپگریڈ کریں')})`;
+                    opt.disabled = true;
+                } else {
+                    opt.textContent = baseTxt;
+                    opt.disabled = false;
+                }
+            });
+            tSel.value = prev;
+        }
+    }
+
+    function renderTemplatePackageNote() {
+        const pkgNote = document.getElementById('templatePackageNote');
+        if (!pkgNote || !myAgencyObj || !Array.isArray(myAllowedTemplates)) return;
+        const pkgName = (myAgencyObj.packageId || 'Free').toUpperCase();
+        pkgNote.innerHTML = ebMix(
+            `Package: ${pkgName} — Allowed Templates: ${myAllowedTemplates.length} of 11`,
+            `پیکیج: ${pkgName} — دستیاب ٹیمپلیٹس: ${myAllowedTemplates.length} از 11`
+        );
+    }
+
+    function renderSubscriptionCard() {
+        const subCard = document.getElementById('subscriptionCard');
+        if (!subCard || !window.SaaSModules || !myAgencyObj) return;
+        const ag = myAgencyObj;
+        subCard.style.display = 'block';
+        const state = window.SaaSModules.evaluateAgency(ag);
+        const pkgs = window.SaaSModules.SAAS_PACKAGES;
+        const currentPkg = pkgs[state.tier] || { nameEn: state.tier.toUpperCase() };
+
+        document.getElementById('subPkgName').innerHTML = (ebIsMix() && currentPkg.nameUr)
+            ? ebCompact(currentPkg.nameEn, currentPkg.nameUr)
+            : currentPkg.nameEn;
+        document.getElementById('subExpiryDate').innerText = state.expiry;
+        document.getElementById('subMonthlyFee').innerHTML = `Rs ${state.fee.toLocaleString()} / ${ebCompact('mo', 'ماہ')}`;
+
+        const lim = (ag && ag.customLimits) || (currentPkg && currentPkg.limits) || {};
+        const unlimTxt = ebT('Unlimited', 'لامحدود');
+        const limBillsStr = (lim.monthlyBills && lim.monthlyBills >= 90000) ? unlimTxt : (lim.monthlyBills || 150);
+        const limItemsStr = (lim.maxItems && lim.maxItems >= 90000) ? unlimTxt : (lim.maxItems || 50);
+        const limBookersStr = lim.maxBookers || 1;
+        const limitsEl = document.getElementById('subLimitsText');
+        if (limitsEl) {
+            limitsEl.innerHTML = `${limBillsStr} ${ebCompact('Bills', 'بلز')} • ${limItemsStr} ${ebCompact('Items', 'آئٹمز')} • ${limBookersStr} ${ebCompact('Bookers', 'بکرز')}`;
+        }
+
+        const statusEl = document.getElementById('subStatusBadge');
+        if (state.isSuspended) {
+            statusEl.innerHTML = `<span style="color:#ef4444;">⛔ ${ebCompact('SUSPENDED', 'معطل')}</span>`;
+        } else if (state.isExpired) {
+            statusEl.innerHTML = `<span style="color:#ef4444;">🔴 ${ebCompact('EXPIRED (LOCKED)', 'میعاد ختم')}</span>`;
+        } else {
+            statusEl.innerHTML = `<span style="color:#10b981;">🟢 ${ebCompact(`ACTIVE (${state.daysLeft}d left)`, `فعال (${state.daysLeft} دن باقی)`)}</span>`;
+        }
+
+        // Render Modules Badges
+        const gridEl = document.getElementById('subModulesGrid');
+        if (gridEl) {
+            gridEl.innerHTML = '';
+            const mods = window.SaaSModules.MODULES;
+            Object.values(mods).forEach(m => {
+                const acc = window.SaaSModules.checkModuleAccess(m.id, ag, myRole, ag.permissions);
+                const pill = document.createElement('span');
+                pill.style.cssText = `padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; ${acc.locked ? 'background:#fee2e2; color:#b91c1c; border:1px solid #fecaca;' : 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0;'}`;
+                const modName = (ebIsMix() && m.nameUr) ? ebCompact(m.nameEn, m.nameUr) : m.nameEn;
+                pill.innerHTML = acc.locked
+                    ? `<i class="fas fa-lock"></i> ${modName} <small style="opacity:0.8;">(${acc.badgeText || ebT('Locked', 'لاک')})</small>`
+                    : `<i class="fas fa-check"></i> ${modName}`;
+                gridEl.appendChild(pill);
+            });
+        }
+
+        document.getElementById('btnProfileUpgrade').onclick = () => {
+            window.SaaSModules.showUpgradeModal('profit', ag, myUserObj || {});
+        };
+    }
+
+    function renderLogoStatusText() {
+        const status = document.getElementById('logoStatus');
+        if (!status || !currentLogoStatusState) return;
+        status.style.display = 'inline';
+        if (currentLogoStatusState === 'optimizing') {
+            status.innerHTML = `⏳ ${ebMix('Optimizing logo...', 'لوگو بہتر بنایا جا رہا ہے...')}`;
+        } else if (currentLogoStatusState === 'ready') {
+            status.innerHTML = `✅ ${ebMix('Logo ready — Click Save!', 'لوگو تیار ہے — محفوظ کریں دبائیں!')}`;
+        }
+    }
 
     async function lockExistingCategoryRecordsFromProfile(agencyId, previousCategoryId) {
         if (!agencyId || !previousCategoryId) return 0;
@@ -443,32 +612,35 @@
         return count;
     }
 
-    function loadCategoryProfileIntoProfileForm(catId, promptIfFresh = false) {
+    function loadCategoryProfileIntoProfileForm(catId, promptIfFresh = false, preserveInputs = false) {
         if (!myAgencyObj || !window.BusinessCategories) return;
         const catMeta = window.BusinessCategories.getById(catId) || { id: catId, icon: '🏢', nameEn: catId, nameUr: '' };
         const prof = window.BusinessCategories.getEffectiveCategoryProfile(myAgencyObj, catMeta.id);
         const banner = document.getElementById('pfCategoryWorkspaceBanner');
+        const catDisplay = (ebIsMix() && catMeta.nameUr) ? `${catMeta.nameEn} (${catMeta.nameUr})` : catMeta.nameEn;
 
-        document.getElementById('pfBizName').value = prof.isConfigured ? (prof.name || '') : '';
+        if (!preserveInputs) {
+            document.getElementById('pfBizName').value = prof.isConfigured ? (prof.name || '') : '';
+            document.getElementById('pfBizMobile').value = prof.mobile || '';
+            document.getElementById('pfBizMobile2').value = prof.mobile2 || '';
+            document.getElementById('pfBizCity').value = prof.city || '';
+            document.getElementById('pfBizAddress').value = prof.address || '';
+            document.getElementById('pfBizNTN').value = prof.ntn || '';
+            document.getElementById('pfBizLic').value = prof.licenceNo || '';
+            document.getElementById('pfPayType').value = prof.payType || 'CASH';
+            document.getElementById('pfTemplate').value = prof.defaultTemplate || localStorage.getItem('eb_default_template') || 'template4';
+            document.getElementById('pfBillPrefix').value = prof.billPrefix || '';
+            document.getElementById('pfAllowRateSwitch').value = prof.allowRateSwitch || 'yes';
+        }
         document.getElementById('pfBizName').placeholder = prof.suggestedDemoName
             ? `e.g. ${prof.suggestedDemoName}`
-            : 'Enter Shop / Agency Name for this Category';
-        document.getElementById('pfBizMobile').value = prof.mobile || '';
-        document.getElementById('pfBizMobile2').value = prof.mobile2 || '';
-        document.getElementById('pfBizCity').value = prof.city || '';
-        document.getElementById('pfBizAddress').value = prof.address || '';
-        document.getElementById('pfBizNTN').value = prof.ntn || '';
-        document.getElementById('pfBizLic').value = prof.licenceNo || '';
-        document.getElementById('pfPayType').value = prof.payType || 'CASH';
-        document.getElementById('pfTemplate').value = prof.defaultTemplate || localStorage.getItem('eb_default_template') || 'template4';
-        document.getElementById('pfBillPrefix').value = prof.billPrefix || '';
-        document.getElementById('pfAllowRateSwitch').value = prof.allowRateSwitch || 'yes';
+            : ebT('Enter Shop / Agency Name for this Category', 'اس کیٹیگری کے لیے دکان / ایجنسی کا نام درج کریں');
 
         if (banner) {
             banner.style.display = 'block';
             if (prof.isFreshWorkspace) {
                 const prevNote = prof.previousShopName
-                    ? `<div style="margin-top:4px; font-size:11.5px; color:#0369a1;">🔒 <b>Mehfooz Purani Category:</b> Aap ki pichli shop <b>"${prof.previousShopName}"</b> aur uska 100% data apni category mein bilkul mehfooz hai.</div>`
+                    ? `<div style="margin-top:4px; font-size:11.5px; color:#0369a1;">🔒 <b>${ebT('Previous Category Protected:', 'پچھلی کیٹیگری محفوظ ہے:')}</b> ${ebT(`Your previous shop "${prof.previousShopName}" and 100% of its data remain completely safe in its own category.`, `آپ کی پچھلی دکان "${prof.previousShopName}" اور اس کا 100% ڈیٹا اپنی کیٹیگری میں بالکل محفوظ ہے۔`)}</div>`
                     : '';
                 banner.style.background = '#eff6ff';
                 banner.style.border = '1.5px solid #93c5fd';
@@ -476,12 +648,12 @@
                 banner.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                         <div>
-                            <b>🆕 New Category Database: ${catMeta.icon} ${catMeta.nameEn}</b>
-                            <div>Is category mein abhi koi Shop / Agency create nahi hai. Nayi shop ka naam darj karein ya Demo Name use karein!</div>
+                            <b>🆕 ${ebMix('New Category Database:', 'نیا کیٹیگری ڈیٹا بیس:')} ${catMeta.icon} ${catDisplay}</b>
+                            <div>${ebMix('No Shop / Agency is created in this category yet. Enter a new shop name or use a Demo Name!', 'اس کیٹیگری میں ابھی کوئی دکان / ایجنسی موجود نہیں۔ نیا نام درج کریں یا ڈیمو نام استعمال کریں!')}</div>
                             ${prevNote}
                         </div>
                         <button type="button" id="btnFillDemoCatShop" style="background:#0284c7; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer;">
-                            ⚡ Fill Demo Shop Name
+                            ⚡ ${ebCompact('Fill Demo Shop Name', 'ڈیمو نام بھریں')}
                         </button>
                     </div>
                 `;
@@ -498,8 +670,8 @@
                 banner.style.color = '#14532d';
                 banner.innerHTML = `
                     <div>
-                        <b>✅ Active Category Database: ${catMeta.icon} ${catMeta.nameEn}</b>
-                        <span style="margin-left:6px; font-size:11.5px; color:#15803d;">(Shop: <b>${prof.name}</b> — Is category ka apna alag Stock, Khata, Bills aur Profit database active hai)</span>
+                        <b>✅ ${ebMix('Active Category Database:', 'فعال کیٹیگری ڈیٹا بیس:')} ${catMeta.icon} ${catDisplay}</b>
+                        <span style="margin-left:6px; font-size:11.5px; color:#15803d;">(${ebT('Shop:', 'دکان:')} <b>${prof.name}</b> — ${ebT('Isolated Stock, Ledger, Bills & Profit database active for this category', 'اس کیٹیگری کا الگ اسٹاک، کھاتہ، بلز اور منافع ڈیٹا بیس فعال ہے')})</span>
                     </div>
                 `;
             }
@@ -507,23 +679,23 @@
 
         if (promptIfFresh && prof.isFreshWorkspace && typeof Swal !== 'undefined') {
             Swal.fire({
-                title: `🆕 ${catMeta.icon} ${catMeta.nameEn}`,
+                title: `🆕 ${catMeta.icon} ${catDisplay}`,
                 html: `
                     <div style="text-align:left; font-size:13px; line-height:1.5;">
                         <p style="margin:0 0 8px 0; color:#334155;">
-                            Aap ne <b>${catMeta.nameEn}</b> category select ki hai. Is category mein abhi koi Shop / Agency create nahi hai.
+                            ${ebT(`You selected the <b>${catMeta.nameEn}</b> category. No Shop / Agency is created in this category yet.`, `آپ نے <b>${catDisplay}</b> کیٹیگری منتخب کی ہے۔ اس کیٹیگری میں ابھی کوئی دکان / ایجنسی موجود نہیں ہے۔`)}
                         </p>
-                        ${prof.previousShopName ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px 10px; border-radius:8px; color:#166534; font-size:12px; margin-bottom:10px;">🔒 <b>Data Safe Guarantee:</b> Aap ki pichli category (<b>${prof.previousShopName}</b>) ka sara data 100% mehfooz hai!</div>` : ''}
-                        <label style="font-weight:800; color:#0f172a; display:block; margin-bottom:4px;">🏢 Is Nayi Category Ki Shop / Agency Ka Naam Likhein:</label>
+                        ${prof.previousShopName ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px 10px; border-radius:8px; color:#166534; font-size:12px; margin-bottom:10px;">🔒 <b>${ebT('Data Safe Guarantee:', 'ڈیٹا حفاظت کی ضمانت:')}</b> ${ebT(`All data from your previous category (${prof.previousShopName}) is 100% safe!`, `آپ کی پچھلی کیٹیگری (${prof.previousShopName}) کا تمام ڈیٹا 100% محفوظ ہے!`)}</div>` : ''}
+                        <label style="font-weight:800; color:#0f172a; display:block; margin-bottom:4px;">🏢 ${ebT('Enter New Shop / Agency Name for this Category:', 'اس نئی کیٹیگری کی دکان / ایجنسی کا نام لکھیں:')}</label>
                         <input id="swalNewCatShopName" class="swal2-input" placeholder="e.g. ${prof.suggestedDemoName}" value="" style="margin:0 0 8px 0; width:100%; box-sizing:border-box;">
-                        <small style="color:#64748b; display:block;">Ya neeche "⚡ Demo Account Name" button dabayein.</small>
+                        <small style="color:#64748b; display:block;">${ebT('Or click "⚡ Use Demo Account Name" below.', 'یا نیچے "⚡ ڈیمو نام استعمال کریں" بٹن دبائیں۔')}</small>
                     </div>
                 `,
                 showCancelButton: true,
                 showDenyButton: true,
-                confirmButtonText: '✅ Set New Shop Name',
-                denyButtonText: '⚡ Use Demo Account Name',
-                cancelButtonText: 'Fill Manually Below',
+                confirmButtonText: `✅ ${ebT('Set New Shop Name', 'نیا نام سیٹ کریں')}`,
+                denyButtonText: `⚡ ${ebT('Use Demo Account Name', 'ڈیمو نام استعمال کریں')}`,
+                cancelButtonText: ebT('Fill Manually Below', 'نیچے خود لکھیں'),
                 confirmButtonColor: '#10b981',
                 denyButtonColor: '#0284c7'
             }).then((res) => {
@@ -569,6 +741,7 @@
             }
 
             const data = doc.data();
+            myUserObj = data;
             myRole = data.role;
             myAgencyId = data.agencyId || null;
 
@@ -582,11 +755,11 @@
             // Personal fill
             document.getElementById('myEmail').innerText = myEmail;
             document.getElementById('pfEmail').value = myEmail;
-            document.getElementById('pfRole').value = ROLE_NAMES[myRole] || myRole;
+            document.getElementById('pfRole').value = getRoleDisplayName(myRole);
             document.getElementById('pfName').value = data.name || '';
             document.getElementById('pfMobile').value = data.mobile || '';
 
-            // 🏢 Business — SIRF OWNER
+            // 🏢 Business — OWNER ONLY
             if (myRole === 'owner') {
                 if (!myAgencyId) {
                     const agencyRef = await db.collection('agencies').add({
@@ -616,14 +789,20 @@
                     const resolvedBiz = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
                         ? window.BusinessCategories.resolveActiveCategory(ag, 'other')
                         : (ag.businessCategory || ag.businessType || 'other');
+
+                    // 📦 Package-based templates highlight/filter
+                    myAllowedTemplates = (window.ebPrintEngine)
+                        ? window.ebPrintEngine.getAllowedTemplatesForPackage(ag.packageId, ag.allowedTemplates)
+                        : ['template4', 'template1'];
+
+                    ebRefreshProfileSelects();
+
                     const pfBizSel = document.getElementById('pfBizType');
-                    if (pfBizSel && window.BusinessCategories && typeof window.BusinessCategories.populateSelect === 'function') {
-                        window.BusinessCategories.populateSelect(pfBizSel, resolvedBiz, { showDevStatus: true });
-                    } else if (pfBizSel) {
+                    if (pfBizSel) {
                         pfBizSel.value = resolvedBiz;
                     }
 
-                    // Load per-category isolated Shop Profile (never leak Kiryana shop name into Book Depot!)
+                    // Load per-category isolated Shop Profile
                     loadCategoryProfileIntoProfileForm(resolvedBiz, false);
 
                     if (pfBizSel && !pfBizSel.dataset.catSwitchBound) {
@@ -633,7 +812,7 @@
                         });
                     }
 
-                    // 🖨️ Checkboxes load karo
+                    // 🖨️ Load print checkboxes
                     const pSet = ag.printSettings || (window.ebPrintEngine ? window.ebPrintEngine.DEFAULT_PRINT_SETTINGS : {});
                     if (document.getElementById('chkShowLogo')) document.getElementById('chkShowLogo').checked = pSet.showLogo !== false;
                     if (document.getElementById('chkShowOwnerName')) document.getElementById('chkShowOwnerName').checked = pSet.showOwnerName !== false;
@@ -651,73 +830,8 @@
                     if (document.getElementById('chkShowSignatureAuthorized')) document.getElementById('chkShowSignatureAuthorized').checked = pSet.showSignatureAuthorized !== false;
                     if (document.getElementById('chkShowSignatureCustomer')) document.getElementById('chkShowSignatureCustomer').checked = pSet.showSignatureCustomer !== false;
 
-                    // 📦 Package-based templates highlight/filter
-                    const allowedTemplates = (window.ebPrintEngine) 
-                        ? window.ebPrintEngine.getAllowedTemplatesForPackage(ag.packageId, ag.allowedTemplates)
-                        : ['template4', 'template1'];
-                    
-                    const tSelect = document.getElementById('pfTemplate');
-                    Array.from(tSelect.options).forEach(opt => {
-                        if (!allowedTemplates.includes(opt.value)) {
-                            opt.text = opt.text + ' 🔒 (Upgrade package to unlock)';
-                            opt.disabled = true;
-                        }
-                    });
-                    const pkgNote = document.getElementById('templatePackageNote');
-                    if (pkgNote) {
-                        pkgNote.innerText = `Package: ${(ag.packageId || 'Free').toUpperCase()} — Allowed Templates: ${allowedTemplates.length} of 6`;
-                    }
-
-                    // 💎 Populate Subscription & SaaS Modules Card
-                    const subCard = document.getElementById('subscriptionCard');
-                    if (subCard && window.SaaSModules) {
-                        subCard.style.display = 'block';
-                        const state = window.SaaSModules.evaluateAgency(ag);
-                        const pkgs = window.SaaSModules.SAAS_PACKAGES;
-                        const currentPkg = pkgs[state.tier] || { nameEn: state.tier.toUpperCase() };
-
-                        document.getElementById('subPkgName').innerText = currentPkg.nameEn;
-                        document.getElementById('subExpiryDate').innerText = state.expiry;
-                        document.getElementById('subMonthlyFee').innerText = `Rs ${state.fee.toLocaleString()} / mo`;
-                        
-                        const lim = (ag && ag.customLimits) || (currentPkg && currentPkg.limits) || {};
-                        const limBillsStr = (lim.monthlyBills && lim.monthlyBills >= 90000) ? 'Unlimited' : (lim.monthlyBills || 150);
-                        const limItemsStr = (lim.maxItems && lim.maxItems >= 90000) ? 'Unlimited' : (lim.maxItems || 50);
-                        const limBookersStr = lim.maxBookers || 1;
-                        const limitsEl = document.getElementById('subLimitsText');
-                        if (limitsEl) {
-                            limitsEl.innerText = `${limBillsStr} Bills • ${limItemsStr} Items • ${limBookersStr} Bookers`;
-                        }
-                        
-                        const statusEl = document.getElementById('subStatusBadge');
-                        if (state.isSuspended) {
-                            statusEl.innerHTML = '<span style="color:#ef4444;">⛔ SUSPENDED</span>';
-                        } else if (state.isExpired) {
-                            statusEl.innerHTML = '<span style="color:#ef4444;">🔴 EXPIRED (LOCKED)</span>';
-                        } else {
-                            statusEl.innerHTML = `<span style="color:#10b981;">🟢 ACTIVE (${state.daysLeft}d left)</span>`;
-                        }
-
-                        // Render Modules Badges
-                        const gridEl = document.getElementById('subModulesGrid');
-                        if (gridEl) {
-                            gridEl.innerHTML = '';
-                            const mods = window.SaaSModules.MODULES;
-                            Object.values(mods).forEach(m => {
-                                const acc = window.SaaSModules.checkModuleAccess(m.id, ag, myRole, ag.permissions);
-                                const pill = document.createElement('span');
-                                pill.style.cssText = `padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; ${acc.locked ? 'background:#fee2e2; color:#b91c1c; border:1px solid #fecaca;' : 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0;'}`;
-                                pill.innerHTML = acc.locked 
-                                    ? `<i class="fas fa-lock"></i> ${m.nameEn} <small style="opacity:0.8;">(${acc.badgeText || 'Locked'})</small>`
-                                    : `<i class="fas fa-check"></i> ${m.nameEn}`;
-                                gridEl.appendChild(pill);
-                            });
-                        }
-
-                        document.getElementById('btnProfileUpgrade').onclick = () => {
-                            window.SaaSModules.showUpgradeModal('profit', ag, data);
-                        };
-                    }
+                    renderTemplatePackageNote();
+                    renderSubscriptionCard();
                 }
             }
 
@@ -726,7 +840,7 @@
             }
 
         } catch (error) {
-            Swal.fire('Error', 'Profile load fail: ' + (error.code || error.message), 'error');
+            Swal.fire(ebT('Error', 'خرابی'), `${ebT('Profile load failed:', 'پروفائل لوڈ ناکام:')} ` + (error.code || error.message), 'error');
             if (window.hideNHLoader) window.hideNHLoader();
         }
     });
@@ -741,7 +855,7 @@
         const mobile = document.getElementById('pfMobile').value.trim();
 
         if (!name) {
-            Swal.fire('⚠️', 'Naam khali nahi ho sakta!', 'warning');
+            Swal.fire('⚠️', ebT('Name cannot be empty!', 'نام خالی نہیں ہو سکتا!'), 'warning');
             return;
         }
 
@@ -758,11 +872,11 @@
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
                 timer: 2000, icon: 'success',
-                title: '✅ Personal info saved!'
+                title: `✅ ${ebT('Personal info saved!', 'ذاتی معلومات محفوظ ہو گئیں!')}`
             });
         } catch (error) {
             document.getElementById('savePersonalBtn').disabled = false;
-            Swal.fire('Error', 'Save fail: ' + (error.code || error.message), 'error');
+            Swal.fire(ebT('Error', 'خرابی'), `${ebT('Save failed:', 'محفوظ کرنے میں خرابی:')} ` + (error.code || error.message), 'error');
         }
     });
 
@@ -773,14 +887,11 @@
         const file = e.target.files[0];
         if (!file) return;
 
-        const status = document.getElementById('logoStatus');
         const statsEl = document.getElementById('logoCompressStats');
 
         try {
-            if (status) {
-                status.style.display = 'inline';
-                status.innerText = '⏳ Optimizing logo...';
-            }
+            currentLogoStatusState = 'optimizing';
+            renderLogoStatusText();
 
             if (window.ImageOptimizer) {
                 // 🗜️ Ultra-compact logo compression (250px max, micro size 8KB - 15KB)
@@ -791,10 +902,8 @@
                 });
                 pendingLogoBase64 = optimized.dataUrl;
 
-                if (status) {
-                    status.style.display = 'inline';
-                    status.innerText = '✅ Logo ready — Save dabayen!';
-                }
+                currentLogoStatusState = 'ready';
+                renderLogoStatusText();
                 if (statsEl) {
                     window.ImageOptimizer.renderStatsBadge(statsEl, optimized);
                 }
@@ -810,10 +919,8 @@
                         canvas.height = img.height * scale;
                         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                         pendingLogoBase64 = canvas.toDataURL('image/jpeg', 0.8);
-                        if (status) {
-                            status.style.display = 'inline';
-                            status.innerText = '✅ Logo ready — Save dabayen!';
-                        }
+                        currentLogoStatusState = 'ready';
+                        renderLogoStatusText();
                     };
                     img.src = ev.target.result;
                 };
@@ -821,12 +928,12 @@
             }
         } catch (err) {
             console.error('Logo optimize error:', err);
-            Swal.fire('Logo Error', err.message || 'Could not optimize logo', 'warning');
+            Swal.fire(ebT('Logo Error', 'لوگو خرابی'), err.message || ebT('Could not optimize logo', 'لوگو اپلوڈ کرنے میں مسئلہ پیش آیا'), 'warning');
         }
     });
 
     // ============================================
-    // 💾 SAVE BUSINESS INFO (Owner only) — ✅ SIRF 2 MOBILES!
+    // 💾 SAVE BUSINESS INFO (Owner only)
     // ============================================
     document.getElementById('businessForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -835,7 +942,7 @@
         const bizType = document.getElementById('pfBizType').value;
 
         if (!bizName) {
-            Swal.fire('⚠️', 'Business Name khali nahi ho sakta!', 'warning');
+            Swal.fire('⚠️', ebT('Business Name cannot be empty!', 'بزنس کا نام خالی نہیں ہو سکتا!'), 'warning');
             return;
         }
 
@@ -942,6 +1049,7 @@
             if (pendingLogoBase64) {
                 updateData.logoBase64 = pendingLogoBase64;
                 pendingLogoBase64 = null;
+                currentLogoStatusState = '';
                 document.getElementById('logoStatus').style.display = 'none';
             }
 
@@ -971,11 +1079,11 @@
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
                 timer: 2200, icon: 'success',
-                title: `✅ ${bizName} (${nextCat.toUpperCase()}) saved!`
+                title: `✅ ${bizName} (${nextCat.toUpperCase()}) ${ebT('saved!', 'محفوظ ہو گیا!')}`
             });
         } catch (error) {
             document.getElementById('saveBizBtn').disabled = false;
-            Swal.fire('Error', 'Save fail: ' + (error.code || error.message), 'error');
+            Swal.fire(ebT('Error', 'خرابی'), `${ebT('Save failed:', 'محفوظ کرنے میں خرابی:')} ` + (error.code || error.message), 'error');
         }
     });
 
@@ -990,15 +1098,15 @@
         const confPass = document.getElementById('confPass').value;
 
         if (newPass.length < 6) {
-            Swal.fire('⚠️', 'Naya password min 6 characters ka ho!', 'warning');
+            Swal.fire('⚠️', ebT('New password must be at least 6 characters!', 'نیا پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے!'), 'warning');
             return;
         }
         if (newPass !== confPass) {
-            Swal.fire('⚠️', 'Naye password match nahi ho rahe!', 'warning');
+            Swal.fire('⚠️', ebT('New passwords do not match!', 'نئے پاس ورڈز آپس میں میل نہیں کھا رہے!'), 'warning');
             return;
         }
         if (newPass === curPass) {
-            Swal.fire('⚠️', 'Naya password purana jaisa nahi ho sakta!', 'warning');
+            Swal.fire('⚠️', ebT('New password cannot be the same as the current password!', 'نیا پاس ورڈ موجودہ پاس ورڈ جیسا نہیں ہو سکتا!'), 'warning');
             return;
         }
 
@@ -1021,21 +1129,21 @@
 
             await Swal.fire({
                 icon: 'success',
-                title: '✅ Password Changed!',
-                text: 'Naya password ab se active hai!',
+                title: `✅ ${ebT('Password Changed!', 'پاس ورڈ تبدیل ہو گیا!')}`,
+                text: ebT('Your new password is now active.', 'آپ کا نیا پاس ورڈ اب سے فعال ہے۔'),
                 timer: 2500,
                 showConfirmButton: false
             });
 
         } catch (error) {
             document.getElementById('savePassBtn').disabled = false;
-            let msg = 'Password change fail!';
+            let msg = ebT('Password change failed!', 'پاس ورڈ تبدیل کرنے میں خرابی!');
             if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                msg = 'Current password GHALAT hai!';
+                msg = ebT('Current password is incorrect!', 'موجودہ پاس ورڈ غلط ہے!');
             } else if (error.code === 'auth/weak-password') {
-                msg = 'Naya password kamzor hai (min 6)!';
+                msg = ebT('New password is too weak (min 6 characters)!', 'نیا پاس ورڈ کمزور ہے (کم از کم 6 حروف)!');
             }
-            Swal.fire('❌ Error', msg, 'error');
+            Swal.fire(`❌ ${ebT('Error', 'خرابی')}`, msg, 'error');
         }
     });
 
@@ -1043,17 +1151,49 @@
     if (pLogout) {
         pLogout.addEventListener('click', async () => {
             const result = await Swal.fire({
-                title: 'Logout?',
+                title: ebT('Logout?', 'لاگ آؤٹ کریں؟'),
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#e74c3c',
-                confirmButtonText: 'Yes',
-                cancelButtonText: 'Cancel'
+                confirmButtonText: ebT('Yes', 'جی ہاں'),
+                cancelButtonText: ebT('Cancel', 'منسوخ')
             });
             if (result.isConfirmed) {
                 await auth.signOut();
                 window.location.href = 'auth.html';
             }
+        });
+    }
+
+    // ============================================
+    // 🌐 LIVE BILINGUAL ENGINE BINDING (Sidebar-Controlled)
+    // ============================================
+    ebApplyBilingualDom(document);
+    ebRefreshProfileSelects();
+
+    if (!window.__ebProfileLangBound) {
+        window.__ebProfileLangBound = true;
+        window.addEventListener('eb-lang-changed', () => {
+            ebApplyBilingualDom(document);
+            ebRefreshProfileSelects();
+
+            if (myRole) {
+                const roleEl = document.getElementById('pfRole');
+                if (roleEl) roleEl.value = getRoleDisplayName(myRole);
+            }
+
+            if (myAgencyObj) {
+                const bizSel = document.getElementById('pfBizType');
+                const activeCat = (bizSel && bizSel.value)
+                    || (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function'
+                        ? window.BusinessCategories.resolveActiveCategory(myAgencyObj, 'other')
+                        : (myAgencyObj.businessCategory || myAgencyObj.businessType || 'other'));
+                loadCategoryProfileIntoProfileForm(activeCat, false, true);
+                renderTemplatePackageNote();
+                renderSubscriptionCard();
+            }
+
+            renderLogoStatusText();
         });
     }
 </script>

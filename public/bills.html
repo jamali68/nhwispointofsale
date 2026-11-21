@@ -407,7 +407,7 @@
         <!-- Left: Back Button + Store Name with Green Light + Chota Sa Bill No -->
         <div style="display:flex; align-items:center; gap:6px; min-width:0; flex-shrink:1;">
             <button type="button" class="btn" onclick="window.history.length > 1 ? window.history.back() : window.location.href='dashboard.html'" style="background:#334155; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="Go Back">
-                <i class="fas fa-arrow-left"></i> <span>Back</span>
+                <i class="fas fa-arrow-left"></i> <span>Back <span class="eb-ur-sub">(واپس)</span></span>
             </button>
             <div style="display:inline-flex; align-items:center; gap:5px; min-width:0; overflow:hidden;">
                 <span style="font-size:12px; font-weight:800; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="agencyNameLabel">📦 Taj Karyana and Mobile Shop</span>
@@ -444,25 +444,22 @@
             </div>
         </div>
 
-        <!-- Right: The 2 Views in the same row + Lang Toggle -->
+        <!-- Right: The 2 Views in the same row (Language controlled globally from Sidebar) -->
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
             <div id="bookingModeToggleBar" class="view-segmented-bar" style="margin:0; padding:2px; display:inline-flex; width:auto;">
                 <label class="view-tab-btn active" id="lblViewListContainer" style="padding:5px 11px; font-size:11.5px;">
                     <input type="radio" name="billViewMode" id="radioSwitchTable" value="table" checked style="display:none;">
-                    <i class="fas fa-list-ul"></i> <span id="lblViewList">List View</span>
+                    <i class="fas fa-list-ul"></i> <span id="lblViewList">List View <span class="eb-ur-sub">(لسٹ ویو)</span></span>
                 </label>
                 <label class="view-tab-btn" id="lblViewCatalogueContainer" style="padding:5px 11px; font-size:11.5px;">
                     <input type="radio" name="billViewMode" id="radioSwitchCatalogue" value="catalogue" style="display:none;">
-                    <i class="fas fa-images"></i> <span id="lblViewCatalogue">Visual Catalogue</span>
+                    <i class="fas fa-images"></i> <span id="lblViewCatalogue">Visual Catalogue <span class="eb-ur-sub">(کیٹلاگ)</span></span>
                 </label>
             </div>
             <!-- 🏢 Admin Mode Badge (Shown when Admin/Owner is logged in) -->
             <div id="adminModeBadge" style="display:none; background:#f0fdf4; color:#15803d; border:1px solid #86efac; border-radius:6px; padding:4px 9px; font-size:11px; font-weight:800; align-items:center; gap:5px;">
-                <i class="fas fa-cash-register"></i> <span>Counter POS (سیلز انوائس)</span>
+                <i class="fas fa-cash-register"></i> <span>Counter POS <span class="eb-ur-sub">(سیلز انوائس)</span></span>
             </div>
-            <button type="button" id="btnLangToggle" style="background:#f0f9ff; color:#0284c7; border:1px solid #bae6fd; padding:5px 9px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; flex-shrink:0;" title="Toggle English / Urdu Language Mode">
-                <i class="fas fa-language"></i> <span id="langToggleText">English</span>
-            </button>
         </div>
     </div>
 
@@ -474,11 +471,11 @@
         <div class="cat-agency-header" style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px 16px; margin-bottom:12px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div>
-                    <div style="font-size:18px; font-weight:900; color:#0f172a;" id="catAgencyTitle">🏢 Agency Order Catalogue</div>
-                    <div style="font-size:12px; color:#64748b; font-weight:700;" id="catBookerBadge">📕 Order Booker Mode</div>
+                    <div style="font-size:18px; font-weight:900; color:#0f172a;" id="catAgencyTitle">🏢 Agency Order Catalogue <span class="eb-ur-sub">(آرڈر کیٹلاگ)</span></div>
+                    <div style="font-size:12px; color:#64748b; font-weight:700;" id="catBookerBadge">📕 Order Booker Mode <span class="eb-ur-sub">(آرڈر بکر موڈ)</span></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <span id="catPriceTierBadge" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;">🏪 Wholesale Rate</span>
+                    <span id="catPriceTierBadge" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;">🏪 Wholesale Rate <span class="eb-ur-sub">(ہول سیل ریٹ)</span></span>
                 </div>
             </div>
         </div>
@@ -486,8 +483,8 @@
         <!-- 👤 SHOPKEEPER SELECTION CARD -->
         <div class="cat-shopkeeper-card" style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px 14px; margin-bottom:12px; box-shadow:0 2px 6px rgba(0,0,0,0.03);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <label style="font-size:12px; font-weight:800; color:#334155; margin:0;">
-                    👤 Select Shopkeeper <span class="ur-sub">/ دکان دار منتخب کریں</span> <span style="color:#ef4444;">*</span>
+                <label id="catCustBoxLabel" style="font-size:12px; font-weight:800; color:#334155; margin:0;">
+                    👤 Select Shopkeeper <span class="ur-sub">(دکان دار منتخب کریں)</span> <span style="color:#ef4444;">*</span>
                 </label>
                 <button type="button" id="catQuickAddCustBtn" style="background:none; border:none; color:#0284c7; font-size:11px; font-weight:bold; cursor:pointer;">
                     <i class="fas fa-plus-circle"></i> + Add Shopkeeper <span class="ur-sub">(نیا دکان دار)</span>
@@ -506,22 +503,22 @@
         <div style="margin-bottom:10px;">
             <div style="position:relative; margin-bottom:8px;">
                 <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8;"></i>
-                <input type="text" id="catSearchInput" placeholder="🔍 Search product name, IMEI, ISBN, brand, model, class, publisher or barcode..." style="width:100%; height:38px; padding-left:36px; padding-right:12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13px; box-sizing:border-box;">
+                <input type="text" id="catSearchInput" placeholder="🔍 Search product name, brand, category or barcode..." style="width:100%; height:38px; padding-left:36px; padding-right:12px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13px; box-sizing:border-box;">
             </div>
             <!-- 📚 BOOK DEPOT CATALOGUE FILTER BAR (Class, Publisher & 1-Click Class Syllabus Booking) -->
             <div id="catBookFilterBar" style="display:none; background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:6px 8px; margin-bottom:8px; align-items:center; gap:6px; flex-wrap:wrap;">
                 <select id="catFilterClass" style="flex:1; min-width:125px; height:32px; padding:2px 6px; border:1.5px solid #7dd3fc; border-radius:7px; font-size:11.5px; font-weight:700; color:#0f172a; background:#fff;">
-                    <option value="all">🎓 All Classes / تمام جماعتیں</option>
+                    <option value="all" data-eb-en="🎓 All Classes" data-eb-ur="تمام جماعتیں">🎓 All Classes</option>
                 </select>
                 <select id="catFilterPublisher" style="flex:1; min-width:130px; height:32px; padding:2px 6px; border:1.5px solid #7dd3fc; border-radius:7px; font-size:11.5px; font-weight:700; color:#0f172a; background:#fff;">
-                    <option value="all">🏛️ All Publishers / تمام پبلشرز</option>
+                    <option value="all" data-eb-en="🏛️ All Publishers" data-eb-ur="تمام پبلشرز">🏛️ All Publishers</option>
                 </select>
                 <button type="button" id="btnCatAddClassSet" style="display:none; background:#0284c7; color:#fff; border:none; height:32px; padding:0 10px; border-radius:7px; font-size:11px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;">
-                    <i class="fas fa-layer-group"></i> <span id="btnCatAddClassSetText">+ Book Class Set</span>
+                    <i class="fas fa-layer-group"></i> <span id="btnCatAddClassSetText">+ Book Class Set <span class="eb-ur-sub">(کلاس سیٹ بک کریں)</span></span>
                 </button>
             </div>
             <div class="cat-category-chips" id="catCategoryChips">
-                <button type="button" class="cat-chip active" data-cat="all">📂 All Products</button>
+                <button type="button" class="cat-chip active" data-cat="all">📂 All Products <span class="eb-ur-sub">(تمام اشیاء)</span></button>
             </div>
         </div>
 
@@ -546,10 +543,10 @@
                 <img id="catItemImg" src="" alt="Product Photo" class="cat-photo-img" style="display:none;">
                 <div id="catPhotoPlaceholder" style="text-align:center; color:#94a3b8; padding:20px;">
                     <i class="fas fa-box-open" style="font-size:64px; color:#cbd5e1; margin-bottom:8px;"></i>
-                    <div style="font-size:13px; font-weight:700;">No photo uploaded</div>
+                    <div style="font-size:13px; font-weight:700;">No photo uploaded <span class="eb-ur-block">تصویر موجود نہیں</span></div>
                 </div>
                 <span class="cat-photo-zoom-hint" id="catPhotoZoomHint" style="display:none;">
-                    <i class="fas fa-expand"></i> Tap to Fullscreen
+                    <i class="fas fa-expand"></i> Tap to Fullscreen <span class="eb-ur-sub">(بڑی تصویر)</span>
                 </span>
             </div>
 
@@ -567,7 +564,7 @@
             <!-- Pricing & Stock Line -->
             <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:#f8fafc; border-radius:12px; margin:6px 0 12px; border:1px solid #e2e8f0;">
                 <div>
-                    <span style="font-size:12px; color:#64748b; font-weight:600;">Rate: </span>
+                    <span style="font-size:12px; color:#64748b; font-weight:600;">Rate <span class="eb-ur-sub">(ریٹ)</span>: </span>
                     <b id="catItemRate" style="color:#0284c7; font-size:18px;">Rs 0</b>
                     <span id="catItemUnit" style="font-size:12px; color:#64748b;"> / unit</span>
                 </div>
@@ -617,7 +614,7 @@
         <!-- 🛒 STICKY BOTTOM BAR (Always reachable on mobile) -->
         <div class="cat-sticky-bar" id="catStickyBar">
             <div>
-                <div style="font-size:11px; color:#94a3b8; font-weight:700;">CURRENT BOOKING CART:</div>
+                <div style="font-size:11px; color:#94a3b8; font-weight:700;">CURRENT BOOKING CART <span class="eb-ur-sub">(موجودہ کارٹ)</span>:</div>
                 <div style="font-size:16px; font-weight:900;">
                     🛒 <span id="catBottomItemsCount">0</span> items (<span id="catBottomTotalUnits">0</span> units) | <span style="color:#38bdf8;">Rs <span id="catBottomTotal">0.00</span></span>
                 </div>
@@ -634,19 +631,20 @@
             <i class="fas fa-database" style="color:#d97706; font-size:18px;"></i>
             <div>
                 <div style="font-size:12.5px; font-weight:800; color:#92400e;">
-                    📦 Offline Queue (IndexedDB): <span id="offlineCount">0</span> Pending Bill(s)
+                    📦 Offline Queue (IndexedDB): <span id="offlineCount">0</span> Pending Bill(s) <span class="eb-ur-sub">(آف لائن زیرِ التواء بلز)</span>
                 </div>
                 <div style="font-size:11px; color:#b45309;">
-                    انٹرنیٹ بحال ہونے پر یہ بلز خود بخود کلاؤڈ پر محفوظ ہو جائیں گے۔
+                    These bills will automatically sync to cloud once internet reconnects.
+                    <span class="eb-ur-compact">انٹرنیٹ بحال ہونے پر یہ بلز خود بخود کلاؤڈ پر محفوظ ہو جائیں گے۔</span>
                 </div>
             </div>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <button type="button" id="viewOfflineQueueBtn" class="btn" style="background:#fff; color:#92400e; border:1.5px solid #f59e0b; padding:7px 12px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                <i class="fas fa-list-check"></i> <span>View Pending Bills</span>
+                <i class="fas fa-list-check"></i> <span>View Pending Bills <span class="eb-ur-sub">(بلز دیکھیں)</span></span>
             </button>
             <button type="button" id="syncOfflineNowBtn" class="btn" style="background:#d97706; color:#fff; border:none; padding:7px 14px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 5px rgba(217,119,6,0.25);">
-                <i class="fas fa-cloud-upload-alt"></i> <span>Sync All to Cloud</span>
+                <i class="fas fa-cloud-upload-alt"></i> <span>Sync All to Cloud <span class="eb-ur-sub">(کلاؤڈ سنک)</span></span>
             </button>
         </div>
     </div>
@@ -664,27 +662,28 @@
                         <span id="activeTemplateBadge" style="font-size:10px; background:#e2e8f0; color:#334155; padding:1px 7px; border-radius:10px; font-weight:800;">⚡ Minimal Mode</span>
                     </div>
                     <div style="font-size:10.5px; color:#64748b;" id="currentTemplateDesc">
-                        منتخب فارمیٹ کے مطابق ضروری فیلڈز اور باکسز خودکار ایڈجسٹ ہوں گے۔
+                        Fields and columns adjust automatically based on selected format.
+                        <span class="eb-ur-compact">منتخب فارمیٹ کے مطابق ضروری فیلڈز اور باکسز خودکار ایڈجسٹ ہوں گے۔</span>
                     </div>
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; max-width:100%; flex:1 1 260px;">
                 <select id="mainBillTemplateSelect" style="flex:1 1 200px; min-width:0; max-width:100%; width:100%; box-sizing:border-box; padding: 5px 10px; border-radius: 7px; border: 1.5px solid #3b82f6; font-size: 12.5px; font-weight: 800; color: #1e3a8a; outline: none; background: #fff; cursor: pointer; box-shadow:0 1px 3px rgba(59,130,246,0.15); text-overflow:ellipsis;">
-                    <option value="template4" selected>⚡ Modern Minimal / Table Invoice (Default — عام پرچون بل)</option>
-                    <option value="template1">🇵🇰 Urdu Classic (Nastaliq — کلاسک اردو بل)</option>
-                    <option value="template2">📋 Traders English (Header — ٹریڈرز انگلش بل)</option>
-                    <option value="template3">🇵🇰 Urdu + English Mix (مکس اردو و انگلش)</option>
-                    <option value="template5">💎 Premium Full (All Boxes — فل پریمیم بل)</option>
-                    <option value="template6">🧾 Thermal POS Slip (58mm / 80mm — پرچی پرنٹر)</option>
-                    <option value="template8">🇵🇰 Classic Wholesale Urdu Grid (Legal Half-Cut — علی رضا ٹریڈرز)</option>
-                    <option value="template9">🇵🇰 Abid Traders Sales Invoice (منٹھار روڈ صادق آباد — تھوک انوائس)</option>
-                    <option value="template7">📦 FMCG Corporate Cash Memo (الرحیم / کوکانیہ فارمیٹ)</option>
-                    <option value="template11">📦 Al-Raheem Agencies FMCG Distribution (کارپوریٹ ڈسٹری بیوشن)</option>
-                    <option value="template10">🏢 Hassan Distributor Corporate FMCG & Tax Invoice [101067]</option>
+                    <option value="template4" selected data-eb-en="⚡ Modern Minimal / Table Invoice (Default)" data-eb-ur="عام پرچون بل">⚡ Modern Minimal / Table Invoice (Default)</option>
+                    <option value="template1" data-eb-en="🇵🇰 Urdu Classic (Nastaliq)" data-eb-ur="کلاسک اردو بل">🇵🇰 Urdu Classic (Nastaliq)</option>
+                    <option value="template2" data-eb-en="📋 Traders English (Header)" data-eb-ur="ٹریڈرز انگلش بل">📋 Traders English (Header)</option>
+                    <option value="template3" data-eb-en="🇵🇰 Urdu + English Mix" data-eb-ur="مکس اردو و انگلش">🇵🇰 Urdu + English Mix</option>
+                    <option value="template5" data-eb-en="💎 Premium Full (All Boxes)" data-eb-ur="فل پریمیم بل">💎 Premium Full (All Boxes)</option>
+                    <option value="template6" data-eb-en="🧾 Thermal POS Slip (58mm / 80mm)" data-eb-ur="پرچی پرنٹر">🧾 Thermal POS Slip (58mm / 80mm)</option>
+                    <option value="template8" data-eb-en="🇵🇰 Classic Wholesale Urdu Grid (Legal Half-Cut)" data-eb-ur="علی رضا ٹریڈرز">🇵🇰 Classic Wholesale Urdu Grid (Legal Half-Cut)</option>
+                    <option value="template9" data-eb-en="🇵🇰 Abid Traders Sales Invoice (Wholesale)" data-eb-ur="تھوک انوائس">🇵🇰 Abid Traders Sales Invoice (Wholesale)</option>
+                    <option value="template7" data-eb-en="📦 FMCG Corporate Cash Memo (Al-Raheem)" data-eb-ur="کارپوریٹ کیش میمو">📦 FMCG Corporate Cash Memo (Al-Raheem)</option>
+                    <option value="template11" data-eb-en="📦 Al-Raheem Agencies FMCG Distribution" data-eb-ur="کارپوریٹ ڈسٹری بیوشن">📦 Al-Raheem Agencies FMCG Distribution</option>
+                    <option value="template10" data-eb-en="🏢 Hassan Distributor Corporate FMCG & Tax Invoice" data-eb-ur="ٹیکس انوائس">🏢 Hassan Distributor Corporate FMCG &amp; Tax Invoice</option>
                 </select>
                 <select id="mainThermalWidthSelect" style="min-width:0; max-width:100%; box-sizing:border-box; padding: 5px 8px; border-radius: 7px; border: 1.5px solid #0284c7; font-size: 12px; font-weight: 800; color: #0369a1; outline: none; background: #f0f9ff; cursor: pointer;" title="Thermal Receipt Roll Size (80mm Desktop vs 58mm Mini Bluetooth)">
-                    <option value="80" selected>🧾 80mm Roll</option>
-                    <option value="58">🧾 58mm Roll</option>
+                    <option value="80" selected data-eb-en="🧾 80mm Roll" data-eb-ur="80mm رول">🧾 80mm Roll</option>
+                    <option value="58" data-eb-en="🧾 58mm Roll" data-eb-ur="58mm رول">🧾 58mm Roll</option>
                 </select>
             </div>
         </div>
@@ -692,7 +691,7 @@
         <!-- 👤 SHOPKEEPER SELECTION BOX (Directly under the top view buttons row!) -->
         <div class="shopkeeper-box-card" style="background:#fff; border:1.5px solid #e2e8f0; border-radius:8px; padding:5px 8px; margin-bottom:2px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; flex-wrap:wrap; gap:3px;">
-                <label style="margin:0; font-size:11px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:4px;">
+                <label id="posCustBoxLabel" style="margin:0; font-size:11px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:4px;">
                     👤 <span>Select Shopkeeper / Customer <span class="ur-sub">(دکان دار منتخب کریں)</span></span>
                 </label>
                 <div style="display:flex; align-items:center; gap:4px;">
@@ -720,7 +719,7 @@
             <!-- 💵 TOP PENDING KHATA & QUICK PAYMENT BAR (SHOWS AS SOON AS CUSTOMER IS SELECTED) -->
             <div id="topCustKhataRecoveryBar" style="display:none; background:#fffbeb; border:1.5px solid #fde68a; border-radius:8px; padding:6px 10px; margin-top:3px; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
                 <div style="min-width:0;">
-                    <div style="font-size:10.5px; font-weight:700; color:#92400e;">💰 Pending Khata (پچھلا بقایا کھاتہ):</div>
+                    <div style="font-size:10.5px; font-weight:700; color:#92400e;">💰 Pending Khata <span class="eb-ur-sub">(پچھلا بقایا کھاتہ)</span>:</div>
                     <div style="font-size:15px; font-weight:900; color:#b45309;" id="topCustKhataAmount">Rs 0.00</div>
                 </div>
                 <button type="button" id="btnTopReceivePayment" onclick="openDirectRecoveryModal()" style="background:#10b981; color:#fff; border:none; padding:5px 12px; border-radius:6px; font-size:11.5px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(16,185,129,0.3); white-space:nowrap;">
@@ -732,10 +731,10 @@
             <div id="bookerCustNotice" style="display:none; background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:7px; padding:6px 10px; margin-top:4px; color:#475569; font-size:11.5px; font-weight:700; align-items:center; justify-content:space-between; gap:8px;">
                 <div style="display:flex; align-items:center; gap:6px;">
                     <i class="fas fa-store" style="color:#64748b; font-size:13px;"></i>
-                    <span id="bookerNoticeText">Please select a shopkeeper above to choose items <span class="ur-sub">/ دکان دار منتخب کریں</span></span>
+                    <span id="bookerNoticeText">Please select a shopkeeper above to choose items <span class="ur-sub">(دکان دار منتخب کریں)</span></span>
                 </div>
-                <button type="button" onclick="focusShopkeeperInput()" style="background:#0284c7; color:#fff; border:none; padding:3px 8px; border-radius:5px; font-size:10.5px; font-weight:bold; cursor:pointer; white-space:nowrap;">
-                    Select Shopkeeper
+                <button type="button" id="btnFocusShopkeeperNotice" onclick="focusShopkeeperInput()" style="background:#0284c7; color:#fff; border:none; padding:3px 8px; border-radius:5px; font-size:10.5px; font-weight:bold; cursor:pointer; white-space:nowrap;">
+                    Select Shopkeeper <span class="eb-ur-sub">(دکان دار چنیں)</span>
                 </button>
             </div>
         </div>
@@ -748,17 +747,17 @@
             <div id="bookerListFilterBar" style="background:#fff; border:1.5px solid #e2e8f0; border-radius:8px; padding:6px 8px; margin-bottom:4px; display:flex; flex-direction:column; gap:5px;">
                 <div style="position:relative;">
                     <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>
-                    <input type="text" id="listSearchInput" placeholder="🔍 Search item, brand, model, IMEI, book, class, publisher or ISBN..." style="width:100%; height:32px; padding-left:30px; padding-right:8px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; box-sizing:border-box;">
+                    <input type="text" id="listSearchInput" placeholder="🔍 Search item, brand, category or barcode..." style="width:100%; height:32px; padding-left:30px; padding-right:8px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; box-sizing:border-box;">
                 </div>
                 <div id="bookerBookQuickFilters" style="display:none; align-items:center; gap:5px; flex-wrap:wrap;">
                     <select id="bookerFilterClass" style="flex:1; min-width:115px; height:29px; padding:2px 6px; border:1.5px solid #bae6fd; border-radius:6px; font-size:11px; font-weight:700; color:#0f172a; background:#f0f9ff;">
-                        <option value="all">🎓 All Classes</option>
+                        <option value="all" data-eb-en="🎓 All Classes" data-eb-ur="تمام جماعتیں">🎓 All Classes</option>
                     </select>
                     <select id="bookerFilterPublisher" style="flex:1; min-width:120px; height:29px; padding:2px 6px; border:1.5px solid #bae6fd; border-radius:6px; font-size:11px; font-weight:700; color:#0f172a; background:#f0f9ff;">
-                        <option value="all">🏛️ All Publishers</option>
+                        <option value="all" data-eb-en="🏛️ All Publishers" data-eb-ur="تمام پبلشرز">🏛️ All Publishers</option>
                     </select>
                     <button type="button" id="btnBookerAddClassSet" style="display:none; background:#0284c7; color:#fff; border:none; height:29px; padding:0 9px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; align-items:center; gap:4px; white-space:nowrap;">
-                        <i class="fas fa-layer-group"></i> <span id="btnBookerAddClassSetText">+ Book Class Set</span>
+                        <i class="fas fa-layer-group"></i> <span id="btnBookerAddClassSetText">+ Book Class Set <span class="eb-ur-sub">(کلاس سیٹ)</span></span>
                     </button>
                 </div>
             </div>
@@ -796,17 +795,17 @@
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(155px, 1fr)); gap:8px;">
                     <div>
-                        <label for="posRestServiceMode">🍽️ سروس موڈ (Service Mode)</label>
+                        <label for="posRestServiceMode">🍽️ Service Mode <span class="eb-ur-sub">(سروس موڈ)</span></label>
                         <select id="posRestServiceMode">
-                            <option value="dine_in">🍽️ Dine-in / Table Service (ڈائن ان)</option>
-                            <option value="takeaway">🛍️ Takeaway / Parcel (ٹیک اوے / پارسل)</option>
-                            <option value="delivery">🛵 Home Delivery (ہوم ڈلیوری)</option>
-                            <option value="online_app">📱 Online / Foodpanda (آن لائن ایپ)</option>
+                            <option value="dine_in" data-eb-en="🍽️ Dine-in / Table Service" data-eb-ur="ڈائن ان">🍽️ Dine-in / Table Service</option>
+                            <option value="takeaway" data-eb-en="🛍️ Takeaway / Parcel" data-eb-ur="ٹیک اوے / پارسل">🛍️ Takeaway / Parcel</option>
+                            <option value="delivery" data-eb-en="🛵 Home Delivery" data-eb-ur="ہوم ڈلیوری">🛵 Home Delivery</option>
+                            <option value="online_app" data-eb-en="📱 Online / Foodpanda" data-eb-ur="آن لائن ایپ">📱 Online / Foodpanda</option>
                         </select>
                     </div>
                     <div>
-                        <label id="posRestTableTokenLabel" for="posRestTableToken">🪑 ٹیبل / ٹوکن # (Table / Token #)</label>
-                        <input type="text" id="posRestTableToken" list="posRestTableSuggestions" placeholder="e.g. Table 04 / Family Hall">
+                        <label id="posRestTableTokenLabel" for="posRestTableToken">🪑 Table / Token # <span class="eb-ur-sub">(ٹیبل / ٹوکن #)</span></label>
+                        <input type="text" id="posRestTableToken" list="posRestTableSuggestions" data-eb-ph-en="e.g. Table 04 / Family Hall" data-eb-ph-ur="مثلاً ٹیبل 04" placeholder="e.g. Table 04 / Family Hall">
                         <datalist id="posRestTableSuggestions">
                             <option value="Table 01">
                             <option value="Table 02">
@@ -818,12 +817,12 @@
                         </datalist>
                     </div>
                     <div>
-                        <label id="posRestRiderWaiterLabel" for="posRestRiderWaiter">🛵 ویٹر / رائیڈر / مہمان (Waiter / Rider)</label>
-                        <input type="text" id="posRestRiderWaiter" placeholder="e.g. Waiter Ali / Rider Bilal">
+                        <label id="posRestRiderWaiterLabel" for="posRestRiderWaiter">🛵 Waiter / Rider <span class="eb-ur-sub">(ویٹر / رائیڈر)</span></label>
+                        <input type="text" id="posRestRiderWaiter" data-eb-ph-en="e.g. Waiter Ali / Rider Bilal" data-eb-ph-ur="ویٹر یا رائیڈر نام" placeholder="e.g. Waiter Ali / Rider Bilal">
                     </div>
                     <div>
-                        <label for="posRestKitchenNote">🔔 کچن / KOT ہدایات (Kitchen Order Note)</label>
-                        <input type="text" id="posRestKitchenNote" placeholder="e.g. Less Spicy, Extra Crispy, Packing Alag">
+                        <label for="posRestKitchenNote">🔔 Kitchen Order Note <span class="eb-ur-sub">(کچن / KOT ہدایات)</span></label>
+                        <input type="text" id="posRestKitchenNote" data-eb-ph-en="e.g. Less Spicy, Extra Crispy" data-eb-ph-ur="کچن نوٹ" placeholder="e.g. Less Spicy, Extra Crispy, Packing Alag">
                     </div>
                 </div>
             </div>
@@ -834,35 +833,35 @@
                     <div style="flex:1; position:relative;">
                         <div style="position:relative; display:flex; align-items:center;">
                             <i class="fas fa-barcode" style="position:absolute; left:12px; color:#64748b; font-size:16px;"></i>
-                            <input type="text" id="barcodeScanInput" placeholder="Scan Barcode / IMEI 1-4 / ISBN or search mobile, model, book, brand..." autocomplete="off"
+                            <input type="text" id="barcodeScanInput" data-eb-ph-en="Scan Barcode / SKU or search product name, brand..." data-eb-ph-ur="بارکوڈ یا پروڈکٹ نام سرچ کریں" placeholder="Scan Barcode / SKU or search product name, brand..." autocomplete="off"
                                    style="width:100%; height:42px; padding-left:38px; padding-right:10px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
                         </div>
                         <div class="suggest-box" id="barcodeSuggest"></div>
                     </div>
                     <button type="button" id="openCameraBtn" class="btn" onclick="openCameraScanner()" style="background:#10b981; color:#fff; border:none; height:42px; padding:0 16px; border-radius:8px; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(16,185,129,0.3); white-space:nowrap; flex-shrink:0;">
-                        <i class="fas fa-camera"></i> <span>Camera</span>
+                        <i class="fas fa-camera"></i> <span>Camera <span class="eb-ur-sub">(کیمرہ)</span></span>
                     </button>
                 </div>
 
                 <!-- 📚📱 BOOK DEPOT & MOBILE SHOP POS QUICK FILTER & ACTION BAR -->
                 <div id="posIndustryQuickBar" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed #e2e8f0; align-items:center; gap:8px; flex-wrap:wrap;">
                     <span id="posIndustryFilterLabel" style="font-size:11.5px; font-weight:800; color:#0369a1; white-space:nowrap;">
-                        📚 Book POS Filter:
+                        📚 Book POS Filter <span class="eb-ur-sub">(بک فلٹر)</span>:
                     </span>
                     <select id="posFilterClass" style="flex:1; min-width:140px; height:32px; padding:3px 8px; border:1.5px solid #bae6fd; border-radius:7px; font-size:12px; font-weight:700; color:#0f172a; background:#f0f9ff; cursor:pointer;">
-                        <option value="all">🎓 All Classes / تمام جماعتیں</option>
+                        <option value="all" data-eb-en="🎓 All Classes" data-eb-ur="تمام جماعتیں">🎓 All Classes</option>
                     </select>
                     <select id="posFilterPublisher" style="flex:1; min-width:150px; height:32px; padding:3px 8px; border:1.5px solid #bae6fd; border-radius:7px; font-size:12px; font-weight:700; color:#0f172a; background:#f0f9ff; cursor:pointer;">
-                        <option value="all">🏛️ All Publishers / تمام پبلشرز</option>
+                        <option value="all" data-eb-en="🏛️ All Publishers" data-eb-ur="تمام پبلشرز">🏛️ All Publishers</option>
                     </select>
                     <button type="button" id="btnAddClassSyllabusSet" style="display:none; background:#0284c7; color:#fff; border:none; height:32px; padding:0 12px; border-radius:7px; font-size:11.5px; font-weight:800; cursor:pointer; align-items:center; gap:5px; white-space:nowrap; box-shadow:0 2px 5px rgba(2,132,199,0.25);" title="Add all available books of the selected Class into the invoice">
-                        <i class="fas fa-layer-group"></i> <span id="btnAddClassSyllabusText">+ Add Class Syllabus Set</span>
+                        <i class="fas fa-layer-group"></i> <span id="btnAddClassSyllabusText">+ Add Class Syllabus Set <span class="eb-ur-sub">(مکمل کورس سیٹ)</span></span>
                     </button>
                     <button type="button" id="btnMobileRepairJob" onclick="openMobileRepairJobPosModal()" style="display:none; background:#7c3aed; color:#fff; border:none; height:32px; padding:0 11px; border-radius:7px; font-size:11.5px; font-weight:800; cursor:pointer; align-items:center; gap:5px; white-space:nowrap; box-shadow:0 2px 5px rgba(124,58,237,0.25);" title="Add Mobile Repairing Job / LCD Fitting / Software Service to Bill">
-                        🛠️ <span>+ Repairing / Service Job (ریپئرنگ جاب)</span>
+                        🛠️ <span>+ Repairing / Service Job <span class="eb-ur-sub">(ریپئرنگ جاب)</span></span>
                     </button>
                     <button type="button" id="btnMobileTradeIn" onclick="openMobileTradeInPosModal()" style="display:none; background:#059669; color:#fff; border:none; height:32px; padding:0 11px; border-radius:7px; font-size:11.5px; font-weight:800; cursor:pointer; align-items:center; gap:5px; white-space:nowrap; box-shadow:0 2px 5px rgba(5,150,105,0.25);" title="Record Customer Old Phone Exchange / Trade-In Deduction">
-                        🔄 <span>+ Exchange / Trade-In (پرانا موبائل ایکسچینج)</span>
+                        🔄 <span>+ Exchange / Trade-In <span class="eb-ur-sub">(پرانا موبائل ایکسچینج)</span></span>
                     </button>
                 </div>
             </div>
@@ -872,9 +871,9 @@
                     <i class="fas fa-boxes-stacked" style="color:#0284c7;"></i>
                     <span>Invoice Items <span class="ur-sub">(بل میں اشیاء اور ریٹ)</span></span>
                 </div>
-                <!-- 📦 Wholesale & FMCG Distribution Fields Toggle -->
-                <button type="button" id="btnToggleDistMode" class="btn" style="background:#f1f5f9; color:#0f172a; border:1.5px solid #cbd5e1; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-                    <i class="fas fa-layer-group" style="color:#0284c7;"></i> <span id="distModeToggleText">📦 Show Wholesale &amp; FMCG Fields (کارٹن، پیسز، بکس، ٹیکس، روٹ)</span>
+                <!-- 📦 Wholesale & FMCG Distribution Fields Toggle (Visible only in Wholesaler / Distributor categories) -->
+                <button type="button" id="btnToggleDistMode" class="btn" style="display:none; background:#f1f5f9; color:#0f172a; border:1.5px solid #cbd5e1; padding:5px 12px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                    <i class="fas fa-layer-group" style="color:#0284c7;"></i> <span id="distModeToggleText">📦 Show Wholesale &amp; FMCG Fields <span class="eb-ur-sub">(کارٹن، پیسز، بونس، روٹ)</span></span>
                 </button>
             </div>
 
@@ -886,7 +885,7 @@
                         <span>Wholesale &amp; Corporate FMCG Dispatch Details <span class="ur-sub">(ڈسٹری بیوشن و تھوک سپلائی باکسز)</span></span>
                     </div>
                     <span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-weight:700;">
-                        Phase 4 Corporate FMCG Active
+                        Corporate FMCG Active <span class="eb-ur-sub">(کارپوریٹ موڈ)</span>
                     </span>
                 </div>
 
@@ -894,7 +893,7 @@
                     <!-- 1. Order / Delivery Date -->
                     <div class="fld-wholesale-common">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🚚 ڈلیوری تاریخ (Delivery Date)
+                            🚚 Delivery Date <span class="eb-ur-sub">(ڈلیوری تاریخ)</span>
                         </label>
                         <input type="date" id="billDeliveryDate" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
@@ -902,28 +901,28 @@
                     <!-- 2. Booker, Salesman & PJP Route -->
                     <div class="fld-wholesale-common">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            👤 آرڈر بکر (Order Booker)
+                            👤 Order Booker <span class="eb-ur-sub">(آرڈر بکر)</span>
                         </label>
                         <input type="text" id="billBooker" placeholder="Bilawal / M Wakeel" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-wholesale-common">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            👤 سیلزمین و فون (Salesman Rep)
+                            👤 Salesman Rep <span class="eb-ur-sub">(سیلزمین و فون)</span>
                         </label>
                         <input type="text" id="billSalesman" placeholder="REHAN 03028389183" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-fmcg-only">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🗺️ PJP روٹ بیٹ (PJP Name / Route Day)
+                            🗺️ PJP Name / Route Day <span class="eb-ur-sub">(روٹ بیٹ)</span>
                         </label>
                         <input type="text" id="billPjpName" placeholder="M Wakeel Monday" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-fmcg-only">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🚚 سپلائی مین / ڈلیورر (Delivered By)
+                            🚚 Delivered By <span class="eb-ur-sub">(سپلائی مین)</span>
                         </label>
                         <input type="text" id="billDeliveredBy" placeholder="Hamza / M" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
@@ -931,14 +930,14 @@
                     <!-- 3. OB User Tag & Route -->
                     <div class="fld-fmcg-only">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🏷️ OB یوزر ٹیگ (OB User Tag)
+                            🏷️ OB User Tag <span class="eb-ur-sub">(یوزر ٹیگ)</span>
                         </label>
                         <input type="text" id="billObUserTag" placeholder="Full Range" value="Full Range" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-wholesale-common">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🛣️ روٹ کا نام (Route Name)
+                            🛣️ Route Name <span class="eb-ur-sub">(روٹ کا نام)</span>
                         </label>
                         <input type="text" id="billRoute" placeholder="AHMAD PUR LAMAH-ONCE-MONDAY-2" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
@@ -946,7 +945,7 @@
                     <!-- 4. Channel & Sub Channel -->
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🏬 سیل چینل (Channel)
+                            🏬 Channel <span class="eb-ur-sub">(سیل چینل)</span>
                         </label>
                         <select id="billChannel" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                             <option value="RETAIL" selected>RETAIL</option>
@@ -958,14 +957,14 @@
 
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🏪 سب چینل (Sub Channel)
+                            🏪 Sub Channel <span class="eb-ur-sub">(سب چینل)</span>
                         </label>
                         <input type="text" id="billSubChannel" placeholder="KIRYANA STORE" value="KIRYANA STORE" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🏪 اسٹور کوڈ (Store Code)
+                            🏪 Store Code <span class="eb-ur-sub">(اسٹور کوڈ)</span>
                         </label>
                         <input type="text" id="billCustStoreCode" placeholder="N00000544633" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
@@ -973,14 +972,14 @@
                     <!-- 5. Customer NIC & Tax Status -->
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🆔 کسٹمر شناختی کارڈ (NIC / CNIC)
+                            🆔 Customer NIC / CNIC <span class="eb-ur-sub">(شناختی کارڈ)</span>
                         </label>
                         <input type="text" id="billCustNic" placeholder="3130468337169" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            ⚖️ انکم ٹیکس اسٹیٹس (I.T Status)
+                            ⚖️ Income Tax Status <span class="eb-ur-sub">(ٹیکس اسٹیٹس)</span>
                         </label>
                         <select id="billItStatus" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                             <option value="Non-Filer-2.5%" selected>Non-Filer-2.5%</option>
@@ -992,14 +991,14 @@
                     <!-- 6. Sales Metrics (MTD / Last Month) -->
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            📊 گزشتہ ماہ سیل (Last Month Sales PKR)
+                            📊 Last Month Sales PKR <span class="eb-ur-sub">(گزشتہ ماہ سیل)</span>
                         </label>
                         <input type="number" id="billLastMonthSales" min="0" step="0.01" placeholder="5755.78" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            📈 رواں ماہ سیل (Month To Date Sales PKR)
+                            📈 Month To Date Sales PKR <span class="eb-ur-sub">(رواں ماہ سیل)</span>
                         </label>
                         <input type="number" id="billMtdSales" min="0" step="0.01" placeholder="7024.14" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
@@ -1007,50 +1006,50 @@
                     <!-- 7. Load Form & Terms -->
                     <div class="fld-fmcg-only">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            📋 لوڈ فارم نمبر (Load Form #)
+                            📋 Load Form # <span class="eb-ur-sub">(لوڈ فارم نمبر)</span>
                         </label>
                         <input type="text" id="billLoadFormNo" placeholder="D0725LF4187" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            📅 آخری بل تاریخ (Last Bill Date)
+                            📅 Last Bill Date <span class="eb-ur-sub">(آخری بل تاریخ)</span>
                         </label>
                         <input type="date" id="billLastBillDate" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🏷️ کریڈٹ شرائط / مہر (Credit Terms)
+                            🏷️ Credit Terms <span class="eb-ur-sub">(کریڈٹ شرائط)</span>
                         </label>
-                        <input type="text" id="billCreditTerms" placeholder="کریڈٹ 7 دن" value="کریڈٹ 7 دن" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
+                        <input type="text" id="billCreditTerms" placeholder="Credit 7 Days" value="کریڈٹ 7 دن" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
 
                     <!-- 8. Flat Discount, Special TO, SDR & Store Credit -->
                     <div class="fld-wholesale-common">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🎁 اسپیشل T-O رقم (Special TO Amount)
+                            🎁 Special TO Amount <span class="eb-ur-sub">(اسپیشل T-O رقم)</span>
                         </label>
                         <input type="number" id="billSpecialTo" min="0" step="0.01" placeholder="0.00" value="0" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; text-align:right; background:#fff;">
                     </div>
 
                     <div class="fld-wholesale-common">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            ✂️ فلیٹ ڈسکاؤنٹ (Flat Discount Rs)
+                            ✂️ Flat Discount Rs <span class="eb-ur-sub">(فلیٹ ڈسکاؤنٹ)</span>
                         </label>
                         <input type="number" id="billFlatDiscount" min="0" step="0.01" placeholder="0.00" value="0" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; text-align:right; background:#fff;">
                     </div>
 
                     <div class="fld-fmcg-only">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            🔄 SDR رقم (SDR Amount)
+                            🔄 SDR Amount <span class="eb-ur-sub">(SDR رقم)</span>
                         </label>
                         <input type="number" id="billSdrAmount" min="0" step="0.01" placeholder="0.00" value="0" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; text-align:right; background:#fff;">
                     </div>
 
                     <div class="fld-corp-tax">
                         <label style="font-size:11px; font-weight:800; color:#475569; display:block; margin-bottom:3px;">
-                            💰 اسٹور کریڈٹ بیلنس (Store Credit Balance)
+                            💰 Store Credit Balance <span class="eb-ur-sub">(اسٹور کریڈٹ)</span>
                         </label>
                         <input type="number" id="billStoreCreditBalance" min="0" step="0.01" placeholder="0.00" style="width:100%; height:34px; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; text-align:right; background:#fff;">
                     </div>
@@ -1069,12 +1068,12 @@
         <!-- 💰 FINANCIAL TOTALS & KHATA RUNNING BALANCE (COUNTER / DIRECT SALE MODE) -->
         <div class="totals-box" id="regularBillTotalsBox" style="margin-top:15px;">
             <div class="total-row">
-                <span>Sub Total:</span>
+                <span>Sub Total <span class="eb-ur-sub">(ذیلی کل)</span>:</span>
                 <span>Rs <span id="sumSubTotal">0.00</span></span>
             </div>
             <div class="total-row">
                 <span style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                    <span>Discount:</span>
+                    <span>Discount <span class="eb-ur-sub">(رعایت)</span>:</span>
                     <span style="display:inline-flex; align-items:center; gap:3px; background:#f1f5f9; padding:2px 6px; border-radius:6px; font-size:11.5px; color:#475569;" title="Optional: Enter discount percentage (%) to auto-calculate Discount Rs">
                         <input type="number" id="sumDiscountPercent" placeholder="%" min="0" max="100" step="0.1"
                                style="width:48px; padding:3px 4px; border:1px solid #cbd5e1; border-radius:4px; text-align:right; font-size:11.5px; font-weight:bold; background:#fff;">
@@ -1087,7 +1086,7 @@
 
             <!-- PREVIOUS KHATA BALANCE -->
             <div class="total-row" id="sumPrevBalanceRow" style="background:#fffbeb; padding:8px 10px; border-radius:6px; margin:4px 0;">
-                <span style="color:#b45309; font-weight:bold;">Previous Khata Balance:</span>
+                <span style="color:#b45309; font-weight:bold;">Previous Khata Balance <span class="eb-ur-sub">(پچھلا بقایا)</span>:</span>
                 <span style="color:#b45309; font-weight:bold;">+ Rs <span id="sumPrevBalance">0.00</span></span>
             </div>
 
@@ -1095,27 +1094,27 @@
             <div class="total-row">
                 <span class="tax-inline" style="display:flex; align-items:center; gap:6px;">
                     <input type="checkbox" id="taxEnabled" style="accent-color:var(--accent);">
-                    <label for="taxEnabled" style="font-size:13px; font-weight:bold; cursor:pointer;">Tax / GST %:</label>
+                    <label for="taxEnabled" style="font-size:13px; font-weight:bold; cursor:pointer;">Tax / GST % <span class="eb-ur-sub">(ٹیکس)</span>:</label>
                     <input type="number" id="taxRate" value="0" min="0" step="0.01" style="width:65px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:6px; text-align:right;">
                 </span>
                 <span>+ Rs <span id="sumTax">0.00</span></span>
             </div>
 
             <div class="total-row grand">
-                <span>Total Payable:</span>
+                <span>Total Payable <span class="eb-ur-sub">(کل واجب الادا)</span>:</span>
                 <span>Rs <span id="sumGrand">0.00</span></span>
             </div>
 
             <!-- PAYMENT RECEIVED -->
             <div class="total-row" id="sumReceivedRow" style="background:#f0fdf4; padding:8px 10px; border-radius:6px; margin:4px 0;">
-                <span style="color:#15803d; font-weight:bold;">💵 Cash Received:</span>
+                <span style="color:#15803d; font-weight:bold;">💵 Cash Received <span class="eb-ur-sub">(وصول رقم)</span>:</span>
                 <input type="number" id="sumReceived" value="0" min="0" step="0.01"
                        style="width:110px; padding:6px; border:2px solid #86efac; border-radius:6px; text-align:right; font-weight:800; font-size:15px; color:#15803d;">
             </div>
 
             <!-- NEW REMAINING KHATA BALANCE -->
             <div class="total-row balance" id="sumBalanceRow" style="font-size:16px;">
-                <span>New Remaining Balance:</span>
+                <span>New Remaining Balance <span class="eb-ur-sub">(نیا بقایا کھاتہ)</span>:</span>
                 <span>Rs <span id="sumBalance">0.00</span></span>
             </div>
         </div>
@@ -1127,7 +1126,7 @@
                     <span style="font-size:18px;">💰</span>
                     <div>
                         <div style="font-size:12.5px; font-weight:800; color:#0f172a;">Customer Khata & Payment Recovery</div>
-                        <div style="font-size:10px; color:#64748b; font-weight:600;">(دکان دار پچھلا بقایا کھاتہ اور وصولی)</div>
+                        <div class="eb-ur-compact" style="color:#64748b;">(دکان دار پچھلا بقایا کھاتہ اور وصولی)</div>
                     </div>
                 </div>
                 <div id="bookerSelectedCustBadge" style="font-size:11px; font-weight:700; background:#f8fafc; border:1px solid #e2e8f0; padding:3px 8px; border-radius:6px; color:#334155;">
@@ -1139,13 +1138,13 @@
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:10px;">
                 <!-- Pending Khata -->
                 <div style="background:#fffbeb; border:1.5px solid #fde68a; border-radius:8px; padding:8px 10px;">
-                    <div style="font-size:10px; font-weight:800; color:#92400e; text-transform:uppercase;">Pending Khata (پچھلا بقایا)</div>
+                    <div style="font-size:10px; font-weight:800; color:#92400e; text-transform:uppercase;">Pending Khata <span class="eb-ur-sub">(پچھلا بقایا)</span></div>
                     <div id="bookerPendingKhataDisplay" style="font-size:17px; font-weight:900; color:#b45309; margin-top:2px;">Rs 0.00</div>
                 </div>
 
                 <!-- Cash Received Input -->
                 <div style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:8px; padding:8px 10px;">
-                    <div style="font-size:10px; font-weight:800; color:#166534; text-transform:uppercase;">Cash Received (وصول رقم)</div>
+                    <div style="font-size:10px; font-weight:800; color:#166534; text-transform:uppercase;">Cash Received <span class="eb-ur-sub">(وصول رقم)</span></div>
                     <div style="display:flex; align-items:center; gap:4px; margin-top:2px;">
                         <span style="font-size:13px; font-weight:800; color:#15803d;">Rs</span>
                         <input type="number" id="bookerQuickReceivedInput" placeholder="0" min="0" step="1"
@@ -1155,19 +1154,19 @@
 
                 <!-- Remaining Balance -->
                 <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:8px; padding:8px 10px;">
-                    <div style="font-size:10px; font-weight:800; color:#475569; text-transform:uppercase;">New Balance (نیا بقایا)</div>
+                    <div style="font-size:10px; font-weight:800; color:#475569; text-transform:uppercase;">New Balance <span class="eb-ur-sub">(نیا بقایا)</span></div>
                     <div id="bookerRemainingKhataDisplay" style="font-size:17px; font-weight:900; color:#0f172a; margin-top:2px;">Rs 0.00</div>
                 </div>
             </div>
 
             <!-- Fast Amount Quick Chips -->
             <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-bottom:12px;">
-                <span style="font-size:10.5px; font-weight:700; color:#64748b;">⚡ Quick:</span>
+                <span style="font-size:10.5px; font-weight:700; color:#64748b;">⚡ Quick <span class="eb-ur-sub">(فوری)</span>:</span>
                 <button type="button" class="quick-rec-chip" onclick="applyBookerQuickAmt(500)">+500</button>
                 <button type="button" class="quick-rec-chip" onclick="applyBookerQuickAmt(1000)">+1,000</button>
                 <button type="button" class="quick-rec-chip" onclick="applyBookerQuickAmt(2000)">+2,000</button>
                 <button type="button" class="quick-rec-chip" onclick="applyBookerQuickAmt(5000)">+5,000</button>
-                <button type="button" class="quick-rec-chip full" onclick="applyBookerQuickFullAmt()">Full Khata</button>
+                <button type="button" class="quick-rec-chip full" onclick="applyBookerQuickFullAmt()">Full Khata <span class="eb-ur-sub">(مکمل)</span></button>
                 <button type="button" class="quick-rec-chip clear" onclick="applyBookerQuickAmt(0)">Reset (0)</button>
             </div>
 
@@ -1182,7 +1181,7 @@
                 <!-- 📥 Book Field Order (When items are also selected) -->
                 <button type="button" id="btnBookerReviewSubmit" onclick="handleBookFieldOrderClick()" style="flex:1 1 200px; background:#d97706; color:#fff; border:none; padding:10px 14px; border-radius:8px; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; box-shadow:0 3px 8px rgba(217,119,6,0.35);">
                     <i class="fas fa-clipboard-check" style="font-size:15px;"></i>
-                    <span>Review & Book Order <span id="bookerCartItemsSummaryTag" style="font-size:11px; opacity:0.9;">(0 Items)</span></span>
+                    <span>Review & Book Order <span class="eb-ur-sub">(آرڈر بک کریں)</span> <span id="bookerCartItemsSummaryTag" style="font-size:11px; opacity:0.9;">(0 Items)</span></span>
                 </button>
             </div>
         </div>
@@ -1209,72 +1208,72 @@
     <div class="panel-card" id="successScreen" style="display:none; border-top: 4px solid var(--accent);">
         <div style="text-align:center; padding: 15px 0 20px;">
             <div style="font-size:60px;">✅</div>
-            <h2 style="color: var(--primary); margin: 8px 0 4px;">Invoice Created Successfully!</h2>
+            <h2 style="color: var(--primary); margin: 8px 0 4px;">Invoice Created Successfully! <span class="eb-ur-block">بل کامیابی سے بن گیا!</span></h2>
             <div style="font-size: 24px; font-weight: 800; color: var(--accent);" id="ssBillNo">STK-1</div>
             <div style="font-size: 14px; color: #64748b; margin-top: 4px;" id="ssCustomer">—</div>
             <div id="ssOfflineBadge" style="display:none; margin-top:6px;" class="net-status-badge net-offline">
-                📦 Saved in Offline Queue
+                📦 Saved in Offline Queue <span class="eb-ur-sub">(آف لائن محفوظ)</span>
             </div>
         </div>
 
         <div class="totals-box" style="margin-bottom: 20px;">
-            <div class="total-row"><span>Bill Amount:</span><span>Rs <span id="ssGrand">0.00</span></span></div>
-            <div class="total-row"><span>Previous Balance:</span><span>Rs <span id="ssPrevBalance">0.00</span></span></div>
-            <div class="total-row" style="color:#15803d; font-weight:bold;"><span>Cash Received:</span><span>Rs <span id="ssReceived">0.00</span></span></div>
-            <div class="total-row balance"><span>New Customer Balance:</span><span>Rs <span id="ssBalance">0.00</span></span></div>
+            <div class="total-row"><span>Bill Amount <span class="eb-ur-sub">(بل رقم)</span>:</span><span>Rs <span id="ssGrand">0.00</span></span></div>
+            <div class="total-row"><span>Previous Balance <span class="eb-ur-sub">(پچھلا بقایا)</span>:</span><span>Rs <span id="ssPrevBalance">0.00</span></span></div>
+            <div class="total-row" style="color:#15803d; font-weight:bold;"><span>Cash Received <span class="eb-ur-sub">(وصول رقم)</span>:</span><span>Rs <span id="ssReceived">0.00</span></span></div>
+            <div class="total-row balance"><span>New Customer Balance <span class="eb-ur-sub">(نیا بقایا)</span>:</span><span>Rs <span id="ssBalance">0.00</span></span></div>
         </div>
         
-        <!-- Print Template, Thermal Roll Size & Language Selector -->
+        <!-- Print Template, Thermal Roll Size & Receipt Language Selector -->
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span style="font-size:13px; font-weight:bold; color:var(--primary);">🎨 Style:</span>
+                <span style="font-size:13px; font-weight:bold; color:var(--primary);">🎨 Style <span class="eb-ur-sub">(اسٹائل)</span>:</span>
                 <select id="ssTemplateSelect" style="padding:7px 12px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px; font-weight:bold; outline:none; background:#fff;">
-                    <option value="template4" selected>⚡ Modern Minimal / Table Invoice (Default)</option>
-                    <option value="template6">🧾 Thermal POS Slip (58mm / 80mm — پرچی پرنٹر)</option>
-                    <option value="template1">🇵🇰 Urdu Classic (Nastaliq)</option>
-                    <option value="template2">📋 Traders English (Header)</option>
-                    <option value="template3">🇵🇰 Urdu + English Mix</option>
-                    <option value="template5">💎 Premium Full (All Boxes)</option>
-                    <option value="template8">🇵🇰 Classic Wholesale Urdu Grid (Legal Half-Cut 8.5"x7")</option>
-                    <option value="template9">🇵🇰 Abid Traders Sales Invoice — Manthar Road Sadiqabad (Phase 6 — Complete)</option>
-                    <option value="template7">📦 FMCG Corporate Cash Memo/Invoice (Al-Raheem Format)</option>
-                    <option value="template11">📦 Al-Raheem Agencies Cash Memo / Invoice (Phase 4 — FMCG Distribution)</option>
-                    <option value="template10">🏢 Hassan Distributor Corporate FMCG & Tax Invoice [101067] (Phase 5 — Complete)</option>
+                    <option value="template4" selected data-eb-en="⚡ Modern Minimal / Table Invoice (Default)" data-eb-ur="عام پرچون بل">⚡ Modern Minimal / Table Invoice (Default)</option>
+                    <option value="template6" data-eb-en="🧾 Thermal POS Slip (58mm / 80mm)" data-eb-ur="پرچی پرنٹر">🧾 Thermal POS Slip (58mm / 80mm)</option>
+                    <option value="template1" data-eb-en="🇵🇰 Urdu Classic (Nastaliq)" data-eb-ur="کلاسک اردو بل">🇵🇰 Urdu Classic (Nastaliq)</option>
+                    <option value="template2" data-eb-en="📋 Traders English (Header)" data-eb-ur="ٹریڈرز انگلش بل">📋 Traders English (Header)</option>
+                    <option value="template3" data-eb-en="🇵🇰 Urdu + English Mix" data-eb-ur="مکس اردو و انگلش">🇵🇰 Urdu + English Mix</option>
+                    <option value="template5" data-eb-en="💎 Premium Full (All Boxes)" data-eb-ur="فل پریمیم بل">💎 Premium Full (All Boxes)</option>
+                    <option value="template8" data-eb-en="🇵🇰 Classic Wholesale Urdu Grid (Legal Half-Cut)" data-eb-ur="علی رضا ٹریڈرز">🇵🇰 Classic Wholesale Urdu Grid (Legal Half-Cut)</option>
+                    <option value="template9" data-eb-en="🇵🇰 Abid Traders Sales Invoice (Wholesale)" data-eb-ur="تھوک انوائس">🇵🇰 Abid Traders Sales Invoice (Wholesale)</option>
+                    <option value="template7" data-eb-en="📦 FMCG Corporate Cash Memo (Al-Raheem)" data-eb-ur="کارپوریٹ کیش میمو">📦 FMCG Corporate Cash Memo (Al-Raheem)</option>
+                    <option value="template11" data-eb-en="📦 Al-Raheem Agencies FMCG Distribution" data-eb-ur="کارپوریٹ ڈسٹری بیوشن">📦 Al-Raheem Agencies FMCG Distribution</option>
+                    <option value="template10" data-eb-en="🏢 Hassan Distributor Corporate FMCG & Tax Invoice" data-eb-ur="ٹیکس انوائس">🏢 Hassan Distributor Corporate FMCG &amp; Tax Invoice</option>
                 </select>
                 <select id="ssThermalWidthSelect" style="padding:7px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:12.5px; font-weight:bold; outline:none; background:#f0f9ff; color:#0369a1;" title="Thermal Printer Roll Width (80mm Desktop vs 58mm Portable)">
-                    <option value="80" selected>🧾 80mm Thermal Roll</option>
-                    <option value="58">🧾 58mm Mini Roll</option>
+                    <option value="80" selected data-eb-en="🧾 80mm Thermal Roll" data-eb-ur="80mm رول">🧾 80mm Thermal Roll</option>
+                    <option value="58" data-eb-en="🧾 58mm Mini Roll" data-eb-ur="58mm رول">🧾 58mm Mini Roll</option>
                 </select>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:13px; font-weight:bold; color:var(--primary);">🌐 Language (زبان و رخ):</span>
+                <span style="font-size:13px; font-weight:bold; color:var(--primary);">🖨️ Print Script <span class="eb-ur-sub">(پرنٹ زبان)</span>:</span>
                 <select id="ssLanguageSelect" style="padding:7px 12px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px; font-weight:bold; outline:none; background:#fff;">
-                    <option value="en" selected>English (Left-to-Right ➡️ LTR)</option>
-                    <option value="ur">اردو (دائیں سے بائیں ⬅️ RTL)</option>
+                    <option value="en" selected>English (LTR)</option>
+                    <option value="ur">Urdu / اردو (RTL)</option>
                 </select>
             </div>
         </div>
 
         <div class="output-grid">
             <button class="output-btn" id="outPrintBtn" style="background: var(--primary);">
-                <i class="fas fa-print"></i> PRINT INVOICE
+                <i class="fas fa-print"></i> PRINT INVOICE <span class="eb-ur-sub">(پرنٹ)</span>
             </button>
             <button class="output-btn" id="outThermalPrintBtn" style="background: #0f172a; color: #fff;" title="1-Click Thermal Receipt Print (80mm / 58mm)">
-                <i class="fas fa-receipt" style="color:#38bdf8;"></i> THERMAL SLIP (پرچی)
+                <i class="fas fa-receipt" style="color:#38bdf8;"></i> THERMAL SLIP <span class="eb-ur-sub">(پرچی)</span>
             </button>
             <button class="output-btn" id="outPdfBtn" style="background: #e74c3c;">
-                <i class="fas fa-file-pdf"></i> SAVE PDF
+                <i class="fas fa-file-pdf"></i> SAVE PDF <span class="eb-ur-sub">(پی ڈی ایف)</span>
             </button>
             <button class="output-btn" id="outJpgBtn" style="background: #f59e0b;">
-                <i class="fas fa-image"></i> DOWNLOAD JPG
+                <i class="fas fa-image"></i> DOWNLOAD JPG <span class="eb-ur-sub">(تصویر)</span>
             </button>
             <button class="output-btn" id="outShareBtn" style="background: #10b981;">
-                <i class="fab fa-whatsapp"></i> WHATSAPP BILL
+                <i class="fab fa-whatsapp"></i> WHATSAPP BILL <span class="eb-ur-sub">(واٹس ایپ)</span>
             </button>
         </div>
 
         <button class="btn-new-bill" id="outNewBillBtn" style="margin-top:10px;">
-            <i class="fas fa-plus-circle"></i> 🆕 CREATE NEXT BILL
+            <i class="fas fa-plus-circle"></i> 🆕 CREATE NEXT BILL <span class="eb-ur-sub">(نیا بل بنائیں)</span>
         </button>
     </div>
 
@@ -1283,7 +1282,7 @@
 <!-- 🛒 FLOATING / STICKY LIST VIEW SUMMARY BAR (Same as Visual Catalogue) -->
 <div id="listStickyBottomBar" class="list-sticky-bar" style="display:none;">
     <div>
-        <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;" id="listStickyLabel">CURRENT BOOKING CART:</div>
+        <div style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;" id="listStickyLabel">CURRENT BOOKING CART <span class="eb-ur-sub">(موجودہ کارٹ)</span>:</div>
         <div style="font-size:16px; font-weight:900; line-height:1.2;">
             🛒 <span id="listStickyCount">0</span> items (<span id="listStickyUnits">0</span> units) | <span style="color:#38bdf8;">Rs <span id="listStickyTotal">0.00</span></span>
         </div>
@@ -1307,7 +1306,7 @@
         <div style="padding:16px; flex:1;">
             <!-- Shopkeeper confirmation -->
             <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:12px; padding:10px 14px; margin-bottom:12px; font-size:13px;">
-                <div style="font-size:11px; font-weight:800; color:#64748b; letter-spacing:0.5px; text-transform:uppercase;">SHOPKEEPER / CUSTOMER <span class="ur-sub">(دکان دار)</span>:</div>
+                <div id="catReviewCustHeading" style="font-size:11px; font-weight:800; color:#64748b; letter-spacing:0.5px; text-transform:uppercase;">SHOPKEEPER / CUSTOMER <span class="ur-sub">(دکان دار)</span>:</div>
                 <div style="font-size:15px; font-weight:900; color:#0f172a; margin-top:2px;" id="catReviewCustName">Counter Sale <span class="ur-sub">(کاؤنٹر سیل)</span></div>
                 <div style="font-size:12px; color:#475569; margin-top:2px;" id="catReviewCustDetails"></div>
             </div>
@@ -1327,9 +1326,9 @@
 
             <!-- Totals & Recovery Breakdown -->
             <div class="totals-box" style="margin-bottom:14px; border:1.5px solid #e2e8f0; border-radius:12px; padding:10px 14px; background:#fff;">
-                <div class="total-row" style="font-size:13px;"><span>Items Subtotal:</span><span>Rs <span id="catReviewSubtotal">0.00</span></span></div>
+                <div class="total-row" style="font-size:13px;"><span>Items Subtotal <span class="eb-ur-sub">(اشیاء کا کل)</span>:</span><span>Rs <span id="catReviewSubtotal">0.00</span></span></div>
                 <div class="total-row" id="catReviewDiscountRow" style="display:none; color:#15803d; font-size:13px;">
-                    <span>Scheme Discounts:</span>
+                    <span>Scheme Discounts <span class="eb-ur-sub">(اسکیم رعایت)</span>:</span>
                     <span>- Rs <span id="catReviewDiscount">0.00</span></span>
                 </div>
                 <div class="total-row" id="catReviewPrevBalRow" style="background:#fffbeb; padding:7px 10px; border-radius:8px; margin:4px 0; border:1px solid #fde68a;">
@@ -1345,7 +1344,7 @@
                 <div class="total-row" id="catReviewReceivedRow" style="background:#f0fdf4; padding:8px 10px; border-radius:8px; margin:6px 0; border:1.5px solid #86efac; flex-wrap:wrap; gap:6px;">
                     <div style="flex:1; min-width:140px;">
                         <span style="color:#15803d; font-weight:bold; font-size:13.5px; display:block;">💵 Cash Received / Recovery:</span>
-                        <span style="font-size:11px; color:#166534;">(وصول شدہ رقم / ریکوری رقم)</span>
+                        <span class="eb-ur-compact" style="color:#166534;">(وصول شدہ رقم / ریکوری رقم)</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:4px;">
                         <span style="font-weight:900; color:#15803d;">Rs</span>
@@ -1362,7 +1361,7 @@
             <!-- Booker Notes (Optional) -->
             <div style="margin-bottom:14px;">
                 <label style="font-size:12px; font-weight:700; color:#475569;">Delivery Notes <span class="ur-sub">(خصوصی ہدایات / ریمارکس)</span> (Optional):</label>
-                <textarea id="catReviewNotes" placeholder="Delivery instructions or notes..." style="width:100%; height:50px; padding:8px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:12px; box-sizing:border-box; margin-top:4px; resize:none;"></textarea>
+                <textarea id="catReviewNotes" data-eb-ph-en="Delivery instructions or notes..." data-eb-ph-ur="ڈلیوری ہدایات یا ریمارکس" placeholder="Delivery instructions or notes..." style="width:100%; height:50px; padding:8px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:12px; box-sizing:border-box; margin-top:4px; resize:none;"></textarea>
             </div>
 
             <!-- Action Buttons -->
@@ -1383,14 +1382,15 @@
     <div style="background:#fff; border-radius:14px; width:100%; max-width:460px; overflow:hidden; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
         <div style="padding:12px 16px; background:#0f172a; color:#fff; display:flex; justify-content:space-between; align-items:center;">
             <div style="font-weight:bold; font-size:15px; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-camera" style="color:#10b981;"></i> Barcode Camera Scanner
+                <i class="fas fa-camera" style="color:#10b981;"></i> Barcode Camera Scanner <span class="eb-ur-sub">(بارکوڈ اسکینر)</span>
             </div>
             <button type="button" id="closeCameraBtn" style="background:none; border:none; color:#94a3b8; font-size:22px; cursor:pointer; padding:4px 8px;">✕</button>
         </div>
         <div style="padding:15px; text-align:center;">
             <div id="scannerReader" style="width:100%; min-height:260px; background:#000; border-radius:10px; overflow:hidden; position:relative;"></div>
             <div style="margin-top:10px; font-size:12px; color:#64748b;">
-                🎯 کیمرے کو پروڈکٹ کے بارکوڈ کے سامنے لائیں۔ بارکوڈ ملتے ہی Beep آواز آئے گی اور آئٹم خودکار شامل ہو جائے گا۔
+                🎯 Point camera at product barcode — item adds automatically on beep.
+                <span class="eb-ur-compact">کیمرے کو پروڈکٹ کے بارکوڈ کے سامنے لائیں، بیپ آواز کے ساتھ آئٹم خودکار شامل ہو جائے گا۔</span>
             </div>
             <div id="scannerStatusText" style="margin-top:8px; font-size:13px; font-weight:bold; color:#16a34a; min-height:22px;"></div>
         </div>
@@ -1403,7 +1403,7 @@
         <!-- Header -->
         <div style="padding:14px 18px; background:linear-gradient(135deg, #d97706, #b45309); color:#fff; display:flex; justify-content:space-between; align-items:center;">
             <div style="font-weight:900; font-size:16px; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-database"></i> <span>Offline Pending Bills (IndexedDB)</span>
+                <i class="fas fa-database"></i> <span>Offline Pending Bills (IndexedDB) <span class="eb-ur-sub">(آف لائن بلز)</span></span>
             </div>
             <button type="button" id="closeOfflineModalBtn" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; padding:4px 8px;">✕</button>
         </div>
@@ -1411,7 +1411,10 @@
         <div style="padding:16px;">
             <div style="background:#fef3c7; border:1px solid #fde68a; border-radius:10px; padding:10px 12px; font-size:12.5px; color:#92400e; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
                 <i class="fas fa-info-circle" style="font-size:16px; flex-shrink:0;"></i>
-                <span>یہ تمام بلز انٹرنیٹ نہ ہونے پر آپ کی ڈیوائس کے <b>IndexedDB</b> میں محفوظ ہو چکے ہیں۔ انٹرنیٹ بحال ہوتے ہی آپ انہیں کلاؤڈ پر بھیج سکتے ہیں۔</span>
+                <div>
+                    <span>All offline bills are safely stored in your device's <b>IndexedDB</b> and can be synced to cloud once internet is back.</span>
+                    <span class="eb-ur-compact">یہ تمام بلز انٹرنیٹ نہ ہونے پر آپ کی ڈیوائس میں محفوظ ہو چکے ہیں، نیٹ بحال ہوتے ہی کلاؤڈ پر بھیج دیں۔</span>
+                </div>
             </div>
 
             <!-- List of pending bills -->
@@ -1421,22 +1424,22 @@
 
             <div id="offlineEmptyState" style="display:none; text-align:center; padding:30px 15px; color:#64748b;">
                 <i class="fas fa-check-circle" style="font-size:38px; color:#10b981; margin-bottom:10px;"></i>
-                <div style="font-size:15px; font-weight:800; color:#1e293b;">کوئی زیر التواء آف لائن بل نہیں ہے!</div>
-                <div style="font-size:12px; color:#94a3b8; margin-top:4px;">No pending offline bills found in local IndexedDB.</div>
+                <div style="font-size:15px; font-weight:800; color:#1e293b;">No Pending Offline Bills <span class="eb-ur-block">کوئی زیرِ التواء آف لائن بل نہیں ہے!</span></div>
+                <div style="font-size:12px; color:#94a3b8; margin-top:4px;">All local bills are synced.</div>
             </div>
         </div>
 
         <!-- Footer -->
         <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
             <button type="button" id="clearOfflineQueueBtn" class="btn" style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer;">
-                <i class="fas fa-trash-alt"></i> Clear All
+                <i class="fas fa-trash-alt"></i> Clear All <span class="eb-ur-sub">(سب صاف کریں)</span>
             </button>
             <div style="display:flex; gap:8px;">
                 <button type="button" id="closeOfflineModalFooterBtn" class="btn" style="background:#e2e8f0; color:#334155; border:none; padding:8px 16px; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer;">
-                    Close
+                    Close <span class="eb-ur-sub">(بند کریں)</span>
                 </button>
                 <button type="button" id="modalSyncOfflineBtn" class="btn" style="background:#d97706; color:#fff; border:none; padding:8px 18px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; box-shadow:0 2px 6px rgba(217,119,6,0.3);">
-                    <i class="fas fa-cloud-upload-alt"></i> Sync All to Cloud
+                    <i class="fas fa-cloud-upload-alt"></i> Sync All to Cloud <span class="eb-ur-sub">(کلاؤڈ سنک)</span>
                 </button>
             </div>
         </div>

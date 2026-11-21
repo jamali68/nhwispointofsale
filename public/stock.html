@@ -63,22 +63,22 @@
     <div style="display:flex; justify-content:space-between; align-items:center; max-width:1000px; margin:0 auto 12px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <span class="cache-badge" id="bizCategoryBadge" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;">
-                <i class="fas fa-store"></i> <span id="bizCategoryText">Mode: 📚 Book Depot</span>
+                <i class="fas fa-store"></i> <span id="bizCategoryText">Mode: 📚 Book Depot <span class="eb-ur-sub">(بک ڈپو)</span></span>
             </span>
             <span class="cache-badge" id="cacheStatusBadge">
-                <i class="fas fa-shield-alt"></i> Quota Shield Active
+                <i class="fas fa-shield-alt"></i> Quota Shield Active <span class="eb-ur-sub">(کوٹہ شیلڈ فعال)</span>
             </span>
-            <span style="font-size:12px; color:#64748b;" id="lastSyncTime">Synced</span>
+            <span style="font-size:12px; color:#64748b;" id="lastSyncTime">Synced <span class="eb-ur-sub">(سنک شدہ)</span></span>
         </div>
         <div style="display:flex; gap:8px;">
             <button class="btn btn-sm" id="syncStockBtn" style="background:#0284c7; color:#fff;" title="Fetch fresh stock from cloud">
-                <i class="fas fa-sync-alt"></i> Sync Live
+                <i class="fas fa-sync-alt"></i> Sync Live <span class="eb-ur-sub">(لائیو سنک)</span>
             </button>
             <button class="btn btn-sm" id="exportStockBtn" style="background:#10b981; color:#fff;" title="Export Stock to CSV / Excel">
-                <i class="fas fa-file-excel"></i> Export CSV
+                <i class="fas fa-file-excel"></i> Export CSV <span class="eb-ur-sub">(ایکسپورٹ)</span>
             </button>
             <button class="btn btn-sm" id="printStockBtn" style="background:#6366f1; color:#fff;" title="Print Inventory Report">
-                <i class="fas fa-print"></i> Print Report
+                <i class="fas fa-print"></i> Print Report <span class="eb-ur-sub">(پرنٹ رپورٹ)</span>
             </button>
         </div>
     </div>
@@ -88,28 +88,28 @@
         <div class="stat-card">
             <div class="stat-icon" style="background:#3498db;">📦</div>
             <div class="stat-value" id="statTotal">--</div>
-            <div class="stat-label">Total Items</div>
+            <div class="stat-label" id="lblStatTotal">Total Items <span class="eb-ur-sub">(کل آئٹمز)</span></div>
         </div>
         <div class="stat-card" style="cursor:pointer;" id="valuationCard" title="Click to view full inventory profit breakdown">
             <div class="stat-icon" style="background:#27ae60;">💰</div>
             <div class="stat-value" id="statValue">Rs --</div>
-            <div class="stat-label">Retail Value</div>
-            <div style="font-size:10px; color:#15803d; font-weight:bold; margin-top:2px;" id="statProfitEst">Est. Profit: Rs --</div>
+            <div class="stat-label" id="lblStatValue">Retail Value <span class="eb-ur-sub">(پرچون مالیت)</span></div>
+            <div style="font-size:10px; color:#15803d; font-weight:bold; margin-top:2px;" id="statProfitEst">Est. Profit <span class="eb-ur-sub">(متوقع منافع)</span>: Rs --</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background:#64748b;">🏷️</div>
             <div class="stat-value" id="statCostValue">Rs --</div>
-            <div class="stat-label">Purchase Cost</div>
+            <div class="stat-label" id="lblStatCost">Purchase Cost <span class="eb-ur-sub">(خریداری لاگت)</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background:#f39c12;">⚠️</div>
             <div class="stat-value" id="statLow">--</div>
-            <div class="stat-label">Low Stock</div>
+            <div class="stat-label" id="lblStatLow">Low Stock <span class="eb-ur-sub">(کم اسٹاک)</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background:#e74c3c;">💥</div>
             <div class="stat-value" id="statOut">--</div>
-            <div class="stat-label">Out of Stock</div>
+            <div class="stat-label" id="lblStatOut">Out of Stock <span class="eb-ur-sub">(ختم اسٹاک)</span></div>
         </div>
     </div>
 
@@ -117,36 +117,36 @@
     <div class="search-filter-bar">
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Search by item name, code, barcode, class, publisher or subject...">
+            <input type="text" id="searchInput" placeholder="Search by item name, code, barcode, class, publisher or subject..." data-eb-ph-en="Search by item name, code, barcode, class, publisher or subject..." data-eb-ph-ur="Search by name, code, barcode, class, publisher... (نام، کوڈ یا بارکوڈ تلاش کریں)">
         </div>
     </div>
 
     <!-- ===== 📂 CATEGORY & QUICK FILTERS (Scrolls normally — Not Sticky) ===== -->
     <div class="stock-filters-panel">
         <select id="categoryFilter" style="padding:8px 12px; border:2px solid #e0e6e8; border-radius:18px; font-size:13px; font-weight:bold; background:#fff; outline:none; color:var(--primary); max-width:100%; min-width:0; box-sizing:border-box; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-            <option value="all">📂 All Categories</option>
+            <option value="all" data-eb-en="📂 All Categories" data-eb-ur="📂 All Categories (تمام کیٹیگریز)">📂 All Categories</option>
         </select>
         <!-- 📚 Dynamic Industry Quick Filters (Class / Board / Publisher / Principal Agency) -->
         <div id="industryQuickFilterBar" style="display:none; gap:8px; flex-wrap:wrap; align-items:center; max-width:100%; min-width:0; box-sizing:border-box;">
             <select id="industryFilterPrimary" style="padding:7px 10px; border:1.5px solid #bae6fd; border-radius:16px; font-size:12px; font-weight:bold; background:#f0f9ff; color:#0369a1; outline:none; max-width:100%; min-width:0; box-sizing:border-box; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <option value="all">🎓 All Classes / Grades</option>
+                <option value="all" data-eb-en="🎓 All Classes / Grades" data-eb-ur="🎓 All Classes / Grades (تمام جماعتیں)">🎓 All Classes / Grades</option>
             </select>
             <select id="industryFilterSecondary" style="padding:7px 10px; border:1.5px solid #bae6fd; border-radius:16px; font-size:12px; font-weight:bold; background:#f0f9ff; color:#0369a1; outline:none; max-width:100%; min-width:0; box-sizing:border-box; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <option value="all">🏛️ All Publishers / Brands</option>
+                <option value="all" data-eb-en="🏛️ All Publishers / Brands" data-eb-ur="🏛️ All Publishers / Brands (تمام برانڈز)">🏛️ All Publishers / Brands</option>
             </select>
         </div>
         <div class="filter-chips">
-            <button class="filter-chip active" data-filter="all">All Items</button>
-            <button class="filter-chip" data-filter="low">⚠️ Low Stock</button>
-            <button class="filter-chip" data-filter="out">💥 Out of Stock</button>
-            <button class="filter-chip" data-filter="instock">✅ In Stock</button>
+            <button class="filter-chip active" data-filter="all">All Items <span class="eb-ur-sub">(تمام)</span></button>
+            <button class="filter-chip" data-filter="low">⚠️ Low Stock <span class="eb-ur-sub">(کم)</span></button>
+            <button class="filter-chip" data-filter="out">💥 Out of Stock <span class="eb-ur-sub">(ختم)</span></button>
+            <button class="filter-chip" data-filter="instock">✅ In Stock <span class="eb-ur-sub">(موجود)</span></button>
         </div>
     </div>
 
     <!-- ===== ➕ ADD ITEM (Collapsible Form — Owner / Super Admin only) ===== -->
     <div class="panel-card" id="addItemSection">
         <div class="add-item-header" id="addItemToggle">
-            <h2><i class="fas fa-plus-circle"></i> Add New Product / Stock Item</h2>
+            <h2 id="addItemHeaderTitle"><i class="fas fa-plus-circle"></i> Add New Product / Stock Item <span class="eb-ur-sub">(نیا آئٹم شامل کریں)</span></h2>
             <i class="fas fa-chevron-down toggle-arrow" id="toggleArrow"></i>
         </div>
         <form id="addItemForm" class="panel-form" style="display:none;">
@@ -164,33 +164,33 @@
 
                 <div style="flex:1; margin-left:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px; margin-bottom:4px;">
-                        <label style="font-size:12px; font-weight:bold; color:#166534; margin:0;">
-                            Product Photo / تصویر (Catalog Portrait 3:4 • 600×800 px)
+                        <label id="lblProductPhotoTitle" style="font-size:12px; font-weight:bold; color:#166534; margin:0;">
+                            Product Photo (Catalog Portrait 3:4 • 600×800 px) <span class="eb-ur-sub">(پروڈکٹ تصویر)</span>
                         </label>
-                        <span style="font-size:10px; color:#0369a1; background:#e0f2fe; padding:2px 7px; border-radius:10px; font-weight:700;">
-                            📐 Fixed Booker Angle
+                        <span id="photoAngleBadge" style="font-size:10px; color:#0369a1; background:#e0f2fe; padding:2px 7px; border-radius:10px; font-weight:700;">
+                            📐 3:4 Catalog Portrait <span class="eb-ur-sub">(کیٹلاگ پورٹریٹ)</span>
                         </span>
                     </div>
 
                     <!-- Actions Bar -->
                     <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px;">
                         <label class="btn" style="background:#16a34a; color:#fff; font-size:11px; padding:6px 12px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
-                            <i class="fas fa-camera"></i> <span>Upload Photo</span>
+                            <i class="fas fa-camera"></i> <span>Upload Photo <span class="eb-ur-sub">(تصویر اپلوڈ)</span></span>
                             <input type="file" id="itemPhotoFile" accept="image/*" style="display:none;">
                         </label>
                         
                         <!-- 🔄 ROTATE 90° BUTTON -->
                         <button type="button" class="btn" id="itemRotatePhotoBtn" style="display:none; background:#0284c7; color:#fff; font-size:11px; padding:6px 10px; border-radius:6px;" title="Rotate 90 degrees clockwise">
-                            <i class="fas fa-redo"></i> <span>Rotate 90° (گھمائیں)</span>
+                            <i class="fas fa-redo"></i> <span>Rotate 90° <span class="eb-ur-sub">(گھمائیں)</span></span>
                         </button>
 
                         <!-- ✂️ ADJUST / CROP IN STUDIO BUTTON -->
                         <button type="button" class="btn" id="itemAdjustPhotoBtn" style="display:none; background:#7c3aed; color:#fff; font-size:11px; padding:6px 10px; border-radius:6px;" title="Adjust portrait framing and angle">
-                            <i class="fas fa-crop-alt"></i> <span>Adjust / Frame (ایڈجسٹ کریں)</span>
+                            <i class="fas fa-crop-alt"></i> <span>Adjust / Frame <span class="eb-ur-sub">(ایڈجسٹ کریں)</span></span>
                         </button>
 
                         <button type="button" class="btn" id="itemRemovePhotoBtn" style="display:none; background:#fee2e2; color:#b91c1c; font-size:11px; padding:6px 10px; border-radius:6px;">
-                            <i class="fas fa-trash-alt"></i> Remove
+                            <i class="fas fa-trash-alt"></i> Remove <span class="eb-ur-sub">(ہٹائیں)</span>
                         </button>
                     </div>
 
@@ -198,15 +198,15 @@
                     <div id="itemPhotoUrlContainer" style="margin-top:8px;">
                         <div id="itemPhotoUrlLockedMsg" style="display:none; max-width:400px; padding:7px 10px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px; font-size:11px; color:#64748b; align-items:center; gap:8px;">
                             <i class="fas fa-lock" style="color:#d97706; font-size:13px;"></i>
-                            <span><b>Image URL Link feature Locked:</b> Admin ki permission zaroori hai.</span>
+                            <span><b>Image URL Link Locked:</b> Admin permission required. <span class="eb-ur-compact">تصویر لنک فیچر لاک ہے — ایڈمن کی اجازت ضروری ہے۔</span></span>
                         </div>
                         <div id="itemPhotoUrlActiveBox" style="display:flex; gap:6px; max-width:440px; align-items:center;">
                             <div style="position:relative; flex:1;">
                                 <i class="fas fa-link" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:11px; color:#94a3b8;"></i>
-                                <input type="url" id="itemPhotoUrl" placeholder="Paste image web link (https://...)" style="width:100%; box-sizing:border-box; padding:6px 8px 6px 26px; border:1px solid #cbd5e1; border-radius:6px; font-size:11px;">
+                                <input type="url" id="itemPhotoUrl" placeholder="Paste image web link (https://...)" data-eb-ph-en="Paste image web link (https://...)" data-eb-ph-ur="Paste image web link (تصویر کا ویب لنک پیسٹ کریں)" style="width:100%; box-sizing:border-box; padding:6px 8px 6px 26px; border:1px solid #cbd5e1; border-radius:6px; font-size:11px;">
                             </div>
                             <button type="button" class="btn" id="itemPhotoUrlLoadBtn" style="background:#0284c7; color:#fff; font-size:11px; padding:6px 10px; border-radius:6px; white-space:nowrap;" title="Load image and open in Studio to adjust">
-                                <i class="fas fa-magic"></i> <span>Load & Frame</span>
+                                <i class="fas fa-magic"></i> <span>Load & Frame <span class="eb-ur-sub">(لوڈ کریں)</span></span>
                             </button>
                         </div>
                     </div>
@@ -218,13 +218,13 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>📝 Product Name *</label>
-                    <input type="text" id="itemName" placeholder="e.g. Shan Biryani Masala 50g" required maxlength="80">
+                    <label id="lblItemName">📝 Product Name * <span class="eb-ur-sub">(آئٹم کا نام)</span></label>
+                    <input type="text" id="itemName" placeholder="Enter item name..." data-eb-ph-en="Enter item name..." data-eb-ph-ur="Enter item name (آئٹم کا نام درج کریں)" required maxlength="80">
                 </div>
                 <div class="form-group">
-                    <label>🔖 Item Code / Barcode (optional)</label>
+                    <label id="lblItemBarcode">🔖 Item Code / Barcode (optional) <span class="eb-ur-sub">(کوڈ / بارکوڈ)</span></label>
                     <div style="display:flex; gap:6px;">
-                        <input type="text" id="itemBarcode" placeholder="e.g. 8964000123" maxlength="40">
+                        <input type="text" id="itemBarcode" placeholder="e.g. 8964000123" data-eb-ph-en="e.g. 8964000123" data-eb-ph-ur="e.g. 8964000123 (بارکوڈ یا کوڈ)" maxlength="40">
                         <button type="button" class="btn" id="generateCodeBtn" style="background:#e2e8f0; color:#334155; padding:8px 12px;" title="Auto generate code">⚡</button>
                     </div>
                 </div>
@@ -232,51 +232,18 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>📂 Category</label>
-                    <input type="text" id="itemCategory" placeholder="e.g. Spices, Grocery, Drinks" list="categorySuggestions">
-                    <datalist id="categorySuggestions">
-                        <option value="Grocery">
-                        <option value="Spices">
-                        <option value="Beverages">
-                        <option value="Snacks">
-                        <option value="Dairy">
-                        <option value="Cosmetics">
-                        <option value="Confectionery">
-                        <option value="General">
-                    </datalist>
+                    <label id="lblItemCategory">📂 Category <span class="eb-ur-sub">(کیٹیگری)</span></label>
+                    <input type="text" id="itemCategory" placeholder="Select or type category..." data-eb-ph-en="Select or type category..." data-eb-ph-ur="Select or type category (کیٹیگری منتخب کریں یا لکھیں)" list="categorySuggestions">
+                    <datalist id="categorySuggestions"></datalist>
                 </div>
                 <div class="form-group">
-                    <label>📏 Unit *</label>
+                    <label id="lblItemUnit">📏 Unit * <span class="eb-ur-sub">(یونٹ / اکائی)</span></label>
                     <select id="itemUnit" required>
-                        <option value="unit">Unit / Piece</option>
-                        <optgroup label="📦 Packing & Bulk">
-                            <option value="carton">Carton (ctn)</option>
-                            <option value="box">Box</option>
-                            <option value="packet">Packet (pkt)</option>
-                            <option value="set">Set (سیٹ - مکمل کتب سیٹ)</option>
-                            <option value="bundle">Bundle (بنڈل)</option>
-                            <option value="bag">Bag / Bora</option>
-                            <option value="dozen">Dozen</option>
-                            <option value="pcs">Piece (pcs)</option>
-                            <option value="pair">Pair (جوڑا)</option>
-                            <option value="suit">Suit (سوٹ)</option>
-                            <option value="bottle">Bottle</option>
-                            <option value="can">Can</option>
-                        </optgroup>
-                        <optgroup label="⚖️ Weight">
-                            <option value="kg">Kilogram (kg)</option>
-                            <option value="g">Gram (g)</option>
-                            <option value="pound">Pound (lb)</option>
-                            <option value="maund">Maund (40kg)</option>
-                        </optgroup>
-                        <optgroup label="🧴 Volume">
-                            <option value="liter">Liter (L)</option>
-                            <option value="gallon">Gallon</option>
-                        </optgroup>
-                        <optgroup label="📏 Length">
-                            <option value="meter">Meter (m)</option>
-                            <option value="feet">Feet (ft)</option>
-                        </optgroup>
+                        <option value="unit" data-eb-en="Unit / Piece" data-eb-ur="Unit / Piece (عدد / پیس)">Unit / Piece</option>
+                        <option value="pcs" data-eb-en="Piece (pcs)" data-eb-ur="Piece (پیس)">Piece (pcs)</option>
+                        <option value="box" data-eb-en="Box" data-eb-ur="Box (ڈبہ)">Box</option>
+                        <option value="pack" data-eb-en="Pack / Packet" data-eb-ur="Pack / Packet (پیکٹ)">Pack / Packet</option>
+                        <option value="carton" data-eb-en="Carton (ctn)" data-eb-ur="Carton (کارٹن)">Carton (ctn)</option>
                     </select>
                 </div>
             </div>
@@ -285,10 +252,10 @@
             <div id="customIndustryFieldsContainer" style="display:none; background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:12px; margin-bottom:12px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
                     <span style="font-size:12px; font-weight:bold; color:#0369a1;" id="customFieldsHeader">
-                        <i class="fas fa-layer-group"></i> Category Details (کاروبار کے مخصوص خانے)
+                        <i class="fas fa-layer-group"></i> Category Details <span class="eb-ur-sub">(کاروبار کے مخصوص خانے)</span>
                     </span>
                     <span id="customFieldsCategoryTag" style="font-size:11px; background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:12px; font-weight:bold;">
-                        📚 Book Depot Mode
+                        📚 Book Depot Mode <span class="eb-ur-sub">(بک ڈپو موڈ)</span>
                     </span>
                 </div>
                 <div id="customFieldsGrid" class="form-row" style="margin-bottom:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;"></div>
@@ -296,11 +263,11 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>🔢 Quantity in Stock *</label>
+                    <label>🔢 Quantity in Stock * <span class="eb-ur-sub">(اسٹاک تعداد)</span></label>
                     <input type="number" id="itemQty" placeholder="0" required min="0" step="0.01">
                 </div>
                 <div class="form-group">
-                    <label>⚠️ Low Stock Alert Limit</label>
+                    <label>⚠️ Low Stock Alert Limit <span class="eb-ur-sub">(کم اسٹاک الرٹ حد)</span></label>
                     <input type="number" id="itemLimit" placeholder="10" min="0" step="1">
                 </div>
             </div>
@@ -309,37 +276,37 @@
             <div id="bookPurchaseHelperBox" style="display:none; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:12px; margin-bottom:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
                     <span style="font-size:12px; font-weight:bold; color:#b45309;">
-                        <i class="fas fa-calculator"></i> <span id="purchaseHelperTitle">پبلشر ڈسکاؤنٹ اور خریداری ریٹ کیلکولیٹر (Publisher Trade Discount & Supplier - اختیاری)</span>
+                        <i class="fas fa-calculator"></i> <span id="purchaseHelperTitle">Publisher Trade Discount &amp; Supplier Calculator (Optional) <span class="eb-ur-compact">پبلشر ڈسکاؤنٹ اور خریداری ریٹ کیلکولیٹر</span></span>
                     </span>
                     <div style="display:flex; flex-wrap:wrap; gap:5px; align-items:center;">
                         <button type="button" id="btnAddQuickSupplier" onclick="openAddCustomSupplierModal('itemSupplierName')" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:6px; padding:2px 8px; font-size:10px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:3px;">
-                            🏢 + New Supplier / Dealer
+                            🏢 + New Supplier / Dealer <span class="eb-ur-sub">(نیا سپلائر)</span>
                         </button>
                         <button type="button" id="btnToggleUsedSellerBox" onclick="toggleUsedPhoneSellerBox()" style="display:none; background:#dcfce7; color:#15803d; border:1px solid #86efac; border-radius:6px; padding:2px 8px; font-size:10px; font-weight:bold; cursor:pointer; align-items:center; gap:3px;">
-                            🪪 Used Phone Seller / CNIC Record (استعمال شدہ فون فروخت کنندہ)
+                            🪪 Used Phone Seller / CNIC Record <span class="eb-ur-sub">(فروخت کنندہ ریکارڈ)</span>
                         </button>
                         <span style="font-size:10.5px; background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:10px; font-weight:bold;">
-                            Auto Cost & Wholesale Calculator
+                            Auto Cost &amp; Wholesale Calculator <span class="eb-ur-sub">(خودکار ریٹ)</span>
                         </span>
                     </div>
                 </div>
                 <div class="form-row" style="margin-bottom:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label id="lblItemSupplier" style="font-size:11px; font-weight:bold; color:#92400e;">🏛️ پبلشر / سپلائر (Supplier / Publisher)</label>
-                        <input type="text" id="itemSupplierName" list="supplierSuggestionsList" placeholder="مثلاً: PCTB, Oxford, Afaq, Ilmi" style="font-size:12px;">
+                        <label id="lblItemSupplier" style="font-size:11px; font-weight:bold; color:#92400e;">🏛️ Supplier / Publisher <span class="eb-ur-sub">(پبلشر / سپلائر)</span></label>
+                        <input type="text" id="itemSupplierName" list="supplierSuggestionsList" placeholder="e.g. PCTB, Oxford, Afaq, Ilmi" data-eb-ph-en="e.g. PCTB, Oxford, Afaq, Ilmi" data-eb-ph-ur="مثلاً: PCTB, Oxford, Afaq, Ilmi" style="font-size:12px;">
                         <datalist id="supplierSuggestionsList"></datalist>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label id="lblItemMrp" style="font-size:11px; font-weight:bold; color:#92400e;">🏷️ درج شدہ قیمت (Printed Price / MRP)</label>
-                        <input type="number" id="itemPrintedMrp" placeholder="مثلاً: 500" min="0" step="0.01" style="font-size:12px;">
+                        <label id="lblItemMrp" style="font-size:11px; font-weight:bold; color:#92400e;">🏷️ Printed Price / MRP <span class="eb-ur-sub">(درج شدہ قیمت)</span></label>
+                        <input type="number" id="itemPrintedMrp" placeholder="e.g. 500" data-eb-ph-en="e.g. 500" data-eb-ph-ur="مثلاً: 500" min="0" step="0.01" style="font-size:12px;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label id="lblItemPubDisc" style="font-size:11px; font-weight:bold; color:#92400e;">📉 پبلشر ڈسکاؤنٹ % (Purchase Disc %)</label>
-                        <input type="number" id="itemPublisherDisc" placeholder="مثلاً: 25 (25% Off)" min="0" max="99" step="0.1" style="font-size:12px;">
+                        <label id="lblItemPubDisc" style="font-size:11px; font-weight:bold; color:#92400e;">📉 Purchase Discount % <span class="eb-ur-sub">(خریداری ڈسکاؤنٹ %)</span></label>
+                        <input type="number" id="itemPublisherDisc" placeholder="e.g. 25 (25% Off)" data-eb-ph-en="e.g. 25 (25% Off)" data-eb-ph-ur="مثلاً: 25 (25% ڈسکاؤنٹ)" min="0" max="99" step="0.1" style="font-size:12px;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label id="lblItemWhDisc" style="font-size:11px; font-weight:bold; color:#92400e;">🏪 ہول سیل ڈسکاؤنٹ % (Wholesale Disc %)</label>
-                        <input type="number" id="itemWholesaleDisc" placeholder="مثلاً: 15 (15% Off)" min="0" max="99" step="0.1" style="font-size:12px;">
+                        <label id="lblItemWhDisc" style="font-size:11px; font-weight:bold; color:#92400e;">🏪 Wholesale Discount % <span class="eb-ur-sub">(ہول سیل ڈسکاؤنٹ %)</span></label>
+                        <input type="number" id="itemWholesaleDisc" placeholder="e.g. 15 (15% Off)" data-eb-ph-en="e.g. 15 (15% Off)" data-eb-ph-ur="مثلاً: 15 (15% ڈسکاؤنٹ)" min="0" max="99" step="0.1" style="font-size:12px;">
                     </div>
                 </div>
 
@@ -347,28 +314,28 @@
                 <div id="wholesaleCartonCalcBar" style="display:none; margin-top:10px; padding:10px; background:#eff6ff; border:1.5px dashed #3b82f6; border-radius:8px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:7px;">
                         <span id="whCalcBarTitle" style="font-size:11.5px; font-weight:bold; color:#1d4ed8;">
-                            📦 ماسٹر کارٹن ↔ فی پیس ریٹ کیلکولیٹر (Master Carton to Per-Piece Cost & Margin Calculator)
+                            📦 Master Carton to Per-Piece Cost &amp; Margin Calculator <span class="eb-ur-compact">ماسٹر کارٹن ↔ فی پیس ریٹ کیلکولیٹر</span>
                         </span>
                         <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                            <button type="button" id="btnWhApplyPerPiece" style="background:#0284c7; color:#fff; border:none; border-radius:6px; padding:3px 8px; font-size:10px; font-weight:bold; cursor:pointer;" title="کارٹن ریٹس کو پیسز سے تقسیم کر کے فی پیس ریٹس لگائیں">
-                                🔢 Convert Carton → Per-Piece Rates
+                            <button type="button" id="btnWhApplyPerPiece" style="background:#0284c7; color:#fff; border:none; border-radius:6px; padding:3px 8px; font-size:10px; font-weight:bold; cursor:pointer;" title="Divide carton rates by pack size to get per-piece rates">
+                                🔢 Convert Carton → Per-Piece Rates <span class="eb-ur-sub">(فی پیس ریٹ)</span>
                             </button>
-                            <button type="button" id="btnWhApplyCartonCost" style="background:#15803d; color:#fff; border:none; border-radius:6px; padding:3px 8px; font-size:10px; font-weight:bold; cursor:pointer;" title="ماسٹر کارٹن لاگت سے فی پیس خریداری ریٹ نکالیں">
-                                📥 Calc Per-Piece Cost from Carton
+                            <button type="button" id="btnWhApplyCartonCost" style="background:#15803d; color:#fff; border:none; border-radius:6px; padding:3px 8px; font-size:10px; font-weight:bold; cursor:pointer;" title="Calculate per-piece purchase cost from master carton cost">
+                                📥 Calc Per-Piece Cost from Carton <span class="eb-ur-sub">(فی پیس لاگت)</span>
                             </button>
                         </div>
                     </div>
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; align-items:end;">
                         <div>
-                            <label id="whCalcPackLabel" style="font-size:10.5px; font-weight:bold; color:#1e40af; display:block; margin-bottom:2px;">🔢 پیسز فی کارٹن / بوری (Pack Size)</label>
-                            <input type="number" id="whCalcPackSize" min="1" step="1" placeholder="مثلاً: 24" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #93c5fd; border-radius:6px; font-size:12px; background:#fff;">
+                            <label id="whCalcPackLabel" style="font-size:10.5px; font-weight:bold; color:#1e40af; display:block; margin-bottom:2px;">🔢 Pack Size (Pcs/Carton) <span class="eb-ur-sub">(پیسز فی کارٹن)</span></label>
+                            <input type="number" id="whCalcPackSize" min="1" step="1" placeholder="e.g. 24" data-eb-ph-en="e.g. 24" data-eb-ph-ur="مثلاً: 24" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #93c5fd; border-radius:6px; font-size:12px; background:#fff;">
                         </div>
                         <div>
-                            <label id="whCalcCostLabel" style="font-size:10.5px; font-weight:bold; color:#1e40af; display:block; margin-bottom:2px;">🏭 کارٹن خریداری لاگت (Master Carton Cost)</label>
-                            <input type="number" id="whCalcCartonCost" min="0" step="0.01" placeholder="مثلاً: 4500" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #93c5fd; border-radius:6px; font-size:12px; background:#fff;">
+                            <label id="whCalcCostLabel" style="font-size:10.5px; font-weight:bold; color:#1e40af; display:block; margin-bottom:2px;">🏭 Master Carton Cost <span class="eb-ur-sub">(کارٹن لاگت)</span></label>
+                            <input type="number" id="whCalcCartonCost" min="0" step="0.01" placeholder="e.g. 4500" data-eb-ph-en="e.g. 4500" data-eb-ph-ur="مثلاً: 4500" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #93c5fd; border-radius:6px; font-size:12px; background:#fff;">
                         </div>
                         <div id="whCalcBreakdownBadge" style="background:#ffffff; border:1px solid #bfdbfe; border-radius:6px; padding:6px 8px; font-size:11px; color:#1e3a8a; font-weight:600; min-height:30px; display:flex; align-items:center;">
-                            💡 Pack Size اور Rate لکھیں — فی پیس لاگت اور منافع خود نظر آئے گا
+                            💡 Enter Pack Size &amp; Rate to view per-piece cost &amp; margin <span class="eb-ur-compact">پیک سائز اور ریٹ لکھیں — فی پیس لاگت خود نظر آئے گی</span>
                         </div>
                     </div>
                 </div>
@@ -377,33 +344,33 @@
                 <div id="usedPhoneSellerBox" style="display:none; margin-top:10px; padding:10px; background:#f0fdf4; border:1.5px dashed #22c55e; border-radius:8px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
                         <span style="font-size:11.5px; font-weight:bold; color:#166534;">
-                            🪪 استعمال شدہ / سیکنڈ ہینڈ موبائل بیچنے والے کا ریکارڈ (Used Phone Seller CNIC & Security Verification)
+                            🪪 Used Phone Seller CNIC &amp; Security Verification <span class="eb-ur-compact">استعمال شدہ / سیکنڈ ہینڈ موبائل بیچنے والے کا ریکارڈ</span>
                         </span>
                         <button type="button" onclick="printUsedPhoneUndertakingFromForm()" style="background:#15803d; color:#fff; border:none; border-radius:6px; padding:3px 9px; font-size:10.5px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
-                            🖨️ Print Purchase Undertaking (اقرار نامہ خریداری پرنٹ کریں)
+                            🖨️ Print Purchase Undertaking <span class="eb-ur-sub">(اقرار نامہ پرنٹ کریں)</span>
                         </button>
                     </div>
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)); gap:8px;">
                         <div>
-                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">👤 فروخت کنندہ کا نام (Seller Full Name)</label>
-                            <input type="text" id="itemSellerName" placeholder="مثلاً: محمد علی ولد احمد" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
+                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">👤 Seller Full Name <span class="eb-ur-sub">(فروخت کنندہ کا نام)</span></label>
+                            <input type="text" id="itemSellerName" placeholder="e.g. Muhammad Ali s/o Ahmad" data-eb-ph-en="e.g. Muhammad Ali s/o Ahmad" data-eb-ph-ur="مثلاً: محمد علی ولد احمد" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
                         </div>
                         <div>
-                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">🪪 شناختی کارڈ نمبر (Seller CNIC No)</label>
+                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">🪪 Seller CNIC No <span class="eb-ur-sub">(شناختی کارڈ نمبر)</span></label>
                             <input type="text" id="itemSellerCnic" placeholder="35202-1234567-1" maxlength="16" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
                         </div>
                         <div>
-                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">📞 موبائل نمبر (Seller Mobile No)</label>
+                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">📞 Seller Mobile No <span class="eb-ur-sub">(موبائل نمبر)</span></label>
                             <input type="text" id="itemSellerPhone" placeholder="0300-1234567" maxlength="15" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
                         </div>
                         <div>
-                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">📦 ڈبہ اور لوازمات (Box & Accessories Status)</label>
+                            <label style="font-size:11px; font-weight:bold; color:#14532d; display:block; margin-bottom:2px;">📦 Box &amp; Accessories Status <span class="eb-ur-sub">(ڈبہ اور لوازمات)</span></label>
                             <select id="itemSellerBoxStatus" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #86efac; border-radius:6px; font-size:12px; background:#fff;">
-                                <option value="">— ڈبہ / چارجر منتخب کریں —</option>
-                                <option value="Complete Box + Original Charger (مکمل ڈبہ اور اوریجنل چارجر)">📦 Complete Box + Original Charger (مکمل ڈبہ اور چارجر)</option>
-                                <option value="Original Box Only (صرف اصل ڈبہ موجود ہے)">📦 Original Box Only (صرف اصل ڈبہ موجود ہے)</option>
-                                <option value="Kit Only - CNIC Copy Attached (صرف کٹ - شناختی کارڈ کاپی ہمراہ)">🪪 Kit Only - CNIC Copy Attached (صرف کٹ - شناختی کارڈ ضمانت)</option>
-                                <option value="Shop Purchase Receipt Attached (پرانی دکان کی رسید موجود ہے)">🧾 Shop Purchase Receipt Attached (پرانی رسید موجود ہے)</option>
+                                <option value="" data-eb-en="— Select Box / Charger Status —" data-eb-ur="— ڈبہ / چارجر منتخب کریں —">— Select Box / Charger Status —</option>
+                                <option value="Complete Box + Original Charger (مکمل ڈبہ اور اوریجنل چارجر)" data-eb-en="📦 Complete Box + Original Charger" data-eb-ur="📦 Complete Box + Original Charger (مکمل ڈبہ اور چارجر)">📦 Complete Box + Original Charger</option>
+                                <option value="Original Box Only (صرف اصل ڈبہ موجود ہے)" data-eb-en="📦 Original Box Only" data-eb-ur="📦 Original Box Only (صرف اصل ڈبہ موجود ہے)">📦 Original Box Only</option>
+                                <option value="Kit Only - CNIC Copy Attached (صرف کٹ - شناختی کارڈ کاپی ہمراہ)" data-eb-en="🪪 Kit Only - CNIC Copy Attached" data-eb-ur="🪪 Kit Only - CNIC Copy Attached (صرف کٹ - شناختی کارڈ ضمانت)">🪪 Kit Only - CNIC Copy Attached</option>
+                                <option value="Shop Purchase Receipt Attached (پرانی دکان کی رسید موجود ہے)" data-eb-en="🧾 Shop Purchase Receipt Attached" data-eb-ur="🧾 Shop Purchase Receipt Attached (پرانی رسید موجود ہے)">🧾 Shop Purchase Receipt Attached</option>
                             </select>
                         </div>
                     </div>
@@ -413,49 +380,49 @@
             <!-- DUAL PRICING: Wholesale & Retail + Purchase Cost for Profit Tracking -->
             <div class="form-row" style="background:#f8fafc; padding:12px; border-radius:10px; border:1px solid #e2e8f0;">
                 <div class="form-group">
-                    <label>💵 Purchase Rate (خریداری قیمت) *</label>
-                    <input type="number" id="itemPurchase" placeholder="Cost price" required min="0" step="0.01">
+                    <label id="lblRatePurchase">💵 Purchase Rate * <span class="eb-ur-sub">(خریداری قیمت)</span></label>
+                    <input type="number" id="itemPurchase" placeholder="Cost price" data-eb-ph-en="Cost price" data-eb-ph-ur="Cost price (خریداری قیمت)" required min="0" step="0.01">
                 </div>
                 <div class="form-group">
-                    <label>🏪 Wholesale Rate (ہول سیل ریٹ) *</label>
-                    <input type="number" id="itemWholesale" placeholder="Wholesale rate" required min="0" step="0.01">
+                    <label id="lblRateWholesale">🏪 Wholesale Rate * <span class="eb-ur-sub">(ہول سیل ریٹ)</span></label>
+                    <input type="number" id="itemWholesale" placeholder="Wholesale rate" data-eb-ph-en="Wholesale rate" data-eb-ph-ur="Wholesale rate (ہول سیل ریٹ)" required min="0" step="0.01">
                 </div>
                 <div class="form-group">
-                    <label>🏷️ Retail Rate (پرچون ریٹ) *</label>
-                    <input type="number" id="itemRate" placeholder="Retail rate (MRP)" required min="0" step="0.01">
+                    <label id="lblRateRetail">🏷️ Retail Rate * <span class="eb-ur-sub">(پرچون ریٹ)</span></label>
+                    <input type="number" id="itemRate" placeholder="Retail rate (MRP)" data-eb-ph-en="Retail rate (MRP)" data-eb-ph-ur="Retail rate (پرچون ریٹ / MRP)" required min="0" step="0.01">
                 </div>
             </div>
 
-            <!-- 🎁 WHOLESALE TRADE SCHEME & PROMOTIONAL OFFERS (User Requirement) -->
-            <div class="form-row" style="background:#fdf4ff; border:1px solid #f0abfc; padding:12px; border-radius:10px; margin-top:10px;">
+            <!-- 🎁 WHOLESALE TRADE SCHEME & PROMOTIONAL OFFERS (Wholesaler & Distributor Mode) -->
+            <div id="tradeSchemeBoxRow" class="form-row" style="display:none; background:#fdf4ff; border:1px solid #f0abfc; padding:12px; border-radius:10px; margin-top:10px;">
                 <div style="width:100%;">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:bold; color:#86198f; font-size:13px; margin-bottom:8px;">
-                        <input type="checkbox" id="itemHasScheme"> 🎁 Active Trade Scheme / Promotion (اسکیم فعال کریں)
+                        <input type="checkbox" id="itemHasScheme"> <span id="lblTradeSchemeToggle">🎁 Active Trade Scheme / Promotion <span class="eb-ur-sub">(اسکیم فعال کریں)</span></span>
                     </label>
                     <div id="schemeDetailsContainer" style="display:none; border-top:1px dashed #e879f9; padding-top:10px;">
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;">
                             <div>
-                                <label style="font-size:11px; font-weight:bold; color:#701a75; display:block; margin-bottom:2px;">Scheme Type (اسکیم کی قسم)</label>
+                                <label style="font-size:11px; font-weight:bold; color:#701a75; display:block; margin-bottom:2px;">Scheme Type <span class="eb-ur-sub">(اسکیم کی قسم)</span></label>
                                 <select id="itemSchemeType" style="width:100%; padding:6px 8px; border:1px solid #d946ef; border-radius:6px; font-size:12px; background:#fff;">
-                                    <option value="buy_x_get_y">🎁 Buy X Get Y Free (مثلاً 12 پر 1 مفت)</option>
-                                    <option value="cash_discount">💰 Flat Cash Discount (مثلاً 10 پر 100 روپے رعایت)</option>
-                                    <option value="percent_discount">🏷️ Percent Discount (مثلاً 5 پر 5% رعایت)</option>
-                                    <option value="promo_note">📝 Promotional Note (خصوصی پیشکش نوٹس)</option>
+                                    <option value="buy_x_get_y" data-eb-en="🎁 Buy X Get Y Free (e.g. 12 + 1 Free)" data-eb-ur="🎁 Buy X Get Y Free (مثلاً 12 پر 1 مفت)">🎁 Buy X Get Y Free (e.g. 12 + 1 Free)</option>
+                                    <option value="cash_discount" data-eb-en="💰 Flat Cash Discount (e.g. Rs 100 Off on 10+)" data-eb-ur="💰 Flat Cash Discount (مثلاً 10 پر 100 روپے رعایت)">💰 Flat Cash Discount (e.g. Rs 100 Off on 10+)</option>
+                                    <option value="percent_discount" data-eb-en="🏷️ Percent Discount (e.g. 5% Off on 5+)" data-eb-ur="🏷️ Percent Discount (مثلاً 5 پر 5% رعایت)">🏷️ Percent Discount (e.g. 5% Off on 5+)</option>
+                                    <option value="promo_note" data-eb-en="📝 Promotional Note" data-eb-ur="📝 Promotional Note (خصوصی پیشکش نوٹس)">📝 Promotional Note</option>
                                 </select>
                             </div>
                             <div>
-                                <label style="font-size:11px; font-weight:bold; color:#701a75; display:block; margin-bottom:2px;">Min Quantity to Qualify (کم از کم تعداد)</label>
-                                <input type="number" id="itemSchemeMinQty" placeholder="e.g. 12" min="1" step="any" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #d946ef; border-radius:6px; font-size:12px;">
+                                <label style="font-size:11px; font-weight:bold; color:#701a75; display:block; margin-bottom:2px;">Min Quantity to Qualify <span class="eb-ur-sub">(کم از کم تعداد)</span></label>
+                                <input type="number" id="itemSchemeMinQty" placeholder="e.g. 12" data-eb-ph-en="e.g. 12" data-eb-ph-ur="مثلاً: 12" min="1" step="any" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #d946ef; border-radius:6px; font-size:12px;">
                             </div>
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                             <div>
-                                <label style="font-size:11px; font-weight:bold; color:#701a75; display:block; margin-bottom:2px;">Free Qty / Discount Value (مفت تعداد یا رعایت رقم)</label>
-                                <input type="number" id="itemSchemeValue" placeholder="e.g. 1 (Free) or 150 (Rs)" min="0" step="any" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #d946ef; border-radius:6px; font-size:12px;">
+                                <label style="font-size:11px; font-weight:bold; color:#701a75; display:block; margin-bottom:2px;">Free Qty / Discount Value <span class="eb-ur-sub">(مفت تعداد یا رعایت)</span></label>
+                                <input type="number" id="itemSchemeValue" placeholder="e.g. 1 (Free) or 150 (Rs)" data-eb-ph-en="e.g. 1 (Free) or 150 (Rs)" data-eb-ph-ur="مثلاً: 1 (مفت) یا 150 (روپے)" min="0" step="any" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #d946ef; border-radius:6px; font-size:12px;">
                             </div>
                             <div>
-                                <label style="font-size:11px; font-weight:bold; color:#701a75; display:block; margin-bottom:2px;">Scheme Badge Label (واٹس ایپ اور انوائس نوٹس)</label>
-                                <input type="text" id="itemSchemeLabel" placeholder="e.g. 12 + 1 FREE Scheme" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #d946ef; border-radius:6px; font-size:12px;">
+                                <label style="font-size:11px; font-weight:bold; color:#701a75; display:block; margin-bottom:2px;">Scheme Badge Label <span class="eb-ur-sub">(انوائس نوٹس)</span></label>
+                                <input type="text" id="itemSchemeLabel" placeholder="e.g. 12 + 1 FREE Scheme" data-eb-ph-en="e.g. 12 + 1 FREE Scheme" data-eb-ph-ur="مثلاً: 12 + 1 FREE اسکیم" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #d946ef; border-radius:6px; font-size:12px;">
                             </div>
                         </div>
                     </div>
@@ -464,7 +431,7 @@
 
             <div style="margin-top:14px;">
                 <button type="submit" class="btn btn-primary" id="saveItemBtn">
-                    <i class="fas fa-save"></i> SAVE ITEM TO INVENTORY
+                    <i class="fas fa-save"></i> SAVE ITEM TO INVENTORY <span class="eb-ur-sub">(اسٹاک میں محفوظ کریں)</span>
                 </button>
             </div>
         </form>
@@ -473,13 +440,13 @@
     <!-- ===== 📋 ITEMS LIST ===== -->
     <div class="panel-card">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <h2><i class="fas fa-boxes"></i> Inventory Items (<span id="itemCount">0</span>/<span id="itemLimitMax">50</span>)</h2>
+            <h2><i class="fas fa-boxes"></i> <span id="inventoryListTitleText">Inventory Items <span class="eb-ur-sub">(اسٹاک آئٹمز)</span></span> (<span id="itemCount">0</span>/<span id="itemLimitMax">50</span>)</h2>
             <div id="bookerNotice" style="display:none; font-size:12px; color:#64748b; font-weight:bold;">
-                <i class="fas fa-eye"></i> Booker Mode: View & Movement Only
+                <i class="fas fa-eye"></i> Staff Mode: View &amp; Movement Only <span class="eb-ur-sub">(صرف دیکھیں اور آمدورفت)</span>
             </div>
         </div>
         <div id="itemsList">
-            <div class="loading-inline">Loading inventory items...</div>
+            <div class="loading-inline">Loading inventory items... <span class="eb-ur-sub">(اسٹاک لوڈ ہو رہا ہے)</span></div>
         </div>
     </div>
 
@@ -493,11 +460,11 @@
 <!-- 📥📤 STOCK IN/OUT RESTOCK MODAL -->
 <div id="stockModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; padding:15px;">
     <div style="background:#fff; border-radius:16px; padding:22px; width:100%; max-width:460px; max-height:90vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-        <h3 id="stockModalTitle" style="color:var(--primary); margin-bottom:4px;">📥 Stock IN</h3>
+        <h3 id="stockModalTitle" style="color:var(--primary); margin-bottom:4px;">📥 Stock IN <span class="eb-ur-sub">(اسٹاک آمد)</span></h3>
         <p id="stockModalItem" style="color:#7f8c8d; font-size:13px; margin-bottom:14px; font-weight:600;"></p>
         
         <div class="form-group" style="margin-bottom:10px;">
-            <label style="font-weight:bold; font-size:13px;">🔢 Quantity *</label>
+            <label style="font-weight:bold; font-size:13px;">🔢 Quantity * <span class="eb-ur-sub">(تعداد)</span></label>
             <input type="number" id="modalQty" min="0.01" step="0.01" placeholder="0" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:2px solid #e0e6e8; border-radius:8px;">
         </div>
 
@@ -506,72 +473,72 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
                 <div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-                        <label id="modalSupplierLabel" style="font-weight:bold; font-size:11px; color:#334155;">🏛️ Publisher / Supplier</label>
-                        <button type="button" onclick="openAddCustomSupplierModal('modalSupplierName')" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:5px; padding:1px 6px; font-size:9.5px; font-weight:bold; cursor:pointer;">+ New</button>
+                        <label id="modalSupplierLabel" style="font-weight:bold; font-size:11px; color:#334155;">🏛️ Publisher / Supplier <span class="eb-ur-sub">(سپلائر)</span></label>
+                        <button type="button" onclick="openAddCustomSupplierModal('modalSupplierName')" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:5px; padding:1px 6px; font-size:9.5px; font-weight:bold; cursor:pointer;">+ New <span class="eb-ur-sub">(نیا)</span></button>
                     </div>
-                    <input type="text" id="modalSupplierName" list="supplierSuggestionsList" placeholder="e.g. PCTB, Oxford, Airlink" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px;">
+                    <input type="text" id="modalSupplierName" list="supplierSuggestionsList" placeholder="e.g. PCTB, Oxford, Airlink" data-eb-ph-en="e.g. PCTB, Oxford, Airlink" data-eb-ph-ur="مثلاً: PCTB, Oxford, Airlink" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 </div>
                 <div>
-                    <label id="modalInvoiceLabel" style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">🧾 Invoice / Bilty # (اختیاری)</label>
-                    <input type="text" id="modalInvoiceNo" placeholder="e.g. Inv #412 / Bilty #88" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px;">
+                    <label id="modalInvoiceLabel" style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">🧾 Invoice / Bilty # (Optional) <span class="eb-ur-sub">(بل / بلٹی نمبر)</span></label>
+                    <input type="text" id="modalInvoiceNo" placeholder="e.g. Inv #412 / Bilty #88" data-eb-ph-en="e.g. Inv #412 / Bilty #88" data-eb-ph-ur="مثلاً: Inv #412 / بلٹی #88" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 </div>
             </div>
 
             <!-- Category-Aware MRP / Official Price & Trade Discount % Auto-Calculator -->
             <div id="modalBookCalcGroup" style="display:none; background:#fffbeb; border:1px dashed #f59e0b; border-radius:8px; padding:8px; margin-bottom:8px;">
                 <div id="modalCalcGroupTitle" style="font-size:11px; font-weight:bold; color:#b45309; margin-bottom:5px;">
-                    📚 Printed Price (MRP) & Trade Discount % Calculator (اختیاری)
+                    📚 Printed Price (MRP) &amp; Trade Discount % Calculator <span class="eb-ur-compact">درج قیمت اور ڈسکاؤنٹ کیلکولیٹر (اختیاری)</span>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                     <div>
-                        <label id="modalMrpLabel" style="font-size:11px; font-weight:600; color:#92400e; display:block; margin-bottom:2px;">🏷️ Printed MRP (درج قیمت)</label>
-                        <input type="number" id="modalMrpRate" min="0" step="0.01" placeholder="MRP / Official Rate" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #fcd34d; border-radius:6px; font-size:12px; background:#fff;">
+                        <label id="modalMrpLabel" style="font-size:11px; font-weight:600; color:#92400e; display:block; margin-bottom:2px;">🏷️ Printed MRP <span class="eb-ur-sub">(درج قیمت)</span></label>
+                        <input type="number" id="modalMrpRate" min="0" step="0.01" placeholder="MRP / Official Rate" data-eb-ph-en="MRP / Official Rate" data-eb-ph-ur="MRP / Official Rate (درج قیمت)" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #fcd34d; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
                     <div>
-                        <label id="modalDiscLabel" style="font-size:11px; font-weight:600; color:#92400e; display:block; margin-bottom:2px;">📉 Trade Discount % (ڈسکاؤنٹ)</label>
-                        <input type="number" id="modalDiscPercent" min="0" max="99" step="0.1" placeholder="e.g. 8 or 20%" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #fcd34d; border-radius:6px; font-size:12px; background:#fff;">
+                        <label id="modalDiscLabel" style="font-size:11px; font-weight:600; color:#92400e; display:block; margin-bottom:2px;">📉 Trade Discount % <span class="eb-ur-sub">(ڈسکاؤنٹ %)</span></label>
+                        <input type="number" id="modalDiscPercent" min="0" max="99" step="0.1" placeholder="e.g. 8 or 20%" data-eb-ph-en="e.g. 8 or 20%" data-eb-ph-ur="مثلاً: 8 یا 20%" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #fcd34d; border-radius:6px; font-size:12px; background:#fff;">
                     </div>
                 </div>
                 <div id="modalWholesaleCartonRow" style="display:none; margin-top:6px; padding:5px 8px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; font-size:11px; color:#1e40af; font-weight:700;">
-                    📦 Packing: <span id="modalCartonPackLabel">--</span> &nbsp;|&nbsp; <span id="modalPerPieceCostBadge">Per-Piece Cost: Rs --</span>
+                    📦 Packing <span class="eb-ur-sub">(پیکنگ)</span>: <span id="modalCartonPackLabel">--</span> &nbsp;|&nbsp; <span id="modalPerPieceCostBadge">Per-Piece Cost: Rs --</span>
                 </div>
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                 <div>
-                    <label id="modalNewPurchaseLabel" style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">💵 Purchase Rate (لاگت ریٹ)</label>
-                    <input type="number" id="modalNewPurchase" min="0" step="0.01" placeholder="Net cost rate" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; background:#fff;">
+                    <label id="modalNewPurchaseLabel" style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">💵 Purchase Rate <span class="eb-ur-sub">(لاگت ریٹ)</span></label>
+                    <input type="number" id="modalNewPurchase" min="0" step="0.01" placeholder="Net cost rate" data-eb-ph-en="Net cost rate" data-eb-ph-ur="Net cost rate (لاگت ریٹ)" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; background:#fff;">
                 </div>
                 <div>
-                    <label id="modalNewRetailLabel" style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">🏷️ Retail / MRP (پرچون ریٹ)</label>
-                    <input type="number" id="modalNewRetail" min="0" step="0.01" placeholder="Retail rate" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; background:#fff;">
+                    <label id="modalNewRetailLabel" style="font-weight:bold; font-size:11.5px; color:#334155; display:block; margin-bottom:3px;">🏷️ Retail / MRP <span class="eb-ur-sub">(پرچون ریٹ)</span></label>
+                    <input type="number" id="modalNewRetail" min="0" step="0.01" placeholder="Retail rate" data-eb-ph-en="Retail rate" data-eb-ph-ur="Retail rate (پرچون ریٹ)" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #cbd5e1; border-radius:7px; font-size:12px; background:#fff;">
                 </div>
             </div>
 
             <!-- Edition / Session Update on Restock (Book Depot) -->
             <div id="modalEditionGroup" style="display:none; margin-top:8px;">
-                <label style="font-weight:bold; font-size:11.5px; color:#0369a1; display:block; margin-bottom:3px;">📅 Edition / Academic Session Update (ایڈیشن اپڈیٹ - اختیاری)</label>
-                <input type="text" id="modalEditionYear" placeholder="مثلاً: 2026-27 New Edition" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #bae6fd; border-radius:7px; font-size:12px; background:#f0f9ff;">
+                <label style="font-weight:bold; font-size:11.5px; color:#0369a1; display:block; margin-bottom:3px;">📅 Edition / Academic Session Update <span class="eb-ur-sub">(ایڈیشن اپڈیٹ - اختیاری)</span></label>
+                <input type="text" id="modalEditionYear" placeholder="e.g. 2026-27 New Edition" data-eb-ph-en="e.g. 2026-27 New Edition" data-eb-ph-ur="مثلاً: 2026-27 نیا ایڈیشن" style="width:100%; box-sizing:border-box; padding:7px 9px; border:1.5px solid #bae6fd; border-radius:7px; font-size:12px; background:#f0f9ff;">
             </div>
 
             <!-- 📱 Mobile Shop Restock: Direct IMEI 1 & 2 Update + Used Phone Seller CNIC Verification -->
             <div id="modalMobileRestockGroup" style="display:none; margin-top:8px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:8px;">
                 <div style="font-size:11px; font-weight:bold; color:#0369a1; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
-                    <span>📱 نئے آنے والے فون کے IMEI نمبرز (Incoming Handset IMEIs - اختیاری)</span>
+                    <span>📱 Incoming Handset IMEIs (Optional) <span class="eb-ur-compact">نئے آنے والے فون کے IMEI نمبرز</span></span>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:6px;">
                     <div>
                         <label style="font-size:10.5px; font-weight:bold; color:#0c4a6e; display:block; margin-bottom:2px;">🔢 IMEI 1 (15 Digits)</label>
-                        <input type="text" id="modalRestockImei1" placeholder="Scan or Enter IMEI 1" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #7dd3fc; border-radius:6px; font-size:11.5px; background:#fff;">
+                        <input type="text" id="modalRestockImei1" placeholder="Scan or Enter IMEI 1" data-eb-ph-en="Scan or Enter IMEI 1" data-eb-ph-ur="IMEI 1 اسکین یا درج کریں" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #7dd3fc; border-radius:6px; font-size:11.5px; background:#fff;">
                     </div>
                     <div>
                         <label style="font-size:10.5px; font-weight:bold; color:#0c4a6e; display:block; margin-bottom:2px;">🔢 IMEI 2 (Dual SIM)</label>
-                        <input type="text" id="modalRestockImei2" placeholder="Scan or Enter IMEI 2" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #7dd3fc; border-radius:6px; font-size:11.5px; background:#fff;">
+                        <input type="text" id="modalRestockImei2" placeholder="Scan or Enter IMEI 2" data-eb-ph-en="Scan or Enter IMEI 2" data-eb-ph-ur="IMEI 2 اسکین یا درج کریں" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #7dd3fc; border-radius:6px; font-size:11.5px; background:#fff;">
                     </div>
                 </div>
                 <div style="border-top:1px dashed #7dd3fc; padding-top:6px; margin-top:4px;">
                     <div style="font-size:10.5px; font-weight:bold; color:#15803d; margin-bottom:4px;">
-                        🪪 استعمال شدہ فون فروخت کنندہ کا شناختی کارڈ اور نمبر (Used Phone Seller CNIC & Mobile - اختیاری)
+                        🪪 Used Phone Seller CNIC &amp; Mobile (Optional) <span class="eb-ur-compact">فروخت کنندہ کا شناختی کارڈ اور نمبر</span>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px;">
                         <div>
@@ -586,24 +553,24 @@
 
             <!-- Live Total Purchase Bill Calculation -->
             <div id="modalPurchaseSummaryBadge" style="display:none; margin-top:8px; padding:6px 10px; background:#dcfce7; color:#166534; border:1px solid #86efac; border-radius:7px; font-size:12px; font-weight:bold; text-align:center;">
-                💰 Total Purchase Value: Rs 0
+                💰 Total Purchase Value <span class="eb-ur-sub">(کل خریداری رقم)</span>: Rs 0
             </div>
         </div>
 
         <div class="form-group" style="margin-bottom:10px;">
-            <label style="font-weight:bold; font-size:13px;">📝 Reason *</label>
+            <label style="font-weight:bold; font-size:13px;">📝 Reason * <span class="eb-ur-sub">(وجہ)</span></label>
             <select id="modalReason" style="width:100%; box-sizing:border-box; padding:9px 10px; border:2px solid #e0e6e8; border-radius:8px; background:#fff;">
                 <!-- Filled dynamically by JS -->
             </select>
         </div>
         <div class="form-group" style="margin-bottom:14px;">
-            <label style="font-weight:bold; font-size:13px;">📝 Extra Note / Remarks (optional)</label>
-            <input type="text" id="modalNote" maxlength="100" placeholder="e.g. Checked & verified bundle" style="width:100%; box-sizing:border-box; padding:9px 10px; border:2px solid #e0e6e8; border-radius:8px;">
+            <label style="font-weight:bold; font-size:13px;">📝 Extra Note / Remarks (optional) <span class="eb-ur-sub">(اضافی نوٹ)</span></label>
+            <input type="text" id="modalNote" maxlength="100" placeholder="e.g. Checked & verified bundle" data-eb-ph-en="e.g. Checked & verified bundle" data-eb-ph-ur="e.g. Checked & verified (مثلاً: چیک اور تصدیق شدہ)" style="width:100%; box-sizing:border-box; padding:9px 10px; border:2px solid #e0e6e8; border-radius:8px;">
         </div>
         
         <div style="display:flex; gap:10px;">
-            <button class="btn" style="flex:1; background:#95a5a6; color:#fff;" onclick="closeStockModal()">Cancel</button>
-            <button class="btn" style="flex:1; background:var(--accent); color:#fff;" id="modalConfirmBtn">✅ Confirm</button>
+            <button class="btn" style="flex:1; background:#95a5a6; color:#fff;" onclick="closeStockModal()">Cancel <span class="eb-ur-sub">(منسوخ)</span></button>
+            <button class="btn" style="flex:1; background:var(--accent); color:#fff;" id="modalConfirmBtn">✅ Confirm <span class="eb-ur-sub">(تصدیق کریں)</span></button>
         </div>
     </div>
 </div>
@@ -611,9 +578,9 @@
 <!-- 📜 MOVEMENT HISTORY MODAL -->
 <div id="historyModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; padding:15px;">
     <div style="background:#fff; border-radius:16px; padding:25px; width:100%; max-width:440px; max-height:85vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-        <h3 id="historyTitle" style="color:var(--primary); margin-bottom:15px;"><i class="fas fa-history"></i> Movement History</h3>
+        <h3 id="historyTitle" style="color:var(--primary); margin-bottom:15px;"><i class="fas fa-history"></i> Movement History <span class="eb-ur-sub">(اسٹاک آمدورفت)</span></h3>
         <div id="historyContent"></div>
-        <button class="btn" style="width:100%; background:#95a5a6; color:#fff; margin-top:15px;" onclick="closeHistoryModal()">Close</button>
+        <button class="btn" style="width:100%; background:#95a5a6; color:#fff; margin-top:15px;" onclick="closeHistoryModal()">Close <span class="eb-ur-sub">(بند کریں)</span></button>
     </div>
 </div>
 

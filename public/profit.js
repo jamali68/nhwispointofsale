@@ -1,9 +1,9 @@
 // ============================================
 // 💰 EASY BILL GENERATOR — ADVANCED PROFIT & LOSS ANALYTICS
-// ✅ Item-wise, Bill-wise, Day-wise, Weekly, Monthly, Customer-wise
-// ✅ Cost of Goods Sold (COGS) & Profit Margin %
-// ✅ Date Presets & Custom Range Filters
-// ✅ Live Search, Sorting, Excel/CSV Export & Printable Reports
+// ✅ Item-wise, Bill-wise, Day-wise, Weekly, Monthly, Customer-wise, Brand/Station-wise & Staff-wise
+// ✅ Cost of Goods Sold (COGS), Operating Expenses, Salaries & Damage/Expiry Claims Loss
+// ✅ Strictly Category-Isolated (Zero Mixing — Mix-Fix Certified)
+// ✅ Date Presets, Custom Range Filters, Live Search, Sorting, CSV Export & Thermal Profit Slip
 // ============================================
 
 const firebaseConfig = {
@@ -28,7 +28,7 @@ let myUser = null;
 let myAgencyId = null;
 let myAgency = null;
 
-let currentView = 'items'; // 'items' | 'bills' | 'day' | 'weekly' | 'monthly' | 'customer'
+let currentView = 'items'; // 'items' | 'bills' | 'day' | 'weekly' | 'monthly' | 'customer' | 'agency_company' | 'staff'
 let dateStart = '';
 let dateEnd = '';
 let currentSearch = '';
@@ -38,10 +38,51 @@ let rawBills = [];
 let rawStock = [];
 let rawCustomers = [];
 let rawOperatingExpenses = [];
+let rawDamageClaims = [];
+let rawStaffUsers = [];
 let stockMap = {}; // stockId -> stockItem
 let stockNameMap = {}; // name.toLowerCase() -> stockItem
 
 let activeTableData = []; // for CSV export
+let activeModalBillId = null;
+
+// ============================================
+// 🌐 UNIFIED SIDEBAR-CONTROLLED BILINGUAL HELPERS
+// ============================================
+function ebIsMix() {
+    return !!(window.ebLang && typeof window.ebLang.isMix === 'function' && window.ebLang.isMix());
+}
+function ebT(en, urMix) {
+    return ebIsMix() ? (urMix || en) : en;
+}
+function ebMix(en, ur, asBlock = false) {
+    if (!ur) return en;
+    const cls = asBlock ? 'eb-ur-block' : 'eb-ur-sub';
+    return `${en} <span class="${cls}">(${ur})</span>`;
+}
+function ebCompact(en, ur) {
+    if (!ur) return en;
+    return `${en}<span class="eb-ur-compact">${ur}</span>`;
+}
+function ebApplyBilingualDom(root) {
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(root || document);
+    }
+}
+function ebBilingualizeSelectOptions(selectEl) {
+    if (!selectEl) return;
+    const isMix = ebIsMix();
+    Array.from(selectEl.options || []).forEach(opt => {
+        const en = opt.getAttribute('data-eb-en');
+        const ur = opt.getAttribute('data-eb-ur');
+        if (en) {
+            opt.textContent = isMix && ur ? ur : en;
+        }
+    });
+}
+function ebRefreshStaticSelects() {
+    ebBilingualizeSelectOptions(document.getElementById('profitSortSelect'));
+}
 
 function getProfitItemSubtitle(stockRef, billItem) {
     const src = (billItem && billItem.itemSubtitle) ? billItem : (stockRef && Object.keys(stockRef).length ? stockRef : billItem);
@@ -55,12 +96,168 @@ function getProfitItemSubtitle(stockRef, billItem) {
 
 function getProfitActiveCategory() {
     if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
-        return window.BusinessCategories.resolveActiveCategory(myAgency, 'books');
+        return window.BusinessCategories.resolveActiveCategory(myAgency, 'distributor');
     }
     return (myAgency && (myAgency.businessCategory || myAgency.category || myAgency.businessType))
         || localStorage.getItem('eb_active_business_category')
         || localStorage.getItem('eb_active_category')
-        || 'books';
+        || 'distributor';
+}
+
+function getCategoryProfitUiMeta(catId) {
+    const c = String(catId || getProfitActiveCategory() || 'distributor').toLowerCase();
+    const map = {
+        restaurant: {
+            icon: '🍔',
+            mainTitle: `<i class="fas fa-utensils" style="color: #10b981; font-size: 24px;"></i> <span>${ebMix('Fast Food, Kitchen &amp; Deals Profit Analytics', 'ریسٹورنٹ منافع رپورٹ')}</span>`,
+            mainSubHtml: ebCompact('Dish, family deal, dine-in table, home delivery, kitchen food cost, wastage &amp; staff payroll net profit audit', 'ہر ڈش، فیملی ڈیل، ڈائن اِن ٹیبل، ہوم ڈلیوری آرڈر، کچن فوڈ لاگت، کچن ضیاع اور شیف و رائیڈر تنخواہوں کے بعد خالص منافع کا آڈٹ'),
+            kpiSales: ebMix('Total Food Sales', 'کل فوڈ سیلز'),
+            kpiCogs: ebMix('Kitchen Food Cost', 'کچن لاگت'),
+            tabItems: `<i class="fas fa-burger"></i> ${ebMix('1. Menu &amp; Deal Profit', 'ڈش و ڈیل منافع')}`,
+            tabBills: `<i class="fas fa-receipt"></i> ${ebMix('2. KOT / Bill Profit', 'بل و آرڈر منافع')}`,
+            tabCustomer: `<i class="fas fa-users"></i> ${ebMix('6. Customer / Table Profit', 'گاہک وار منافع')}`,
+            tabGroup: `<i class="fas fa-fire-burner"></i> ${ebMix('7. Kitchen Station &amp; Menu Group Profit', 'کچن اسٹیشن منافع')}`,
+            tabStaff: `<i class="fas fa-user-tie"></i> ${ebMix('8. Waiter &amp; Rider Profit', 'ویٹر و رائیڈر منافع')}`,
+            groupColHeaderEn: 'Kitchen Station / Menu Category',
+            groupColHeaderUr: 'کچن اسٹیشن / مینو کیٹیگری',
+            groupColHeader: ebMix('Kitchen Station / Menu Category', 'کچن اسٹیشن'),
+            groupIcon: '👨‍🍳',
+            itemColHeader: ebMix('Menu Dish / Combo Deal', 'ڈش / ڈیل'),
+            custColHeader: ebMix('Customer / Table / Order Party', 'گاہک / ٹیبل'),
+            shopColHeader: ebMix('Order Type / Zone', 'آرڈر ٹائپ / زون'),
+            staffColHeader: ebMix('Waiter / Delivery Rider', 'ویٹر / رائیڈر')
+        },
+        medical: {
+            icon: '💊',
+            mainTitle: `<i class="fas fa-pills" style="color: #10b981; font-size: 24px;"></i> <span>${ebMix('Pharmacy &amp; Medicine Margin Analytics', 'میڈیکل اسٹور منافع رپورٹ')}</span>`,
+            mainSubHtml: ebCompact('Medicine, prescription, pharma company, clinic supply, expiry claim loss &amp; net profit audit', 'ہر دوائی، نسخے، فارما کمپنی، کلینک سپلائی، ایکسپائری کلیم نقصان اور خالص منافع کا مکمل آڈٹ'),
+            kpiSales: ebMix('Medicine Sales', 'ادویات فروخت'),
+            kpiCogs: ebMix('Purchase Cost', 'خرید لاگت'),
+            tabItems: `<i class="fas fa-capsules"></i> ${ebMix('1. Medicine Profit', 'ادویات وار منافع')}`,
+            tabBills: `<i class="fas fa-file-prescription"></i> ${ebMix('2. Prescription / Bill Profit', 'نسخہ و بل منافع')}`,
+            tabCustomer: `<i class="fas fa-hospital-user"></i> ${ebMix('6. Patient &amp; Clinic Profit', 'مریض و کلینک منافع')}`,
+            tabGroup: `<i class="fas fa-flask"></i> ${ebMix('7. Pharma Company / Brand Profit', 'فارما کمپنی منافع')}`,
+            tabStaff: `<i class="fas fa-user-md"></i> ${ebMix('8. Pharmacist &amp; Staff Profit', 'فارماسسٹ و اسٹاف منافع')}`,
+            groupColHeaderEn: 'Pharma Company / Manufacturer',
+            groupColHeaderUr: 'فارما کمپنی / مینوفیکچرر',
+            groupColHeader: ebMix('Pharma Company / Manufacturer', 'فارما کمپنی'),
+            groupIcon: '🧪',
+            itemColHeader: ebMix('Medicine / Salt Name', 'دوائی / سالٹ کا نام'),
+            custColHeader: ebMix('Patient / Doctor / Clinic', 'مریض / ڈاکٹر / کلینک'),
+            shopColHeader: ebMix('Clinic / Hospital', 'کلینک / اسپتال'),
+            staffColHeader: ebMix('Pharmacist / Dispenser / Rider', 'فارماسسٹ / اسٹاف')
+        },
+        mobile: {
+            icon: '📱',
+            mainTitle: `<i class="fas fa-mobile-screen-button" style="color: #10b981; font-size: 24px;"></i> <span>${ebMix('Handset, IMEI &amp; Repair Lab Profit Analytics', 'موبائل شاپ منافع رپورٹ')}</span>`,
+            mainSubHtml: ebCompact('IMEI handset, accessories, repair lab job, mobile brand &amp; net profit audit', 'ہر آئی ایم ای آئی ہینڈ سیٹ، ایکسیسریز، ریپیئرنگ لیب جاب، برانڈ اور خالص منافع کا مکمل آڈٹ'),
+            kpiSales: ebMix('Handset &amp; Part Sales', 'موبائل فروخت'),
+            kpiCogs: ebMix('Handset &amp; Part Cost', 'خرید لاگت'),
+            tabItems: `<i class="fas fa-mobile-alt"></i> ${ebMix('1. Handset &amp; Part Profit', 'موبائل و پارٹس منافع')}`,
+            tabBills: `<i class="fas fa-file-invoice"></i> ${ebMix('2. Invoice / IMEI Bill Profit', 'بل وار منافع')}`,
+            tabCustomer: `<i class="fas fa-id-card"></i> ${ebMix('6. Buyer &amp; Dealer Profit', 'گاہک و ڈیلر منافع')}`,
+            tabGroup: `<i class="fas fa-building"></i> ${ebMix('7. Mobile Brand Profit', 'برانڈ وار منافع مقابلہ')}`,
+            tabStaff: `<i class="fas fa-user-gear"></i> ${ebMix('8. Sales &amp; Technician Profit', 'سیلز و ٹیکنیشن منافع')}`,
+            groupColHeaderEn: 'Mobile Brand / Company',
+            groupColHeaderUr: 'موبائل برانڈ / کمپنی',
+            groupColHeader: ebMix('Mobile Brand / Company', 'موبائل برانڈ'),
+            groupIcon: '📲',
+            itemColHeader: ebMix('Handset Model / Accessory', 'موبائل ماڈل / ایکسیسری'),
+            custColHeader: ebMix('Customer / Sub-Dealer', 'گاہک / ڈیلر'),
+            shopColHeader: ebMix('Showroom / Market', 'شوروم / مارکیٹ'),
+            staffColHeader: ebMix('Sales Executive / Technician', 'سیلز / ٹیکنیشن')
+        },
+        books: {
+            icon: '📚',
+            mainTitle: `<i class="fas fa-book-open" style="color: #10b981; font-size: 24px;"></i> <span>${ebMix('Books, Syllabus &amp; Stationery Profit Analytics', 'کتب و اسٹیشنری منافع رپورٹ')}</span>`,
+            mainSubHtml: ebCompact('Book, publisher, class set, school supply bill &amp; net profit audit', 'ہر کتاب، پبلشر، کلاس سیٹ، اسکول سپلائی بل اور خالص منافع کا مکمل آڈٹ'),
+            kpiSales: ebMix('Books &amp; Stat. Sales', 'کتب فروخت'),
+            kpiCogs: ebMix('Publisher Cost', 'پبلشر لاگت'),
+            tabItems: `<i class="fas fa-book"></i> ${ebMix('1. Book &amp; Item Profit', 'کتاب و آئٹم منافع')}`,
+            tabBills: `<i class="fas fa-file-invoice"></i> ${ebMix('2. Bill-wise Profit', 'بل وار منافع')}`,
+            tabCustomer: `<i class="fas fa-school"></i> ${ebMix('6. School &amp; Party Profit', 'اسکول و گاہک منافع')}`,
+            tabGroup: `<i class="fas fa-bookmark"></i> ${ebMix('7. Publisher / Brand Profit', 'پبلشر وار منافع مقابلہ')}`,
+            tabStaff: `<i class="fas fa-users"></i> ${ebMix('8. Salesman &amp; Rep Profit', 'سیلزمین وار منافع')}`,
+            groupColHeaderEn: 'Publisher / Brand Name',
+            groupColHeaderUr: 'پبلشر / برانڈ نام',
+            groupColHeader: ebMix('Publisher / Brand Name', 'پبلشر / برانڈ'),
+            groupIcon: '📖',
+            itemColHeader: ebMix('Book Title / Stationery Item', 'کتاب / اسٹیشنری آئٹم'),
+            custColHeader: ebMix('School / Bookshop / Student', 'اسکول / بک شاپ / طالبعلم'),
+            shopColHeader: ebMix('Campus / Market', 'کیمپس / مارکیٹ'),
+            staffColHeader: ebMix('Salesman / School Representative', 'سیلزمین / نمائندہ')
+        },
+        wholesaler: {
+            icon: '🌾',
+            mainTitle: `<i class="fas fa-warehouse" style="color: #10b981; font-size: 24px;"></i> <span>${ebMix('Wholesale Mandi, Bulk Lot &amp; Bilti Profit Analytics', 'ہول سیل منڈی منافع رپورٹ')}</span>`,
+            mainSubHtml: ebCompact('Bulk lot, bag/sack, arhat party, godown cost, labor expenses &amp; net profit audit', 'ہر بلک لاٹ، بوری/تھیلا، آڑھت پارٹی، گودام لاگت، پلے داری اخراجات اور خالص منافع کا مکمل آڈٹ'),
+            kpiSales: ebMix('Total Bulk Sales', 'بلک فروخت'),
+            kpiCogs: ebMix('Lot Purchase Cost', 'لاٹ خرید لاگت'),
+            tabItems: `<i class="fas fa-boxes-stacked"></i> ${ebMix('1. Commodity / Lot Profit', 'اجناس و لاٹ منافع')}`,
+            tabBills: `<i class="fas fa-file-invoice-dollar"></i> ${ebMix('2. Wholesale Bill Profit', 'بلٹی و بل منافع')}`,
+            tabCustomer: `<i class="fas fa-handshake"></i> ${ebMix('6. Mandi Party / Arhti Profit', 'منڈی پارٹی منافع')}`,
+            tabGroup: `<i class="fas fa-industry"></i> ${ebMix('7. Mandi Line / Supplier Profit', 'منڈی لائن منافع')}`,
+            tabStaff: `<i class="fas fa-user-tie"></i> ${ebMix('8. Munshi &amp; Booker Profit', 'منشی و بکر منافع')}`,
+            groupColHeaderEn: 'Mandi Line / Bulk Supplier',
+            groupColHeaderUr: 'منڈی لائن / سپلائر',
+            groupColHeader: ebMix('Mandi Line / Bulk Supplier', 'منڈی لائن'),
+            groupIcon: '🌾',
+            itemColHeader: ebMix('Commodity / Bulk Item', 'جنس / بلک آئٹم'),
+            custColHeader: ebMix('Mandi Party / Beopari', 'منڈی پارٹی / بیوپاری'),
+            shopColHeader: ebMix('Mandi / Market', 'منڈی / مارکیٹ'),
+            staffColHeader: ebMix('Mandi Munshi / Booker', 'منشی / بکر')
+        },
+        distributor: {
+            icon: '🚚',
+            mainTitle: `<i class="fas fa-sack-dollar" style="color: #10b981; font-size: 24px;"></i> <span>${ebMix('Distributor, Route &amp; Principal Agency Profit Analytics', 'ڈسٹری بیوشن منافع رپورٹ')}</span>`,
+            mainSubHtml: ebCompact('Real-time item, bill, daily, weekly, monthly, shopkeeper, booker &amp; principal agency net profit audit', 'ریئل ٹائم آئٹم، بل، روزانہ، ہفتہ وار، ماہانہ، دکاندار، بکر اور پرنسپل کمپنی/ایجنسی کا مکمل خالص منافع آڈٹ'),
+            kpiSales: ebMix('Total Route Sales', 'کل فروخت'),
+            kpiCogs: ebMix('Cost of Goods', 'خرید لاگت'),
+            tabItems: `<i class="fas fa-box-open"></i> ${ebMix('1. Items-wise Profit', 'آئٹم وار منافع')}`,
+            tabBills: `<i class="fas fa-file-invoice"></i> ${ebMix('2. Bill-wise Profit', 'بل وار منافع')}`,
+            tabCustomer: `<i class="fas fa-store"></i> ${ebMix('6. Shopkeeper-wise Profit', 'دکاندار وار منافع')}`,
+            tabGroup: `<i class="fas fa-building"></i> ${ebMix('7. Agency / Company Profit', 'ایجنسیز منافع مقابلہ')}`,
+            tabStaff: `<i class="fas fa-user-tie"></i> ${ebMix('8. Booker &amp; Supplier Profit', 'بکر و سپلائر منافع')}`,
+            groupColHeaderEn: 'Agency / Principal Company',
+            groupColHeaderUr: 'ایجنسی / پرنسپل کمپنی',
+            groupColHeader: ebMix('Agency / Principal Company', 'ایجنسی / کمپنی'),
+            groupIcon: '🏭',
+            itemColHeader: ebMix('Product / SKU Name', 'پراڈکٹ کا نام'),
+            custColHeader: ebMix('Shopkeeper / Customer Name', 'دکاندار / گاہک کا نام'),
+            shopColHeader: ebMix('Shop / Market', 'دکان / مارکیٹ'),
+            staffColHeader: ebMix('Order Booker / Van Supplier', 'آرڈر بکر / سپلائر')
+        }
+    };
+    return map[c] || map.distributor;
+}
+
+function applyCategoryProfitUI() {
+    const activeCat = getProfitActiveCategory();
+    const catMeta = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
+        ? (window.BusinessCategories.getById(activeCat) || { id: activeCat, icon: '🏢', nameEn: activeCat })
+        : { id: activeCat, icon: '🏢', nameEn: activeCat };
+    const ui = getCategoryProfitUiMeta(activeCat);
+
+    const badgeEl = document.getElementById('profitActiveCategoryBadge');
+    if (badgeEl) {
+        const catLabel = catMeta.nameUr ? ebMix(catMeta.nameEn || activeCat, catMeta.nameUr) : (catMeta.nameEn || activeCat);
+        badgeEl.innerHTML = `${catMeta.icon || ui.icon} ${catLabel} • ${(myAgency && myAgency.name) || ebMix('Workspace', 'ورک اسپیس')}`;
+    }
+
+    const setHtml = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+    setHtml('profitMainTitle', ui.mainTitle);
+    setHtml('profitMainSub', ui.mainSubHtml);
+    setHtml('kpiTitleSales', ui.kpiSales);
+    setHtml('kpiTitleCogs', ui.kpiCogs);
+    setHtml('tabBtnItems', ui.tabItems);
+    setHtml('tabBtnBills', ui.tabBills);
+    setHtml('tabBtnCustomer', ui.tabCustomer);
+    setHtml('tabBtnBrandGroup', ui.tabGroup);
+    setHtml('tabBtnStaff', ui.tabStaff);
+
+    ebApplyBilingualDom(document);
+    ebRefreshStaticSelects();
+    updateViewHeader();
 }
 
 // ============================================
@@ -87,15 +284,15 @@ auth.onAuthStateChanged(async (user) => {
             if (!p.reports && !p.profit) {
                 Swal.fire({
                     icon: 'warning',
-                    title: '🔒 Access Denied',
-                    text: 'Aap ke paas Profit Reports dekhne ki permission nahi hai!',
+                    title: ebT('🔒 Access Denied', '🔒 Access Denied (اجازت نہیں)'),
+                    text: ebT('You do not have permission to view Profit Reports!', 'You do not have permission to view Profit Reports! (آپ کو منافع رپورٹس دیکھنے کی اجازت نہیں ہے)'),
                     confirmButtonColor: '#27ae60'
                 }).then(() => window.location.href = 'dashboard.html');
                 return;
             }
         }
 
-        myAgencyId = myUser.agencyId;
+        myAgencyId = localStorage.getItem('eb_active_agencyId') || myUser.agencyId;
         if (!myAgencyId) {
             if (myUser.role === 'super-admin') {
                 myAgencyId = 'super-admin-hq';
@@ -121,14 +318,11 @@ auth.onAuthStateChanged(async (user) => {
             }
         }
 
-        // Set default date to This Month
         applyPreset('thismonth');
-
-        // Setup event listeners
         setupEventListeners();
+        applyCategoryProfitUI();
 
-        // Load Stock, Customers, and Bills concurrently
-        await Promise.all([loadStock(), loadCustomers()]);
+        await Promise.all([loadStock(), loadCustomers(), loadStaffUsers(), loadDamageClaims()]);
         await loadBills();
 
         if (window.hideNHLoader) {
@@ -140,13 +334,13 @@ auth.onAuthStateChanged(async (user) => {
         if (window.hideNHLoader) window.hideNHLoader();
         const container = document.getElementById('profitTableContainer');
         if (container) {
-            container.innerHTML = `<div class="empty-state" style="color:#ef4444;"><i class="fas fa-triangle-exclamation"></i> Error loading profit data: ${e.message}</div>`;
+            container.innerHTML = `<div class="empty-state" style="color:#ef4444;"><i class="fas fa-triangle-exclamation"></i> ${ebMix('Error loading profit data:', 'منافع ڈیٹا لوڈ کرنے میں خرابی:')} ${e.message}</div>`;
         }
     }
 });
 
 // ============================================
-// 📥 DATA LOADERS (Stock, Customers & Bills)
+// 📥 DATA LOADERS (Stock, Customers, Staff, Claims, Expenses & Bills)
 // ============================================
 async function loadStock() {
     try {
@@ -188,6 +382,51 @@ async function loadCustomers() {
     }
 }
 
+async function loadStaffUsers() {
+    try {
+        const activeCat = getProfitActiveCategory();
+        const [uSnap, bSnap] = await Promise.all([
+            db.collection('users').where('agencyId', '==', myAgencyId).get(),
+            db.collection('bookers').where('agencyId', '==', myAgencyId).get().catch(() => ({ forEach: () => {} }))
+        ]);
+        const seen = new Set();
+        rawStaffUsers = [];
+        const addStaff = (d) => {
+            if (seen.has(d.id)) return;
+            const st = { id: d.id, ...d.data() };
+            if (st.status === 'deleted') return;
+            const role = String(st.role || '').toLowerCase();
+            if (!['booker', 'supplier', 'delivery', 'driver', 'cashier', 'chef', 'technician', 'salesman'].includes(role)) return;
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                if (!window.BusinessCategories.matchesActiveCategoryRecord(st, activeCat, myAgency)) return;
+            }
+            seen.add(d.id);
+            rawStaffUsers.push(st);
+        };
+        uSnap.forEach(addStaff);
+        bSnap.forEach(addStaff);
+    } catch (e) {
+        console.warn('Staff load warning:', e);
+    }
+}
+
+async function loadDamageClaims() {
+    try {
+        const activeCat = getProfitActiveCategory();
+        const snap = await db.collection('damage_claims').where('agencyId', '==', myAgencyId).get();
+        rawDamageClaims = [];
+        snap.forEach(d => {
+            const cl = { id: d.id, ...d.data() };
+            if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+                if (!window.BusinessCategories.matchesActiveCategoryRecord(cl, activeCat, myAgency)) return;
+            }
+            rawDamageClaims.push(cl);
+        });
+    } catch (e) {
+        rawDamageClaims = [];
+    }
+}
+
 async function loadOperatingExpenses() {
     try {
         const activeCat = getProfitActiveCategory();
@@ -214,7 +453,7 @@ async function loadOperatingExpenses() {
 async function loadBills() {
     const container = document.getElementById('profitTableContainer');
     if (container) {
-        container.innerHTML = `<div class="loading-inline"><i class="fas fa-spinner fa-spin"></i> Loading and calculating profit data...</div>`;
+        container.innerHTML = `<div class="loading-inline"><i class="fas fa-spinner fa-spin"></i> ${ebMix('Loading and calculating profit data...', 'منافع کا ڈیٹا لوڈ اور حساب ہو رہا ہے...')}</div>`;
     }
 
     try {
@@ -227,7 +466,8 @@ async function loadBills() {
         rawBills = [];
         billsSnap.forEach(d => {
             const b = { id: d.id, ...d.data() };
-            if (b.orderStatus !== 'cancelled') {
+            const st = String(b.status || b.orderStatus || '').toLowerCase();
+            if (st !== 'cancelled' && st !== 'rejected' && st !== 'deleted') {
                 if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
                     if (!window.BusinessCategories.matchesActiveCategoryRecord(b, activeCat, myAgency)) return;
                 }
@@ -235,13 +475,12 @@ async function loadBills() {
             }
         });
 
-        // Compute and render
         calculateAndRenderProfit();
 
     } catch (e) {
         console.error('Bills load error:', e);
         if (container) {
-            container.innerHTML = `<div class="empty-state" style="color:#ef4444;">Error fetching bills: ${e.message}</div>`;
+            container.innerHTML = `<div class="empty-state" style="color:#ef4444;">${ebMix('Error fetching bills:', 'بلز لوڈ کرنے میں خرابی:')} ${e.message}</div>`;
         }
     }
 }
@@ -250,7 +489,6 @@ async function loadBills() {
 // ⚙️ SETUP EVENT LISTENERS
 // ============================================
 function setupEventListeners() {
-    // View tabs
     const tabs = document.querySelectorAll('#profitViewTabs .report-tab-btn');
     tabs.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -262,7 +500,6 @@ function setupEventListeners() {
         });
     });
 
-    // Date presets
     const presets = document.querySelectorAll('#profitDatePresets .date-preset-btn');
     presets.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -273,14 +510,13 @@ function setupEventListeners() {
         });
     });
 
-    // Custom Date Apply
     const btnApply = document.getElementById('btnApplyProfitDate');
     if (btnApply) {
         btnApply.addEventListener('click', () => {
             const s = document.getElementById('profitDateStart').value;
             const e = document.getElementById('profitDateEnd').value;
             if (!s || !e) {
-                Swal.fire('⚠️', 'Start aur End date dono muntakhib karein!', 'warning');
+                Swal.fire('⚠️', ebT('Please select both Start and End dates!', 'Please select both Start and End dates! (شروع اور اختتام کی تاریخ منتخب کریں)'), 'warning');
                 return;
             }
             dateStart = s;
@@ -290,7 +526,6 @@ function setupEventListeners() {
         });
     }
 
-    // Search filter
     const searchInput = document.getElementById('profitSearchInput');
     if (searchInput) {
         searchInput.addEventListener('input', function() {
@@ -299,7 +534,6 @@ function setupEventListeners() {
         });
     }
 
-    // Sort select
     const sortSelect = document.getElementById('profitSortSelect');
     if (sortSelect) {
         sortSelect.addEventListener('change', function() {
@@ -308,36 +542,41 @@ function setupEventListeners() {
         });
     }
 
-    // Refresh button
     const btnRefresh = document.getElementById('btnRefreshProfit');
     if (btnRefresh) {
         btnRefresh.addEventListener('click', async () => {
-            await Promise.all([loadStock(), loadCustomers()]);
+            await Promise.all([loadStock(), loadCustomers(), loadStaffUsers(), loadDamageClaims()]);
             await loadBills();
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
-                timer: 1500, icon: 'success', title: 'Data Refreshed!'
+                timer: 1500, icon: 'success', title: ebT('Data Refreshed!', 'Data Refreshed! (ڈیٹا تازہ ہو گیا)')
             });
         });
     }
 
-    // Export CSV
     const btnExport = document.getElementById('btnExportProfitCSV');
     if (btnExport) {
         btnExport.addEventListener('click', exportActiveViewCSV);
     }
 
-    // Print
     const btnPrint = document.getElementById('btnPrintProfit');
     if (btnPrint) {
         btnPrint.addEventListener('click', printProfitReport);
     }
 
-    // Thermal Profit Slip
     const btnThermalSlip = document.getElementById('btnThermalProfitSlip');
     if (btnThermalSlip) {
         btnThermalSlip.addEventListener('click', () => printThermalProfitSlip());
     }
+
+    window.addEventListener('ebCategoryChanged', async () => {
+        if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+            myAgency = window.BusinessCategories.applyActiveCategoryProfile(myAgency || {});
+        }
+        applyCategoryProfitUI();
+        await Promise.all([loadStock(), loadCustomers(), loadStaffUsers(), loadDamageClaims()]);
+        await loadBills();
+    });
 }
 
 // ============================================
@@ -359,7 +598,7 @@ function applyPreset(preset) {
     } else if (preset === 'thisweek') {
         const curr = new Date(now);
         const day = curr.getDay();
-        const diff = curr.getDate() - day + (day === 0 ? -6 : 1); // Monday
+        const diff = curr.getDate() - day + (day === 0 ? -6 : 1);
         const monday = new Date(curr.setDate(diff));
         dateStart = toYMD(monday);
         dateEnd = toYMD(now);
@@ -379,7 +618,7 @@ function applyPreset(preset) {
         dateEnd = toYMD(last);
     } else if (preset === 'alltime') {
         dateStart = '2020-01-01';
-        dateEnd = '2030-12-31';
+        dateEnd = '2035-12-31';
     }
 
     const startInp = document.getElementById('profitDateStart');
@@ -389,34 +628,39 @@ function applyPreset(preset) {
 }
 
 // ============================================
-// 🎨 VIEW HEADERS
+// 🎨 VIEW HEADERS (CATEGORY-AWARE)
 // ============================================
 function updateViewHeader() {
     const titleEl = document.getElementById('profitViewTitle');
     const subEl = document.getElementById('profitViewSubTitle');
     if (!titleEl) return;
 
+    const ui = getCategoryProfitUiMeta(getProfitActiveCategory());
+
     if (currentView === 'items') {
-        titleEl.innerHTML = '<i class="fas fa-box-open" style="color:#10b981;"></i> 1. Items-wise Profit Breakdown (آئٹم وار منافع)';
-        subEl.innerText = 'ہر پراڈکٹ کی فروخت، خریداری لاگت، خالص منافع اور منافع کا تناسب (Margin %)';
+        titleEl.innerHTML = `${ui.tabItems}`;
+        if (subEl) subEl.innerHTML = ebCompact('Sales, purchase cost, net profit &amp; margin % for each item', 'ہر آئٹم کی فروخت، خریداری لاگت، خالص منافع اور منافع کا تناسب');
     } else if (currentView === 'bills') {
-        titleEl.innerHTML = '<i class="fas fa-file-invoice" style="color:#0284c7;"></i> 2. Bill-wise Profit Breakdown (بل وار منافع)';
-        subEl.innerText = 'ہر انوائس اور بل پر حاصل شدہ کل فروخت، کل لاگت اور نیٹ منافع';
+        titleEl.innerHTML = `${ui.tabBills}`;
+        if (subEl) subEl.innerHTML = ebCompact('Total sales, purchase cost &amp; net profit per invoice/bill', 'ہر انوائس اور بل پر حاصل شدہ کل فروخت، کل لاگت اور نیٹ منافع');
     } else if (currentView === 'day') {
-        titleEl.innerHTML = '<i class="fas fa-calendar-day" style="color:#8b5cf6;"></i> 3. Day-wise Daily Profit (روزانہ منافع)';
-        subEl.innerText = 'تاریخ وار روزانہ کل فروخت، خریداری لاگت، منافع اور یومیہ مارجن';
+        titleEl.innerHTML = `<i class="fas fa-calendar-day" style="color:#8b5cf6;"></i> ${ebMix('3. Day-wise Daily Profit', 'روزانہ منافع')}`;
+        if (subEl) subEl.innerHTML = ebCompact('Date-wise daily sales, purchase cost, profit &amp; daily margin', 'تاریخ وار روزانہ کل فروخت، خریداری لاگت، منافع اور یومیہ مارجن');
     } else if (currentView === 'weekly') {
-        titleEl.innerHTML = '<i class="fas fa-calendar-week" style="color:#f59e0b;"></i> 4. Weekly-wise Profit Analysis (ہفتہ وار منافع)';
-        subEl.innerText = 'ہفتہ وار بزنس آمدن، لاگت اور نیٹ منافع کا موازنہ';
+        titleEl.innerHTML = `<i class="fas fa-calendar-week" style="color:#f59e0b;"></i> ${ebMix('4. Weekly-wise Profit Analysis', 'ہفتہ وار منافع')}`;
+        if (subEl) subEl.innerHTML = ebCompact('Weekly business revenue, purchase cost &amp; net profit comparison', 'ہفتہ وار بزنس آمدن، لاگت اور نیٹ منافع کا موازنہ');
     } else if (currentView === 'monthly') {
-        titleEl.innerHTML = '<i class="fas fa-calendar-alt" style="color:#ec4899;"></i> 5. Monthly-wise Profit Trend (ماہانہ منافع)';
-        subEl.innerText = 'ماہانہ بزنس کی مجموعی کارکردگی، آمدن، اخراجات اور منافع کا رجحان';
+        titleEl.innerHTML = `<i class="fas fa-calendar-alt" style="color:#ec4899;"></i> ${ebMix('5. Monthly-wise Profit Trend', 'ماہانہ منافع')}`;
+        if (subEl) subEl.innerHTML = ebCompact('Overall monthly performance, revenue, costs &amp; profit trend', 'ماہانہ بزنس کی مجموعی کارکردگی، آمدن، اخراجات اور منافع کا رجحان');
     } else if (currentView === 'customer') {
-        titleEl.innerHTML = '<i class="fas fa-users" style="color:#14b8a6;"></i> 6. Customer-wise Profitability (گاہک وار منافع)';
-        subEl.innerText = 'کس کسٹمر سے سب سے زیادہ منافع حاصل ہوا اور ان کا ادھار کھاتہ بیلنس';
+        titleEl.innerHTML = `${ui.tabCustomer}`;
+        if (subEl) subEl.innerHTML = ebCompact('Highest profit generating customers/parties and their khata balance', 'کس گاہک / پارٹی سے سب سے زیادہ منافع حاصل ہوا اور ان کا ادھار کھاتہ بیلنس');
     } else if (currentView === 'agency_company') {
-        titleEl.innerHTML = '<i class="fas fa-building" style="color:#0284c7;"></i> 7. Multi-Agency / Principal Company Profit Comparison (10+ ایجنسیز کا منافع مقابلہ)';
-        subEl.innerText = 'ایک ہی کیٹیگری ڈیٹابیس کے اندر آپ کی تمام ڈسٹری بیوشن ایجنسیز / کمپنیز کی فروخت، لاگت، مارجن اور منافع کا مکمل موازنہ';
+        titleEl.innerHTML = `${ui.tabGroup}`;
+        if (subEl) subEl.innerHTML = ebCompact(`Complete sales, cost, margin &amp; profit comparison across all ${ui.groupColHeaderEn}`, `اس کیٹیگری کے اندر تمام ${ui.groupColHeaderUr} کی فروخت، لاگت، مارجن اور منافع کا مکمل موازنہ`);
+    } else if (currentView === 'staff') {
+        titleEl.innerHTML = `${ui.tabStaff}`;
+        if (subEl) subEl.innerHTML = ebCompact('Each staff member sales, gross profit generated, commission &amp; net contribution', 'ہر اسٹاف ممبر کی فروخت، پیدا کردہ خام منافع، کمیشن اور خالص منافع میں حصہ');
     }
 }
 
@@ -424,9 +668,13 @@ function updateViewHeader() {
 // 📊 CORE PROFIT COMPUTATION & FILTERING
 // ============================================
 function calculateAndRenderProfit() {
-    // 1. Filter bills by date range
+    const activeCat = getProfitActiveCategory();
+
+    // 1. Filter bills by date range (only completed/delivered sales, not pending draft orders)
     const filteredBills = rawBills.filter(b => {
-        const d = b.date || (b.createdAt ? b.createdAt.slice(0, 10) : '');
+        const st = String(b.status || b.orderStatus || 'completed').toLowerCase();
+        if (st === 'pending' || st === 'draft_order' || st === 'cancelled' || st === 'rejected') return false;
+        const d = b.date || (b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().toISOString().slice(0, 10) : (b.createdAt ? String(b.createdAt).slice(0, 10) : ''));
         if (!d) return false;
         return d >= dateStart && d <= dateEnd;
     });
@@ -436,20 +684,37 @@ function calculateAndRenderProfit() {
     let totalCost = 0;
     let totalItemsQty = 0;
 
-    // Item-level map
     const itemsMap = {};
-    // Day-level map
     const daysMap = {};
-    // Week-level map
     const weeksMap = {};
-    // Month-level map
     const monthsMap = {};
-    // Customer-level map
     const customersMap = {};
-    // Reset Agency/Company-level map & seed with all active stock companies + saved custom Principal Companies so even 0-sale agencies appear in comparison
+    const staffMap = {};
+
+    // Seed staffMap with all active category staff
+    const staffEmailToId = {};
+    const staffNameToId = {};
+    (rawStaffUsers || []).forEach(u => {
+        staffMap[u.id] = {
+            id: u.id,
+            name: u.name || u.email || 'Staff',
+            role: u.role || 'booker',
+            route: u.route || 'General',
+            commissionPct: Number(u.commissionPct || 0),
+            baseSalary: Number(u.baseSalary || 0),
+            billsCount: 0,
+            unitsSold: 0,
+            revenue: 0,
+            cost: 0,
+            profit: 0
+        };
+        if (u.email) staffEmailToId[String(u.email).toLowerCase().trim()] = u.id;
+        if (u.name) staffNameToId[String(u.name).toLowerCase().trim()] = u.id;
+    });
+
+    // Reset Group / Brand / Kitchen Station / Principal Company map
     window.__tempAgenciesMap = {};
     try {
-        const activeCat = getProfitActiveCategory();
         const savedBrandsRaw = localStorage.getItem(`eb_custom_brands_${myAgencyId}_${activeCat}`);
         if (savedBrandsRaw) {
             const savedBrands = JSON.parse(savedBrandsRaw);
@@ -474,12 +739,20 @@ function calculateAndRenderProfit() {
             }
         }
     } catch (e) {}
+
     (rawStock || []).forEach(st => {
         const stInd = st.industryFields || {};
-        const compName = String(
-            st.brandCompany || st.supplierName || st.companyName ||
-            stInd.brandCompany || stInd.company || stInd.publisher || ''
-        ).trim();
+        let compName = '';
+        if (activeCat === 'restaurant') {
+            compName = String(stInd.kotStation || st.kotStation || st.category || st.brandCompany || '').trim();
+        } else if (activeCat === 'books') {
+            compName = String(stInd.publisher || st.publisher || st.brandCompany || st.supplierName || st.category || '').trim();
+        } else {
+            compName = String(
+                st.brandCompany || st.supplierName || st.companyName ||
+                stInd.brandCompany || stInd.company || stInd.publisher || ''
+            ).trim();
+        }
         if (!compName) return;
         if (!window.__tempAgenciesMap[compName]) {
             window.__tempAgenciesMap[compName] = {
@@ -500,17 +773,16 @@ function calculateAndRenderProfit() {
         const pRate = parseFloat(st.purchaseRate || st.retailRate || 0) || 0;
         window.__tempAgenciesMap[compName].stockValue += (q * pRate);
     });
-    // Processed bills list
+
     const processedBills = [];
 
     filteredBills.forEach(b => {
-        const bDate = b.date || (b.createdAt ? b.createdAt.slice(0, 10) : '2026-01-01');
+        const bDate = b.date || (b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().toISOString().slice(0, 10) : (b.createdAt ? String(b.createdAt).slice(0, 10) : '2026-01-01'));
         const bDiscount = parseFloat(b.discount) || 0;
         const bSubTotal = parseFloat(b.subTotal) || 0;
-        const bGrandTotal = parseFloat(b.grandTotal) || bSubTotal;
+        const bGrandTotal = parseFloat(b.grandTotal || b.totalAmount || b.netTotal || b.total) || bSubTotal;
 
-        // Bill Net Sale (Revenue after discount)
-        const billNetSale = Math.max(0, bSubTotal - bDiscount);
+        const billNetSale = bSubTotal > 0 ? Math.max(0, bSubTotal - bDiscount) : Math.max(0, bGrandTotal);
         totalRevenue += billNetSale;
 
         let billTotalCost = 0;
@@ -519,12 +791,11 @@ function calculateAndRenderProfit() {
         const billDetailedItems = [];
 
         (b.items || []).forEach(it => {
-            const qty = parseFloat(it.qty) || 0;
+            const qty = parseFloat(it.qty || it.quantity) || 0;
             const freeQty = parseFloat(it.freeQty || it.bonus || 0) || 0;
-            const rate = parseFloat(it.rate) || 0;
+            const rate = parseFloat(it.rate || it.price) || 0;
             const saleTotal = it.total !== undefined ? parseFloat(it.total) : (qty * rate);
 
-            // Determine purchase / cost rate
             let costRate = 0;
             if (it.purchaseRate !== undefined && it.purchaseRate !== null && parseFloat(it.purchaseRate) > 0) {
                 costRate = parseFloat(it.purchaseRate);
@@ -534,7 +805,6 @@ function calculateAndRenderProfit() {
                 costRate = parseFloat(stockNameMap[it.name.toLowerCase().trim()].purchaseRate);
             }
 
-            // Include free/bonus units cost in warehouse COGS (when freeQty === 0, identical to qty * costRate)
             const itemCost = (qty + freeQty) * costRate;
             const itemProfit = saleTotal - itemCost;
             const itemMargin = saleTotal > 0 ? (itemProfit / saleTotal) * 100 : 0;
@@ -566,7 +836,7 @@ function calculateAndRenderProfit() {
                 itemsMap[itemKey] = {
                     name: itemKey,
                     subtitle: itemSub,
-                    category: stockRef.category || 'General',
+                    category: stockRef.category || it.category || 'General',
                     unit: stockRef.unit || it.unit || 'pcs',
                     unitsSold: 0,
                     freeUnitsGiven: 0,
@@ -584,18 +854,24 @@ function calculateAndRenderProfit() {
             itemsMap[itemKey].totalCost += itemCost;
             if (costRate > 0) itemsMap[itemKey].costRate = costRate;
 
-            // 🏭 Group in Agency / Principal Company Map (Supports 5, 10, 20+ Agencies within active category)
+            // 🏭 Group in Category-Aware Brand / Kitchen Station / Publisher / Principal Company Map
             const stkInd = stockRef.industryFields || {};
             const itInd = it.industryFields || {};
-            const rawAgencyName = (
-                it.brandCompany || it.companyName || it.supplierName ||
-                itInd.brandCompany || itInd.company || itInd.publisher ||
-                stockRef.brandCompany || stockRef.supplierName || stockRef.companyName ||
-                stkInd.brandCompany || stkInd.company || stkInd.publisher ||
-                stockRef.category || 'General Agency / Line'
-            );
-            const agencyCompanyKey = String(rawAgencyName || 'General Agency / Line').trim();
-            if (!window.__tempAgenciesMap) window.__tempAgenciesMap = {};
+            let rawAgencyName = '';
+            if (activeCat === 'restaurant') {
+                rawAgencyName = it.kotStation || itInd.kotStation || stockRef.kotStation || stkInd.kotStation || stockRef.category || it.category || 'Main Kitchen / Menu';
+            } else if (activeCat === 'books') {
+                rawAgencyName = it.publisher || itInd.publisher || stockRef.publisher || stkInd.publisher || stockRef.brandCompany || stockRef.category || 'General Publisher';
+            } else {
+                rawAgencyName = (
+                    it.brandCompany || it.companyName || it.supplierName ||
+                    itInd.brandCompany || itInd.company || itInd.publisher ||
+                    stockRef.brandCompany || stockRef.supplierName || stockRef.companyName ||
+                    stkInd.brandCompany || stkInd.company || stkInd.publisher ||
+                    stockRef.category || 'General Brand / Line'
+                );
+            }
+            const agencyCompanyKey = String(rawAgencyName || 'General Group').trim();
             if (!window.__tempAgenciesMap[agencyCompanyKey]) {
                 window.__tempAgenciesMap[agencyCompanyKey] = {
                     agencyName: agencyCompanyKey,
@@ -622,10 +898,9 @@ function calculateAndRenderProfit() {
         const billProfit = billNetSale - billTotalCost;
         const billMargin = billNetSale > 0 ? (billProfit / billNetSale) * 100 : 0;
 
-        // Save processed bill
         processedBills.push({
             id: b.id,
-            billNo: b.billNo || 'INV-' + b.id.slice(-4),
+            billNo: b.billNo || b.billNumber || 'INV-' + b.id.slice(-4),
             date: bDate,
             time: b.time || '',
             customerId: b.customerId || '',
@@ -633,7 +908,7 @@ function calculateAndRenderProfit() {
             customerShop: b.customerShopName || '',
             itemsCount: (b.items || []).length,
             unitsCount: billItemsCount,
-            subTotal: bSubTotal,
+            subTotal: bSubTotal || billNetSale,
             discount: bDiscount,
             netSale: billNetSale,
             totalCost: billTotalCost,
@@ -644,14 +919,7 @@ function calculateAndRenderProfit() {
 
         // 📅 Group in Days Map
         if (!daysMap[bDate]) {
-            daysMap[bDate] = {
-                date: bDate,
-                billsCount: 0,
-                unitsSold: 0,
-                revenue: 0,
-                cost: 0,
-                profit: 0
-            };
+            daysMap[bDate] = { date: bDate, billsCount: 0, unitsSold: 0, revenue: 0, cost: 0, profit: 0 };
         }
         daysMap[bDate].billsCount++;
         daysMap[bDate].unitsSold += billItemsCount;
@@ -680,7 +948,7 @@ function calculateAndRenderProfit() {
         weeksMap[weekKey.id].cost += billTotalCost;
         weeksMap[weekKey.id].profit += billProfit;
 
-        // 📆 Group in Months Map (YYYY-MM)
+        // 📆 Group in Months Map
         const monthKey = bDate.slice(0, 7);
         if (!monthsMap[monthKey]) {
             monthsMap[monthKey] = {
@@ -703,7 +971,6 @@ function calculateAndRenderProfit() {
         const custKey = (b.customerId || b.customerName || 'Counter Sale').trim();
         if (!customersMap[custKey]) {
             const custObj = rawCustomers.find(c => c.id === b.customerId || c.name === b.customerName) || {};
-            const activeCat = getProfitActiveCategory();
             const segLabel = (window.BusinessCategories && typeof window.BusinessCategories.getCustomerSegmentLabel === 'function' && (b.customerSegment || custObj.customerSegment))
                 ? window.BusinessCategories.getCustomerSegmentLabel(activeCat, b.customerSegment || custObj.customerSegment)
                 : '';
@@ -726,38 +993,64 @@ function calculateAndRenderProfit() {
         customersMap[custKey].purchased += billNetSale;
         customersMap[custKey].cost += billTotalCost;
         customersMap[custKey].profit += billProfit;
+
+        // 👤 Group in Staff / Booker / Waiter Map
+        let staffId = b.bookerId || b.waiterId || b.salesmanId || b.createdByUid || '';
+        if (!staffId || !staffMap[staffId]) {
+            const em = String(b.bookerEmail || b.createdByEmail || '').toLowerCase().trim();
+            const nm = String(b.bookerName || b.waiterName || b.salesmanName || b.createdByName || '').toLowerCase().trim();
+            if (em && staffEmailToId[em]) staffId = staffEmailToId[em];
+            else if (nm && staffNameToId[nm]) staffId = staffNameToId[nm];
+            else if (nm) {
+                staffId = `adhoc_${nm}`;
+                if (!staffMap[staffId]) {
+                    staffMap[staffId] = {
+                        id: staffId,
+                        name: b.bookerName || b.waiterName || b.salesmanName || b.createdByName || 'Counter / Direct',
+                        role: 'booker',
+                        route: b.route || 'Direct Counter',
+                        commissionPct: 0,
+                        baseSalary: 0,
+                        billsCount: 0,
+                        unitsSold: 0,
+                        revenue: 0,
+                        cost: 0,
+                        profit: 0
+                    };
+                }
+            } else {
+                staffId = 'owner_counter';
+                if (!staffMap[staffId]) {
+                    staffMap[staffId] = {
+                        id: staffId,
+                        name: 'Owner / Main Counter',
+                        role: 'owner',
+                        route: 'Main Counter',
+                        commissionPct: 0,
+                        baseSalary: 0,
+                        billsCount: 0,
+                        unitsSold: 0,
+                        revenue: 0,
+                        cost: 0,
+                        profit: 0
+                    };
+                }
+            }
+        }
+        if (staffMap[staffId]) {
+            staffMap[staffId].billsCount++;
+            staffMap[staffId].unitsSold += billItemsCount;
+            staffMap[staffId].revenue += billNetSale;
+            staffMap[staffId].cost += billTotalCost;
+            staffMap[staffId].profit += billProfit;
+        }
     });
 
-    // 3. Update KPI Cards
+    // 3. Calculate Operating Expenses & Damage/Expiry Claims Loss in Selected Period
     const totalNetProfit = totalRevenue - totalCost;
     const overallMarginPct = totalRevenue > 0 ? (totalNetProfit / totalRevenue) * 100 : 0;
-    const avgProfitPerBill = filteredBills.length > 0 ? (totalNetProfit / filteredBills.length) : 0;
     const costRatio = totalRevenue > 0 ? (totalCost / totalRevenue) * 100 : 0;
 
-    const kpiRev = document.getElementById('kpiRevenue');
-    if (kpiRev) kpiRev.innerText = 'Rs ' + formatMoney(totalRevenue);
-    const kpiBills = document.getElementById('kpiBillCount');
-    if (kpiBills) kpiBills.innerText = `${filteredBills.length} Bills in selected period`;
-
-    const kpiCostEl = document.getElementById('kpiCost');
-    if (kpiCostEl) kpiCostEl.innerText = 'Rs ' + formatMoney(totalCost);
-    const kpiCostRatioEl = document.getElementById('kpiCostRatio');
-    if (kpiCostRatioEl) kpiCostRatioEl.innerText = `${costRatio.toFixed(1)}% of total sales volume`;
-
-    const kpiProfitEl = document.getElementById('kpiNetProfit');
-    if (kpiProfitEl) {
-        kpiProfitEl.innerText = 'Rs ' + formatMoney(totalNetProfit);
-        kpiProfitEl.style.color = totalNetProfit >= 0 ? '#15803d' : '#b91c1c';
-    }
-    const kpiMarginStatus = document.getElementById('kpiMarginStatus');
-    if (kpiMarginStatus) {
-        kpiMarginStatus.innerText = `${overallMarginPct.toFixed(1)}% Net Gross Margin`;
-    }
-
-    const kpiMarginEl = document.getElementById('kpiMarginPct');
-    if (kpiMarginEl) kpiMarginEl.innerText = overallMarginPct.toFixed(1) + '%';
-
-    // Operating expenses in selected period (Split Staff Salaries vs Operations)
     let totalExpensesInPeriod = 0;
     let salaryExpensesInPeriod = 0;
     let opsExpensesInPeriod = 0;
@@ -770,22 +1063,69 @@ function calculateAndRenderProfit() {
             totalExpensesInPeriod += amt;
             expenseCountInPeriod += 1;
             const catId = String(exp.categoryId || '').toLowerCase();
-            if (exp.isSalaryPayroll || catId === 'cat_salary' || catId === 'cat_commission') {
+            if (exp.isSalaryPayroll || catId === 'cat_salary' || catId === 'cat_commission' || catId.endsWith('_salary')) {
                 salaryExpensesInPeriod += amt;
             } else {
                 opsExpensesInPeriod += amt;
             }
         });
     }
-    const finalCleanNetProfit = totalNetProfit - totalExpensesInPeriod;
+
+    let claimsNetLossInPeriod = 0;
+    let claimsCountInPeriod = 0;
+    if (Array.isArray(rawDamageClaims)) {
+        rawDamageClaims.forEach(cl => {
+            const d = (cl.date || (cl.createdAt ? String(cl.createdAt).slice(0, 10) : '')).slice(0, 10);
+            if (dateStart && dateEnd && d && (d < dateStart || d > dateEnd)) return;
+            const lossVal = Number(cl.totalLoss || cl.lossAmount || (Number(cl.qty || 0) * Number(cl.purchaseRate || cl.rate || 0)) || 0);
+            const recVal = Number(cl.recoveredAmount || (cl.claimStatus === 'settled' || cl.status === 'settled' ? lossVal : 0) || 0);
+            const netLoss = Math.max(0, lossVal - recVal);
+            if (netLoss > 0) {
+                claimsNetLossInPeriod += netLoss;
+                claimsCountInPeriod++;
+            }
+        });
+    }
+
+    const finalCleanNetProfit = totalNetProfit - totalExpensesInPeriod - claimsNetLossInPeriod;
+
+    // Update KPI Cards
+    const kpiRev = document.getElementById('kpiRevenue');
+    if (kpiRev) kpiRev.innerText = 'Rs ' + formatMoney(totalRevenue);
+    const kpiBills = document.getElementById('kpiBillCount');
+    if (kpiBills) kpiBills.innerHTML = ebMix(`${filteredBills.length} Bills (${totalItemsQty} Units)`, `${filteredBills.length} بلز / ${totalItemsQty} یونٹس`);
+
+    const kpiCostEl = document.getElementById('kpiCost');
+    if (kpiCostEl) kpiCostEl.innerText = 'Rs ' + formatMoney(totalCost);
+    const kpiCostRatioEl = document.getElementById('kpiCostRatio');
+    if (kpiCostRatioEl) kpiCostRatioEl.innerHTML = ebMix(`${costRatio.toFixed(1)}% of total sales volume`, `کل فروخت کا ${costRatio.toFixed(1)}%`);
+
+    const kpiProfitEl = document.getElementById('kpiNetProfit');
+    if (kpiProfitEl) {
+        kpiProfitEl.innerText = 'Rs ' + formatMoney(totalNetProfit);
+        kpiProfitEl.style.color = totalNetProfit >= 0 ? '#15803d' : '#b91c1c';
+    }
+    const kpiMarginStatus = document.getElementById('kpiMarginStatus');
+    if (kpiMarginStatus) {
+        kpiMarginStatus.innerHTML = ebMix(`${overallMarginPct.toFixed(1)}% Gross Margin`, `خام مارجن`);
+    }
+
+    const kpiMarginEl = document.getElementById('kpiMarginPct');
+    if (kpiMarginEl) kpiMarginEl.innerText = overallMarginPct.toFixed(1) + '%';
+    const kpiClaimsSubEl = document.getElementById('kpiClaimsSub');
+    if (kpiClaimsSubEl) {
+        kpiClaimsSubEl.innerHTML = claimsNetLossInPeriod > 0
+            ? ebMix(`⚠️ Claims/Wastage Loss: Rs ${formatMoney(claimsNetLossInPeriod)} (${claimsCountInPeriod})`, `کلیم/ضیاع نقصان`)
+            : ebMix(`✅ Zero Unrecovered Claims Loss`, `کوئی کلیم نقصان نہیں`);
+    }
 
     const kpiExpEl = document.getElementById('kpiOperatingExpenses');
     if (kpiExpEl) kpiExpEl.innerText = 'Rs ' + formatMoney(totalExpensesInPeriod);
     const kpiExpSubEl = document.getElementById('kpiExpenseSub');
     if (kpiExpSubEl) {
-        kpiExpSubEl.innerText = salaryExpensesInPeriod > 0
-            ? `Salaries: Rs ${formatMoney(salaryExpensesInPeriod)} • Ops: Rs ${formatMoney(opsExpensesInPeriod)} (${expenseCountInPeriod} Vouchers)`
-            : `${expenseCountInPeriod} Expense Vouchers in Period`;
+        kpiExpSubEl.innerHTML = salaryExpensesInPeriod > 0
+            ? ebMix(`Salaries: Rs ${formatMoney(salaryExpensesInPeriod)} • Ops: Rs ${formatMoney(opsExpensesInPeriod)} (${expenseCountInPeriod})`, `تنخواہیں و آپریشنل اخراجات`)
+            : ebMix(`${expenseCountInPeriod} Expense Vouchers in Period`, `${expenseCountInPeriod} اخراجات واؤچرز`);
     }
 
     const kpiFinalEl = document.getElementById('kpiFinalNetProfit');
@@ -795,7 +1135,9 @@ function calculateAndRenderProfit() {
     }
     const kpiFinalSub = document.getElementById('kpiFinalNetSub');
     if (kpiFinalSub) {
-        kpiFinalSub.innerText = finalCleanNetProfit >= 0 ? 'Rs ' + formatMoney(totalNetProfit) + ' Gross - Rs ' + formatMoney(totalExpensesInPeriod) + ' Exp' : 'Loss after Expenses';
+        kpiFinalSub.innerHTML = claimsNetLossInPeriod > 0
+            ? ebMix(`Gross ${formatMoney(totalNetProfit)} - Exp ${formatMoney(totalExpensesInPeriod)} - Loss ${formatMoney(claimsNetLossInPeriod)}`, `خام منافع منفی اخراجات و نقصان`)
+            : ebMix(`Rs ${formatMoney(totalNetProfit)} Gross - Rs ${formatMoney(totalExpensesInPeriod)} Expenses`, `خام منافع منفی اخراجات`);
     }
 
     window.__profitSummary = {
@@ -811,19 +1153,15 @@ function calculateAndRenderProfit() {
         salaryExpensesInPeriod,
         opsExpensesInPeriod,
         expenseCountInPeriod,
+        claimsNetLossInPeriod,
         finalCleanNetProfit
     };
 
-    // 4. Save processed lists in memory for current view rendering
     window.__profitData = {
         items: Object.values(itemsMap).map(it => {
             const profit = it.totalSales - it.totalCost;
             const margin = it.totalSales > 0 ? (profit / it.totalSales) * 100 : 0;
-            return {
-                ...it,
-                profit: profit,
-                margin: margin
-            };
+            return { ...it, profit, margin };
         }),
         bills: processedBills,
         day: Object.values(daysMap).map(d => {
@@ -859,6 +1197,17 @@ function calculateAndRenderProfit() {
                 margin: margin,
                 profitSharePct: profitSharePct
             };
+        }),
+        staff: Object.values(staffMap).filter(s => s.billsCount > 0 || s.id !== 'owner_counter').map(s => {
+            const margin = s.revenue > 0 ? (s.profit / s.revenue) * 100 : 0;
+            const commissionAmt = Math.round((s.revenue * (s.commissionPct || 0)) / 100);
+            const netContribution = s.profit - commissionAmt;
+            return {
+                ...s,
+                margin,
+                commissionAmt,
+                netContribution
+            };
         })
     };
 
@@ -872,9 +1221,9 @@ function renderActiveTable() {
     const container = document.getElementById('profitTableContainer');
     if (!container || !window.__profitData) return;
 
+    const ui = getCategoryProfitUiMeta(getProfitActiveCategory());
     let data = window.__profitData[currentView] || [];
 
-    // Filter by search text
     if (currentSearch) {
         data = data.filter(row => {
             const searchStr = JSON.stringify(row).toLowerCase();
@@ -882,7 +1231,6 @@ function renderActiveTable() {
         });
     }
 
-    // Sort data
     data.sort((a, b) => {
         if (currentSort === 'profit_desc') {
             return (b.profit || 0) - (a.profit || 0);
@@ -904,39 +1252,39 @@ function renderActiveTable() {
         container.innerHTML = `
             <div class="empty-state" style="padding:40px 20px; text-align:center;">
                 <div style="font-size:38px; margin-bottom:8px;">🔍</div>
-                <h3 style="margin:0 0 6px 0; color:#1e293b;">No Profit Data in this Period</h3>
-                <p style="color:#64748b; font-size:13px; margin:0;">Is date range me koi sales ya bills record nahi hain. Date filter change karein.</p>
+                <h3 style="margin:0 0 6px 0; color:#1e293b;">${ebMix('No Profit Data in this Period', 'اس مدت میں منافع کا کوئی ڈیٹا نہیں')}</h3>
+                <p style="color:#64748b; font-size:13px; margin:0;">${ebCompact('No sales or bills recorded in this date range. Try changing the date filter.', 'اس تاریخ میں کوئی فروخت یا بل ریکارڈ نہیں ہے۔ تاریخ فلٹر تبدیل کریں۔')}</p>
             </div>`;
         return;
     }
 
     let html = '';
 
-    // =====================================
     // 1️⃣ ITEM-WISE PROFIT TABLE
-    // =====================================
     if (currentView === 'items') {
         html = `
         <table class="report-table" style="width:100%;">
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Product / Item Name</th>
-                    <th>Category</th>
-                    <th style="text-align:center;">Units Sold</th>
-                    <th style="text-align:right;">Cost Price</th>
-                    <th style="text-align:right;">Selling Rate</th>
-                    <th style="text-align:right;">Total Sales</th>
-                    <th style="text-align:right;">Total Cost</th>
-                    <th style="text-align:right;">Net Profit (منافع)</th>
-                    <th style="text-align:center;">Margin %</th>
-                    <th style="text-align:center;">Status</th>
+                    <th>${ui.itemColHeader}</th>
+                    <th>${ebMix('Category', 'کیٹیگری')}</th>
+                    <th style="text-align:center;">${ebMix('Units Sold', 'فروخت تعداد')}</th>
+                    <th style="text-align:right;">${ebMix('Cost Price', 'خرید قیمت')}</th>
+                    <th style="text-align:right;">${ebMix('Selling Rate', 'فروخت ریٹ')}</th>
+                    <th style="text-align:right;">${ebMix('Total Sales', 'کل فروخت')}</th>
+                    <th style="text-align:right;">${ebMix('Total Cost', 'کل لاگت')}</th>
+                    <th style="text-align:right;">${ebMix('Net Profit', 'منافع')}</th>
+                    <th style="text-align:center;">${ebMix('Margin %', 'مارجن %')}</th>
+                    <th style="text-align:center;">${ebMix('Status', 'اسٹیٹس')}</th>
                 </tr>
             </thead>
             <tbody>
                 ${data.map((it, idx) => {
                     const badgeClass = it.margin >= 25 ? 'profit-badge-high' : (it.margin >= 10 ? 'profit-badge-med' : 'profit-badge-loss');
-                    const badgeText = it.margin >= 25 ? '🟢 High Margin' : (it.margin >= 10 ? '🔵 Good' : (it.profit < 0 ? '🔴 Loss' : '🟡 Low'));
+                    const badgeText = it.margin >= 25
+                        ? ebMix('🟢 High Margin', 'زیادہ مارجن')
+                        : (it.margin >= 10 ? ebMix('🔵 Good', 'اچھا') : (it.profit < 0 ? ebMix('🔴 Loss', 'نقصان') : ebMix('🟡 Low', 'کم')));
                     return `
                     <tr>
                         <td>${idx + 1}</td>
@@ -945,7 +1293,7 @@ function renderActiveTable() {
                             ${it.subtitle ? `<div style="font-size:11px; color:#0284c7; font-weight:600; margin-top:2px;">${it.subtitle}</div>` : ''}
                         </td>
                         <td><span style="font-size:11px; background:#f1f5f9; padding:2px 8px; border-radius:6px; color:#475569;">${it.category}</span></td>
-                        <td style="text-align:center; font-weight:bold;">${it.unitsSold} ${it.unit}</td>
+                        <td style="text-align:center; font-weight:bold;">${it.unitsSold} ${it.unit}${it.freeUnitsGiven > 0 ? ` <span style="font-size:10px; color:#ea580c;">(+${it.freeUnitsGiven} ${ebT('Free', 'Free/مفت')})</span>` : ''}</td>
                         <td style="text-align:right;">Rs ${formatMoney(it.costRate)}</td>
                         <td style="text-align:right;">Rs ${formatMoney(it.saleRate)}</td>
                         <td style="text-align:right; font-weight:bold;">Rs ${formatMoney(it.totalSales)}</td>
@@ -966,26 +1314,24 @@ function renderActiveTable() {
         </table>`;
     }
 
-    // =====================================
     // 2️⃣ BILL-WISE PROFIT TABLE
-    // =====================================
     else if (currentView === 'bills') {
         html = `
         <table class="report-table" style="width:100%;">
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Invoice #</th>
-                    <th>Date &amp; Time</th>
-                    <th>Customer Name</th>
-                    <th style="text-align:center;">Items</th>
-                    <th style="text-align:right;">Gross Amount</th>
-                    <th style="text-align:right;">Discount</th>
-                    <th style="text-align:right;">Net Sale</th>
-                    <th style="text-align:right;">COGS (لاگت)</th>
-                    <th style="text-align:right;">Net Profit</th>
-                    <th style="text-align:center;">Margin %</th>
-                    <th style="text-align:center;">Action</th>
+                    <th>${ebMix('Invoice #', 'انوائس #')}</th>
+                    <th>${ebMix('Date &amp; Time', 'تاریخ و وقت')}</th>
+                    <th>${ui.custColHeader}</th>
+                    <th style="text-align:center;">${ebMix('Items', 'آئٹمز')}</th>
+                    <th style="text-align:right;">${ebMix('Gross Amount', 'کل رقم')}</th>
+                    <th style="text-align:right;">${ebMix('Discount', 'ڈسکاؤنٹ')}</th>
+                    <th style="text-align:right;">${ebMix('Net Sale', 'خالص فروخت')}</th>
+                    <th style="text-align:right;">${ebMix('COGS', 'لاگت')}</th>
+                    <th style="text-align:right;">${ebMix('Net Profit', 'منافع')}</th>
+                    <th style="text-align:center;">${ebMix('Margin %', 'مارجن %')}</th>
+                    <th style="text-align:center;">${ebMix('Action', 'ایکشن')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -1013,7 +1359,7 @@ function renderActiveTable() {
                     </td>
                     <td style="text-align:center;">
                         <button class="btn btn-sm" onclick="openBillProfitModal('${b.id}')" style="background:#0284c7; color:#fff; padding:3px 8px; font-size:11px;" title="View Items Profit Breakdown">
-                            <i class="fas fa-list-check"></i> View
+                            <i class="fas fa-list-check"></i> ${ebMix('View', 'دیکھیں')}
                         </button>
                     </td>
                 </tr>`).join('')}
@@ -1021,24 +1367,22 @@ function renderActiveTable() {
         </table>`;
     }
 
-    // =====================================
     // 3️⃣ DAY-WISE PROFIT TABLE
-    // =====================================
     else if (currentView === 'day') {
         html = `
         <table class="report-table" style="width:100%;">
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Date (تاریخ)</th>
-                    <th>Day</th>
-                    <th style="text-align:center;">Bills Issued</th>
-                    <th style="text-align:center;">Units Sold</th>
-                    <th style="text-align:right;">Daily Sales (فروخت)</th>
-                    <th style="text-align:right;">Cost (لاگت)</th>
-                    <th style="text-align:right;">Daily Net Profit (منافع)</th>
-                    <th style="text-align:center;">Margin %</th>
-                    <th style="text-align:center;">Profitability</th>
+                    <th>${ebMix('Date', 'تاریخ')}</th>
+                    <th>${ebMix('Day', 'دن')}</th>
+                    <th style="text-align:center;">${ebMix('Bills Issued', 'بلز')}</th>
+                    <th style="text-align:center;">${ebMix('Units Sold', 'فروخت تعداد')}</th>
+                    <th style="text-align:right;">${ebMix('Daily Sales', 'فروخت')}</th>
+                    <th style="text-align:right;">${ebMix('Cost', 'لاگت')}</th>
+                    <th style="text-align:right;">${ebMix('Daily Gross Profit', 'منافع')}</th>
+                    <th style="text-align:center;">${ebMix('Margin %', 'مارجن %')}</th>
+                    <th style="text-align:center;">${ebMix('Profitability', 'منافع بخش')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -1060,7 +1404,7 @@ function renderActiveTable() {
                         <td style="text-align:center; font-weight:bold;">${d.margin.toFixed(1)}%</td>
                         <td style="text-align:center;">
                             <span class="${d.profit >= 0 ? 'profit-badge-high' : 'profit-badge-loss'}">
-                                ${d.profit >= 0 ? '🟢 Profitable' : '🔴 Loss'}
+                                ${d.profit >= 0 ? ebMix('🟢 Profitable', 'منافع بخش') : ebMix('🔴 Loss', 'نقصان')}
                             </span>
                         </td>
                     </tr>`;
@@ -1069,24 +1413,22 @@ function renderActiveTable() {
         </table>`;
     }
 
-    // =====================================
     // 4️⃣ WEEKLY-WISE PROFIT TABLE
-    // =====================================
     else if (currentView === 'weekly') {
         html = `
         <table class="report-table" style="width:100%;">
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Week Description</th>
-                    <th>Date Span</th>
-                    <th style="text-align:center;">Total Bills</th>
-                    <th style="text-align:center;">Units Sold</th>
-                    <th style="text-align:right;">Weekly Sales</th>
-                    <th style="text-align:right;">Weekly Cost</th>
-                    <th style="text-align:right;">Weekly Net Profit</th>
-                    <th style="text-align:center;">Margin %</th>
-                    <th style="text-align:right;">Daily Avg Profit</th>
+                    <th>${ebMix('Week Description', 'ہفتے کی تفصیل')}</th>
+                    <th>${ebMix('Date Span', 'تاریخ کی مدت')}</th>
+                    <th style="text-align:center;">${ebMix('Total Bills', 'کل بلز')}</th>
+                    <th style="text-align:center;">${ebMix('Units Sold', 'فروخت تعداد')}</th>
+                    <th style="text-align:right;">${ebMix('Weekly Sales', 'ہفتہ وار فروخت')}</th>
+                    <th style="text-align:right;">${ebMix('Weekly Cost', 'ہفتہ وار لاگت')}</th>
+                    <th style="text-align:right;">${ebMix('Weekly Gross Profit', 'ہفتہ وار منافع')}</th>
+                    <th style="text-align:center;">${ebMix('Margin %', 'مارجن %')}</th>
+                    <th style="text-align:right;">${ebMix('Daily Avg Profit', 'یومیہ اوسط منافع')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -1094,7 +1436,7 @@ function renderActiveTable() {
                 <tr>
                     <td>${idx + 1}</td>
                     <td><b>${w.label}</b></td>
-                    <td><span style="font-size:11px; color:#64748b;">${w.startDate} to ${w.endDate}</span></td>
+                    <td><span style="font-size:11px; color:#64748b;">${w.startDate} ${ebT('to', 'تا')} ${w.endDate}</span></td>
                     <td style="text-align:center; font-weight:bold;">${w.billsCount}</td>
                     <td style="text-align:center;">${w.unitsSold}</td>
                     <td style="text-align:right; font-weight:bold;">Rs ${formatMoney(w.revenue)}</td>
@@ -1109,23 +1451,21 @@ function renderActiveTable() {
         </table>`;
     }
 
-    // =====================================
     // 5️⃣ MONTHLY-WISE PROFIT TABLE
-    // =====================================
     else if (currentView === 'monthly') {
         html = `
         <table class="report-table" style="width:100%;">
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Month &amp; Year</th>
-                    <th style="text-align:center;">Invoices Issued</th>
-                    <th style="text-align:center;">Units Sold</th>
-                    <th style="text-align:right;">Monthly Sales (آمدن)</th>
-                    <th style="text-align:right;">Monthly Cost (خریداری)</th>
-                    <th style="text-align:right;">Monthly Net Profit (منافع)</th>
-                    <th style="text-align:center;">Margin %</th>
-                    <th style="text-align:right;">Daily Avg Run Rate</th>
+                    <th>${ebMix('Month &amp; Year', 'مہینہ اور سال')}</th>
+                    <th style="text-align:center;">${ebMix('Invoices Issued', 'جاری بلز')}</th>
+                    <th style="text-align:center;">${ebMix('Units Sold', 'فروخت تعداد')}</th>
+                    <th style="text-align:right;">${ebMix('Monthly Sales', 'آمدن')}</th>
+                    <th style="text-align:right;">${ebMix('Monthly Cost', 'خریداری')}</th>
+                    <th style="text-align:right;">${ebMix('Monthly Gross Profit', 'منافع')}</th>
+                    <th style="text-align:center;">${ebMix('Margin %', 'مارجن %')}</th>
+                    <th style="text-align:right;">${ebMix('Daily Avg Run Rate', 'یومیہ اوسط')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -1141,29 +1481,27 @@ function renderActiveTable() {
                         Rs ${formatMoney(m.profit)}
                     </td>
                     <td style="text-align:center; font-weight:bold; font-size:13px;">${m.margin.toFixed(1)}%</td>
-                    <td style="text-align:right; font-weight:bold; color:#0284c7;">Rs ${formatMoney(m.profit / 30)}/day</td>
+                    <td style="text-align:right; font-weight:bold; color:#0284c7;">Rs ${formatMoney(m.profit / 30)}/${ebT('day', 'دن')}</td>
                 </tr>`).join('')}
             </tbody>
         </table>`;
     }
 
-    // =====================================
     // 6️⃣ CUSTOMER-WISE PROFIT TABLE
-    // =====================================
     else if (currentView === 'customer') {
         html = `
         <table class="report-table" style="width:100%;">
             <thead>
                 <tr>
                     <th style="width:40px;">#</th>
-                    <th>Customer Name</th>
-                    <th>Shop / Market</th>
-                    <th style="text-align:center;">Bills</th>
-                    <th style="text-align:right;">Total Purchased</th>
-                    <th style="text-align:right;">Total Cost</th>
-                    <th style="text-align:right;">Profit Generated (منافع)</th>
-                    <th style="text-align:center;">Margin %</th>
-                    <th style="text-align:right;">Khata Balance</th>
+                    <th>${ui.custColHeader}</th>
+                    <th>${ui.shopColHeader}</th>
+                    <th style="text-align:center;">${ebMix('Bills', 'بلز')}</th>
+                    <th style="text-align:right;">${ebMix('Total Purchased', 'کل خریداری')}</th>
+                    <th style="text-align:right;">${ebMix('Total Cost', 'کل لاگت')}</th>
+                    <th style="text-align:right;">${ebMix('Profit Generated', 'منافع')}</th>
+                    <th style="text-align:center;">${ebMix('Margin %', 'مارجن %')}</th>
+                    <th style="text-align:right;">${ebMix('Khata Balance', 'کھاتہ بیلنس')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -1191,44 +1529,48 @@ function renderActiveTable() {
         </table>`;
     }
 
-    // =====================================
-    // 7️⃣ MULTI-AGENCY / PRINCIPAL COMPANY PROFIT COMPARISON TABLE (10+ Agencies)
-    // =====================================
+    // 7️⃣ BRAND / KITCHEN STATION / PUBLISHER / PRINCIPAL AGENCY PROFIT TABLE
     else if (currentView === 'agency_company') {
         html = `
         <table class="report-table" style="width:100%;">
             <thead>
                 <tr>
-                    <th style="width:55px;">Rank</th>
-                    <th>Agency / Principal Company</th>
-                    <th style="text-align:center;">SKUs / Items</th>
-                    <th style="text-align:right;">Stock Value</th>
-                    <th style="text-align:center;">Bills</th>
-                    <th style="text-align:center;">Units Sold (+Free)</th>
-                    <th style="text-align:right;">Total Sales (فروخت)</th>
-                    <th style="text-align:right;">COGS (لاگت)</th>
-                    <th style="text-align:right;">Gross Profit (منافع)</th>
-                    <th style="text-align:center;">Margin %</th>
-                    <th style="text-align:center;">Profit Share %</th>
-                    <th style="text-align:center;">Performance</th>
+                    <th style="width:55px;">${ebMix('Rank', 'درجہ')}</th>
+                    <th>${ui.groupColHeader}</th>
+                    <th style="text-align:center;">${ebMix('SKUs / Items', 'آئٹمز')}</th>
+                    <th style="text-align:right;">${ebMix('Stock Value', 'اسٹاک مالیت')}</th>
+                    <th style="text-align:center;">${ebMix('Bills', 'بلز')}</th>
+                    <th style="text-align:center;">${ebMix('Units Sold (+Free)', 'فروخت یونٹس')}</th>
+                    <th style="text-align:right;">${ebMix('Total Sales', 'فروخت')}</th>
+                    <th style="text-align:right;">${ebMix('COGS', 'لاگت')}</th>
+                    <th style="text-align:right;">${ebMix('Gross Profit', 'منافع')}</th>
+                    <th style="text-align:center;">${ebMix('Margin %', 'مارجن %')}</th>
+                    <th style="text-align:center;">${ebMix('Profit Share %', 'منافع حصہ %')}</th>
+                    <th style="text-align:center;">${ebMix('Performance', 'کارکردگی')}</th>
                 </tr>
             </thead>
             <tbody>
                 ${data.map((ag, idx) => {
                     const rankBadge = idx === 0 ? '🏆 #1' : (idx === 1 ? '🥈 #2' : (idx === 2 ? '🥉 #3' : `#${idx + 1}`));
-                    const statusText = ag.profit < 0 ? '🔴 Loss' : (idx === 0 && ag.profit > 0 ? '🏆 Top Agency' : (ag.margin >= 15 ? '🟢 High Margin' : (ag.totalSales > 0 ? '🔵 Active' : '⚪ Stock Only')));
+                    const statusText = ag.profit < 0
+                        ? ebMix('🔴 Loss', 'نقصان')
+                        : (idx === 0 && ag.profit > 0
+                            ? ebMix('🏆 Top #1', 'نمبر 1')
+                            : (ag.margin >= 15
+                                ? ebMix('🟢 High Margin', 'زیادہ مارجن')
+                                : (ag.totalSales > 0 ? ebMix('🔵 Active', 'فعال') : ebMix('⚪ Stock Only', 'صرف اسٹاک'))));
                     const badgeClass = ag.profit < 0 ? 'profit-badge-loss' : (ag.margin >= 15 ? 'profit-badge-high' : 'profit-badge-med');
                     return `
                     <tr>
                         <td style="font-weight:900; color:${idx === 0 ? '#b45309' : '#334155'};">${rankBadge}</td>
                         <td>
-                            <b style="font-size:13.5px; color:#0f172a;">🏭 ${ag.agencyName}</b>
+                            <b style="font-size:13.5px; color:#0f172a;">${ui.groupIcon} ${ag.agencyName}</b>
                         </td>
                         <td style="text-align:center; font-weight:700;">${ag.skusCount}</td>
                         <td style="text-align:right; color:#0369a1; font-weight:600;">Rs ${formatMoney(ag.stockValue)}</td>
                         <td style="text-align:center; font-weight:700;">${ag.billsCount}</td>
                         <td style="text-align:center; font-weight:700;">
-                            ${ag.unitsSold}${ag.freeUnitsGiven > 0 ? ` <span style="font-size:11px; color:#0284c7;">(+${ag.freeUnitsGiven} Free)</span>` : ''}
+                            ${ag.unitsSold}${ag.freeUnitsGiven > 0 ? ` <span style="font-size:11px; color:#0284c7;">(+${ag.freeUnitsGiven} ${ebT('Free', 'Free/مفت')})</span>` : ''}
                         </td>
                         <td style="text-align:right; font-weight:bold;">Rs ${formatMoney(ag.totalSales)}</td>
                         <td style="text-align:right; color:#64748b;">Rs ${formatMoney(ag.totalCost)}</td>
@@ -1249,6 +1591,56 @@ function renderActiveTable() {
         </table>`;
     }
 
+    // 8️⃣ STAFF / BOOKER / WAITER PROFIT CONTRIBUTION TABLE
+    else if (currentView === 'staff') {
+        html = `
+        <table class="report-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th style="width:50px;">${ebMix('Rank', 'درجہ')}</th>
+                    <th>${ui.staffColHeader}</th>
+                    <th>${ebMix('Route / Zone', 'روٹ / زون')}</th>
+                    <th style="text-align:center;">${ebMix('Bills', 'بلز')}</th>
+                    <th style="text-align:center;">${ebMix('Units Sold', 'فروخت تعداد')}</th>
+                    <th style="text-align:right;">${ebMix('Sales Generated', 'کل فروخت')}</th>
+                    <th style="text-align:right;">${ebMix('COGS', 'لاگت')}</th>
+                    <th style="text-align:right;">${ebMix('Gross Profit', 'خام منافع')}</th>
+                    <th style="text-align:center;">${ebMix('Margin %', 'مارجن %')}</th>
+                    <th style="text-align:right;">${ebMix('Commission', 'کمیشن')}</th>
+                    <th style="text-align:right;">${ebMix('Net Contribution', 'خالص حصہ')}</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map((st, idx) => {
+                    const rankBadge = idx === 0 ? '🏆 #1' : `#${idx + 1}`;
+                    return `
+                    <tr>
+                        <td style="font-weight:900;">${rankBadge}</td>
+                        <td>
+                            <b>👤 ${st.name}</b>
+                            <small style="display:block; color:#64748b; text-transform:capitalize;">${st.role || 'Staff'}</small>
+                        </td>
+                        <td>${st.route || 'General'}</td>
+                        <td style="text-align:center; font-weight:bold;">${st.billsCount}</td>
+                        <td style="text-align:center;">${st.unitsSold}</td>
+                        <td style="text-align:right; font-weight:bold;">Rs ${formatMoney(st.revenue)}</td>
+                        <td style="text-align:right; color:#64748b;">Rs ${formatMoney(st.cost)}</td>
+                        <td style="text-align:right; font-weight:900; color:${st.profit >= 0 ? '#15803d' : '#b91c1c'};">
+                            Rs ${formatMoney(st.profit)}
+                        </td>
+                        <td style="text-align:center; font-weight:bold;">${st.margin.toFixed(1)}%</td>
+                        <td style="text-align:right; color:#db2777; font-weight:bold;">
+                            Rs ${formatMoney(st.commissionAmt)} ${st.commissionPct > 0 ? `<small>(${st.commissionPct}%)</small>` : ''}
+                        </td>
+                        <td style="text-align:right; font-weight:900; font-size:13.5px; color:${st.netContribution >= 0 ? '#047857' : '#b91c1c'};">
+                            Rs ${formatMoney(st.netContribution)}
+                        </td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>`;
+    }
+
     container.innerHTML = html;
 }
 
@@ -1259,19 +1651,20 @@ function openBillProfitModal(billId) {
     if (!window.__profitData || !window.__profitData.bills) return;
     const b = window.__profitData.bills.find(x => x.id === billId);
     if (!b) return;
+    activeModalBillId = billId;
 
     const billImeiSummary = (b.items || []).map(it => it.subtitle).filter(Boolean).slice(0, 2).join(' | ');
     document.getElementById('modalBillNo').innerText = b.billNo;
     document.getElementById('modalBillMeta').innerHTML = `
-        <div><b>👤 Customer:</b> ${b.customerName} ${b.customerShop ? '(' + b.customerShop + ')' : ''}</div>
-        <div><b>📅 Date:</b> ${b.date} ${b.time ? '🕐 ' + b.time : ''}</div>
-        <div><b>💵 Gross Sale:</b> Rs ${formatMoney(b.subTotal)}</div>
-        <div><b>✂️ Discount:</b> Rs ${formatMoney(b.discount)}</div>
-        <div><b>📦 Total Cost:</b> Rs ${formatMoney(b.totalCost)}</div>
+        <div><b>👤 ${ebMix('Customer:', 'گاہک:')}</b> ${b.customerName} ${b.customerShop ? '(' + b.customerShop + ')' : ''}</div>
+        <div><b>📅 ${ebMix('Date:', 'تاریخ:')}</b> ${b.date} ${b.time ? '🕐 ' + b.time : ''}</div>
+        <div><b>💵 ${ebMix('Gross Sale:', 'کل فروخت:')}</b> Rs ${formatMoney(b.subTotal)}</div>
+        <div><b>✂️ ${ebMix('Discount:', 'ڈسکاؤنٹ:')}</b> Rs ${formatMoney(b.discount)}</div>
+        <div><b>📦 ${ebMix('Total Cost:', 'کل لاگت:')}</b> Rs ${formatMoney(b.totalCost)}</div>
         <div style="font-weight:900; color:${b.profit >= 0 ? '#15803d' : '#b91c1c'};">
-            <b>📈 Net Profit:</b> Rs ${formatMoney(b.profit)} (${b.margin.toFixed(1)}%)
+            <b>📈 ${ebMix('Net Profit:', 'خالص منافع:')}</b> Rs ${formatMoney(b.profit)} (${b.margin.toFixed(1)}%)
         </div>
-        ${billImeiSummary ? `<div style="grid-column:1/-1; font-size:11.5px; color:#0369a1; font-weight:700;"><b>📱 Specs/IMEI:</b> ${billImeiSummary}</div>` : ''}
+        ${billImeiSummary ? `<div style="grid-column:1/-1; font-size:11.5px; color:#0369a1; font-weight:700;"><b>📋 ${ebMix('Details:', 'تفصیلات:')}</b> ${billImeiSummary}</div>` : ''}
     `;
 
     const tbody = document.getElementById('modalBillItemsTbody');
@@ -1283,7 +1676,7 @@ function openBillProfitModal(billId) {
                 ${it.subtitle ? `<div style="font-size:10.5px; color:#64748b; margin-top:2px;">${it.subtitle}</div>` : ''}
             </td>
             <td style="text-align:center;">
-                ${it.qty}${it.freeQty > 0 ? ` <span style="display:inline-block; background:#fff7ed; color:#ea580c; border:1px solid #fdba74; font-size:10px; font-weight:800; padding:1px 5px; border-radius:4px;">+${it.freeQty} Free</span>` : ''}
+                ${it.qty}${it.freeQty > 0 ? ` <span style="display:inline-block; background:#fff7ed; color:#ea580c; border:1px solid #fdba74; font-size:10px; font-weight:800; padding:1px 5px; border-radius:4px;">+${it.freeQty} ${ebT('Free', 'Free/مفت')}</span>` : ''}
             </td>
             <td style="text-align:right;">Rs ${formatMoney(it.costRate)}</td>
             <td style="text-align:right;">Rs ${formatMoney(it.rate)}</td>
@@ -1296,11 +1689,17 @@ function openBillProfitModal(billId) {
         </tr>
     `).join('');
 
-    document.getElementById('billProfitModal').style.display = 'flex';
+    const modalEl = document.getElementById('billProfitModal');
+    if (modalEl) {
+        ebApplyBilingualDom(modalEl);
+        modalEl.style.display = 'flex';
+    }
 }
 
 function closeBillProfitModal() {
-    document.getElementById('billProfitModal').style.display = 'none';
+    activeModalBillId = null;
+    const modalEl = document.getElementById('billProfitModal');
+    if (modalEl) modalEl.style.display = 'none';
 }
 window.openBillProfitModal = openBillProfitModal;
 window.closeBillProfitModal = closeBillProfitModal;
@@ -1310,18 +1709,18 @@ window.closeBillProfitModal = closeBillProfitModal;
 // ============================================
 function exportActiveViewCSV() {
     if (!activeTableData || activeTableData.length === 0) {
-        Swal.fire('⚠️', 'Export karne ke liye koi data nahi hai!', 'warning');
+        Swal.fire('⚠️', ebT('No data available to export!', 'No data available to export! (ایکسپورٹ کرنے کے لیے کوئی ڈیٹا نہیں ہے)'), 'warning');
         return;
     }
 
     let csv = '';
-    const dateRangeNote = `Profit Report: ${dateStart} to ${dateEnd}\nGenerated: ${new Date().toLocaleString()}\n\n`;
+    const dateRangeNote = `Profit Report (${getProfitActiveCategory().toUpperCase()}): ${dateStart} to ${dateEnd}\nGenerated: ${new Date().toLocaleString()}\n\n`;
     csv += dateRangeNote;
 
     if (currentView === 'items') {
-        csv += 'SNo,Product Name,Category,Units Sold,Cost Price,Sell Price,Total Sales,Total Cost,Net Profit,Margin Pct\n';
+        csv += 'SNo,Product Name,Category,Units Sold,Free Units,Cost Price,Sell Price,Total Sales,Total Cost,Net Profit,Margin Pct\n';
         activeTableData.forEach((it, idx) => {
-            csv += `"${idx + 1}","${escapeCsv(it.name)}","${escapeCsv(it.category)}",${it.unitsSold},${it.costRate},${it.saleRate},${it.totalSales},${it.totalCost},${it.profit},"${it.margin.toFixed(2)}%"\n`;
+            csv += `"${idx + 1}","${escapeCsv(it.name)}","${escapeCsv(it.category)}",${it.unitsSold},${it.freeUnitsGiven || 0},${it.costRate},${it.saleRate},${it.totalSales},${it.totalCost},${it.profit},"${it.margin.toFixed(2)}%"\n`;
         });
     } else if (currentView === 'bills') {
         csv += 'SNo,Invoice No,Date,Time,Customer Name,Items Count,Gross Amount,Discount,Net Sale,Total Cost,Net Profit,Margin Pct\n';
@@ -1329,19 +1728,19 @@ function exportActiveViewCSV() {
             csv += `"${idx + 1}","${escapeCsv(b.billNo)}","${b.date}","${b.time}","${escapeCsv(b.customerName)}",${b.itemsCount},${b.subTotal},${b.discount},${b.netSale},${b.totalCost},${b.profit},"${b.margin.toFixed(2)}%"\n`;
         });
     } else if (currentView === 'day') {
-        csv += 'SNo,Date,Day,Bills Count,Units Sold,Daily Revenue,Daily Cost,Daily Net Profit,Margin Pct\n';
+        csv += 'SNo,Date,Day,Bills Count,Units Sold,Daily Revenue,Daily Cost,Daily Gross Profit,Margin Pct\n';
         activeTableData.forEach((d, idx) => {
             const dt = new Date(d.date + 'T00:00:00');
             const dayName = dt.toLocaleDateString('en-US', { weekday: 'long' });
             csv += `"${idx + 1}","${d.date}","${dayName}",${d.billsCount},${d.unitsSold},${d.revenue},${d.cost},${d.profit},"${d.margin.toFixed(2)}%"\n`;
         });
     } else if (currentView === 'weekly') {
-        csv += 'SNo,Week,Date Span,Bills Count,Units Sold,Weekly Revenue,Weekly Cost,Weekly Net Profit,Margin Pct\n';
+        csv += 'SNo,Week,Date Span,Bills Count,Units Sold,Weekly Revenue,Weekly Cost,Weekly Gross Profit,Margin Pct\n';
         activeTableData.forEach((w, idx) => {
             csv += `"${idx + 1}","${escapeCsv(w.label)}","${w.startDate} to ${w.endDate}",${w.billsCount},${w.unitsSold},${w.revenue},${w.cost},${w.profit},"${w.margin.toFixed(2)}%"\n`;
         });
     } else if (currentView === 'monthly') {
-        csv += 'SNo,Month,Bills Count,Units Sold,Monthly Revenue,Monthly Cost,Monthly Net Profit,Margin Pct\n';
+        csv += 'SNo,Month,Bills Count,Units Sold,Monthly Revenue,Monthly Cost,Monthly Gross Profit,Margin Pct\n';
         activeTableData.forEach((m, idx) => {
             csv += `"${idx + 1}","${escapeCsv(m.label)}",${m.billsCount},${m.unitsSold},${m.revenue},${m.cost},${m.profit},"${m.margin.toFixed(2)}%"\n`;
         });
@@ -1351,9 +1750,14 @@ function exportActiveViewCSV() {
             csv += `"${idx + 1}","${escapeCsv(c.name)}","${escapeCsv(c.shopName)}",${c.billsCount},${c.purchased},${c.cost},${c.profit},"${c.margin.toFixed(2)}%",${c.balance}\n`;
         });
     } else if (currentView === 'agency_company') {
-        csv += 'Rank,Agency / Company Name,SKUs Count,Stock Value,Bills Count,Units Sold,Free Units,Total Sales,Total Cost,Gross Profit,Margin Pct,Profit Share Pct\n';
+        csv += 'Rank,Group / Brand / Company Name,SKUs Count,Stock Value,Bills Count,Units Sold,Free Units,Total Sales,Total Cost,Gross Profit,Margin Pct,Profit Share Pct\n';
         activeTableData.forEach((ag, idx) => {
             csv += `"#${idx + 1}","${escapeCsv(ag.agencyName)}",${ag.skusCount},${ag.stockValue || 0},${ag.billsCount},${ag.unitsSold},${ag.freeUnitsGiven || 0},${ag.totalSales},${ag.totalCost},${ag.profit},"${ag.margin.toFixed(2)}%","${(ag.profitSharePct || 0).toFixed(2)}%"\n`;
+        });
+    } else if (currentView === 'staff') {
+        csv += 'Rank,Staff Name,Role,Route,Bills Count,Units Sold,Sales Generated,COGS,Gross Profit,Margin Pct,Commission,Net Contribution\n';
+        activeTableData.forEach((st, idx) => {
+            csv += `"#${idx + 1}","${escapeCsv(st.name)}","${escapeCsv(st.role)}","${escapeCsv(st.route)}",${st.billsCount},${st.unitsSold},${st.revenue},${st.cost},${st.profit},"${st.margin.toFixed(2)}%",${st.commissionAmt || 0},${st.netContribution || 0}\n`;
         });
     }
 
@@ -1361,7 +1765,7 @@ function exportActiveViewCSV() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Profit_Report_${currentView}_${dateStart}_to_${dateEnd}.csv`;
+    link.download = `Profit_Report_${getProfitActiveCategory()}_${currentView}_${dateStart}_to_${dateEnd}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 }
@@ -1382,7 +1786,7 @@ window.printThermalProfitSlip = function(paperWidth = '') {
     const sum = window.__profitSummary || {
         dateStart, dateEnd, billsCount: 0, totalItemsQty: 0,
         totalRevenue: 0, totalCost: 0, totalNetProfit: 0,
-        overallMarginPct: 0, totalExpensesInPeriod: 0, finalCleanNetProfit: 0
+        overallMarginPct: 0, totalExpensesInPeriod: 0, claimsNetLossInPeriod: 0, finalCleanNetProfit: 0
     };
     const resolvedWidth = paperWidth || ((window.BusinessCategories && typeof window.BusinessCategories.getThermalWidthPreference === 'function')
         ? window.BusinessCategories.getThermalWidthPreference(myAgency)
@@ -1423,29 +1827,30 @@ window.printThermalProfitSlip = function(paperWidth = '') {
         <div class="center">
             <div style="font-size:15px; font-weight:900;">${agencyName}</div>
             <div style="font-size:11px; font-weight:900; border:1.5px solid #000; padding:2px 6px; display:inline-block; margin-top:3px;">
-                💰 PROFIT CLOSING SLIP (منافع پرچی)
+                ${ebT('💰 PROFIT CLOSING SLIP', '💰 PROFIT CLOSING SLIP (منافع پرچی)')}
             </div>
-            <div style="font-size:10px; font-weight:700; margin-top:3px;">Period: ${sum.dateStart} to ${sum.dateEnd}</div>
+            <div style="font-size:10px; font-weight:700; margin-top:3px;">${ebT('Period:', 'Period (مدت):')} ${sum.dateStart} ${ebT('to', 'تا')} ${sum.dateEnd}</div>
         </div>
         <div class="hr"></div>
-        <div class="row"><span>Total Bills:</span><b>${sum.billsCount}</b></div>
-        <div class="row"><span>Total Sales:</span><b>Rs ${Math.round(sum.totalRevenue).toLocaleString()}</b></div>
-        <div class="row"><span>Purchase Cost (COGS):</span><b>Rs ${Math.round(sum.totalCost).toLocaleString()}</b></div>
+        <div class="row"><span>${ebT('Total Bills:', 'Total Bills (کل بلز):')}</span><b>${sum.billsCount}</b></div>
+        <div class="row"><span>${ebT('Total Sales:', 'Total Sales (کل فروخت):')}</span><b>Rs ${Math.round(sum.totalRevenue).toLocaleString()}</b></div>
+        <div class="row"><span>${ebT('Purchase Cost (COGS):', 'Purchase Cost (خرید لاگت):')}</span><b>Rs ${Math.round(sum.totalCost).toLocaleString()}</b></div>
         <div class="row" style="border-top:1px dotted #000; padding-top:2px;">
-            <span><b>Gross Profit (${sum.overallMarginPct.toFixed(1)}%):</b></span>
+            <span><b>${ebT('Gross Profit', 'Gross Profit (خام منافع)')} (${sum.overallMarginPct.toFixed(1)}%):</b></span>
             <b>Rs ${Math.round(sum.totalNetProfit).toLocaleString()}</b>
         </div>
-        <div class="row"><span>Expenses (اخراجات):</span><b>- Rs ${Math.round(sum.totalExpensesInPeriod).toLocaleString()}</b></div>
+        <div class="row"><span>${ebT('Expenses & Salaries:', 'Expenses & Salaries (اخراجات و تنخواہیں):')}</span><b>- Rs ${Math.round(sum.totalExpensesInPeriod).toLocaleString()}</b></div>
+        ${sum.claimsNetLossInPeriod > 0 ? `<div class="row"><span>${ebT('Claims / Wastage Loss:', 'Claims / Wastage Loss (کلیم/ضیاع):')}</span><b>- Rs ${Math.round(sum.claimsNetLossInPeriod).toLocaleString()}</b></div>` : ''}
         <div class="netbox">
-            FINAL NET PROFIT: Rs ${Math.round(sum.finalCleanNetProfit).toLocaleString()} /-
+            ${ebT('FINAL NET PROFIT:', 'FINAL NET PROFIT (خالص منافع):')} Rs ${Math.round(sum.finalCleanNetProfit).toLocaleString()} /-
         </div>
         <div class="hr"></div>
-        <div style="font-weight:900; font-size:10.5px; margin-bottom:3px;">TOP PROFITABLE ITEMS:</div>
+        <div style="font-weight:900; font-size:10.5px; margin-bottom:3px;">${ebT('TOP PROFITABLE ITEMS:', 'TOP PROFITABLE ITEMS (سب سے زیادہ منافع بخش آئٹمز):')}</div>
         <table style="width:100%; border-collapse:collapse;">
-            <tbody>${itemsRows || '<tr><td>No item sales in period</td></tr>'}</tbody>
+            <tbody>${itemsRows || `<tr><td>${ebT('No item sales in period', 'No item sales in period (اس مدت میں کوئی فروخت نہیں)')}</td></tr>`}</tbody>
         </table>
         <div class="hr"></div>
-        <div class="center" style="font-size:9.5px; font-weight:700;">Printed: ${new Date().toLocaleString()}</div>
+        <div class="center" style="font-size:9.5px; font-weight:700;">${ebT('Printed:', 'Printed (پرنٹ):')} ${new Date().toLocaleString()}</div>
     </body>
     </html>`;
 
@@ -1467,7 +1872,7 @@ function formatMoney(num) {
 function getWeekKey(dateStr) {
     const d = new Date(dateStr + 'T00:00:00');
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(d.setDate(diff));
     const sunday = new Date(monday);
     sunday.setDate(sunday.getDate() + 6);
@@ -1493,4 +1898,43 @@ function formatMonthLabel(ymStr) {
     const monthIndex = parseInt(parts[1], 10) - 1;
     const date = new Date(year, monthIndex, 1);
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+// ============================================
+// 🌐 LIVE SIDEBAR LANGUAGE SWITCH SYNC (PHASE 9)
+// ============================================
+if (!window.__ebProfitLangBound) {
+    window.__ebProfitLangBound = true;
+
+    const syncProfitBilingualUI = () => {
+        const sortEl = document.getElementById('profitSortSelect');
+        const savedSortVal = sortEl ? sortEl.value : currentSort;
+
+        ebApplyBilingualDom(document);
+        ebRefreshStaticSelects();
+        if (sortEl && savedSortVal) sortEl.value = savedSortVal;
+
+        if (typeof applyCategoryProfitUI === 'function') {
+            applyCategoryProfitUI();
+        }
+        if (window.__profitData && typeof calculateAndRenderProfit === 'function') {
+            calculateAndRenderProfit();
+        }
+        const modalEl = document.getElementById('billProfitModal');
+        if (activeModalBillId && modalEl && modalEl.style.display === 'flex') {
+            openBillProfitModal(activeModalBillId);
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            ebApplyBilingualDom(document);
+            ebRefreshStaticSelects();
+        });
+    } else {
+        ebApplyBilingualDom(document);
+        ebRefreshStaticSelects();
+    }
+
+    window.addEventListener('eb-lang-changed', syncProfitBilingualUI);
 }

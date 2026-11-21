@@ -152,26 +152,34 @@
 
 <div class="panel-container" style="margin-top: 8px;">
 
+    <!-- ===== 🏷️ CATEGORY-DEDICATED ALERTS HEADER ===== -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+        <div>
+            <h2 id="alertsPageMainTitle" style="margin:0; font-size:20px; font-weight:800; color:#0f172a;" data-eb-en="🔔 Low Stock Alerts &amp; Reorder" data-eb-ur="کم اسٹاک الرٹس اور ری آرڈر">🔔 Low Stock Alerts &amp; Reorder</h2>
+            <p id="alertsPageMainSub" style="margin:3px 0 0 0; font-size:12.5px; color:#64748b;" data-eb-en="Real-time stock shortage monitoring, reorder suggestions &amp; supplier purchase lists" data-eb-ur="ریئل ٹائم اسٹاک کی کمی کی نگرانی، ری آرڈر تجاویز اور سپلائر خریداری فہرست" data-eb-compact="1">Real-time stock shortage monitoring, reorder suggestions &amp; supplier purchase lists</p>
+        </div>
+    </div>
+
     <!-- ===== 🔔 BROWSER PUSH NOTIFICATION SWITCH ===== -->
     <div class="push-notify-box" id="pushNotifyBox">
         <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:220px;">
             <div style="font-size:24px;">📲</div>
             <div>
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <span style="font-size:13px; font-weight:800; color:#15803d;">
+                    <span style="font-size:13px; font-weight:800; color:#15803d;" data-eb-en="Browser &amp; Desktop Push Notifications" data-eb-ur="براؤزر و ڈیسک ٹاپ پش نوٹیفکیشنز">
                         Browser &amp; Desktop Push Notifications
                     </span>
                     <span id="alertsActiveCategoryBadge" style="background:#dcfce7; color:#166534; border:1px solid #86efac; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:800;">
-                        🏢 Active Category
+                        <span data-eb-en="🏢 Active Category" data-eb-ur="فعال کیٹیگری">🏢 Active Category</span>
                     </span>
                 </div>
-                <div style="font-size:11.5px; color:#166534; margin-top:2px;" id="pushStatusText">
+                <div style="font-size:11.5px; color:#166534; margin-top:2px;" id="pushStatusText" data-eb-en="Enable push alerts to get notified whenever stock runs low during sales in this category!" data-eb-ur="اس کیٹیگری میں فروخت کے دوران اسٹاک کم ہونے پر فوری اطلاع پانے کے لیے پش الرٹس فعال کریں!" data-eb-compact="1">
                     Enable push alerts to get notified whenever stock runs low during sales in this category!
                 </div>
             </div>
         </div>
         <button class="btn btn-sm" id="btnTogglePush" style="background:#15803d; color:#fff; font-size:12px; font-weight:700;">
-            <i class="fas fa-bell"></i> Enable Push Alerts
+            <i class="fas fa-bell"></i> <span data-eb-en="Enable Push Alerts" data-eb-ur="پش الرٹس فعال کریں">Enable Push Alerts</span>
         </button>
     </div>
 
@@ -179,25 +187,25 @@
     <div class="panel-card" style="border-top-color:#ef4444; padding:20px;">
         <div class="alert-kpi-grid">
             <div class="alert-kpi-card" style="border-left: 4px solid #ef4444;">
-                <div class="alert-kpi-lbl">Out of Stock (Zero)</div>
+                <div class="alert-kpi-lbl" id="kpiOutLbl" data-eb-en="Out of Stock (Zero)" data-eb-ur="اسٹاک ختم (صفر)">Out of Stock (Zero)</div>
                 <div class="alert-kpi-val" id="kpiOutStock" style="color:#ef4444;">--</div>
             </div>
             <div class="alert-kpi-card" style="border-left: 4px solid #f59e0b;">
-                <div class="alert-kpi-lbl">Low Stock Warnings</div>
+                <div class="alert-kpi-lbl" id="kpiLowLbl" data-eb-en="Low Stock Warnings" data-eb-ur="کم اسٹاک الرٹس">Low Stock Warnings</div>
                 <div class="alert-kpi-val" id="kpiLowStock" style="color:#f59e0b;">--</div>
             </div>
             <div class="alert-kpi-card" style="border-left: 4px solid #0284c7;">
-                <div class="alert-kpi-lbl">Total Items Needing Reorder</div>
+                <div class="alert-kpi-lbl" id="kpiTotalLbl" data-eb-en="Total Items Needing Reorder" data-eb-ur="ری آرڈر کے قابل آئٹمز">Total Items Needing Reorder</div>
                 <div class="alert-kpi-val" id="kpiTotalAlerts">--</div>
             </div>
             <div class="alert-kpi-card" style="border-left: 4px solid #10b981;">
-                <div class="alert-kpi-lbl">Est. Replenishment Cost</div>
+                <div class="alert-kpi-lbl" id="kpiCostLbl" data-eb-en="Est. Replenishment Cost" data-eb-ur="متوقع خریداری لاگت">Est. Replenishment Cost</div>
                 <div class="alert-kpi-val" id="kpiReorderCost" style="color:#10b981;">Rs --</div>
             </div>
-            <div class="alert-kpi-card" style="border-left: 4px solid #9333ea;">
-                <div class="alert-kpi-lbl">Expired / ≤30d Batches</div>
+            <div class="alert-kpi-card" id="kpiExpiryCard" style="border-left: 4px solid #9333ea;">
+                <div class="alert-kpi-lbl" id="kpiExpiryLbl" data-eb-en="Expired / ≤30d Batches" data-eb-ur="ایکسپائرڈ / ≤30 دن بیچز">Expired / ≤30d Batches</div>
                 <div class="alert-kpi-val" id="kpiExpiryCritical" style="color:#9333ea;">0</div>
-                <div id="kpiExpiryRiskVal" style="font-size:10.5px; color:#64748b; font-weight:700; margin-top:2px;">At-Risk: Rs 0</div>
+                <div id="kpiExpiryRiskVal" style="font-size:10.5px; color:#64748b; font-weight:700; margin-top:2px;" data-eb-en="At-Risk: Rs 0" data-eb-ur="خطرے میں مالیت">At-Risk: Rs 0</div>
             </div>
         </div>
 
@@ -206,29 +214,29 @@
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:1;">
                 <div style="position:relative; min-width:200px; flex:1; max-width:320px;">
                     <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>
-                    <input type="text" id="searchInput" placeholder="Search low stock item or barcode..." style="width:100%; padding:7px 10px 7px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                    <input type="text" id="searchInput" placeholder="Search low stock item or barcode..." data-eb-ph-en="Search low stock item or barcode..." data-eb-ph-ur="Search low stock item or barcode... (کم اسٹاک آئٹم یا بارکوڈ تلاش کریں)" style="width:100%; padding:7px 10px 7px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                 </div>
                 <select id="categoryFilter" style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                    <option value="">All Categories</option>
+                    <option value="" data-eb-en="All Categories" data-eb-ur="All Categories (تمام کیٹیگریز)">All Categories</option>
                 </select>
                 <select id="supplierFilter" style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                    <option value="">All Principals / Suppliers</option>
+                    <option value="" data-eb-en="All Suppliers" data-eb-ur="All Suppliers (تمام سپلائرز)">All Suppliers</option>
                 </select>
                 <select id="severityFilter" style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                    <option value="all">All Stock Alerts (Out + Low)</option>
-                    <option value="out">Out of Stock Only (0 Qty)</option>
-                    <option value="low">Low Stock Only (&lt; Limit)</option>
-                    <option value="expiry_critical">🚨 Expired &amp; ≤30d Critical Batches</option>
-                    <option value="expiry_warning">⏳ Near-Expiry Watchlist (≤90d)</option>
+                    <option value="all" data-eb-en="All Stock Alerts (Out + Low)" data-eb-ur="All Stock Alerts (ختم + کم اسٹاک)">All Stock Alerts (Out + Low)</option>
+                    <option value="out" data-eb-en="Out of Stock Only (0 Qty)" data-eb-ur="Out of Stock Only (صرف صفر اسٹاک)">Out of Stock Only (0 Qty)</option>
+                    <option value="low" data-eb-en="Low Stock Only (&lt; Limit)" data-eb-ur="Low Stock Only (حد سے کم اسٹاک)">Low Stock Only (&lt; Limit)</option>
+                    <option value="expiry_critical" id="optSeverityExpCritical" data-eb-en="🚨 Expired &amp; ≤30d Critical Batches" data-eb-ur="🚨 Expired &amp; ≤30d Critical Batches (ایکسپائرڈ بیچز)">🚨 Expired &amp; ≤30d Critical Batches</option>
+                    <option value="expiry_warning" id="optSeverityExpWarning" data-eb-en="⏳ Near-Expiry Watchlist (≤90d)" data-eb-ur="⏳ Near-Expiry Watchlist (قریب المیعاد ≤90 دن)">⏳ Near-Expiry Watchlist (≤90d)</option>
                 </select>
             </div>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn btn-sm" id="btnSupplierWhatsApp" style="background:#10b981; color:#fff;" title="Send Reorder list to Supplier">
-                    <i class="fab fa-whatsapp"></i> Reorder Supplier
+                    <i class="fab fa-whatsapp"></i> <span data-eb-en="Reorder Supplier" data-eb-ur="سپلائر کو ری آرڈر">Reorder Supplier</span>
                 </button>
                 <button class="btn btn-sm" id="btnPrintChecklist" style="background:#475569; color:#fff;" title="Print Purchase Checklist">
-                    <i class="fas fa-print"></i> Print Checklist
+                    <i class="fas fa-print"></i> <span data-eb-en="Print Checklist" data-eb-ur="چیک لسٹ پرنٹ کریں">Print Checklist</span>
                 </button>
             </div>
         </div>
@@ -238,17 +246,17 @@
             <table class="alerts-table" id="alertsTable">
                 <thead>
                     <tr>
-                        <th>Product Name</th>
-                        <th>Principal / Category</th>
-                        <th>Current Qty &amp; Batch</th>
-                        <th>Alert Limit</th>
-                        <th>Suggested Reorder</th>
-                        <th>Est. Cost / Risk</th>
-                        <th class="btn-action-cell">Quick Actions</th>
+                        <th id="thAlertItem" data-eb-en="Product Name" data-eb-ur="پراڈکٹ کا نام">Product Name</th>
+                        <th id="thAlertSupplier" data-eb-en="Supplier / Category" data-eb-ur="سپلائر / کیٹیگری">Supplier / Category</th>
+                        <th id="thAlertQty" data-eb-en="Current Qty" data-eb-ur="موجودہ تعداد">Current Qty</th>
+                        <th id="thAlertLimit" data-eb-en="Alert Limit" data-eb-ur="الرٹ حد">Alert Limit</th>
+                        <th id="thAlertReorder" data-eb-en="Suggested Reorder" data-eb-ur="تجویز کردہ ری آرڈر">Suggested Reorder</th>
+                        <th id="thAlertCost" data-eb-en="Est. Cost" data-eb-ur="متوقع لاگت">Est. Cost</th>
+                        <th class="btn-action-cell" data-eb-en="Quick Actions" data-eb-ur="فوری ایکشنز">Quick Actions</th>
                     </tr>
                 </thead>
                 <tbody id="alertsTbody">
-                    <tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:30px;">Loading low stock items...</td></tr>
+                    <tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:30px;" data-eb-en="Loading low stock items..." data-eb-ur="کم اسٹاک آئٹمز لوڈ ہو رہے ہیں...">Loading low stock items...</td></tr>
                 </tbody>
             </table>
         </div>

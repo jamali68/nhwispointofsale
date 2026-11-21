@@ -34,13 +34,13 @@
     <div style="display:flex; justify-content:space-between; align-items:center; max-width:1000px; margin:0 auto 12px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px;">
             <span class="cache-badge" id="custCacheBadge" style="display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:4px 10px; border-radius:20px; background:#dcfce7; color:#15803d; font-weight:700;">
-                <i class="fas fa-check-circle"></i> Live Synced
+                <i class="fas fa-check-circle"></i> Live Synced <span class="eb-ur-sub">(لائیو)</span>
             </span>
-            <span id="lastCustSyncTime" style="font-size:11px; color:#64748b;">Synced: Just now</span>
+            <span id="lastCustSyncTime" style="font-size:11px; color:#64748b;">Synced: Just now <span class="eb-ur-sub">(ابھی)</span></span>
         </div>
         <div style="display:flex; gap:8px;">
             <button class="btn btn-secondary" id="syncCustBtn" style="padding:6px 14px; font-size:12px; border-radius:8px; background:#0284c7; color:#fff; border:none; cursor:pointer; font-weight:bold;">
-                <i class="fas fa-sync-alt"></i> Refresh Data
+                <i class="fas fa-sync-alt"></i> Refresh Data <span class="eb-ur-sub">(ریفریش)</span>
             </button>
         </div>
     </div>
@@ -50,22 +50,22 @@
         <div class="stat-card">
             <div class="stat-icon" style="background:#3498db;">👥</div>
             <div class="stat-value" id="statTotal">--</div>
-            <div class="stat-label">Total Customers</div>
+            <div class="stat-label" id="lblCustStatTotal">Total Customers <span class="eb-ur-sub">(کل کسٹمرز)</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background:#e74c3c;">💰</div>
             <div class="stat-value" id="statBalance">--</div>
-            <div class="stat-label">Total Market Udhaar</div>
+            <div class="stat-label" id="lblCustStatBalance">Total Market Udhaar <span class="eb-ur-sub">(کل ادھار)</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background:#27ae60;">🧾</div>
             <div class="stat-value" id="statActiveWithBills">--</div>
-            <div class="stat-label">Customers With Bills</div>
+            <div class="stat-label" id="lblCustStatActive">Customers With Bills <span class="eb-ur-sub">(بل والے کسٹمرز)</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background:#f39c12;">⭐</div>
             <div class="stat-value" id="statDueCount">--</div>
-            <div class="stat-label">Defaulters / Due List</div>
+            <div class="stat-label" id="lblCustStatDue">Defaulters / Due List <span class="eb-ur-sub">(بقایا دار)</span></div>
         </div>
     </div>
 
@@ -73,51 +73,51 @@
     <div class="search-filter-bar">
         <div class="search-box" style="width:100%; min-width:0; max-width:100%;">
             <i class="fas fa-search"></i>
-            <input type="text" id="searchInput" placeholder="Search by name, shop, mobile, route, city, booker...">
+            <input type="text" id="searchInput" placeholder="Search by name, shop, mobile, route, city..." data-eb-ph-en="Search by name, shop, mobile, route, city..." data-eb-ph-ur="Search by name, shop, mobile, route... (نام، دکان، موبائل یا روٹ تلاش کریں)">
         </div>
     </div>
 
     <!-- ===== 🛣️ ROUTE & QUICK FILTER PILLS (Scrolls normally — Not Sticky) ===== -->
     <div class="customer-filters-panel">
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; max-width:100%; min-width:0; margin-bottom:8px;">
-            <select id="custRouteFilter" style="flex:1 1 180px; min-width:0; max-width:100%; box-sizing:border-box; padding:10px 12px; border:2px solid #e0e6e8; border-radius:12px; font-size:13px; font-weight:700; background:#fff; color:#1e293b; outline:none;" title="Filter by Route / Market / PJP Beat">
-                <option value="all">🛣️ All Routes / PJP Beats</option>
+            <select id="custRouteFilter" style="flex:1 1 180px; min-width:0; max-width:100%; box-sizing:border-box; padding:10px 12px; border:2px solid #e0e6e8; border-radius:12px; font-size:13px; font-weight:700; background:#fff; color:#1e293b; outline:none;" title="Filter by Route / Area / Zone" data-eb-title-en="Filter by Route / Area / Zone" data-eb-title-ur="Filter by Route / Area (روٹ یا علاقے کے مطابق فلٹر کریں)">
+                <option value="all" data-eb-en="🛣️ All Routes / Areas" data-eb-ur="🛣️ All Routes / Areas (تمام روٹس / علاقے)">🛣️ All Routes / Areas</option>
             </select>
-            <button type="button" id="btnPrintRouteList" onclick="printWholesalePjpRouteSheet()" style="padding:10px 14px; border:none; border-radius:12px; font-size:12.5px; font-weight:800; background:#0284c7; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; max-width:100%;" title="Print PJP Route Customer &amp; Recovery Sheet">
-                <i class="fas fa-print"></i> <span>Route Khata Sheet</span>
+            <button type="button" id="btnPrintRouteList" onclick="printWholesalePjpRouteSheet()" style="padding:10px 14px; border:none; border-radius:12px; font-size:12.5px; font-weight:800; background:#0284c7; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; max-width:100%;" title="Print Customer &amp; Recovery Sheet" data-eb-title-en="Print Customer &amp; Recovery Sheet" data-eb-title-ur="Print Recovery Sheet (روٹ کھاتہ شیٹ پرنٹ کریں)">
+                <i class="fas fa-print"></i> <span id="lblBtnPrintRouteList">Route Khata Sheet <span class="eb-ur-sub">(روٹ شیٹ)</span></span>
             </button>
         </div>
         <!-- Quick Filter Tabs -->
         <div class="cust-filter-tabs">
-            <button class="filter-tab active" data-filter="all">All (<span id="tabCountAll">0</span>)</button>
-            <button class="filter-tab" data-filter="due">💰 Udhaar / Balance (<span id="tabCountDue">0</span>)</button>
-            <button class="filter-tab" data-filter="clear">✅ Zero Balance (<span id="tabCountClear">0</span>)</button>
-            <button class="filter-tab" data-filter="wholesale">📦 Wholesale</button>
-            <button class="filter-tab" data-filter="retail">🛒 Retail</button>
-            <button class="filter-tab" data-filter="institutional" id="tabFilterInstitutional">🏫 Schools &amp; Dealers (<span id="tabCountInstitutional">0</span>)</button>
+            <button class="filter-tab active" data-filter="all">All <span class="eb-ur-sub">(سب)</span> (<span id="tabCountAll">0</span>)</button>
+            <button class="filter-tab" data-filter="due">💰 Udhaar / Due <span class="eb-ur-sub">(بقایا)</span> (<span id="tabCountDue">0</span>)</button>
+            <button class="filter-tab" data-filter="clear">✅ Zero Balance <span class="eb-ur-sub">(کلیئر)</span> (<span id="tabCountClear">0</span>)</button>
+            <button class="filter-tab" data-filter="wholesale" id="tabFilterWholesale">📦 Wholesale <span class="eb-ur-sub">(ہول سیل)</span></button>
+            <button class="filter-tab" data-filter="retail" id="tabFilterRetail">🛒 Retail <span class="eb-ur-sub">(پرچون)</span></button>
+            <button class="filter-tab" data-filter="institutional" id="tabFilterInstitutional">⭐ Special Segments <span class="eb-ur-sub">(مخصوص)</span> (<span id="tabCountInstitutional">0</span>)</button>
         </div>
     </div>
 
     <!-- ===== ➕ ADD CUSTOMER (Collapsible) ===== -->
     <div class="panel-card">
         <div class="add-item-header" id="addCustomerToggle">
-            <h2><i class="fas fa-user-plus"></i> Add New Customer</h2>
+            <h2 id="addCustomerHeaderTitle"><i class="fas fa-user-plus"></i> Add New Customer <span class="eb-ur-sub">(نیا کسٹمر شامل کریں)</span></h2>
             <i class="fas fa-chevron-down toggle-arrow" id="toggleArrow"></i>
         </div>
         <form id="addCustomerForm" class="panel-form" style="display:none;">
             
-            <!-- 📕 ASSIGNED ORDER BOOKER (Auto-fills Route & City) -->
-            <div class="form-row" style="background:#f0f9ff; border:1px solid #bae6fd; padding:12px; border-radius:10px; margin-bottom:12px;">
+            <!-- 📕 ASSIGNED ORDER BOOKER / STAFF (Auto-fills Route & City) -->
+            <div id="assignedBookerFormRow" class="form-row" style="background:#f0f9ff; border:1px solid #bae6fd; padding:12px; border-radius:10px; margin-bottom:12px;">
                 <div class="form-group" style="margin-bottom:0; width:100%;">
                     <label style="color:#0369a1; display:flex; justify-content:space-between; align-items:center;">
-                        <span><i class="fas fa-user-tag"></i> <b>Assigned Order Booker (مخصوص فیلڈ آرڈر بکر)</b></span>
-                        <small id="bookerAutoFillHint" style="color:#0284c7; font-weight:bold; display:none;"><i class="fas fa-magic"></i> Auto-filled Route & City!</small>
+                        <span id="lblAssignedBookerTitle"><i class="fas fa-user-tag"></i> <b>Assigned Order Booker</b> <span class="eb-ur-sub">(مخصوص فیلڈ آرڈر بکر)</span></span>
+                        <small id="bookerAutoFillHint" style="color:#0284c7; font-weight:bold; display:none;"><i class="fas fa-magic"></i> Auto-filled Route &amp; City! <span class="eb-ur-sub">(روٹ خودکار بھر گیا)</span></small>
                     </label>
                     <select id="custBookerSelect" class="select-input" style="width:100%; padding:10px 12px; border:2px solid #7dd3fc; border-radius:8px; font-weight:600; background:#fff; outline:none;">
-                        <option value="">— No Order Booker (Direct / General Customer) —</option>
+                        <option value="" data-eb-en="— No Staff Assigned (Direct / Walk-in Customer) —" data-eb-ur="— No Staff Assigned (کوئی اسٹاف نہیں / براہ راست گاہک) —">— No Staff Assigned (Direct / Walk-in Customer) —</option>
                     </select>
-                    <small style="color:#64748b; font-size:11px; margin-top:4px; display:block;">
-                        💡 بکر سلیکٹ کرنے سے اس کا روٹ اور شہر خودکار بھر جائے گا اور یہ دکان اس بکر کے فون پر آرڈر بکنگ کے لیے ظاہر ہو گی۔
+                    <small id="lblAssignedBookerHint" style="color:#64748b; font-size:11px; margin-top:4px; display:block;">
+                        💡 Selecting staff automatically fills their assigned route &amp; city.<span class="eb-ur-compact">اسٹاف سلیکٹ کرنے سے اس کا روٹ اور شہر خودکار بھر جائے گا۔</span>
                     </small>
                 </div>
             </div>
@@ -125,75 +125,61 @@
             <!-- 🏪 BUSINESS INFO -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>👤 Customer Name *</label>
-                    <input type="text" id="custName" placeholder="e.g. Imtiaz Ali" required maxlength="50">
+                    <label id="lblCustName">👤 Customer Name * <span class="eb-ur-sub">(کسٹمر کا نام)</span></label>
+                    <input type="text" id="custName" placeholder="e.g. Imtiaz Ali" data-eb-ph-en="e.g. Imtiaz Ali" data-eb-ph-ur="e.g. Imtiaz Ali (مثلاً امتیاز علی)" required maxlength="50">
                 </div>
                 <div class="form-group">
-                    <label>🏪 Shop Name (optional)</label>
-                    <input type="text" id="custShopName" placeholder="e.g. Al-Madina Store" maxlength="50">
+                    <label id="lblCustShopName">🏪 Shop / Organization Name <span class="eb-ur-sub">(دکان / ادارے کا نام)</span></label>
+                    <input type="text" id="custShopName" placeholder="e.g. Al-Madina Store" data-eb-ph-en="e.g. Al-Madina Store" data-eb-ph-ur="e.g. Al-Madina Store (مثلاً المدینہ اسٹور)" maxlength="50">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>🏷️ Customer Type (optional)</label>
+                    <label id="lblCustType">🏷️ Customer Type <span class="eb-ur-sub">(کسٹمر کی قسم)</span></label>
                     <select id="custType" class="select-input">
-                        <option value="">— Select —</option>
-                        <option value="retail">🛒 Retail</option>
-                        <option value="wholesale">📦 Wholesale</option>
-                        <option value="special">⭐ Special</option>
+                        <option value="" data-eb-en="— Select —" data-eb-ur="— Select (منتخب کریں) —">— Select —</option>
+                        <option value="retail" id="optCustTypeRetail" data-eb-en="🛒 Retail" data-eb-ur="🛒 Retail (پرچون)">🛒 Retail</option>
+                        <option value="wholesale" id="optCustTypeWholesale" data-eb-en="📦 Wholesale" data-eb-ur="📦 Wholesale (ہول سیل)">📦 Wholesale</option>
+                        <option value="special" id="optCustTypeSpecial" data-eb-en="⭐ Special / VIP" data-eb-ur="⭐ Special / VIP (مخصوص)">⭐ Special / VIP</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>📱 Mobile (optional)</label>
-                    <input type="tel" id="custMobile" maxlength="15" placeholder="03xx-xxxxxxx">
+                    <label id="lblCustMobile">📱 Mobile / WhatsApp <span class="eb-ur-sub">(موبائل / واٹس ایپ)</span></label>
+                    <input type="tel" id="custMobile" maxlength="15" placeholder="03xx-xxxxxxx" data-eb-ph-en="03xx-xxxxxxx" data-eb-ph-ur="03xx-xxxxxxx (موبائل نمبر)">
                 </div>
             </div>
 
             <!-- 📚 / 📱 CATEGORY-SPECIFIC CUSTOMER PROFILE DETAILS (Optional) -->
             <div id="bookCustomerFieldsPanel" style="background:#f5f3ff; border:1px solid #ddd6fe; padding:10px 12px; border-radius:10px; margin-bottom:12px;">
                 <div style="font-size:12px; font-weight:800; color:#5b21b6; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
-                    <span id="custProfilePanelTitle"><i class="fas fa-graduation-cap"></i> Book Depot, School &amp; Institutional Profile (Optional)</span>
-                    <span id="custProfilePanelSub" style="font-size:10.5px; color:#6d28d9; font-weight:600;">آٹو ڈسکاؤنٹ اور سلیبس بورڈ ریکارڈ کے لیے</span>
+                    <span id="custProfilePanelTitle"><i class="fas fa-user-check"></i> Category Customer Profile <span class="eb-ur-sub">(کسٹمر پروفائل)</span></span>
+                    <span id="custProfilePanelSub" style="font-size:10.5px; color:#6d28d9; font-weight:600;">For auto-discount &amp; customer profile records <span class="eb-ur-sub">(آٹو ڈسکاؤنٹ اور پروفائل ریکارڈ کے لیے)</span></span>
                 </div>
                 <div class="form-row" style="margin-bottom:8px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label id="custSegmentLabel">🏫 Customer Segment / Sub-Category (optional)</label>
+                        <label id="custSegmentLabel">🏷️ Customer Segment / Sub-Category <span class="eb-ur-sub">(کیٹیگری)</span></label>
                         <select id="custSubCategory" class="select-input">
-                            <option value="">— Select Segment (Optional) —</option>
-                            <option value="school_college">🏫 School / College / Academy (اسکول / کالج / اکیڈمی)</option>
-                            <option value="sub_dealer">📚 Bookshop / Sub-Dealer (بک شاپ / سب ڈیلر)</option>
-                            <option value="library_inst">🏛️ Library / Govt Institution (لائبریری / سرکاری ادارہ)</option>
-                            <option value="teacher_tutor">👨‍🏫 Teacher / Coaching Center (ٹیچر / کوچنگ سینٹر)</option>
-                            <option value="student_parent">🎒 Student / Parent (طالب علم / والدین)</option>
-                            <option value="general_cust">👤 General Customer (عام گاہک)</option>
+                            <option value="" data-eb-en="— Select Segment (Optional) —" data-eb-ur="— Select Segment (کیٹیگری منتخب کریں) —">— Select Segment (Optional) —</option>
+                            <option value="general_cust" data-eb-en="👤 General Customer" data-eb-ur="👤 General Customer (عام گاہک)">👤 General Customer</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label style="display:flex; justify-content:space-between; align-items:center; gap:4px; flex-wrap:wrap;">
-                            <span id="custBoardLabel">🏛️ Affiliated Board / Syllabus (optional)</span>
-                            <button type="button" onclick="openAddCustomCustomerSpecialtyModal()" style="background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd; border-radius:5px; padding:1px 7px; font-size:10px; font-weight:800; cursor:pointer;" title="Apna Naya Brand / Dealership / Board Add Karein">➕ Add New</button>
+                            <span id="custBoardLabel">🛣️ Route / Specialty / Zone <span class="eb-ur-sub">(روٹ / زون)</span></span>
+                            <button type="button" onclick="openAddCustomCustomerSpecialtyModal()" style="background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd; border-radius:5px; padding:1px 7px; font-size:10px; font-weight:800; cursor:pointer;" title="Add Custom Option">➕ Add New <span class="eb-ur-sub">(نیا)</span></button>
                         </label>
-                        <input type="text" id="custBoardSyllabus" list="custBoardDatalist" maxlength="60" placeholder="e.g. PCTB, Oxford, Apple, Samsung, Accessories">
-                        <datalist id="custBoardDatalist">
-                            <option value="PCTB (Punjab Textbook Board)"></option>
-                            <option value="Oxford University Press (OUP)"></option>
-                            <option value="Afaq Sun / Iqbal Series"></option>
-                            <option value="Gaba Educational Books"></option>
-                            <option value="Federal Board (FBISE)"></option>
-                            <option value="Cambridge / O-Level"></option>
-                            <option value="Paramount / Read Foundation"></option>
-                            <option value="Dars-e-Nizami / Wafaq"></option>
-                        </datalist>
+                        <input type="text" id="custBoardSyllabus" list="custBoardDatalist" maxlength="60" placeholder="Select or type..." data-eb-ph-en="Select or type..." data-eb-ph-ur="Select or type... (منتخب کریں یا لکھیں)">
+                        <datalist id="custBoardDatalist"></datalist>
                     </div>
                 </div>
                 <div class="form-row" style="margin-bottom:0;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label id="custDiscountLabel">🏷️ Agreed Trade / School Discount % (optional)</label>
-                        <input type="number" id="custAgreedDiscount" min="0" max="100" step="0.5" placeholder="e.g. 15 or 20 (%) — Auto-applies on POS">
+                        <label id="custDiscountLabel">🏷️ Agreed Discount % <span class="eb-ur-sub">(طے شدہ ڈسکاؤنٹ %)</span></label>
+                        <input type="number" id="custAgreedDiscount" min="0" max="100" step="0.5" placeholder="e.g. 10 or 15 (%) — Auto-applies on POS" data-eb-ph-en="e.g. 10 or 15 (%) — Auto-applies on POS" data-eb-ph-ur="e.g. 10 or 15% (بل بناتے وقت خودکار لاگو ہو گا)">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label id="custFocalLabel">👔 Principal / Focal Person Name (optional)</label>
-                        <input type="text" id="custFocalPerson" maxlength="60" placeholder="e.g. Principal Tariq Sb / Guarantor Name &amp; Phone">
+                        <label id="custFocalLabel">👔 Contact / Focal Person <span class="eb-ur-sub">(متعلقہ شخص)</span></label>
+                        <input type="text" id="custFocalPerson" maxlength="60" placeholder="e.g. Contact Person Name &amp; Phone" data-eb-ph-en="e.g. Contact Person Name &amp; Phone" data-eb-ph-ur="e.g. Contact Person Name &amp; Phone (متعلقہ شخص کا نام و فون)">
                     </div>
                 </div>
             </div>
@@ -201,27 +187,27 @@
             <!-- 📍 LOCATION + ROUTE -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>📍 Address (optional)</label>
-                    <input type="text" id="custAddress" maxlength="100" placeholder="Street, Area">
+                    <label id="lblCustAddress">📍 Address <span class="eb-ur-sub">(پتہ)</span></label>
+                    <input type="text" id="custAddress" maxlength="100" placeholder="Street, Area" data-eb-ph-en="Street, Area" data-eb-ph-ur="Street, Area (گلی، محلہ، علاقہ)">
                 </div>
                 <div class="form-group">
-                    <label>🛣️ Route (optional)</label>
-                    <input type="text" id="custRoute" maxlength="50" placeholder="e.g. Main Bazar, Gali 6">
+                    <label id="lblCustRoute">🛣️ Route / Area <span class="eb-ur-sub">(روٹ / علاقہ)</span></label>
+                    <input type="text" id="custRoute" maxlength="50" placeholder="e.g. Main Bazar, Gali 6" data-eb-ph-en="e.g. Main Bazar, Gali 6" data-eb-ph-ur="e.g. Main Bazar (مثلاً مین بازار)">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>🏙️ City (optional)</label>
-                    <input type="text" id="custCity" maxlength="30" placeholder="City">
+                    <label>🏙️ City <span class="eb-ur-sub">(شہر)</span></label>
+                    <input type="text" id="custCity" maxlength="30" placeholder="City" data-eb-ph-en="City" data-eb-ph-ur="City (شہر کا نام)">
                 </div>
                 <div class="form-group">
-                    <label>📅 Payment Terms (optional)</label>
+                    <label>📅 Payment Terms <span class="eb-ur-sub">(ادائیگی کی شرائط)</span></label>
                     <select id="custTerms" class="select-input">
-                        <option value="">— Select —</option>
-                        <option value="cash">💵 Cash</option>
-                        <option value="7">📅 7 Days</option>
-                        <option value="15">📅 15 Days</option>
-                        <option value="30">📅 30 Days</option>
+                        <option value="" data-eb-en="— Select —" data-eb-ur="— Select (منتخب کریں) —">— Select —</option>
+                        <option value="cash" data-eb-en="💵 Cash" data-eb-ur="💵 Cash (نقد)">💵 Cash</option>
+                        <option value="7" data-eb-en="📅 7 Days" data-eb-ur="📅 7 Days (7 دن)">📅 7 Days</option>
+                        <option value="15" data-eb-en="📅 15 Days" data-eb-ur="📅 15 Days (15 دن)">📅 15 Days</option>
+                        <option value="30" data-eb-en="📅 30 Days" data-eb-ur="📅 30 Days (30 دن)">📅 30 Days</option>
                     </select>
                 </div>
             </div>
@@ -229,40 +215,41 @@
             <!-- 💰 FINANCE -->
             <div class="form-row">
                 <div class="form-group">
-                    <label>💰 Previous Balance (optional — purani pending)</label>
+                    <label>💰 Previous Balance <span class="eb-ur-sub">(سابقہ بقایا / پرانا ادھار)</span></label>
                     <input type="number" id="custPrevBalance" min="0" step="0.01" placeholder="0">
                 </div>
                 <div class="form-group">
-                    <label>💳 Credit Limit (optional — max udhaar)</label>
+                    <label>💳 Credit Limit <span class="eb-ur-sub">(زیادہ سے زیادہ ادھار حد)</span></label>
                     <input type="number" id="custCreditLimit" min="0" step="0.01" placeholder="0">
                 </div>
             </div>
 
-            <!-- 🇵🇰 FBR NTN / STRN & FILER STATUS -->
-            <div class="form-row" style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 12px; border-radius:10px; margin-bottom:12px;">
+            <!-- 🇵🇰 CNIC / FBR NTN & FILER STATUS -->
+            <div id="custNtnFbrRow" class="form-row" style="background:#f8fafc; border:1px solid #e2e8f0; padding:10px 12px; border-radius:10px; margin-bottom:12px;">
                 <div class="form-group" style="margin-bottom:0;">
                     <label style="display:flex; justify-content:space-between; align-items:center; gap:4px; flex-wrap:wrap;">
-                        <span>🔢 NTN / STRN / CNIC (optional)</span>
-                        <button type="button" onclick="formatCustomerCnicInput()" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:5px; padding:1px 7px; font-size:10px; font-weight:800; cursor:pointer;" title="Auto-format 13-digit CNIC (xxxxx-xxxxxxx-x)">🪪 Format CNIC</button>
+                        <span id="lblCustNtn">🪪 CNIC / NTN <span class="eb-ur-sub">(شناختی کارڈ / این ٹی این)</span></span>
+                        <button type="button" onclick="formatCustomerCnicInput()" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:5px; padding:1px 7px; font-size:10px; font-weight:800; cursor:pointer;" title="Auto-format 13-digit CNIC (xxxxx-xxxxxxx-x)">🪪 Format CNIC <span class="eb-ur-sub">(فارمیٹ)</span></button>
                     </label>
-                    <input type="text" id="custNTN" maxlength="30" placeholder="e.g. 35202-1234567-1 or NTN">
+                    <input type="text" id="custNTN" maxlength="30" placeholder="e.g. 35202-1234567-1" data-eb-ph-en="e.g. 35202-1234567-1" data-eb-ph-ur="e.g. 35202-1234567-1 (شناختی کارڈ نمبر)">
                 </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>🇵🇰 FBR Tax Category</label>
+                <div class="form-group" id="custFbrStatusGroup" style="margin-bottom:0; display:none;">
+                    <label>🇵🇰 FBR Tax Category <span class="eb-ur-sub">(ایف بی آر ٹیکس حیثیت)</span></label>
                     <select id="custFbrStatus" class="select-input">
-                        <option value="non-filer">🔴 Non-Filer (نان فائلر — Higher Tax)</option>
-                        <option value="filer">🟢 Filer (فائلر — Lower Tax)</option>
+                        <option value="" data-eb-en="— Select Tax Status (Optional) —" data-eb-ur="— Select Tax Status (ٹیکس حیثیت منتخب کریں) —">— Select Tax Status (Optional) —</option>
+                        <option value="non-filer" data-eb-en="🔴 Non-Filer (Higher Tax)" data-eb-ur="🔴 Non-Filer (نان فائلر — زیادہ ٹیکس)">🔴 Non-Filer (Higher Tax)</option>
+                        <option value="filer" data-eb-en="🟢 Filer (Lower Tax)" data-eb-ur="🟢 Filer (فائلر — کم ٹیکس)">🟢 Filer (Lower Tax)</option>
                     </select>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>📝 Notes (optional)</label>
-                <input type="text" id="custNotes" maxlength="150" placeholder="Koi khas baat...">
+                <label>📝 Notes <span class="eb-ur-sub">(نوٹس / خاص بات)</span></label>
+                <input type="text" id="custNotes" maxlength="150" placeholder="Any special notes..." data-eb-ph-en="Any special notes..." data-eb-ph-ur="Any special notes... (کوئی خاص بات یا ہدایت)">
             </div>
 
             <button type="submit" class="btn btn-primary" id="saveCustomerBtn">
-                <i class="fas fa-save"></i> SAVE CUSTOMER
+                <i class="fas fa-save"></i> SAVE CUSTOMER <span class="eb-ur-sub">(کسٹمر محفوظ کریں)</span>
             </button>
         </form>
     </div>
@@ -270,13 +257,13 @@
     <!-- ===== 👥 CUSTOMERS LIST ===== -->
     <div class="panel-card">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <h2><i class="fas fa-users"></i> Customers (<span id="custCount">0</span>/<span id="custLimit">50</span>)</h2>
+            <h2><i class="fas fa-users"></i> <span id="custListHeaderTitle">Customers <span class="eb-ur-sub">(کسٹمرز)</span></span> (<span id="custCount">0</span>/<span id="custLimit">50</span>)</h2>
             <div style="font-size:12px; color:#7f8c8d;">
-                💡 Click <b>📜 History</b> on any customer to see all their invoices, items &amp; ledger!
+                💡 Click <b>📜 Khata Ledger</b> on any customer to see all invoices &amp; ledger.<span class="eb-ur-compact">کسی بھی کسٹمر کے تمام بل اور کھاتہ تفصیل دیکھنے کے لیے Khata Ledger پر کلک کریں۔</span>
             </div>
         </div>
         <div id="customersList">
-            <div class="loading-inline">Loading customers...</div>
+            <div class="loading-inline">Loading customers... <span class="eb-ur-sub">(لوڈ ہو رہا ہے)</span></div>
         </div>
     </div>
 
@@ -293,25 +280,25 @@
                     <i class="fas fa-user-tie"></i>
                 </div>
                 <div>
-                    <h3 id="modalCustName">Customer Ledger</h3>
+                    <h3 id="modalCustName">Customer Ledger <span class="eb-ur-sub">(کسٹمر کھاتہ)</span></h3>
                     <div id="modalCustSub" class="history-modal-sub">Phone / Shop / Route</div>
                 </div>
             </div>
             <div class="modal-header-right">
                 <button class="btn-action-sm btn-payment-cust" onclick="recordQuickPayment()" title="Receive Money / Payment Recovery">
-                    <i class="fas fa-hand-holding-usd"></i> <span>Receive Payment</span>
+                    <i class="fas fa-hand-holding-usd"></i> <span>Receive Payment <span class="eb-ur-sub">(وصولی)</span></span>
                 </button>
                 <button class="btn-action-sm btn-new-bill-cust" onclick="createNewBillForThisCustomer()" title="Create New Bill">
-                    <i class="fas fa-plus-circle"></i> <span>New Bill</span>
+                    <i class="fas fa-plus-circle"></i> <span>New Bill <span class="eb-ur-sub">(نیا بل)</span></span>
                 </button>
-                <button id="btnModalCustImeiDevices" class="btn-action-sm" style="background:#0f766e; color:#fff;" onclick="openCustomerDeviceImeiModal()" title="View Sold / Repaired Phones, IMEIs &amp; Warranties for this Customer">
-                    <i class="fas fa-mobile-alt"></i> <span>IMEI / Devices</span>
+                <button id="btnModalCustImeiDevices" class="btn-action-sm" style="display:none; background:#0f766e; color:#fff;" onclick="openCustomerDeviceImeiModal()" title="View Sold / Repaired Phones, IMEIs &amp; Warranties for this Customer">
+                    <i class="fas fa-mobile-alt"></i> <span>IMEI / Devices <span class="eb-ur-sub">(ڈیوائسز)</span></span>
                 </button>
                 <button class="btn-action-sm btn-print-ledger" onclick="printCustomerLedger()" title="Print Full A4 Khata Statement">
-                    <i class="fas fa-print"></i> <span>A4 Khata</span>
+                    <i class="fas fa-print"></i> <span>A4 Khata <span class="eb-ur-sub">(کھاتہ)</span></span>
                 </button>
                 <button class="btn-action-sm" style="background:#7c3aed; color:#fff;" onclick="printCustomerLedgerThermal()" title="Print 80mm / 58mm Thermal Khata Parchi">
-                    <i class="fas fa-receipt"></i> <span>🧾 Thermal Slip</span>
+                    <i class="fas fa-receipt"></i> <span>🧾 Thermal Slip <span class="eb-ur-sub">(پرچی)</span></span>
                 </button>
                 <button class="btn-action-sm btn-whatsapp-ledger" onclick="shareLedgerWhatsapp()" title="Share Khata Statement on WhatsApp">
                     <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
@@ -323,19 +310,19 @@
         <!-- Summary KPIs inside Modal (Opening Bal, Total Billed, Total Paid, Net Balance, Credit Limit) -->
         <div class="modal-kpi-grid">
             <div class="modal-kpi-box">
-                <span class="kpi-title">Opening Balance</span>
+                <span class="kpi-title">Opening Balance <span class="eb-ur-sub">(سابقہ بقایا)</span></span>
                 <span class="kpi-val text-muted" id="modalOpeningBal">Rs 0</span>
             </div>
             <div class="modal-kpi-box">
-                <span class="kpi-title">Total Invoices (Dr)</span>
+                <span class="kpi-title">Total Invoices (Dr) <span class="eb-ur-sub">(کل بل)</span></span>
                 <span class="kpi-val text-primary" id="modalTotalBilled">Rs 0</span>
             </div>
             <div class="modal-kpi-box">
-                <span class="kpi-title">Total Received (Cr)</span>
+                <span class="kpi-title">Total Received (Cr) <span class="eb-ur-sub">(کل وصولی)</span></span>
                 <span class="kpi-val text-success" id="modalTotalPaid">Rs 0</span>
             </div>
             <div class="modal-kpi-box kpi-highlight" id="modalCurrentBalanceCard">
-                <span class="kpi-title">Current Khata Balance</span>
+                <span class="kpi-title">Current Khata Balance <span class="eb-ur-sub">(موجودہ بقایا)</span></span>
                 <span class="kpi-val text-danger" id="modalCurrentBalance">Rs 0</span>
             </div>
         </div>
@@ -343,13 +330,13 @@
         <!-- Segmented Tab Navigation -->
         <div class="ledger-tab-nav">
             <button class="ledger-tab-btn active" data-tab="ledger" onclick="switchLedgerTab('ledger')">
-                <i class="fas fa-book"></i> <span>Khata Ledger Statement</span>
+                <i class="fas fa-book"></i> <span>Khata Ledger <span class="eb-ur-sub">(کھاتہ تفصیل)</span></span>
             </button>
             <button class="ledger-tab-btn" data-tab="bills" onclick="switchLedgerTab('bills')">
-                <i class="fas fa-file-invoice"></i> <span>Bills &amp; Invoices (<span id="modalTotalBillsBadge">0</span>)</span>
+                <i class="fas fa-file-invoice"></i> <span>Bills &amp; Invoices <span class="eb-ur-sub">(بل)</span> (<span id="modalTotalBillsBadge">0</span>)</span>
             </button>
             <button class="ledger-tab-btn" data-tab="payments" onclick="switchLedgerTab('payments')">
-                <i class="fas fa-money-check-alt"></i> <span>Payment History (<span id="modalTotalPaymentsBadge">0</span>)</span>
+                <i class="fas fa-money-check-alt"></i> <span>Payment History <span class="eb-ur-sub">(وصولیاں)</span> (<span id="modalTotalPaymentsBadge">0</span>)</span>
             </button>
         </div>
 
@@ -357,19 +344,19 @@
         <div class="modal-actions-bar">
             <div class="search-mini">
                 <i class="fas fa-search"></i>
-                <input type="text" id="billSearchInput" placeholder="Filter bill #, receipt #, date, items, note...">
+                <input type="text" id="billSearchInput" placeholder="Filter bill #, receipt #, date, items, note..." data-eb-ph-en="Filter bill #, receipt #, date, items, note..." data-eb-ph-ur="Filter bill #, receipt #, date... (بل، رسید یا تاریخ تلاش کریں)">
             </div>
             <div class="filter-controls-group">
                 <select id="modalDateFilter" class="select-mini" onchange="onModalFilterChange()">
-                    <option value="all">📅 All Time</option>
-                    <option value="today">Today</option>
-                    <option value="last7">Last 7 Days</option>
-                    <option value="thisMonth" selected>This Month</option>
-                    <option value="lastMonth">Last Month</option>
-                    <option value="thisYear">This Year</option>
+                    <option value="all" data-eb-en="📅 All Time" data-eb-ur="📅 All Time (مکمل ریکارڈ)">📅 All Time</option>
+                    <option value="today" data-eb-en="Today" data-eb-ur="Today (آج)">Today</option>
+                    <option value="last7" data-eb-en="Last 7 Days" data-eb-ur="Last 7 Days (گزشتہ 7 دن)">Last 7 Days</option>
+                    <option value="thisMonth" selected data-eb-en="This Month" data-eb-ur="This Month (اس ماہ)">This Month</option>
+                    <option value="lastMonth" data-eb-en="Last Month" data-eb-ur="Last Month (گزشتہ ماہ)">Last Month</option>
+                    <option value="thisYear" data-eb-en="This Year" data-eb-ur="This Year (اس سال)">This Year</option>
                 </select>
                 <button class="btn-action-sm btn-outline-sm" onclick="adjustCustomerOpeningBalance()" title="Adjust Opening Balance">
-                    <i class="fas fa-sliders-h"></i> <span>Adjust Opening</span>
+                    <i class="fas fa-sliders-h"></i> <span>Adjust Opening <span class="eb-ur-sub">(سابقہ درستگی)</span></span>
                 </button>
             </div>
         </div>
@@ -380,18 +367,18 @@
                 <thead>
                     <tr>
                         <th style="width:40px; text-align:center;">#</th>
-                        <th>Date &amp; Time</th>
-                        <th>Type</th>
-                        <th>Voucher / Ref #</th>
-                        <th>Description / Details</th>
-                        <th style="text-align:right;">Debit (Dr)</th>
-                        <th style="text-align:right;">Credit (Cr)</th>
-                        <th style="text-align:right;">Running Balance</th>
-                        <th style="text-align:center; width:90px;">Action</th>
+                        <th>Date &amp; Time <span class="eb-ur-sub">(تاریخ)</span></th>
+                        <th>Type <span class="eb-ur-sub">(قسم)</span></th>
+                        <th>Voucher / Ref # <span class="eb-ur-sub">(حوالہ)</span></th>
+                        <th>Description / Details <span class="eb-ur-sub">(تفصیل)</span></th>
+                        <th style="text-align:right;">Debit (Dr) <span class="eb-ur-sub">(بنام)</span></th>
+                        <th style="text-align:right;">Credit (Cr) <span class="eb-ur-sub">(جمع)</span></th>
+                        <th style="text-align:right;">Running Balance <span class="eb-ur-sub">(بقایا)</span></th>
+                        <th style="text-align:center; width:90px;">Action <span class="eb-ur-sub">(عمل)</span></th>
                     </tr>
                 </thead>
                 <tbody id="ledgerTableBody">
-                    <tr><td colspan="9" style="text-align:center; padding:25px;">Ledger statement load ho raha hai...</td></tr>
+                    <tr><td colspan="9" style="text-align:center; padding:25px;">Loading ledger statement... <span class="eb-ur-sub">(کھاتہ لوڈ ہو رہا ہے)</span></td></tr>
                 </tbody>
             </table>
         </div>
@@ -401,18 +388,18 @@
             <table class="history-table">
                 <thead>
                     <tr>
-                        <th>Bill #</th>
-                        <th>Date &amp; Time</th>
-                        <th>Items Count</th>
-                        <th>Grand Total</th>
-                        <th>Received</th>
-                        <th>Bill Balance</th>
-                        <th>Status</th>
-                        <th style="text-align:center;">Action</th>
+                        <th>Bill # <span class="eb-ur-sub">(بل نمبر)</span></th>
+                        <th>Date &amp; Time <span class="eb-ur-sub">(تاریخ)</span></th>
+                        <th>Items <span class="eb-ur-sub">(آئٹمز)</span></th>
+                        <th>Grand Total <span class="eb-ur-sub">(کل رقم)</span></th>
+                        <th>Received <span class="eb-ur-sub">(وصول)</span></th>
+                        <th>Bill Balance <span class="eb-ur-sub">(بقایا)</span></th>
+                        <th>Status <span class="eb-ur-sub">(حالت)</span></th>
+                        <th style="text-align:center;">Action <span class="eb-ur-sub">(عمل)</span></th>
                     </tr>
                 </thead>
                 <tbody id="billsTableBody">
-                    <tr><td colspan="8" style="text-align:center; padding:25px;">Bills history load ho rahi hai...</td></tr>
+                    <tr><td colspan="8" style="text-align:center; padding:25px;">Loading bills history... <span class="eb-ur-sub">(بل لوڈ ہو رہے ہیں)</span></td></tr>
                 </tbody>
             </table>
         </div>
@@ -422,17 +409,17 @@
             <table class="history-table">
                 <thead>
                     <tr>
-                        <th>Receipt #</th>
-                        <th>Date &amp; Time</th>
-                        <th>Method</th>
-                        <th>Remarks / Note</th>
-                        <th style="text-align:right;">Amount Received</th>
-                        <th style="text-align:right;">Balance After</th>
-                        <th style="text-align:center;">Action</th>
+                        <th>Receipt # <span class="eb-ur-sub">(رسید نمبر)</span></th>
+                        <th>Date &amp; Time <span class="eb-ur-sub">(تاریخ)</span></th>
+                        <th>Method <span class="eb-ur-sub">(طریقہ)</span></th>
+                        <th>Remarks / Note <span class="eb-ur-sub">(تفصیل)</span></th>
+                        <th style="text-align:right;">Amount Received <span class="eb-ur-sub">(وصول رقم)</span></th>
+                        <th style="text-align:right;">Balance After <span class="eb-ur-sub">(بعد بقایا)</span></th>
+                        <th style="text-align:center;">Action <span class="eb-ur-sub">(عمل)</span></th>
                     </tr>
                 </thead>
                 <tbody id="paymentsTableBody">
-                    <tr><td colspan="7" style="text-align:center; padding:25px;">Payments history load ho rahi hai...</td></tr>
+                    <tr><td colspan="7" style="text-align:center; padding:25px;">Loading payment history... <span class="eb-ur-sub">(وصولیاں لوڈ ہو رہی ہیں)</span></td></tr>
                 </tbody>
             </table>
         </div>

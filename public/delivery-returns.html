@@ -39,26 +39,26 @@
     <div id="supplierDedicatedBanner" style="display:none; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:#fff; border-radius:14px; padding:16px 20px; margin-bottom:14px; box-shadow:0 4px 14px rgba(2,132,199,0.3);">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
             <div>
-                <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; opacity:0.85; font-weight:bold;">🚚 Delivery Supplier Van Portal</div>
+                <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; opacity:0.85; font-weight:bold;">🚚 Delivery Supplier Van Portal <span class="eb-ur-sub">(ڈلیوری سپلائر پورٹل)</span></div>
                 <h2 style="margin:2px 0 4px; font-size:20px; font-weight:800;" id="supplierBannerName">Welcome, Delivery Salesman!</h2>
                 <div style="font-size:12.5px; opacity:0.95;">
-                    📍 مقررہ علاقہ / روٹ: <b id="supplierBannerRoute">General Route</b> &nbsp;|&nbsp; 
+                    📍 Assigned Area / Route <span class="eb-ur-sub">(مقررہ علاقہ / روٹ)</span>: <b id="supplierBannerRoute">General Route</b> &nbsp;|&nbsp; 
                     🏢 <span id="supplierBannerAgency">Agency Depot</span>
                 </div>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn" onclick="openLoadingSheetForCurrentSupplier()" style="background:#fff; color:#0369a1; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
-                    <i class="fas fa-file-invoice"></i> 📄 مائی گاڑی لوڈنگ شیٹ (Van Sheet)
+                    <i class="fas fa-file-invoice"></i> 📄 My Van Loading Sheet <span class="eb-ur-sub">(گاڑی لوڈنگ شیٹ)</span>
                 </button>
                 <button type="button" class="btn" onclick="openReturnModal()" style="background:#8b5cf6; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-                    <i class="fas fa-undo-alt"></i> 🔄 واپس شدہ مال کا اندراج (Van Return)
+                    <i class="fas fa-undo-alt"></i> 🔄 Record Van Return <span class="eb-ur-sub">(واپس شدہ مال)</span>
                 </button>
             </div>
         </div>
         <div style="display:flex; gap:16px; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.2); font-size:12px; flex-wrap:wrap;">
-            <div>📦 میری گاڑی پر لوڈ شدہ آرڈرز: <b id="supBannerActiveOrders" style="font-size:14px; color:#fde047;">0</b></div>
-            <div>💰 ترسیل کی کل مالیت: <b id="supBannerActiveAmount" style="font-size:14px; color:#fde047;">Rs 0</b></div>
-            <div>✅ ڈلیور شدہ آرڈرز: <b id="supBannerDeliveredOrders" style="font-size:14px; color:#86efac;">0</b></div>
+            <div>📦 Loaded Orders <span class="eb-ur-sub">(لوڈ شدہ آرڈرز)</span>: <b id="supBannerActiveOrders" style="font-size:14px; color:#fde047;">0</b></div>
+            <div>💰 Delivery Value <span class="eb-ur-sub">(ترسیل مالیت)</span>: <b id="supBannerActiveAmount" style="font-size:14px; color:#fde047;">Rs 0</b></div>
+            <div>✅ Delivered Orders <span class="eb-ur-sub">(ڈلیور شدہ)</span>: <b id="supBannerDeliveredOrders" style="font-size:14px; color:#86efac;">0</b></div>
         </div>
     </div>
 
@@ -69,9 +69,9 @@
                 <i class="fas fa-clipboard-list"></i>
             </div>
             <div class="kpi-info">
-                <div class="kpi-title">Booker Orders</div>
+                <div class="kpi-title" id="delivKpiTitle1">Booker Orders <span class="eb-ur-sub">(بکر آرڈرز)</span></div>
                 <div class="kpi-val" id="kpiTotalOrders">0</div>
-                <div class="kpi-sub">Field booked orders</div>
+                <div class="kpi-sub" id="delivKpiSub1">Field booked orders <span class="eb-ur-sub">(فیلڈ آرڈرز)</span></div>
             </div>
         </div>
         <div class="kpi-box">
@@ -79,9 +79,9 @@
                 <i class="fas fa-truck-moving"></i>
             </div>
             <div class="kpi-info">
-                <div class="kpi-title">Out for Delivery</div>
+                <div class="kpi-title" id="delivKpiTitle2">Out for Delivery <span class="eb-ur-sub">(راستے میں)</span></div>
                 <div class="kpi-val" id="kpiDispatched">0</div>
-                <div class="kpi-sub" id="kpiDispatchedSub">0 Active vans</div>
+                <div class="kpi-sub" id="kpiDispatchedSub">Active vans <span class="eb-ur-sub">(فعال گاڑیاں)</span></div>
             </div>
         </div>
         <div class="kpi-box">
@@ -89,9 +89,9 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <div class="kpi-info">
-                <div class="kpi-title">Delivered Today</div>
+                <div class="kpi-title" id="delivKpiTitle3">Delivered Today <span class="eb-ur-sub">(ڈلیور شدہ)</span></div>
                 <div class="kpi-val" id="kpiDelivered">0</div>
-                <div class="kpi-sub">Shops supplied</div>
+                <div class="kpi-sub" id="delivKpiSub3">Shops supplied <span class="eb-ur-sub">(دکانوں پر ترسیل)</span></div>
             </div>
         </div>
         <div class="kpi-box" style="border-left:4px solid #8b5cf6;">
@@ -99,17 +99,17 @@
                 <i class="fas fa-undo-alt"></i>
             </div>
             <div class="kpi-info">
-                <div class="kpi-title">Van Stock Returns</div>
+                <div class="kpi-title" id="delivKpiTitle4">Van Stock Returns <span class="eb-ur-sub">(مال واپسی)</span></div>
                 <div class="kpi-val" id="kpiReturns">0</div>
-                <div class="kpi-sub" style="color:#7c3aed; font-weight:bold;">0 Profit / 0 Loss items</div>
+                <div class="kpi-sub" id="delivKpiSub4" style="color:#7c3aed; font-weight:bold;">0 Profit / 0 Loss items <span class="eb-ur-sub">(بغیر نفع نقصان)</span></div>
             </div>
         </div>
-        <div class="kpi-box" style="border-left:4px solid #ef4444; cursor:pointer;" onclick="switchVyaparTab('claims')" title="Click to view Damaged & Expired Claims">
+        <div class="kpi-box" style="border-left:4px solid #ef4444; cursor:pointer;" onclick="switchVyaparTab('claims')" data-eb-title-en="Click to view Damaged & Expired Claims" data-eb-title-ur="ٹوٹ پھوٹ اور ایکسپائرڈ کلیمز دیکھنے کے لیے کلک کریں" title="Click to view Damaged & Expired Claims">
             <div class="kpi-icon" style="background:#fee2e2; color:#dc2626;">
                 <i class="fas fa-triangle-exclamation"></i>
             </div>
             <div class="kpi-info">
-                <div class="kpi-title">Damage / Expiry Claims</div>
+                <div class="kpi-title" id="delivKpiTitle5">Damage / Expiry Claims <span class="eb-ur-sub">(ٹوٹ پھوٹ کلیم)</span></div>
                 <div class="kpi-val" id="kpiClaimsLoss" style="color:#dc2626;">Rs 0</div>
                 <div class="kpi-sub" id="kpiClaimsRecoveredSub" style="color:#15803d; font-weight:bold;">0 Recovered / 0 Pending</div>
             </div>
@@ -119,33 +119,30 @@
     <!-- ===== 📑 VYAPAR HEADER BAR & TABS ===== -->
     <div class="vyapar-header-bar">
         <div class="vyapar-tabs">
-            <button class="vyapar-tab-btn active" data-tab="orders">
+            <button class="vyapar-tab-btn active" data-tab="orders" id="tabBtnOrders">
                 <i class="fas fa-truck-moving"></i> Van Dispatch &amp; Orders <span class="ur-sub">(آرڈرز و گاڑی)</span>
             </button>
             <button class="vyapar-tab-btn" data-tab="claims" id="tabBtnClaims" style="color:#dc2626; font-weight:bold;">
                 <i class="fas fa-triangle-exclamation"></i> 💥 Damaged &amp; Expired Claims <span class="ur-sub">(ٹوٹ پھوٹ و کلیم)</span>
             </button>
-            <button class="vyapar-tab-btn" data-tab="returns">
+            <button class="vyapar-tab-btn" data-tab="returns" id="tabBtnReturns">
                 <i class="fas fa-undo"></i> Stock Return Inward <span class="ur-sub">(مال واپسی)</span>
             </button>
-            <button class="vyapar-tab-btn" data-tab="history">
+            <button class="vyapar-tab-btn" data-tab="history" id="tabBtnHistory">
                 <i class="fas fa-history"></i> Return Records <span class="ur-sub">(ریکارڈز)</span>
             </button>
-            <button class="vyapar-tab-btn" data-tab="staff">
+            <button class="vyapar-tab-btn" data-tab="staff" id="tabBtnStaff">
                 <i class="fas fa-users-cog"></i> Bookers &amp; Suppliers <span class="ur-sub">(عملہ)</span>
             </button>
         </div>
         <div class="action-btns">
-            <button class="btn-vyapar" id="btnToggleLang" onclick="toggleLanguageMode()" style="background:#0f172a; color:#fff;" title="Switch English / Mix Language">
-                <i class="fas fa-language"></i> <span id="currentLangLabel">Language: English</span>
-            </button>
-            <a href="booker-orders.html" class="btn-vyapar btn-vyapar-blue" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#0284c7;">
-                <i class="fas fa-clipboard-check"></i> Booker Hub
+            <a href="booker-orders.html" id="btnLinkBookerHub" class="btn-vyapar btn-vyapar-blue" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#0284c7;">
+                <i class="fas fa-clipboard-check"></i> Booker Hub <span class="eb-ur-sub">(بکر ہب)</span>
             </a>
-            <button class="btn-vyapar" id="btnOpenClaimModal" style="background:#dc2626; color:#fff;" title="Record damaged, broken or expired items">
+            <button class="btn-vyapar" id="btnOpenClaimModal" style="background:#dc2626; color:#fff;" data-eb-title-en="Record damaged, broken or expired items" data-eb-title-ur="ٹوٹ پھوٹ، خراب یا ایکسپائرڈ مال درج کریں" title="Record damaged, broken or expired items">
                 <i class="fas fa-plus-circle"></i> + Record Damage / Expiry <span class="ur-sub">(نقصان درج کریں)</span>
             </button>
-            <button class="btn-vyapar" id="btnManageCategories" style="background:#475569; color:#fff;" title="Manage Damage & Expiry Categories">
+            <button class="btn-vyapar" id="btnManageCategories" style="background:#475569; color:#fff;" data-eb-title-en="Manage Damage & Expiry Categories" data-eb-title-ur="ٹوٹ پھوٹ و ایکسپائری کیٹیگریز مینج کریں" title="Manage Damage & Expiry Categories">
                 <i class="fas fa-tags"></i> Categories <span class="ur-sub">(کیٹیگریز)</span>
             </button>
             <button class="btn-vyapar btn-vyapar-purple" id="btnOpenReturnModal">
@@ -165,17 +162,17 @@
         <div class="filter-bar">
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" id="orderSearchInput" placeholder="Search order by Bill #, Shop name, or Booker...">
+                <input type="text" id="orderSearchInput" data-eb-ph-en="Search order by Bill #, Shop name, or Booker..." data-eb-ph-ur="بل نمبر، دکان یا بکر کے نام سے تلاش کریں..." placeholder="Search order by Bill #, Shop name, or Booker...">
             </div>
             <div class="filter-chips">
-                <button class="filter-chip active" data-status="all">All Orders</button>
+                <button class="filter-chip active" data-status="all">All Orders <span class="eb-ur-sub">(تمام)</span></button>
                 <button class="filter-chip" data-status="pending_approval" style="color:#d97706; font-weight:800;">
-                    ⏳ Pending Approval (<span id="chipPendingApprovalCount">0</span>)
+                    ⏳ Pending Approval <span class="eb-ur-sub">(زیر منظوری)</span> (<span id="chipPendingApprovalCount">0</span>)
                 </button>
-                <button class="filter-chip" data-status="approved">✅ Approved (منظور شدہ)</button>
-                <button class="filter-chip" data-status="dispatched">🚚 On Delivery Van</button>
-                <button class="filter-chip" data-status="delivered">✅ Delivered</button>
-                <button class="filter-chip" data-status="returned">🔄 Returned / Unsold</button>
+                <button class="filter-chip" data-status="approved">✅ Approved <span class="eb-ur-sub">(منظور شدہ)</span></button>
+                <button class="filter-chip" data-status="dispatched">🚚 On Delivery Van <span class="eb-ur-sub">(گاڑی پر)</span></button>
+                <button class="filter-chip" data-status="delivered">✅ Delivered <span class="eb-ur-sub">(ڈلیور)</span></button>
+                <button class="filter-chip" data-status="returned">🔄 Returned / Unsold <span class="eb-ur-sub">(واپسی)</span></button>
             </div>
         </div>
 
@@ -183,14 +180,14 @@
         <div id="bulkOrdersBar" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 14px; margin-bottom:12px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div style="font-size:13px; font-weight:bold; color:#1e40af; display:flex; align-items:center; gap:6px;">
                 <i class="fas fa-check-circle" style="color:#3b82f6;"></i>
-                <span id="selectedOrdersCount">0</span> آرڈرز منتخب ہیں
+                <span id="selectedOrdersCount">0</span> Orders Selected <span class="eb-ur-sub">(آرڈرز منتخب ہیں)</span>
             </div>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <select id="bulkSupplierSelect" style="padding:7px 12px; border-radius:6px; border:1px solid #93c5fd; font-size:13px; font-weight:bold; background:#fff; outline:none;">
-                    <option value="">— Select Delivery Supplier —</option>
+                    <option value="" data-eb-en="— Select Delivery Supplier —" data-eb-ur="— Select Delivery Supplier (ڈلیوری سپلائر منتخب کریں) —">— Select Delivery Supplier —</option>
                 </select>
                 <button type="button" class="btn btn-sm" id="btnBulkApprove" style="background:#10b981; color:#fff; font-weight:bold; padding:7px 14px; border-radius:6px; border:none; cursor:pointer;">
-                    <i class="fas fa-check-double"></i> Accept &amp; Assign to Supplier
+                    <i class="fas fa-check-double"></i> Accept &amp; Assign to Supplier <span class="eb-ur-sub">(منظور و سپلائر تفویض)</span>
                 </button>
             </div>
         </div>
@@ -201,17 +198,17 @@
                 <thead>
                     <tr>
                         <th style="width:40px;"><input type="checkbox" id="selectAllOrders"></th>
-                        <th>Order / Bill #</th>
-                        <th>Customer / Shop</th>
-                        <th>Order Booker</th>
-                        <th>Items &amp; Total</th>
-                        <th>Status</th>
-                        <th>Assigned Supplier</th>
-                        <th style="text-align:right;">Actions</th>
+                        <th id="delivOrderColBill">Order / Bill # <span class="eb-ur-sub">(بل نمبر)</span></th>
+                        <th id="delivOrderColCustomer">Customer / Shop <span class="eb-ur-sub">(دکان / گاہک)</span></th>
+                        <th id="delivOrderColBooker">Order Booker <span class="eb-ur-sub">(بکر)</span></th>
+                        <th>Items &amp; Total <span class="eb-ur-sub">(آئٹمز و رقم)</span></th>
+                        <th>Status <span class="eb-ur-sub">(اسٹیٹس)</span></th>
+                        <th id="delivOrderColSupplier">Assigned Supplier <span class="eb-ur-sub">(سپلائر)</span></th>
+                        <th style="text-align:right;">Actions <span class="eb-ur-sub">(کارروائی)</span></th>
                     </tr>
                 </thead>
                 <tbody id="ordersTableBody">
-                    <tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">Loading field orders...</td></tr>
+                    <tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">Loading field orders... <span class="eb-ur-sub">(فیلڈ آرڈرز لوڈ ہو رہے ہیں...)</span></td></tr>
                 </tbody>
             </table>
             </div>
@@ -225,44 +222,43 @@
         <div class="zero-profit-banner">
             <i class="fas fa-shield-alt"></i>
             <div>
-                <b>اکاؤنٹنگ اور اسٹاک اصول (Accounting Rule):</b> سپلائر کا جو مال دکان بند ہونے یا فالتو ہونے پر واپس آئے گا، 
-                وہ <b>نہ سیل میں شامل ہو گا، نہ خریداری میں، نہ نفع میں اور نہ نقصان میں</b>۔ یہ صرف گودام کے فزیکل اسٹاک میں 
-                واپس جمع ہو گا تاکہ مال اور گاڑی کا حساب 100% شفاف رہے۔
+                <b>Accounting &amp; Stock Rule <span class="eb-ur-sub">(اکاؤنٹنگ و اسٹاک اصول)</span>:</b> Unsold stock brought back by a supplier (due to shop closed or excess load) is <b>excluded from Sales, Purchases, Profit, and Loss</b>. It is restored strictly to physical warehouse inventory for 100% transparent stock &amp; van tally.
+                <span class="eb-ur-compact">سپلائر کا جو مال دکان بند ہونے یا فالتو ہونے پر واپس آئے گا، وہ نہ سیل میں شامل ہو گا، نہ خریداری میں، نہ نفع میں اور نہ نقصان میں — صرف گودام کے فزیکل اسٹاک میں واپس جمع ہو گا۔</span>
             </div>
         </div>
 
         <div class="vyapar-card" style="padding:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
                 <div>
-                    <h2 style="font-size:18px; margin:0 0 4px; color:#0f172a;"><i class="fas fa-undo-alt" style="color:#7c3aed;"></i> Unsold Stock Return Register (مال واپسی ریکارڈ)</h2>
-                    <div style="font-size:12px; color:#64748b;">Record unsold stock brought back by Delivery Salesman / Supplier</div>
+                    <h2 style="font-size:18px; margin:0 0 4px; color:#0f172a;"><i class="fas fa-undo-alt" style="color:#7c3aed;"></i> Unsold Stock Return Register <span class="eb-ur-sub">(مال واپسی ریکارڈ)</span></h2>
+                    <div style="font-size:12px; color:#64748b;">Record unsold stock brought back by Delivery Salesman / Supplier <span class="eb-ur-compact">ڈلیوری سپلائر کے واپس لائے گئے غیر فروخت شدہ مال کا اندراج</span></div>
                 </div>
                 <button class="btn-vyapar btn-vyapar-purple" id="btnQuickReturnAction">
-                    <i class="fas fa-plus"></i> Record New Return Voucher
+                    <i class="fas fa-plus"></i> Record New Return Voucher <span class="eb-ur-sub">(نیا واپسی واؤچر)</span>
                 </button>
             </div>
 
             <div class="search-box" style="margin-bottom:14px;">
                 <i class="fas fa-search"></i>
-                <input type="text" id="returnSearchInput" placeholder="Search by Voucher #, Supplier, Booker, or Shop...">
+                <input type="text" id="returnSearchInput" data-eb-ph-en="Search by Voucher #, Supplier, Booker, or Shop..." data-eb-ph-ur="واؤچر نمبر، سپلائر، بکر یا دکان تلاش کریں..." placeholder="Search by Voucher #, Supplier, Booker, or Shop...">
             </div>
 
             <div style="overflow-x:auto; max-width:100%;">
             <table class="vyapar-table">
                 <thead>
                     <tr>
-                        <th>Voucher #</th>
-                        <th>Date &amp; Time</th>
-                        <th>Delivery Supplier (سپلائر)</th>
-                        <th>Order Booker (بکر)</th>
-                        <th>Shop / Customer</th>
-                        <th>Returned Items</th>
-                        <th>Reason (واپسی کی وجہ)</th>
-                        <th style="text-align:right;">Voucher</th>
+                        <th>Voucher # <span class="eb-ur-sub">(واؤچر)</span></th>
+                        <th>Date &amp; Time <span class="eb-ur-sub">(تاریخ و وقت)</span></th>
+                        <th>Delivery Supplier <span class="eb-ur-sub">(سپلائر)</span></th>
+                        <th>Order Booker <span class="eb-ur-sub">(بکر)</span></th>
+                        <th>Shop / Customer <span class="eb-ur-sub">(دکان)</span></th>
+                        <th>Returned Items <span class="eb-ur-sub">(واپس مال)</span></th>
+                        <th>Reason <span class="eb-ur-sub">(واپسی کی وجہ)</span></th>
+                        <th style="text-align:right;">Voucher <span class="eb-ur-sub">(رسید)</span></th>
                     </tr>
                 </thead>
                 <tbody id="returnsTableBody">
-                    <tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">Loading stock returns...</td></tr>
+                    <tr><td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">Loading stock returns... <span class="eb-ur-sub">(مال واپسی لوڈ ہو رہی ہے...)</span></td></tr>
                 </tbody>
             </table>
             </div>
@@ -274,7 +270,7 @@
          ============================================ -->
     <div id="tabHistory" class="tab-pane" style="display:none;">
         <div class="vyapar-card" style="padding:20px;">
-            <h2 style="font-size:17px; margin:0 0 14px; color:#0f172a;"><i class="fas fa-chart-pie" style="color:#0284c7;"></i> Return Reason Breakdown &amp; Analysis</h2>
+            <h2 style="font-size:17px; margin:0 0 14px; color:#0f172a;"><i class="fas fa-chart-pie" style="color:#0284c7;"></i> Return Reason Breakdown &amp; Analysis <span class="eb-ur-sub">(واپسی کی وجوہات کا تجزیہ)</span></h2>
             <div id="returnReasonStats" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; margin-bottom:20px;">
                 <!-- Filled dynamically -->
             </div>
@@ -291,11 +287,11 @@
         <div class="vyapar-card" style="padding:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
                 <div>
-                    <h2 style="font-size:18px; margin:0 0 4px; color:#0f172a;"><i class="fas fa-users-cog" style="color:#10b981;"></i> Field Staff Directory (آرڈر بکرز اور ڈلیوری سپلائرز)</h2>
-                    <div style="font-size:12px; color:#64748b;">Manage field order bookers and van delivery salesmen</div>
+                    <h2 style="font-size:18px; margin:0 0 4px; color:#0f172a;"><i class="fas fa-users-cog" style="color:#10b981;"></i> Field Staff Directory <span class="eb-ur-sub">(آرڈر بکرز اور ڈلیوری سپلائرز)</span></h2>
+                    <div style="font-size:12px; color:#64748b;">Manage field order bookers and van delivery salesmen <span class="eb-ur-compact">فیلڈ آرڈر بکرز اور ڈلیوری سپلائرز کو مینج کریں</span></div>
                 </div>
                 <button class="btn-vyapar btn-vyapar-green" id="btnOpenAddStaffModal">
-                    <i class="fas fa-user-plus"></i> + Add Booker or Supplier
+                    <i class="fas fa-user-plus"></i> + Add Booker or Supplier <span class="eb-ur-sub">(عملہ شامل کریں)</span>
                 </button>
             </div>
 
@@ -303,17 +299,17 @@
             <table class="vyapar-table">
                 <thead>
                     <tr>
-                        <th>Role &amp; Staff Name</th>
-                        <th>Contact / Phone</th>
-                        <th>Email &amp; Login</th>
-                        <th>Assigned Area / Route</th>
-                        <th>Status</th>
-                        <th>Orders / Deliveries</th>
-                        <th style="text-align:right;">Actions</th>
+                        <th>Role &amp; Staff Name <span class="eb-ur-sub">(عہدہ و نام)</span></th>
+                        <th>Contact / Phone <span class="eb-ur-sub">(موبائل)</span></th>
+                        <th>Email &amp; Login <span class="eb-ur-sub">(ای میل و لاگ ان)</span></th>
+                        <th>Assigned Area / Route <span class="eb-ur-sub">(علاقہ / روٹ)</span></th>
+                        <th>Status <span class="eb-ur-sub">(اسٹیٹس)</span></th>
+                        <th>Orders / Deliveries <span class="eb-ur-sub">(فیلڈ سرگرمی)</span></th>
+                        <th style="text-align:right;">Actions <span class="eb-ur-sub">(کارروائی)</span></th>
                     </tr>
                 </thead>
                 <tbody id="staffTableBody">
-                    <tr><td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">Loading staff members...</td></tr>
+                    <tr><td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">Loading staff members... <span class="eb-ur-sub">(عملہ لوڈ ہو رہا ہے...)</span></td></tr>
                 </tbody>
             </table>
             </div>
@@ -327,19 +323,20 @@
         <!-- Banner -->
         <div style="background:linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border:1.5px solid #fca5a5; border-radius:14px; padding:14px 18px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
             <div>
-                <h3 style="margin:0 0 4px; font-size:16px; color:#991b1b; display:flex; align-items:center; gap:8px;">
-                    <i class="fas fa-triangle-exclamation"></i> خراب، ٹوٹ پھوٹ و ایکسپائرڈ مال اور کلیم ریکوری پورٹل (Damaged, Expired &amp; Claims Hub)
+                <h3 style="margin:0 0 4px; font-size:16px; color:#991b1b; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <i class="fas fa-triangle-exclamation"></i> Damaged, Expired &amp; Claims Recovery Hub <span class="eb-ur-sub">(خراب، ٹوٹ پھوٹ و ایکسپائرڈ مال کلیم پورٹل)</span>
                 </h3>
                 <div style="font-size:12px; color:#7f1d1d;">
-                    نقصان کا اندراج خرید ریٹ (Purchase Price) پر ہوتا ہے، اور کمپنی / سپلائر سے مال یا رقم کی واپسی پر کلیم ریکوری (Recovered Successfully) میں تبدیل ہو جاتا ہے۔
+                    Losses are recorded at Purchase Price and convert to Recovered Successfully once settled by the company or supplier.
+                    <span class="eb-ur-compact">نقصان کا اندراج خرید ریٹ پر ہوتا ہے، اور کمپنی یا سپلائر سے مال یا رقم وصول ہونے پر کلیم ریکوری میں تبدیل ہو جاتا ہے۔</span>
                 </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn-vyapar" onclick="openDamageClaimModal()" style="background:#dc2626; color:#fff; font-size:12.5px; padding:8px 14px;">
-                    <i class="fas fa-plus"></i> + نیا نقصان / کلیم درج کریں
+                    <i class="fas fa-plus"></i> + New Damage / Claim <span class="eb-ur-sub">(نیا نقصان / کلیم)</span>
                 </button>
                 <button class="btn-vyapar" onclick="openManageCategoriesModal()" style="background:#475569; color:#fff; font-size:12.5px; padding:8px 14px;">
-                    <i class="fas fa-tags"></i> کیٹیگریز مینجر
+                    <i class="fas fa-tags"></i> Manage Categories <span class="eb-ur-sub">(کیٹیگریز مینجر)</span>
                 </button>
             </div>
         </div>
@@ -347,29 +344,29 @@
         <!-- Claims Internal KPI Ribbon -->
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:16px;">
             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,0.02);">
-                <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">کل اندراج شدہ آئٹمز</div>
-                <div style="font-size:22px; font-weight:800; color:#0f172a; margin-top:2px;" id="claimKpiCount">0 Items</div>
+                <div style="font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;">Total Claim Records <span class="eb-ur-sub">(کل اندراجات)</span></div>
+                <div style="font-size:22px; font-weight:800; color:#0f172a; margin-top:2px;" id="claimKpiCount">0 Records</div>
                 <div style="font-size:11px; color:#94a3b8;" id="claimKpiUnitsSub">0 Total Units</div>
             </div>
             <div style="background:#fff; border:1px solid #fee2e2; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,0.02); border-left:4px solid #ef4444;">
-                <div style="font-size:11px; font-weight:700; color:#991b1b; text-transform:uppercase;">کل کلیم رقم (خرید ریٹ پر)</div>
+                <div style="font-size:11px; font-weight:700; color:#991b1b; text-transform:uppercase;">Total Claim Value <span class="eb-ur-sub">(خرید ریٹ پر)</span></div>
                 <div style="font-size:22px; font-weight:800; color:#dc2626; margin-top:2px;" id="claimKpiTotalLoss">Rs 0</div>
-                <div style="font-size:11px; color:#ef4444;">Gross Claim Value (Cost)</div>
+                <div style="font-size:11px; color:#ef4444;">Gross Claim Value (Cost) <span class="eb-ur-sub">(کل دعویٰ)</span></div>
             </div>
             <div style="background:#fff; border:1px solid #dcfce7; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,0.02); border-left:4px solid #10b981;">
-                <div style="font-size:11px; font-weight:700; color:#166534; text-transform:uppercase;">کمپنی سے وصول شدہ (Recovered)</div>
+                <div style="font-size:11px; font-weight:700; color:#166534; text-transform:uppercase;">Recovered from Supplier <span class="eb-ur-sub">(وصول شدہ)</span></div>
                 <div style="font-size:22px; font-weight:800; color:#15803d; margin-top:2px;" id="claimKpiRecovered">Rs 0</div>
                 <div style="font-size:11px; color:#16a34a;" id="claimKpiRecoveredPercent">0% Recovered</div>
             </div>
             <div style="background:#fff; border:1px solid #fed7aa; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,0.02); border-left:4px solid #f97316;">
-                <div style="font-size:11px; font-weight:700; color:#9a3412; text-transform:uppercase;">خالص باقی نقصان (Net Loose)</div>
+                <div style="font-size:11px; font-weight:700; color:#9a3412; text-transform:uppercase;">Remaining Net Loss <span class="eb-ur-sub">(خالص نقصان)</span></div>
                 <div style="font-size:22px; font-weight:800; color:#ea580c; margin-top:2px;" id="claimKpiRemainingLoss">Rs 0</div>
-                <div style="font-size:11px; color:#c2410c;">Uncovered Financial Loss</div>
+                <div style="font-size:11px; color:#c2410c;">Uncovered Financial Loss <span class="eb-ur-sub">(بقیہ نقصان)</span></div>
             </div>
             <div style="background:#fff; border:1px solid #fef3c7; border-radius:12px; padding:14px 16px; box-shadow:0 2px 6px rgba(0,0,0,0.02); border-left:4px solid #f59e0b;">
-                <div style="font-size:11px; font-weight:700; color:#854d0e; text-transform:uppercase;">زیر التواء کلیمز</div>
+                <div style="font-size:11px; font-weight:700; color:#854d0e; text-transform:uppercase;">Pending Claims <span class="eb-ur-sub">(زیر التواء)</span></div>
                 <div style="font-size:22px; font-weight:800; color:#b45309; margin-top:2px;" id="claimKpiPending">0 Pending</div>
-                <div style="font-size:11px; color:#d97706;">Awaiting Settlement</div>
+                <div style="font-size:11px; color:#d97706;">Awaiting Settlement <span class="eb-ur-sub">(وصولی باقی)</span></div>
             </div>
         </div>
 
@@ -377,25 +374,25 @@
         <div class="filter-bar">
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" id="claimSearchInput" placeholder="پروڈکٹ، واؤچر #، سپلائر یا کلیم تلاش کریں...">
+                <input type="text" id="claimSearchInput" data-eb-ph-en="Search by Product, Voucher #, Supplier, or Claim..." data-eb-ph-ur="پروڈکٹ، واؤچر #، سپلائر یا کلیم تلاش کریں..." placeholder="Search by Product, Voucher #, Supplier, or Claim...">
             </div>
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; max-width:100%; min-width:0;">
                 <select id="claimCategoryFilter" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none; background:#fff; font-weight:600; color:#334155; max-width:100%; min-width:0; box-sizing:border-box;">
-                    <option value="all">تمام کیٹیگریز (All Categories)</option>
+                    <option value="all" data-eb-en="All Categories" data-eb-ur="All Categories (تمام کیٹیگریز)">All Categories</option>
                 </select>
                 <div class="filter-chips">
-                    <button class="filter-chip active" data-claim-status="all">تمام (All)</button>
-                    <button class="filter-chip" data-claim-status="pending" style="color:#b45309;">⏳ زیر التواء</button>
-                    <button class="filter-chip" data-claim-status="recovered" style="color:#15803d;">✅ مکمل وصول</button>
-                    <button class="filter-chip" data-claim-status="partial" style="color:#c2410c;">⚠️ جزوی وصول</button>
-                    <button class="filter-chip" data-claim-status="loss" style="color:#dc2626;">❌ خالص نقصان</button>
+                    <button class="filter-chip active" data-claim-status="all">All <span class="eb-ur-sub">(تمام)</span></button>
+                    <button class="filter-chip" data-claim-status="pending" style="color:#b45309;">⏳ Pending <span class="eb-ur-sub">(زیر التواء)</span></button>
+                    <button class="filter-chip" data-claim-status="recovered" style="color:#15803d;">✅ Recovered <span class="eb-ur-sub">(مکمل وصول)</span></button>
+                    <button class="filter-chip" data-claim-status="partial" style="color:#c2410c;">⚠️ Partial <span class="eb-ur-sub">(جزوی وصول)</span></button>
+                    <button class="filter-chip" data-claim-status="loss" style="color:#dc2626;">❌ Net Loss <span class="eb-ur-sub">(خالص نقصان)</span></button>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button class="btn" onclick="exportClaimsCSV()" style="background:#10b981; color:#fff; padding:7px 12px; border-radius:8px; font-size:12px; font-weight:bold;" title="Excel CSV ڈاؤن لوڈ کریں">
+                    <button class="btn" onclick="exportClaimsCSV()" style="background:#10b981; color:#fff; padding:7px 12px; border-radius:8px; font-size:12px; font-weight:bold;" data-eb-title-en="Download Excel CSV" data-eb-title-ur="ایکسل CSV ڈاؤن لوڈ کریں" title="Download Excel CSV">
                         <i class="fas fa-file-excel"></i> CSV
                     </button>
-                    <button class="btn" onclick="printClaimsTableReport()" style="background:#475569; color:#fff; padding:7px 12px; border-radius:8px; font-size:12px; font-weight:bold;" title="مکمل کلیمز رپورٹ پرنٹ کریں">
-                        <i class="fas fa-print"></i> پرنٹ
+                    <button class="btn" onclick="printClaimsTableReport()" style="background:#475569; color:#fff; padding:7px 12px; border-radius:8px; font-size:12px; font-weight:bold;" data-eb-title-en="Print Claims Report" data-eb-title-ur="مکمل کلیمز رپورٹ پرنٹ کریں" title="Print Claims Report">
+                        <i class="fas fa-print"></i> Print <span class="eb-ur-sub">(پرنٹ)</span>
                     </button>
                 </div>
             </div>
@@ -407,20 +404,20 @@
             <table class="vyapar-table">
                 <thead>
                     <tr>
-                        <th>Voucher #</th>
-                        <th>تاریخ / میعاد (Date)</th>
-                        <th>پروڈکٹ کا نام (Product)</th>
-                        <th>کیٹیگری (Category)</th>
-                        <th>تعداد و یونٹ (Qty)</th>
-                        <th>خرید ریٹ و کل نقصان (Loss at Cost)</th>
-                        <th>کمپنی / سپلائر (Supplier)</th>
-                        <th>کلیم اسٹیٹس (Status)</th>
-                        <th>وصولی تفصیل (Recovery &amp; Loss)</th>
-                        <th style="text-align:right;">کارروائی (Actions)</th>
+                        <th>Voucher # <span class="eb-ur-sub">(واؤچر)</span></th>
+                        <th>Date / Expiry <span class="eb-ur-sub">(تاریخ / میعاد)</span></th>
+                        <th>Product <span class="eb-ur-sub">(پروڈکٹ)</span></th>
+                        <th>Category <span class="eb-ur-sub">(کیٹیگری)</span></th>
+                        <th>Qty &amp; Unit <span class="eb-ur-sub">(تعداد)</span></th>
+                        <th>Cost &amp; Loss <span class="eb-ur-sub">(خرید ریٹ و نقصان)</span></th>
+                        <th>Supplier / Company <span class="eb-ur-sub">(کمپنی / سپلائر)</span></th>
+                        <th>Status <span class="eb-ur-sub">(اسٹیٹس)</span></th>
+                        <th>Recovery &amp; Loss <span class="eb-ur-sub">(وصولی تفصیل)</span></th>
+                        <th style="text-align:right;">Actions <span class="eb-ur-sub">(کارروائی)</span></th>
                     </tr>
                 </thead>
                 <tbody id="claimsTableBody">
-                    <tr><td colspan="10" style="text-align:center; padding:30px; color:#94a3b8;">کلیمز لوڈ ہو رہے ہیں...</td></tr>
+                    <tr><td colspan="10" style="text-align:center; padding:30px; color:#94a3b8;">Loading claims... <span class="eb-ur-sub">(کلیمز لوڈ ہو رہے ہیں...)</span></td></tr>
                 </tbody>
             </table>
             </div>
@@ -435,14 +432,15 @@
 <div class="modal-overlay" id="modalStockReturn">
     <div class="modal-box" style="max-width:700px;">
         <div class="modal-header">
-            <h3><i class="fas fa-undo-alt"></i> Record Van Stock Return (مال واپسی برائے سپلائر)</h3>
+            <h3><i class="fas fa-undo-alt"></i> Record Van Stock Return <span class="eb-ur-sub">(مال واپسی برائے سپلائر)</span></h3>
             <button class="modal-close" onclick="closeReturnModal()">✕</button>
         </div>
         <div class="modal-body">
             <div class="zero-profit-banner">
                 <i class="fas fa-info-circle"></i>
                 <div style="font-size:11px;">
-                    یہ مال نفع، نقصان، سیل یا پرچیز میں شامل نہیں ہو گا۔ صرف فزیکل آئٹمز گودام میں جمع ہوں گے۔
+                    This stock is excluded from Sales, Purchases, Profit, and Loss — physical units are strictly restored to warehouse inventory.
+                    <span class="eb-ur-compact">یہ مال نفع، نقصان، سیل یا پرچیز میں شامل نہیں ہو گا۔ صرف فزیکل آئٹمز گودام میں جمع ہوں گے۔</span>
                 </div>
             </div>
 
@@ -450,18 +448,18 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            🚚 Delivery Supplier / Salesman (مال واپس لانے والا سپلائر) *
+                            🚚 Delivery Supplier / Salesman <span class="eb-ur-sub">(واپس لانے والا سپلائر)</span> *
                         </label>
                         <select id="retSupplierSelect" required style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                            <option value="">-- سپلائر منتخب کریں --</option>
+                            <option value="" data-eb-en="-- Select Supplier --" data-eb-ur="-- Select Supplier (سپلائر منتخب کریں) --">-- Select Supplier --</option>
                         </select>
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            📕 Order Booker (اصل آرڈر بکر) *
+                            📕 Order Booker <span class="eb-ur-sub">(اصل آرڈر بکر)</span> *
                         </label>
                         <select id="retBookerSelect" required style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                            <option value="">-- آرڈر بکر منتخب کریں --</option>
+                            <option value="" data-eb-en="-- Select Order Booker --" data-eb-ur="-- Select Order Booker (آرڈر بکر منتخب کریں) --">-- Select Order Booker --</option>
                         </select>
                     </div>
                 </div>
@@ -469,24 +467,24 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            🏪 Shop / Customer Name (دکان دار کا نام - اختیاری)
+                            🏪 Shop / Customer Name <span class="eb-ur-sub">(دکان دار - اختیاری)</span>
                         </label>
-                        <input type="text" id="retShopName" placeholder="e.g. Bismillah General Store" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                        <input type="text" id="retShopName" data-eb-ph-en="e.g. Bismillah General Store" data-eb-ph-ur="مثلاً بسم اللہ جنرل اسٹور" placeholder="e.g. Bismillah General Store" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            🧾 Associated Bill / Order # (اختیاری)
+                            🧾 Associated Bill / Order # <span class="eb-ur-sub">(متعلقہ بل نمبر - اختیاری)</span>
                         </label>
-                        <input type="text" id="retBillNo" placeholder="e.g. INV-1002" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                        <input type="text" id="retBillNo" data-eb-ph-en="e.g. INV-1002" data-eb-ph-ur="مثلاً INV-1002" placeholder="e.g. INV-1002" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
                 </div>
 
                 <!-- ITEMS TO RETURN SECTION -->
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-size:12px; font-weight:800; color:#0f172a;">📦 Returned Items List (واپس آیا ہوا مال)</span>
+                        <span style="font-size:12px; font-weight:800; color:#0f172a;">📦 Returned Items List <span class="eb-ur-sub">(واپس آیا ہوا مال)</span></span>
                         <button type="button" class="btn-vyapar btn-vyapar-blue" id="btnAddReturnItemRow" style="padding:4px 10px; font-size:11px;">
-                            <i class="fas fa-plus"></i> Add Item
+                            <i class="fas fa-plus"></i> Add Item <span class="eb-ur-sub">(آئٹم شامل کریں)</span>
                         </button>
                     </div>
                     <div id="returnItemsContainer">
@@ -498,43 +496,36 @@
                 <div style="margin-bottom:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:6px;">
                         <label style="font-size:12px; font-weight:700; color:#334155; margin:0;">
-                            📝 Return Reason (مال واپسی کی بنیادی وجہ) *
+                            📝 Return Reason <span class="eb-ur-sub">(مال واپسی کی بنیادی وجہ)</span> *
                         </label>
                         <button type="button" onclick="openAddCustomReturnReasonModal()" style="background:#f5f3ff; color:#6d28d9; border:1px solid #c4b5fd; border-radius:6px; padding:3px 9px; font-size:11px; font-weight:800; cursor:pointer;">
-                            ➕ Add Custom Reason (نئی وجہ شامل کریں)
+                            ➕ Add Custom Reason <span class="eb-ur-sub">(نئی وجہ شامل کریں)</span>
                         </button>
                     </div>
                     <select id="retReasonSelect" required style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                        <option value="">-- واپسی کی وجہ منتخب کریں --</option>
-                        <option value="دکان بند تھی (Shop was Closed)">1. 🏬 دکان بند تھی (Shop was Closed)</option>
-                        <option value="غلطی سے زیادہ ہو گیا / فالتو مال بچ گیا (Excess / Overloaded Stock)">2. 📦 غلطی سے زیادہ ہو گیا / فالتو مال بچ گیا (Excess / Overloaded Stock)</option>
-                        <option value="آرڈر زیادہ جنریٹ ہو گیا تھا (Order Quantity Generated in Excess)">3. 📝 آرڈر زیادہ جنریٹ ہو گیا تھا (Order Quantity Generated in Excess)</option>
-                        <option value="دکان دار کے پاس رقم کم تھی / ادھار نہیں دیا (Short of Cash / Credit Refused)">4. 💰 دکان دار کے پاس رقم کم تھی / ادھار نہیں دیا (Short of Cash / Credit Refused)</option>
-                        <option value="غلط پروڈکٹ یا ورائٹی منگوائی تھی (Wrong Product / Variant Selected)">5. ❌ غلط پروڈکٹ یا ورائٹی منگوائی تھی (Wrong Product / Variant Selected)</option>
-                        <option value="پیکنگ خراب یا ایکسپائری قریب تھی (Packaging Damaged / Near Expiry)">6. ⚠️ پیکنگ خراب یا ایکسپائری قریب تھی (Packaging Damaged / Near Expiry)</option>
-                        <option value="📱 PTA / SIM Working Issue (پی ٹی اے یا سم سگنل کا مسئلہ)">7. 📱 PTA / SIM Working Issue (پی ٹی اے یا سم سگنل کا مسئلہ)</option>
-                        <option value="🔋 Battery Drain / Charging Fault within Checking Warranty (چیکنگ وارنٹی میں بیٹری یا چارجنگ فالٹ)">8. 🔋 Battery Drain / Charging Fault within Checking Warranty (چیکنگ وارنٹی میں بیٹری یا چارجنگ فالٹ)</option>
-                        <option value="🔌 Defective Charger / Handsfree / Cable Replacement (خراب چارجر، کیبل یا ہینڈز فری واپسی)">9. 🔌 Defective Charger / Handsfree / Cable Replacement (خراب چارجر، کیبل یا ہینڈز فری واپسی)</option>
-                        <option value="🖥️ LCD Panel / Touch Folder Checking Return (ایل سی ڈی پینل یا ٹچ فولڈر چیکنگ واپسی)">10. 🖥️ LCD Panel / Touch Folder Checking Return (ایل سی ڈی پینل یا ٹچ فولڈر چیکنگ واپسی)</option>
-                        <option value="📚 پرانا ایڈیشن / سلیبس تبدیل ہو گیا (Old Edition / Syllabus Changed)">11. 📚 پرانا ایڈیشن / سلیبس تبدیل ہو گیا (Old Edition / Syllabus Changed)</option>
-                        <option value="🏫 اسکول / طالب علم سیشن واپسی (School / Session Unsold Return)">12. 🏫 اسکول / طالب علم سیشن واپسی (School / Session Unsold Return)</option>
-                        <option value="📖 مس پرنٹنگ یا بائنڈنگ خراب (Misprint / Binding Defect)">13. 📖 مس پرنٹنگ یا بائنڈنگ خراب (Misprint / Binding Defect)</option>
-                        <option value="other">✍️ دیگر وجہ (Other Reason)...</option>
+                        <option value="" data-eb-en="-- Select Return Reason --" data-eb-ur="-- Select Return Reason (واپسی کی وجہ منتخب کریں) --">-- Select Return Reason --</option>
+                        <option value="دکان بند تھی (Shop was Closed)" data-eb-en="1. 🏬 Shop was Closed" data-eb-ur="1. 🏬 Shop was Closed (دکان بند تھی)">1. 🏬 Shop was Closed</option>
+                        <option value="غلطی سے زیادہ ہو گیا / فالتو مال بچ گیا (Excess / Overloaded Stock)" data-eb-en="2. 📦 Excess / Overloaded Stock" data-eb-ur="2. 📦 Excess / Overloaded Stock (فالتو مال بچ گیا)">2. 📦 Excess / Overloaded Stock</option>
+                        <option value="آرڈر زیادہ جنریٹ ہو گیا تھا (Order Quantity Generated in Excess)" data-eb-en="3. 📝 Order Quantity Generated in Excess" data-eb-ur="3. 📝 Order Quantity Generated in Excess (آرڈر زیادہ بن گیا)">3. 📝 Order Quantity Generated in Excess</option>
+                        <option value="دکان دار کے پاس رقم کم تھی / ادھار نہیں دیا (Short of Cash / Credit Refused)" data-eb-en="4. 💰 Short of Cash / Credit Refused" data-eb-ur="4. 💰 Short of Cash / Credit Refused (رقم کم تھی / ادھار نہیں دیا)">4. 💰 Short of Cash / Credit Refused</option>
+                        <option value="غلط پروڈکٹ یا ورائٹی منگوائی تھی (Wrong Product / Variant Selected)" data-eb-en="5. ❌ Wrong Product / Variant Selected" data-eb-ur="5. ❌ Wrong Product / Variant Selected (غلط پروڈکٹ منگوائی تھی)">5. ❌ Wrong Product / Variant Selected</option>
+                        <option value="پیکنگ خراب یا ایکسپائری قریب تھی (Packaging Damaged / Near Expiry)" data-eb-en="6. ⚠️ Packaging Damaged / Near Expiry" data-eb-ur="6. ⚠️ Packaging Damaged / Near Expiry (پیکنگ خراب یا ایکسپائری قریب)">6. ⚠️ Packaging Damaged / Near Expiry</option>
+                        <option value="other" data-eb-en="✍️ Other Reason..." data-eb-ur="✍️ Other Reason (دیگر وجہ)...">✍️ Other Reason...</option>
                     </select>
                 </div>
 
                 <!-- DYNAMIC TEXTBOX FOR OTHER REASON -->
                 <div id="customReasonContainer" style="display:none; margin-bottom:14px;">
                     <label style="font-size:12px; font-weight:700; color:#b91c1c; display:block; margin-bottom:4px;">
-                        ✍️ برائے مہربانی دیگر خاص وجہ یہاں تفصیل سے درج کریں (Specific Reason): *
+                        ✍️ Please enter specific return reason <span class="eb-ur-sub">(واپسی کی خاص وجہ درج کریں)</span>: *
                     </label>
-                    <textarea id="retCustomReasonText" rows="2" placeholder="واپسی کی خاص وجہ یہاں ٹائپ کریں..." style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #f87171; border-radius:8px; font-size:13px; outline:none; background:#fff5f5;"></textarea>
+                    <textarea id="retCustomReasonText" rows="2" data-eb-ph-en="Type the specific return reason here..." data-eb-ph-ur="واپسی کی خاص وجہ یہاں ٹائپ کریں..." placeholder="Type the specific return reason here..." style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #f87171; border-radius:8px; font-size:13px; outline:none; background:#fff5f5;"></textarea>
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:8px;">
-                    <button type="button" class="btn" onclick="closeReturnModal()" style="background:#e2e8f0; color:#475569; padding:10px 16px; border-radius:8px;">Cancel</button>
+                    <button type="button" class="btn" onclick="closeReturnModal()" style="background:#e2e8f0; color:#475569; padding:10px 16px; border-radius:8px;">Cancel <span class="eb-ur-sub">(منسوخ)</span></button>
                     <button type="submit" class="btn-vyapar btn-vyapar-purple" id="btnSubmitReturn" style="padding:10px 22px; font-size:14px;">
-                        <i class="fas fa-check-circle"></i> Save Return &amp; Generate Voucher
+                        <i class="fas fa-check-circle"></i> Save Return &amp; Generate Voucher <span class="eb-ur-sub">(محفوظ کریں)</span>
                     </button>
                 </div>
             </form>
@@ -548,22 +539,22 @@
 <div class="modal-overlay" id="modalDispatch">
     <div class="modal-box">
         <div class="modal-header">
-            <h3><i class="fas fa-truck-loading"></i> Create Van Dispatch Challan (گاڑی لوڈنگ چالان)</h3>
+            <h3><i class="fas fa-truck-loading"></i> Create Van Dispatch Challan <span class="eb-ur-sub">(گاڑی لوڈنگ چالان)</span></h3>
             <button class="modal-close" onclick="closeDispatchModal()">✕</button>
         </div>
         <div class="modal-body">
             <div style="margin-bottom:14px;">
                 <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                    🚚 Select Delivery Supplier / Salesman (مال لے جانے والا سپلائر) *
+                    🚚 Select Delivery Supplier / Salesman <span class="eb-ur-sub">(مال لے جانے والا سپلائر)</span> *
                 </label>
                 <select id="dispatchSupplierSelect" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                    <option value="">-- سپلائر منتخب کریں --</option>
+                    <option value="" data-eb-en="-- Select Supplier --" data-eb-ur="-- Select Supplier (سپلائر منتخب کریں) --">-- Select Supplier --</option>
                 </select>
             </div>
 
             <div style="margin-bottom:14px;">
                 <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                    📋 Orders to Dispatch (<span id="dispatchSelectedCount">0</span> Selected)
+                    📋 Orders to Dispatch <span class="eb-ur-sub">(ڈسپیچ آرڈرز)</span> (<span id="dispatchSelectedCount">0</span> Selected)
                 </label>
                 <div id="dispatchOrdersList" style="max-height:220px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; padding:8px; background:#f8fafc;">
                     <!-- Checkboxes for orders -->
@@ -571,9 +562,9 @@
             </div>
 
             <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button type="button" class="btn" onclick="closeDispatchModal()" style="background:#e2e8f0; color:#475569; padding:10px 16px; border-radius:8px;">Cancel</button>
+                <button type="button" class="btn" onclick="closeDispatchModal()" style="background:#e2e8f0; color:#475569; padding:10px 16px; border-radius:8px;">Cancel <span class="eb-ur-sub">(منسوخ)</span></button>
                 <button type="button" class="btn-vyapar btn-vyapar-blue" id="btnConfirmDispatch" style="padding:10px 22px;">
-                    <i class="fas fa-truck"></i> Confirm Dispatch &amp; Generate Challan
+                    <i class="fas fa-truck"></i> Confirm Dispatch &amp; Generate Challan <span class="eb-ur-sub">(چالان بنائیں)</span>
                 </button>
             </div>
         </div>
@@ -586,46 +577,46 @@
 <div class="modal-overlay" id="modalAddStaff">
     <div class="modal-box">
         <div class="modal-header">
-            <h3><i class="fas fa-user-plus"></i> Add Field Staff (بکر یا سپلائر شامل کریں)</h3>
+            <h3><i class="fas fa-user-plus"></i> Add Field Staff <span class="eb-ur-sub">(بکر یا سپلائر شامل کریں)</span></h3>
             <button class="modal-close" onclick="closeAddStaffModal()">✕</button>
         </div>
         <div class="modal-body">
             <form id="quickStaffForm">
                 <div style="margin-bottom:12px;">
-                    <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Staff Role (عہدہ) *</label>
+                    <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Staff Role <span class="eb-ur-sub">(عہدہ)</span> *</label>
                     <select id="qStaffRole" required style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                        <option value="booker">📕 Order Booker (فیلڈ آرڈر بکر - دکانوں سے آرڈر لیتا ہے)</option>
-                        <option value="supplier">🚚 Delivery Supplier / Salesman (ڈلیوری سپلائر - مال سپلائی کرتا ہے)</option>
+                        <option value="booker" data-eb-en="📕 Order Booker (Books orders from shops)" data-eb-ur="📕 Order Booker (فیلڈ آرڈر بکر - دکانوں سے آرڈر لیتا ہے)">📕 Order Booker (Books orders from shops)</option>
+                        <option value="supplier" data-eb-en="🚚 Delivery Supplier / Salesman (Delivers stock)" data-eb-ur="🚚 Delivery Supplier / Salesman (ڈلیوری سپلائر - مال سپلائی کرتا ہے)">🚚 Delivery Supplier / Salesman (Delivers stock)</option>
                     </select>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
                     <div>
-                        <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Full Name *</label>
-                        <input type="text" id="qStaffName" placeholder="e.g. Tariq Mehmood" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                        <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Full Name <span class="eb-ur-sub">(مکمل نام)</span> *</label>
+                        <input type="text" id="qStaffName" data-eb-ph-en="e.g. Tariq Mehmood" data-eb-ph-ur="مثلاً طارق محمود" placeholder="e.g. Tariq Mehmood" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
                     <div>
-                        <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Mobile / WhatsApp *</label>
-                        <input type="tel" id="qStaffMobile" placeholder="e.g. 03001234567" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                        <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Mobile / WhatsApp <span class="eb-ur-sub">(موبائل)</span> *</label>
+                        <input type="tel" id="qStaffMobile" data-eb-ph-en="e.g. 03001234567" data-eb-ph-ur="مثلاً 03001234567" placeholder="e.g. 03001234567" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
                     <div>
-                        <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Email (Login ID) *</label>
-                        <input type="email" id="qStaffEmail" placeholder="tariq@agency.com" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                        <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Email (Login ID) <span class="eb-ur-sub">(ای میل)</span> *</label>
+                        <input type="email" id="qStaffEmail" data-eb-ph-en="tariq@agency.com" data-eb-ph-ur="tariq@agency.com" placeholder="tariq@agency.com" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
                     <div>
-                        <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Password (min 6) *</label>
-                        <input type="text" id="qStaffPassword" placeholder="Pass123" required minlength="6" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                        <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Password (min 6) <span class="eb-ur-sub">(پاس ورڈ)</span> *</label>
+                        <input type="text" id="qStaffPassword" data-eb-ph-en="Pass123" data-eb-ph-ur="کم از کم 6 حروف" placeholder="Pass123" required minlength="6" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
                 </div>
                 <div style="margin-bottom:16px;">
-                    <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Assigned Route / Area (مقررہ علاقہ)</label>
-                    <input type="text" id="qStaffRoute" placeholder="e.g. Katchery Road, Sadiqabad" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                    <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">Assigned Route / Area <span class="eb-ur-sub">(مقررہ علاقہ / روٹ)</span></label>
+                    <input type="text" id="qStaffRoute" data-eb-ph-en="e.g. Katchery Road, Sadiqabad" data-eb-ph-ur="مثلاً کچہری روڈ، صادق آباد" placeholder="e.g. Katchery Road, Sadiqabad" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:8px;">
-                    <button type="button" class="btn" onclick="closeAddStaffModal()" style="background:#e2e8f0; color:#475569; padding:10px 16px; border-radius:8px;">Cancel</button>
+                    <button type="button" class="btn" onclick="closeAddStaffModal()" style="background:#e2e8f0; color:#475569; padding:10px 16px; border-radius:8px;">Cancel <span class="eb-ur-sub">(منسوخ)</span></button>
                     <button type="submit" class="btn-vyapar btn-vyapar-green" id="btnSubmitStaff" style="padding:10px 22px;">
-                        <i class="fas fa-check-circle"></i> Create Staff Account
+                        <i class="fas fa-check-circle"></i> Create Staff Account <span class="eb-ur-sub">(اکاؤنٹ بنائیں)</span>
                     </button>
                 </div>
             </form>
@@ -639,7 +630,7 @@
 <div class="modal-overlay" id="modalVoucherPreview">
     <div class="modal-box" style="max-width:580px;">
         <div class="modal-header" style="background:#475569;">
-            <h3><i class="fas fa-receipt"></i> Stock Return Inward Voucher</h3>
+            <h3><i class="fas fa-receipt"></i> Stock Return Inward Voucher <span class="eb-ur-sub">(مال واپسی رسید)</span></h3>
             <button class="modal-close" onclick="closeVoucherPreview()">✕</button>
         </div>
         <div class="modal-body" id="voucherPrintArea">
@@ -647,15 +638,15 @@
         </div>
         <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <button class="btn-vyapar btn-vyapar-green" id="btnWhatsAppShareVoucher">
-                <i class="fab fa-whatsapp"></i> Share on WhatsApp
+                <i class="fab fa-whatsapp"></i> Share on WhatsApp <span class="eb-ur-sub">(واٹس ایپ)</span>
             </button>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button class="btn" onclick="closeVoucherPreview()" style="background:#e2e8f0; color:#475569; padding:8px 14px; border-radius:8px;">Close</button>
+                <button class="btn" onclick="closeVoucherPreview()" style="background:#e2e8f0; color:#475569; padding:8px 14px; border-radius:8px;">Close <span class="eb-ur-sub">(بند)</span></button>
                 <button class="btn-vyapar" onclick="printReturnVoucherThermal()" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; padding:8px 14px; border-radius:8px; font-weight:800;">
-                    🧾 Thermal Slip (80mm/58mm)
+                    🧾 Thermal Slip (80mm/58mm) <span class="eb-ur-sub">(تھرمل)</span>
                 </button>
                 <button class="btn-vyapar btn-vyapar-blue" onclick="window.print()">
-                    <i class="fas fa-print"></i> Print Voucher
+                    <i class="fas fa-print"></i> Print Voucher <span class="eb-ur-sub">(پرنٹ)</span>
                 </button>
             </div>
         </div>
@@ -669,7 +660,7 @@
     <div style="background:#fff; border-radius:16px; width:100%; max-width:620px; max-height:90vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
         <div style="padding:14px 18px; background:#0f172a; color:#fff; display:flex; justify-content:space-between; align-items:center; border-radius:16px 16px 0 0;">
             <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-file-invoice" style="color:#38bdf8;"></i> Order Details (آرڈر کی تفصیلات)
+                <i class="fas fa-file-invoice" style="color:#38bdf8;"></i> Order Details <span class="eb-ur-sub">(آرڈر کی تفصیلات)</span>
             </h3>
             <button onclick="closeOrderDetailsModal()" style="background:none; border:none; color:#94a3b8; font-size:22px; cursor:pointer;">✕</button>
         </div>
@@ -677,15 +668,15 @@
             <!-- Filled dynamically -->
         </div>
         <div style="padding:12px 18px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px; border-radius:0 0 16px 16px; flex-wrap:wrap;">
-            <button type="button" class="btn" onclick="closeOrderDetailsModal()" style="background:#e2e8f0; color:#475569; padding:8px 16px; border-radius:8px;">Close</button>
+            <button type="button" class="btn" onclick="closeOrderDetailsModal()" style="background:#e2e8f0; color:#475569; padding:8px 16px; border-radius:8px;">Close <span class="eb-ur-sub">(بند)</span></button>
             <button type="button" class="btn btn-sm" id="btnModalApproveOrder" style="background:#10b981; color:#fff; font-weight:bold; padding:8px 18px; border-radius:8px; display:none;">
-                <i class="fas fa-check-circle"></i> Accept &amp; Approve Order
+                <i class="fas fa-check-circle"></i> Accept &amp; Approve Order <span class="eb-ur-sub">(منظور کریں)</span>
             </button>
             <button type="button" class="btn btn-sm" id="btnModalThermalPrintBill" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; font-weight:bold; padding:8px 14px; border-radius:8px; display:none;">
-                🧾 Thermal Slip (پرچی)
+                🧾 Thermal Slip <span class="eb-ur-sub">(پرچی)</span>
             </button>
             <button type="button" class="btn btn-sm" id="btnModalPrintBill" style="background:#0284c7; color:#fff; font-weight:bold; padding:8px 18px; border-radius:8px; display:none;">
-                <i class="fas fa-print"></i> Print Bill
+                <i class="fas fa-print"></i> Print Bill <span class="eb-ur-sub">(بل پرنٹ)</span>
             </button>
         </div>
     </div>
@@ -698,7 +689,7 @@
     <div style="background:#fff; border-radius:14px; width:100%; max-width:800px; max-height:92vh; overflow-y:auto; box-shadow:0 12px 36px rgba(0,0,0,0.35);">
         <div style="padding:14px 20px; background:#0284c7; color:#fff; display:flex; justify-content:space-between; align-items:center; border-radius:14px 14px 0 0;">
             <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-truck-loading"></i> گاڑی لوڈنگ شیٹ و گیٹ پاس (Van Loading Sheet &amp; Tally)
+                <i class="fas fa-truck-loading"></i> Van Loading Sheet &amp; Gate Pass <span class="eb-ur-sub">(گاڑی لوڈنگ شیٹ و گیٹ پاس)</span>
             </h3>
             <button onclick="closeLoadingSheetModal()" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
         </div>
@@ -706,13 +697,13 @@
             <!-- Generated dynamically -->
         </div>
         <div style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; border-radius:0 0 14px 14px;">
-            <button type="button" class="btn" onclick="closeLoadingSheetModal()" style="background:#e2e8f0; color:#475569; padding:8px 16px; border-radius:8px;">Close</button>
+            <button type="button" class="btn" onclick="closeLoadingSheetModal()" style="background:#e2e8f0; color:#475569; padding:8px 16px; border-radius:8px;">Close <span class="eb-ur-sub">(بند)</span></button>
             <div style="display:flex; gap:8px;">
                 <button type="button" class="btn-vyapar btn-vyapar-green" id="btnShareLoadingSheetWA">
-                    <i class="fab fa-whatsapp"></i> Share on WhatsApp
+                    <i class="fab fa-whatsapp"></i> Share on WhatsApp <span class="eb-ur-sub">(واٹس ایپ)</span>
                 </button>
                 <button type="button" class="btn-vyapar btn-vyapar-blue" onclick="printLoadingSheetDoc()">
-                    <i class="fas fa-print"></i> Print Loading Sheet
+                    <i class="fas fa-print"></i> Print Loading Sheet <span class="eb-ur-sub">(پرنٹ شیٹ)</span>
                 </button>
             </div>
         </div>
@@ -726,14 +717,17 @@
     <div class="modal-box" style="max-width:680px; max-height:92vh; overflow-y:auto; background:#fff; border-radius:14px; box-shadow:0 15px 35px rgba(0,0,0,0.3);">
         <div class="modal-header" style="background:#dc2626; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-radius:14px 14px 0 0;">
             <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-triangle-exclamation"></i> نقصان و کلیم کا اندراج (Record Damaged / Expired Item)
+                <i class="fas fa-triangle-exclamation"></i> Record Damaged / Expired Claim <span class="eb-ur-sub">(نقصان و کلیم کا اندراج)</span>
             </h3>
             <button onclick="closeDamageClaimModal()" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
         </div>
         <div class="modal-body" style="padding:20px;">
             <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:#991b1b; display:flex; align-items:center; gap:8px;">
                 <i class="fas fa-info-circle" style="font-size:16px;"></i>
-                <span>پروڈکٹ کا نام تلاش کریں، تعداد اور خرید ریٹ درج کریں۔ کل نقصان خودکار طور پر خرید قیمت (Purchase Rate) کے حساب سے شمار ہوگا۔</span>
+                <div>
+                    Search product, enter damaged quantity &amp; purchase rate — total loss is calculated automatically at Purchase Price.
+                    <span class="eb-ur-compact">پروڈکٹ تلاش کریں، تعداد اور خرید ریٹ درج کریں۔ کل نقصان خودکار طور پر خرید قیمت کے حساب سے شمار ہوگا۔</span>
+                </div>
             </div>
 
             <form id="damageClaimForm" onsubmit="handleDamageClaimSubmit(event)">
@@ -742,11 +736,11 @@
                 <!-- 1. Product Search & Select -->
                 <div style="margin-bottom:14px; position:relative;">
                     <label style="font-size:12.5px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                        📦 پروڈکٹ تلاش کریں یا منتخب کریں (Select Product from Inventory) *
+                        📦 Select Product from Inventory <span class="eb-ur-sub">(پروڈکٹ تلاش یا منتخب کریں)</span> *
                     </label>
                     <div style="display:flex; gap:6px;">
                         <div style="position:relative; flex:1;">
-                            <input type="text" id="claimProductSearch" placeholder="پروڈکٹ کا نام، ماڈل یا بارکوڈ ٹائپ کریں..." autocomplete="off" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                            <input type="text" id="claimProductSearch" data-eb-ph-en="Type product name, model, or barcode..." data-eb-ph-ur="پروڈکٹ کا نام، ماڈل یا بارکوڈ ٹائپ کریں..." placeholder="Type product name, model, or barcode..." autocomplete="off" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                             <div class="product-search-dropdown" id="claimProductDropdown"></div>
                         </div>
                         <input type="hidden" id="claimStockId" value="">
@@ -754,17 +748,17 @@
                     <div id="claimSelectedProductMeta" style="font-size:11.5px; color:#0284c7; margin-top:4px; font-weight:600; display:none;"></div>
                 </div>
 
-                <!-- 1B. 📱 IMEI / Serial # & Sold Bill Lookup for Mobile Shop Warranty Claims -->
-                <div id="claimImeiLookupBox" style="margin-bottom:14px; background:#f0f9ff; border:1px dashed #7dd3fc; border-radius:10px; padding:10px 12px;">
+                <!-- 1B. 📱 IMEI / Serial # & Sold Bill Lookup for Mobile Shop Warranty Claims (strictly hidden unless Mobile category) -->
+                <div id="claimImeiLookupBox" style="display:none; margin-bottom:14px; background:#f0f9ff; border:1px dashed #7dd3fc; border-radius:10px; padding:10px 12px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
                         <label style="font-size:12px; font-weight:800; color:#0369a1; margin:0;">
-                            📱 IMEI / Serial # (وارنٹی کلیم یا ریپلیسمنٹ کے لیے آئی ایم ای آئی نمبر - اختیاری)
+                            📱 IMEI / Serial # <span class="eb-ur-sub">(وارنٹی کلیم آئی ایم ای آئی - اختیاری)</span>
                         </label>
                         <button type="button" onclick="lookupSoldItemByImeiForClaim()" style="background:#0284c7; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:800; cursor:pointer;">
-                            🔍 Lookup Sold Bill by IMEI (بل تلاش کریں)
+                            🔍 Lookup Sold Bill by IMEI <span class="eb-ur-sub">(بل تلاش کریں)</span>
                         </button>
                     </div>
-                    <input type="text" id="claimImeiInput" placeholder="15-digit IMEI یا سیریل نمبر درج کریں اور Lookup دبائیں..." style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #bae6fd; border-radius:8px; font-size:12.5px; font-family:monospace; outline:none; background:#fff;">
+                    <input type="text" id="claimImeiInput" data-eb-ph-en="Enter 15-digit IMEI or Serial # and click Lookup..." data-eb-ph-ur="15 ہندسوں کا IMEI یا سیریل نمبر درج کریں اور Lookup دبائیں..." placeholder="Enter 15-digit IMEI or Serial # and click Lookup..." style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #bae6fd; border-radius:8px; font-size:12.5px; font-family:monospace; outline:none; background:#fff;">
                     <div id="claimImeiLookupResult" style="font-size:11px; color:#0f766e; font-weight:700; margin-top:5px; display:none;"></div>
                 </div>
 
@@ -773,10 +767,10 @@
                     <div>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
                             <label style="font-size:12px; font-weight:700; color:#334155;">
-                                🏷️ نقصان کی کیٹیگری (Category) *
+                                🏷️ Claim Category <span class="eb-ur-sub">(نقصان کی کیٹیگری)</span> *
                             </label>
                             <a href="javascript:void(0)" onclick="openManageCategoriesModal()" style="font-size:11px; color:#0284c7; text-decoration:none; font-weight:bold;">
-                                + نئی کیٹیگری
+                                + New <span class="eb-ur-sub">(نئی کیٹیگری)</span>
                             </a>
                         </div>
                         <select id="claimCategorySelect" required style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
@@ -785,7 +779,7 @@
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            📅 اندراج کی تاریخ (Incident Date) *
+                            📅 Incident Date <span class="eb-ur-sub">(اندراج کی تاریخ)</span> *
                         </label>
                         <input type="date" id="claimIncidentDate" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
@@ -795,15 +789,15 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            ⏰ تاریخ ایکسپائری یا ٹوٹ پھوٹ (Expiry / Breakage Date)
+                            ⏰ Expiry / Breakage Date <span class="eb-ur-sub">(تاریخ ایکسپائری)</span>
                         </label>
                         <input type="date" id="claimExpiryDate" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            🏢 کمپنی / ڈسٹری بیوٹر کا نام (Supplier / Company)
+                            🏢 Supplier / Company <span class="eb-ur-sub">(کمپنی / ڈسٹری بیوٹر)</span>
                         </label>
-                        <input type="text" id="claimSupplierName" placeholder="e.g. Unilever / Nestle / Supplier" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                        <input type="text" id="claimSupplierName" data-eb-ph-en="e.g. Unilever / Nestle / Supplier" data-eb-ph-ur="مثلاً یونی لیور / نیسلے / سپلائر" placeholder="e.g. Unilever / Nestle / Supplier" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
                 </div>
 
@@ -811,31 +805,24 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:10px; margin-bottom:14px; background:#f8fafc; padding:12px; border-radius:10px; border:1px solid #e2e8f0;">
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            🔢 خراب تعداد (Quantity) *
+                            🔢 Quantity <span class="eb-ur-sub">(خراب تعداد)</span> *
                         </label>
                         <input type="number" id="claimQty" min="0.01" step="any" required placeholder="e.g. 12" oninput="recalcClaimLoss()" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:bold; outline:none; text-align:center;">
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            📏 یونٹ (Unit) *
+                            📏 Unit <span class="eb-ur-sub">(یونٹ)</span> *
                         </label>
                         <select id="claimUnit" style="width:100%; padding:9px 8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                            <option value="pcs">Pcs (عدد / پیس)</option>
-                            <option value="unit">Unit (یونٹ)</option>
-                            <option value="set">Set (مکمل کورس سیٹ)</option>
-                            <option value="packet">Packet (پیکٹ)</option>
-                            <option value="bundle">Bundle (بنڈل / گٹھا)</option>
-                            <option value="ream">Ream (رم - 500 Sheets)</option>
-                            <option value="box">Box (ڈبہ)</option>
-                            <option value="dozen">Dozen (درجن)</option>
-                            <option value="carton">Carton (کارٹن / پیٹی)</option>
-                            <option value="bag">Bag (بوری / تھیلا)</option>
-                            <option value="kg">kg (کلو)</option>
+                            <option value="pcs" data-eb-en="Pcs" data-eb-ur="Pcs (عدد / پیس)">Pcs</option>
+                            <option value="box" data-eb-en="Box" data-eb-ur="Box (ڈبہ)">Box</option>
+                            <option value="packet" data-eb-en="Packet" data-eb-ur="Packet (پیکٹ)">Packet</option>
+                            <option value="unit" data-eb-en="Unit" data-eb-ur="Unit (یونٹ)">Unit</option>
                         </select>
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            💵 فی یونٹ خرید ریٹ (Purchase Rate) *
+                            💵 Purchase Rate <span class="eb-ur-sub">(فی یونٹ خرید ریٹ)</span> *
                         </label>
                         <input type="number" id="claimPurchaseRate" min="0" step="any" required placeholder="e.g. 10" oninput="recalcClaimLoss()" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:bold; outline:none; text-align:center;">
                     </div>
@@ -844,7 +831,7 @@
                 <!-- 5. Live Calculation & Total Loss Banner (Exact User Spec) -->
                 <div class="live-calc-box" id="claimLiveCalcBox" style="background:#fef2f2; border:1.5px solid #fca5a5; display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                     <div>
-                        <div style="font-size:11px; font-weight:800; color:#991b1b; text-transform:uppercase;">کل تخمینہ مالی نقصان (Total Loss Amount)</div>
+                        <div style="font-size:11px; font-weight:800; color:#991b1b; text-transform:uppercase;">Total Estimated Loss <span class="eb-ur-sub">(کل تخمینہ مالی نقصان)</span></div>
                         <div style="font-size:12px; color:#7f1d1d; margin-top:2px;" id="claimFormulaPreview">0 Units × Rs 0 = Rs 0</div>
                     </div>
                     <div style="font-size:24px; font-weight:900; color:#dc2626;" id="claimTotalLossPreview">Rs 0</div>
@@ -854,23 +841,23 @@
                 <div style="margin-bottom:14px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; display:flex; align-items:center; gap:10px;">
                     <input type="checkbox" id="claimDeductStock" checked style="width:18px; height:18px; cursor:pointer;">
                     <label for="claimDeductStock" style="font-size:12.5px; color:#1e293b; font-weight:600; cursor:pointer;">
-                        گودام کے فزیکل اسٹاک سے بھی کٹوتی کریں (Deduct damaged quantity from Inventory Stock)
+                        Deduct damaged quantity from Inventory Stock <span class="eb-ur-compact">گودام کے فزیکل اسٹاک سے بھی کٹوتی کریں</span>
                     </label>
                 </div>
 
                 <!-- 7. Reason & Notes -->
                 <div style="margin-bottom:18px;">
                     <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                        ✍️ تفصیل / ریمارکس / دکان دار کا نام جہاں سے مال آیا (Remarks &amp; Notes)
+                        ✍️ Remarks &amp; Notes <span class="eb-ur-sub">(تفصیل / دکان دار کا نام)</span>
                     </label>
-                    <textarea id="claimNotes" rows="2" placeholder="e.g. کمپنی لاٹ نمبر، واپسی لانے والے بکر کا نام یا دیگر وجوہات..." style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;"></textarea>
+                    <textarea id="claimNotes" rows="2" data-eb-ph-en="e.g. Company lot #, returning booker name, or other details..." data-eb-ph-ur="مثلاً کمپنی لاٹ نمبر، واپسی لانے والے بکر کا نام یا دیگر وجوہات..." placeholder="e.g. Company lot #, returning booker name, or other details..." style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;"></textarea>
                 </div>
 
                 <!-- Buttons -->
                 <div style="display:flex; justify-content:flex-end; gap:8px;">
-                    <button type="button" class="btn" onclick="closeDamageClaimModal()" style="background:#e2e8f0; color:#475569; padding:10px 18px; border-radius:8px; font-weight:600;">منسوخ</button>
+                    <button type="button" class="btn" onclick="closeDamageClaimModal()" style="background:#e2e8f0; color:#475569; padding:10px 18px; border-radius:8px; font-weight:600;">Cancel <span class="eb-ur-sub">(منسوخ)</span></button>
                     <button type="submit" class="btn" id="btnSaveClaimSubmit" style="background:#dc2626; color:#fff; padding:10px 24px; border-radius:8px; font-weight:bold; font-size:14px;">
-                        <i class="fas fa-check-circle"></i> کلیم محفوظ کریں (Save Claim)
+                        <i class="fas fa-check-circle"></i> Save Claim <span class="eb-ur-sub">(کلیم محفوظ کریں)</span>
                     </button>
                 </div>
             </form>
@@ -886,7 +873,7 @@
     <div class="modal-box" style="max-width:620px; max-height:92vh; overflow-y:auto; background:#fff; border-radius:14px; box-shadow:0 15px 35px rgba(0,0,0,0.35);">
         <div class="modal-header" style="background:#15803d; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-radius:14px 14px 0 0;">
             <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-hand-holding-dollar"></i> کمپنی / سپلائر کلیم ریکوری (Claim Recovery Settlement)
+                <i class="fas fa-hand-holding-dollar"></i> Claim Recovery Settlement <span class="eb-ur-sub">(کمپنی / سپلائر کلیم ریکوری)</span>
             </h3>
             <button onclick="closeClaimRecoveryModal()" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
         </div>
@@ -902,15 +889,15 @@
                 </div>
                 <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; border-top:1px solid #e2e8f0; padding-top:10px; margin-top:8px;">
                     <div>
-                        <div style="font-size:11px; color:#64748b;">اصل دعویٰ (Claimed)</div>
+                        <div style="font-size:11px; color:#64748b;">Claimed <span class="eb-ur-sub">(اصل دعویٰ)</span></div>
                         <div style="font-size:13px; font-weight:800; color:#0f172a;" id="recSummaryOriginalClaim">12 pcs @ Rs 10</div>
                     </div>
                     <div>
-                        <div style="font-size:11px; color:#64748b;">کل نقصان (Total Loss)</div>
+                        <div style="font-size:11px; color:#64748b;">Total Loss <span class="eb-ur-sub">(کل نقصان)</span></div>
                         <div style="font-size:14px; font-weight:800; color:#dc2626;" id="recSummaryTotalLoss">Rs 120</div>
                     </div>
                     <div>
-                        <div style="font-size:11px; color:#64748b;">بقیہ رقم (Remaining)</div>
+                        <div style="font-size:11px; color:#64748b;">Remaining <span class="eb-ur-sub">(بقیہ رقم)</span></div>
                         <div style="font-size:14px; font-weight:800; color:#ea580c;" id="recSummaryRemaining">Rs 120</div>
                     </div>
                 </div>
@@ -923,19 +910,19 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:10px; margin-bottom:14px; background:#f0fdf4; padding:14px; border-radius:10px; border:1px solid #bbf7d0;">
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#14532d; display:block; margin-bottom:4px;">
-                            📦 موصول تعداد (Received Qty) *
+                            📦 Received Qty <span class="eb-ur-sub">(موصول تعداد)</span> *
                         </label>
                         <input type="number" id="recQty" min="0" step="any" required placeholder="e.g. 12" oninput="recalcRecoveryMath()" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1.5px solid #86efac; border-radius:8px; font-size:14px; font-weight:bold; outline:none; text-align:center;">
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#14532d; display:block; margin-bottom:4px;">
-                            💵 فی یونٹ وصولی ریٹ (Rate) *
+                            💵 Recovery Rate <span class="eb-ur-sub">(فی یونٹ ریٹ)</span> *
                         </label>
                         <input type="number" id="recRate" min="0" step="any" required placeholder="e.g. 10" oninput="recalcRecoveryMath()" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1.5px solid #86efac; border-radius:8px; font-size:14px; font-weight:bold; outline:none; text-align:center;">
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#14532d; display:block; margin-bottom:4px;">
-                            💰 کل وصول رقم (Total Amount) *
+                            💰 Total Amount <span class="eb-ur-sub">(کل وصول رقم)</span> *
                         </label>
                         <input type="number" id="recTotalAmount" min="0" step="any" required placeholder="e.g. 120" oninput="recalcRecoveryMathFromAmount()" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1.5px solid #16a34a; border-radius:8px; font-size:15px; font-weight:900; color:#15803d; outline:none; text-align:center; background:#fff;">
                     </div>
@@ -950,18 +937,18 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            💳 طریقہ کار (Settlement Mode) *
+                            💳 Settlement Mode <span class="eb-ur-sub">(طریقہ کار)</span> *
                         </label>
                         <select id="recMode" required style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none; background:#fff;">
-                            <option value="cash">💵 Cash Received (نقد رقم وصول ہوئی)</option>
-                            <option value="ledger">📝 Supplier Khata Credit (کمپنی کھاتہ میں کٹوتی)</option>
-                            <option value="replacement">📦 Replacement Stock (نیا مال ملا - Restock into Warehouse)</option>
-                            <option value="cheque">🏦 Bank Cheque / Online Transfer</option>
+                            <option value="cash" data-eb-en="💵 Cash Received" data-eb-ur="💵 Cash Received (نقد رقم وصول ہوئی)">💵 Cash Received</option>
+                            <option value="ledger" data-eb-en="📝 Supplier Khata Credit" data-eb-ur="📝 Supplier Khata Credit (کمپنی کھاتہ میں کٹوتی)">📝 Supplier Khata Credit</option>
+                            <option value="replacement" data-eb-en="📦 Replacement Stock (Restock Warehouse)" data-eb-ur="📦 Replacement Stock (نیا مال گودام میں جمع)">📦 Replacement Stock (Restock Warehouse)</option>
+                            <option value="cheque" data-eb-en="🏦 Bank Cheque / Online Transfer" data-eb-ur="🏦 Bank Cheque / Online Transfer (چیک / آن لائن)">🏦 Bank Cheque / Online Transfer</option>
                         </select>
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                            📅 وصولی کی تاریخ (Recovery Date) *
+                            📅 Recovery Date <span class="eb-ur-sub">(وصولی کی تاریخ)</span> *
                         </label>
                         <input type="date" id="recDate" required style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     </div>
@@ -969,27 +956,27 @@
 
                 <div style="margin-bottom:16px;">
                     <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                        📝 رسید نمبر یا کمپنی کریڈٹ نوٹ # (Reference / Voucher No)
+                        📝 Reference / Credit Note # <span class="eb-ur-sub">(رسید یا کریڈٹ نوٹ نمبر)</span>
                     </label>
-                    <input type="text" id="recReference" placeholder="e.g. Credit Note # 8421 یا سپلائر دستخط رسید" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                    <input type="text" id="recReference" data-eb-ph-en="e.g. Credit Note # 8421 or Supplier Receipt" data-eb-ph-ur="مثلاً کریڈٹ نوٹ # 8421 یا سپلائر رسید" placeholder="e.g. Credit Note # 8421 or Supplier Receipt" style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                 </div>
 
                 <div style="margin-bottom:18px;">
                     <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                        ✍️ اضافی ریمارکس (Remarks)
+                        ✍️ Remarks <span class="eb-ur-sub">(اضافی ریمارکس)</span>
                     </label>
-                    <textarea id="recNotes" rows="2" placeholder="وصولی سے متعلق کوئی خاص بات..." style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;"></textarea>
+                    <textarea id="recNotes" rows="2" data-eb-ph-en="Any notes about this recovery..." data-eb-ph-ur="وصولی سے متعلق کوئی خاص بات..." placeholder="Any notes about this recovery..." style="width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;"></textarea>
                 </div>
 
                 <!-- Buttons -->
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <button type="button" onclick="markClaimAsLoss()" class="btn" style="background:#fee2e2; color:#b91c1c; padding:9px 14px; border-radius:8px; font-size:12px; font-weight:bold;" title="Mark this claim completely unrecoverable">
-                        <i class="fas fa-ban"></i> کلیم مسترد / خالص نقصان درج کریں
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <button type="button" onclick="markClaimAsLoss()" class="btn" style="background:#fee2e2; color:#b91c1c; padding:9px 14px; border-radius:8px; font-size:12px; font-weight:bold;" data-eb-title-en="Mark this claim completely unrecoverable" data-eb-title-ur="اس کلیم کو مکمل خالص نقصان قرار دیں" title="Mark this claim completely unrecoverable">
+                        <i class="fas fa-ban"></i> Mark as Net Loss <span class="eb-ur-sub">(مسترد / خالص نقصان)</span>
                     </button>
                     <div style="display:flex; gap:8px;">
-                        <button type="button" class="btn" onclick="closeClaimRecoveryModal()" style="background:#e2e8f0; color:#475569; padding:9px 16px; border-radius:8px; font-weight:600;">منسوخ</button>
+                        <button type="button" class="btn" onclick="closeClaimRecoveryModal()" style="background:#e2e8f0; color:#475569; padding:9px 16px; border-radius:8px; font-weight:600;">Cancel <span class="eb-ur-sub">(منسوخ)</span></button>
                         <button type="submit" class="btn" id="btnSaveRecoverySubmit" style="background:#15803d; color:#fff; padding:10px 22px; border-radius:8px; font-weight:bold; font-size:14px;">
-                            <i class="fas fa-check-circle"></i> وصولی تصدیق کریں (Confirm Recovery)
+                            <i class="fas fa-check-circle"></i> Confirm Recovery <span class="eb-ur-sub">(وصولی تصدیق)</span>
                         </button>
                     </div>
                 </div>
@@ -1006,7 +993,7 @@
     <div class="modal-box" style="max-width:580px; max-height:92vh; overflow-y:auto; background:#fff; border-radius:14px; box-shadow:0 15px 35px rgba(0,0,0,0.35);">
         <div class="modal-header" style="background:#334155; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-radius:14px 14px 0 0;">
             <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-tags"></i> کیٹیگریز مینجر (Damage &amp; Expiry Categories)
+                <i class="fas fa-tags"></i> Damage &amp; Expiry Categories <span class="eb-ur-sub">(کیٹیگریز مینجر)</span>
             </h3>
             <button onclick="closeManageCategoriesModal()" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
         </div>
@@ -1014,32 +1001,32 @@
             <!-- Add New Category Section -->
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; margin-bottom:18px;">
                 <h4 style="margin:0 0 10px; font-size:13.5px; color:#0f172a; display:flex; align-items:center; gap:6px;">
-                    <i class="fas fa-plus-circle" style="color:#0284c7;"></i> نئی کیٹیگری شامل کریں (Add New Category)
+                    <i class="fas fa-plus-circle" style="color:#0284c7;"></i> Add New Category <span class="eb-ur-sub">(نئی کیٹیگری شامل کریں)</span>
                 </h4>
                 <div style="display:grid; grid-template-columns:1.5fr 1fr auto; gap:8px;">
-                    <input type="text" id="newCatName" placeholder="کیٹیگری کا نام (e.g. Broken / Expired)" style="box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
+                    <input type="text" id="newCatName" data-eb-ph-en="Category name (e.g. Broken / Expired)" data-eb-ph-ur="کیٹیگری کا نام (مثلاً ٹوٹ پھوٹ / ایکسپائرڈ)" placeholder="Category name (e.g. Broken / Expired)" style="box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; outline:none;">
                     <select id="newCatType" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px; outline:none; background:#fff;">
-                        <option value="expired">⏰ Expired (تاریخ ختم)</option>
-                        <option value="broken">💥 Broken (ٹوٹ پھوٹ)</option>
-                        <option value="damage">📦 Packing Damage (پیکنگ خراب)</option>
-                        <option value="defect">🏭 Company Defect (نقص دار)</option>
-                        <option value="weather">💧 Weather / Water (نمی و بارش)</option>
-                        <option value="other">📝 Other (دیگر)</option>
+                        <option value="expired" data-eb-en="⏰ Expired" data-eb-ur="⏰ Expired (تاریخ ختم)">⏰ Expired</option>
+                        <option value="broken" data-eb-en="💥 Broken" data-eb-ur="💥 Broken (ٹوٹ پھوٹ)">💥 Broken</option>
+                        <option value="damage" data-eb-en="📦 Packing Damage" data-eb-ur="📦 Packing Damage (پیکنگ خراب)">📦 Packing Damage</option>
+                        <option value="defect" data-eb-en="🏭 Company Defect" data-eb-ur="🏭 Company Defect (نقص دار)">🏭 Company Defect</option>
+                        <option value="weather" data-eb-en="💧 Weather / Water" data-eb-ur="💧 Weather / Water (نمی و بارش)">💧 Weather / Water</option>
+                        <option value="other" data-eb-en="📝 Other" data-eb-ur="📝 Other (دیگر)">📝 Other</option>
                     </select>
                     <button type="button" class="btn" onclick="saveNewCategory()" style="background:#0284c7; color:#fff; font-size:12.5px; font-weight:bold; padding:8px 14px; border-radius:8px;">
-                        + شامل کریں
+                        + Add <span class="eb-ur-sub">(شامل)</span>
                     </button>
                 </div>
             </div>
 
             <!-- Categories List Table -->
-            <h4 style="margin:0 0 10px; font-size:13px; color:#475569;">موجودہ کیٹیگریز کی فہرست (Existing Categories):</h4>
+            <h4 style="margin:0 0 10px; font-size:13px; color:#475569;">Existing Categories <span class="eb-ur-sub">(موجودہ کیٹیگریز کی فہرست)</span>:</h4>
             <div id="categoriesListContainer" style="max-height:280px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:10px;">
                 <!-- Filled dynamically with Edit & Delete options -->
             </div>
 
             <div style="margin-top:16px; display:flex; justify-content:flex-end;">
-                <button type="button" class="btn" onclick="closeManageCategoriesModal()" style="background:#e2e8f0; color:#475569; padding:8px 18px; border-radius:8px; font-weight:600;">بند کریں (Close)</button>
+                <button type="button" class="btn" onclick="closeManageCategoriesModal()" style="background:#e2e8f0; color:#475569; padding:8px 18px; border-radius:8px; font-weight:600;">Close <span class="eb-ur-sub">(بند کریں)</span></button>
             </div>
         </div>
     </div>
@@ -1052,7 +1039,7 @@
     <div class="modal-box" style="max-width:600px; max-height:92vh; overflow-y:auto; background:#fff; border-radius:14px; box-shadow:0 15px 35px rgba(0,0,0,0.35);">
         <div class="modal-header" style="background:#475569; color:#fff; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; border-radius:14px 14px 0 0;">
             <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-print"></i> کلیم واؤچر و گیٹ پاس (Claim Slip &amp; Voucher)
+                <i class="fas fa-print"></i> Claim Slip &amp; Voucher <span class="eb-ur-sub">(کلیم واؤچر و گیٹ پاس)</span>
             </h3>
             <button onclick="closeClaimVoucherModal()" style="background:none; border:none; color:#fff; font-size:22px; cursor:pointer;">✕</button>
         </div>
@@ -1061,15 +1048,15 @@
         </div>
         <div style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; border-radius:0 0 14px 14px; flex-wrap:wrap; gap:8px;">
             <button type="button" class="btn-vyapar btn-vyapar-green" id="btnShareClaimWA">
-                <i class="fab fa-whatsapp"></i> واٹس ایپ پر بھیجیں
+                <i class="fab fa-whatsapp"></i> Share on WhatsApp <span class="eb-ur-sub">(واٹس ایپ)</span>
             </button>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="btn" onclick="closeClaimVoucherModal()" style="background:#e2e8f0; color:#475569; padding:8px 16px; border-radius:8px;">Close</button>
+                <button type="button" class="btn" onclick="closeClaimVoucherModal()" style="background:#e2e8f0; color:#475569; padding:8px 16px; border-radius:8px;">Close <span class="eb-ur-sub">(بند)</span></button>
                 <button type="button" class="btn-vyapar" onclick="printClaimVoucherThermal()" style="background:#0f172a; color:#38bdf8; border:1px solid #0284c7; padding:8px 14px; border-radius:8px; font-weight:800;">
-                    🧾 Thermal Slip (80mm/58mm)
+                    🧾 Thermal Slip (80mm/58mm) <span class="eb-ur-sub">(تھرمل)</span>
                 </button>
                 <button type="button" class="btn-vyapar btn-vyapar-blue" onclick="printClaimVoucherDoc()">
-                    <i class="fas fa-print"></i> پرنٹ واؤچر
+                    <i class="fas fa-print"></i> Print Voucher <span class="eb-ur-sub">(پرنٹ)</span>
                 </button>
             </div>
         </div>

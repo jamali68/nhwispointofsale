@@ -230,7 +230,11 @@ window.clearSelectedCustomer = function() {
     if (topRecoveryBar) topRecoveryBar.style.display = 'none';
 
     const bCustBadge = document.getElementById('bookerSelectedCustBadge');
-    if (bCustBadge) bCustBadge.innerText = '👤 No shopkeeper selected';
+    if (bCustBadge) {
+        bCustBadge.innerText = isRestaurantAgency()
+            ? '👤 No customer selected'
+            : (isMedicalAgency() ? '👤 No patient/clinic selected' : (isBookDepotAgency() ? '👤 No school/shop selected' : '👤 No shopkeeper selected'));
+    }
     const bPending = document.getElementById('bookerPendingKhataDisplay');
     if (bPending) bPending.innerText = 'Rs 0.00';
     const bRem = document.getElementById('bookerRemainingKhataDisplay');
@@ -1018,6 +1022,12 @@ function setupBookPosQuickFilterBar() {
     if (typeof setupRestaurantOrderBar === 'function') {
         setupRestaurantOrderBar();
     }
+    if (typeof applyBillingCategoryUI === 'function') {
+        applyBillingCategoryUI();
+    }
+    if (typeof updateUIForTemplate === 'function') {
+        updateUIForTemplate(getActiveBillTemplate());
+    }
 
     if (clsSelects.length === 0) return;
 
@@ -1027,25 +1037,31 @@ function setupBookPosQuickFilterBar() {
     const explicitDist = isDistributorAgency();
     const explicitMed = isMedicalAgency();
     const explicitRest = isRestaurantAgency();
-    const hasExplicitCat = explicitBook || explicitMob || explicitWhl || explicitDist || explicitMed || explicitRest;
+    const resolvedActiveCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+        ? window.BusinessCategories.resolveActiveCategory(myAgency)
+        : '';
+    const hasExplicitCat = Boolean(resolvedActiveCat) || explicitBook || explicitMob || explicitWhl || explicitDist || explicitMed || explicitRest;
 
-    const hasBookItems = allMyStock.some(s => s.industryFields && (s.industryFields.classGrade || s.industryFields.publisherBoard || s.industryFields.isbnCode));
-    const hasMobItems = allMyStock.some(s => s.industryFields && (s.industryFields.imei1 || (s.industryFields.brandCompany && s.industryFields.ptaStatus) || s.industryFields.ptaStatus || s.industryFields.modelVariant));
-    const hasMedItems = allMyStock.some(s => s.industryFields && (s.industryFields.genericFormula || s.industryFields.batchNo || s.industryFields.dosageStrength));
-    const hasDistributorItems = allMyStock.some(s => s.industryFields && (s.industryFields.retailMrp || s.industryFields.tradeOfferPercent || s.industryFields.vanRouteZone));
-    const hasWholesaleItems = allMyStock.some(s => s.industryFields && (s.industryFields.cartonPacking || s.industryFields.tradePriceTP || s.industryFields.bonusSchemeRule || s.industryFields.skuBatchCode));
-    const hasRestaurantItems = allMyStock.some(s => s.industryFields && (s.industryFields.portionSize || s.industryFields.spiceVariant || s.industryFields.kitchenKOTZone || s.industryFields.dealContents));
+    const hasBookItems = !hasExplicitCat && allMyStock.some(s => s.industryFields && (s.industryFields.classGrade || s.industryFields.publisherBoard || s.industryFields.isbnCode));
+    const hasMobItems = !hasExplicitCat && allMyStock.some(s => s.industryFields && (s.industryFields.imei1 || (s.industryFields.brandCompany && s.industryFields.ptaStatus) || s.industryFields.ptaStatus || s.industryFields.modelVariant));
+    const hasMedItems = !hasExplicitCat && allMyStock.some(s => s.industryFields && (s.industryFields.genericFormula || s.industryFields.batchNo || s.industryFields.dosageStrength));
+    const hasDistributorItems = !hasExplicitCat && allMyStock.some(s => s.industryFields && (s.industryFields.retailMrp || s.industryFields.tradeOfferPercent || s.industryFields.vanRouteZone));
+    const hasWholesaleItems = !hasExplicitCat && allMyStock.some(s => s.industryFields && (s.industryFields.cartonPacking || s.industryFields.tradePriceTP || s.industryFields.bonusSchemeRule || s.industryFields.skuBatchCode));
+    const hasRestaurantItems = !hasExplicitCat && allMyStock.some(s => s.industryFields && (s.industryFields.portionSize || s.industryFields.spiceVariant || s.industryFields.kitchenKOTZone || s.industryFields.dealContents));
 
     const isMobMode = hasExplicitCat ? explicitMob : hasMobItems;
     const isMedMode = hasExplicitCat ? explicitMed : (!isMobMode && hasMedItems);
     const isDistributorMode = hasExplicitCat ? explicitDist : (!isMobMode && !isMedMode && hasDistributorItems);
     const isWholesaleMode = hasExplicitCat ? explicitWhl : (!isMobMode && !isMedMode && !isDistributorMode && hasWholesaleItems);
     const isRestMode = hasExplicitCat ? explicitRest : (!isMobMode && !isMedMode && !isDistributorMode && !isWholesaleMode && hasRestaurantItems);
+    const isBookMode = hasExplicitCat ? explicitBook : (!isMobMode && !isMedMode && !isDistributorMode && !isWholesaleMode && !isRestMode && hasBookItems);
 
-    if (!explicitBook && !hasBookItems && !isMobMode && !isDistributorMode && !isWholesaleMode && !isMedMode && !isRestMode) {
+    if (!isBookMode && !isMobMode && !isDistributorMode && !isWholesaleMode && !isMedMode && !isRestMode) {
         if (bar) bar.style.display = 'none';
         if (bookerBar) bookerBar.style.display = 'none';
         if (catBar) catBar.style.display = 'none';
+        if (btnRepairJob) btnRepairJob.style.display = 'none';
+        if (btnTradeIn) btnTradeIn.style.display = 'none';
         posActiveClassFilter = 'all';
         posActivePublisherFilter = 'all';
         return;
@@ -1064,6 +1080,8 @@ function setupBookPosQuickFilterBar() {
         if (scanInp) scanInp.placeholder = 'Scan Barcode or search medicine, generic salt/formula, batch #, pharma company...';
         const listInp = document.getElementById('listSearchInput');
         if (listInp) listInp.placeholder = '🔍 Search medicine, generic salt/formula, batch #, pharma company or rack...';
+        const catInp = document.getElementById('catSearchInput');
+        if (catInp) catInp.placeholder = '🔍 Search medicine, generic salt/formula, batch #, pharma company or rack...';
 
         const companies = new Set();
         const formulasAndRacks = new Set();
@@ -1117,6 +1135,8 @@ function setupBookPosQuickFilterBar() {
         if (scanInp) scanInp.placeholder = 'Search burger, pizza, broast, combo deal, flavor, kitchen station or KOT zone...';
         const listInp = document.getElementById('listSearchInput');
         if (listInp) listInp.placeholder = '🔍 Search menu item, combo deal contents, flavor, size or kitchen station...';
+        const catInp = document.getElementById('catSearchInput');
+        if (catInp) catInp.placeholder = '🔍 Search burger, pizza, combo deal, flavor, size or kitchen station...';
 
         const stations = new Set();
         const sizesFlavorsKot = new Set();
@@ -1171,6 +1191,8 @@ function setupBookPosQuickFilterBar() {
         if (scanInp) scanInp.placeholder = 'Scan Barcode / SKU / Batch or search FMCG item, agency brand, carton packing, TP, MRP, bonus...';
         const listInp = document.getElementById('listSearchInput');
         if (listInp) listInp.placeholder = '🔍 Search FMCG product, principal agency, carton packing, TP, MRP, T.O % or scheme...';
+        const catInp = document.getElementById('catSearchInput');
+        if (catInp) catInp.placeholder = '🔍 Search FMCG product, principal agency, carton packing, TP, MRP or scheme...';
 
         const companies = new Set();
         const divisionsSchemesZones = new Set();
@@ -1238,6 +1260,8 @@ function setupBookPosQuickFilterBar() {
         if (scanInp) scanInp.placeholder = 'Scan Barcode / SKU / Batch or search product, brand, carton Packing, bonus...';
         const listInp = document.getElementById('listSearchInput');
         if (listInp) listInp.placeholder = '🔍 Search product, principal company, carton packing, SKU or scheme...';
+        const catInp = document.getElementById('catSearchInput');
+        if (catInp) catInp.placeholder = '🔍 Search product, principal company, carton packing, SKU or scheme...';
 
         const companies = new Set();
         const groupsAndSchemes = new Set();
@@ -1285,6 +1309,13 @@ function setupBookPosQuickFilterBar() {
         if (btnRepairJob) btnRepairJob.style.display = 'inline-flex';
         if (btnTradeIn) btnTradeIn.style.display = 'inline-flex';
 
+        const scanInp = document.getElementById('barcodeScanInput');
+        if (scanInp) scanInp.placeholder = 'Scan Barcode / IMEI 1-4 or search mobile model, brand, RAM/ROM, PTA status...';
+        const listInp = document.getElementById('listSearchInput');
+        if (listInp) listInp.placeholder = '🔍 Search mobile model, brand, IMEI, RAM/ROM, PTA status or accessory...';
+        const catInp = document.getElementById('catSearchInput');
+        if (catInp) catInp.placeholder = '🔍 Search mobile model, brand, IMEI, RAM/ROM, PTA status or accessory...';
+
         const brands = new Set();
         const ptaAndConds = new Set();
 
@@ -1328,6 +1359,13 @@ function setupBookPosQuickFilterBar() {
         if (filterLbl) filterLbl.innerHTML = '📚 Book POS Filter:';
         if (btnRepairJob) btnRepairJob.style.display = 'none';
         if (btnTradeIn) btnTradeIn.style.display = 'none';
+
+        const scanInp = document.getElementById('barcodeScanInput');
+        if (scanInp) scanInp.placeholder = 'Scan Barcode / ISBN or search book title, class, publisher, author or stationery...';
+        const listInp = document.getElementById('listSearchInput');
+        if (listInp) listInp.placeholder = '🔍 Search book title, class/grade, publisher, board, ISBN or stationery...';
+        const catInp = document.getElementById('catSearchInput');
+        if (catInp) catInp.placeholder = '🔍 Search book title, class/grade, publisher, board, ISBN or stationery...';
 
         const classes = new Set();
         const publishers = new Set();
@@ -4061,19 +4099,34 @@ function addItemToRows(stockItem) {
 // ============================================
 let isDistModeActive = false;
 
+function isWholesaleOrDistributorCategory() {
+    return (typeof isWholesalerAgency === 'function' && isWholesalerAgency()) ||
+           (typeof isDistributorAgency === 'function' && isDistributorAgency());
+}
+window.isWholesaleOrDistributorCategory = isWholesaleOrDistributorCategory;
+
 function getActiveBillTemplate() {
+    let tpl = '';
     const mainSel = document.getElementById('mainBillTemplateSelect');
-    if (mainSel && mainSel.value) return mainSel.value;
     const ssSel = document.getElementById('ssTemplateSelect');
-    if (ssSel && ssSel.value) return ssSel.value;
-    if (typeof myAgency !== 'undefined' && myAgency && (myAgency.defaultTemplate || myAgency.template)) {
-        return myAgency.defaultTemplate || myAgency.template;
+    if (mainSel && mainSel.value) {
+        tpl = mainSel.value;
+    } else if (ssSel && ssSel.value) {
+        tpl = ssSel.value;
+    } else if (typeof myAgency !== 'undefined' && myAgency && (myAgency.defaultTemplate || myAgency.template)) {
+        tpl = myAgency.defaultTemplate || myAgency.template;
+    } else {
+        tpl = localStorage.getItem('eb_default_template') || 'template4';
     }
-    return localStorage.getItem('eb_default_template') || 'template4';
+    if (!isWholesaleOrDistributorCategory() && ['template7', 'template8', 'template9', 'template10', 'template11'].includes(tpl)) {
+        tpl = 'template4';
+    }
+    return tpl;
 }
 window.getActiveBillTemplate = getActiveBillTemplate;
 
 function getActiveTemplateMode(tplId) {
+    if (!isWholesaleOrDistributorCategory()) return 'minimal';
     const tpl = tplId || getActiveBillTemplate();
     if (tpl === 'template10') return 'tax_corp';
     if (tpl === 'template7' || tpl === 'template11') return 'fmcg';
@@ -4087,7 +4140,7 @@ function applyRowFieldsForTemplate(row, mode) {
     const distRow = row.querySelector('.ir-dist-row');
     if (!distRow) return;
 
-    const activeMode = mode || getActiveTemplateMode();
+    const activeMode = isWholesaleOrDistributorCategory() ? (mode || getActiveTemplateMode()) : 'minimal';
     if (activeMode === 'minimal') {
         distRow.style.display = 'none';
         return;
@@ -4179,7 +4232,11 @@ function applyRowFieldsForTemplate(row, mode) {
 window.applyRowFieldsForTemplate = applyRowFieldsForTemplate;
 
 function updateUIForTemplate(tplId) {
-    const selectedTpl = tplId || getActiveBillTemplate();
+    const allowDistFields = isWholesaleOrDistributorCategory();
+    let selectedTpl = tplId || getActiveBillTemplate();
+    if (!allowDistFields && ['template7', 'template8', 'template9', 'template10', 'template11'].includes(selectedTpl)) {
+        selectedTpl = 'template4';
+    }
     const mode = getActiveTemplateMode(selectedTpl);
     const distPanel = document.getElementById('distMetaFieldsPanel');
     const toggleBtn = document.getElementById('btnToggleDistMode');
@@ -4187,6 +4244,17 @@ function updateUIForTemplate(tplId) {
     const desc = document.getElementById('currentTemplateDesc');
     const mainSel = document.getElementById('mainBillTemplateSelect');
     const ssSel = document.getElementById('ssTemplateSelect');
+
+    // Filter out Wholesale/FMCG-only templates when agency is not Wholesaler or Distributor
+    [mainSel, ssSel].filter(Boolean).forEach(sel => {
+        Array.from(sel.options).forEach(opt => {
+            const isWhlFmcgOpt = ['template7', 'template8', 'template9', 'template10', 'template11'].includes(opt.value);
+            if (isWhlFmcgOpt) {
+                opt.style.display = allowDistFields ? '' : 'none';
+                opt.disabled = !allowDistFields;
+            }
+        });
+    });
 
     if (mainSel && mainSel.value !== selectedTpl) {
         mainSel.value = selectedTpl;
@@ -4197,19 +4265,19 @@ function updateUIForTemplate(tplId) {
 
     if (badge) {
         if (mode === 'minimal') {
-            badge.innerText = '⚡ Minimal / Simple POS';
+            badge.innerHTML = '⚡ Minimal / Simple POS <span class="eb-ur-sub">(سادہ بل)</span>';
             badge.style.background = '#e2e8f0';
             badge.style.color = '#334155';
         } else if (mode === 'wholesale') {
-            badge.innerText = '🇵🇰 Wholesale Grid (کارٹن، پیسز، ریٹ، بونس)';
+            badge.innerHTML = '🇵🇰 Wholesale Grid <span class="eb-ur-sub">(کارٹن، پیسز، ریٹ، بونس)</span>';
             badge.style.background = '#fef3c7';
             badge.style.color = '#92400e';
         } else if (mode === 'fmcg') {
-            badge.innerText = '📦 FMCG Cash Memo (ڈسٹری بیوشن باکسز)';
+            badge.innerHTML = '📦 FMCG Cash Memo <span class="eb-ur-sub">(ڈسٹری بیوشن باکسز)</span>';
             badge.style.background = '#e0f2fe';
             badge.style.color = '#0369a1';
         } else if (mode === 'tax_corp') {
-            badge.innerText = '🏢 Corporate Tax & FMCG (مکمل سیلز ٹیکس انوائس)';
+            badge.innerHTML = '🏢 Corporate Tax &amp; FMCG <span class="eb-ur-sub">(مکمل سیلز ٹیکس انوائس)</span>';
             badge.style.background = '#dcfce7';
             badge.style.color = '#15803d';
         }
@@ -4217,18 +4285,22 @@ function updateUIForTemplate(tplId) {
 
     if (desc) {
         if (mode === 'minimal') {
-            desc.innerText = 'عام پرچون بل: صرف پراڈکٹ نام، تعداد، ریٹ اور رقم کے باکسز فعال ہیں۔';
+            desc.innerHTML = 'Standard retail invoice: product name, qty, rate and total fields active. <span class="eb-ur-compact">عام پرچون بل: صرف پراڈکٹ نام، تعداد، ریٹ اور رقم کے باکسز فعال ہیں۔</span>';
         } else if (mode === 'wholesale') {
-            desc.innerText = 'ہول سیل تھوک بل: کارٹن، پیسز، بونس، ٹریڈ ریٹ اور روٹ/بکر باکسز فعال ہیں۔';
+            desc.innerHTML = 'Wholesale bulk invoice: carton, pieces, bonus, trade rate and route fields active. <span class="eb-ur-compact">ہول سیل تھوک بل: کارٹن، پیسز، بونس، ٹریڈ ریٹ اور روٹ/بکر باکسز فعال ہیں۔</span>';
         } else if (mode === 'fmcg') {
-            desc.innerText = 'ایف ایم سی جی کیش میمو: کارٹن، بکس، پیسز، پرچون ریٹ، ٹریڈ پرائس اور اسکیمیں فعال ہیں۔';
+            desc.innerHTML = 'FMCG Cash Memo: carton, box, pieces, retail MRP, trade price and schemes active. <span class="eb-ur-compact">ایف ایم سی جی کیش میمو: کارٹن، بکس، پیسز، پرچون ریٹ، ٹریڈ پرائس اور اسکیمیں فعال ہیں۔</span>';
         } else if (mode === 'tax_corp') {
-            desc.innerText = 'حسن ڈسٹری بیوٹر انوائس: شناختی کارڈ، سیلز ٹیکس 18%، مزید ٹیکس، اسٹور کوڈ اور تمام باکسز فعال ہیں۔';
+            desc.innerHTML = 'Corporate Tax Invoice: CNIC, 18% GST, further tax, store code and all fields active. <span class="eb-ur-compact">کارپوریٹ انوائس: شناختی کارڈ، سیلز ٹیکس 18%، مزید ٹیکس، اسٹور کوڈ اور تمام باکسز فعال ہیں۔</span>';
         }
     }
 
-    // 1. Meta Panel
-    if (mode === 'minimal') {
+    // 1. Meta Panel & Toggle Button (Strictly restricted to Wholesaler / Distributor categories)
+    if (!allowDistFields) {
+        if (distPanel) distPanel.style.display = 'none';
+        isDistModeActive = false;
+        if (toggleBtn) toggleBtn.style.display = 'none';
+    } else if (mode === 'minimal') {
         if (distPanel) distPanel.style.display = 'none';
         isDistModeActive = false;
         if (toggleBtn) {
@@ -4236,7 +4308,7 @@ function updateUIForTemplate(tplId) {
             toggleBtn.style.background = '#f1f5f9';
             toggleBtn.style.color = '#0f172a';
             const btnText = document.getElementById('distModeToggleText');
-            if (btnText) btnText.innerText = '📦 Show Extra Fields (کارٹن، بونس، روٹ)';
+            if (btnText) btnText.innerHTML = '📦 Show Extra Fields <span class="eb-ur-sub">(کارٹن، بونس، روٹ)</span>';
         }
     } else {
         if (distPanel) distPanel.style.display = 'block';
@@ -4246,19 +4318,19 @@ function updateUIForTemplate(tplId) {
             toggleBtn.style.background = '#0284c7';
             toggleBtn.style.color = '#fff';
             const btnText = document.getElementById('distModeToggleText');
-            if (btnText) btnText.innerText = 'Hide Distribution Fields (مخفی کریں)';
+            if (btnText) btnText.innerHTML = 'Hide Distribution Fields <span class="eb-ur-sub">(مخفی کریں)</span>';
         }
     }
 
     // 2. Adjust specific meta field containers in distMetaFieldsPanel
     document.querySelectorAll('.fld-corp-tax').forEach(el => {
-        el.style.display = (mode === 'tax_corp') ? 'block' : 'none';
+        el.style.display = (allowDistFields && mode === 'tax_corp') ? 'block' : 'none';
     });
     document.querySelectorAll('.fld-fmcg-only').forEach(el => {
-        el.style.display = (mode === 'fmcg' || mode === 'tax_corp') ? 'block' : 'none';
+        el.style.display = (allowDistFields && (mode === 'fmcg' || mode === 'tax_corp')) ? 'block' : 'none';
     });
     document.querySelectorAll('.fld-wholesale-common').forEach(el => {
-        el.style.display = (mode !== 'minimal') ? 'block' : 'none';
+        el.style.display = (allowDistFields && mode !== 'minimal') ? 'block' : 'none';
     });
 
     // 3. Adjust all existing rows
@@ -4276,12 +4348,25 @@ document.getElementById('ssTemplateSelect')?.addEventListener('change', function
 });
 
 function toggleDistMode() {
+    if (!isWholesaleOrDistributorCategory()) {
+        isDistModeActive = false;
+        const panel = document.getElementById('distMetaFieldsPanel');
+        const toggleBtn = document.getElementById('btnToggleDistMode');
+        if (panel) panel.style.display = 'none';
+        if (toggleBtn) toggleBtn.style.display = 'none';
+        document.querySelectorAll('.ir-dist-row').forEach(el => { el.style.display = 'none'; });
+        return;
+    }
     isDistModeActive = !isDistModeActive;
     const panel = document.getElementById('distMetaFieldsPanel');
     const btnText = document.getElementById('distModeToggleText');
     const toggleBtn = document.getElementById('btnToggleDistMode');
     if (panel) panel.style.display = isDistModeActive ? 'block' : 'none';
-    if (btnText) btnText.innerText = isDistModeActive ? 'Hide Wholesale Fields (مخفی کریں)' : '📦 Show Wholesale Fields (کارٹن، بونس، T-D، T-O، S-D)';
+    if (btnText) {
+        btnText.innerHTML = isDistModeActive
+            ? 'Hide Wholesale Fields <span class="eb-ur-sub">(مخفی کریں)</span>'
+            : '📦 Show Wholesale Fields <span class="eb-ur-sub">(کارٹن، بونس، T-D، T-O)</span>';
+    }
     if (toggleBtn) {
         toggleBtn.style.background = isDistModeActive ? '#0284c7' : '#f1f5f9';
         toggleBtn.style.color = isDistModeActive ? '#fff' : '#0f172a';
@@ -4941,6 +5026,25 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
         if (!proceed.isConfirmed) return;
     }
 
+    // 📍 Optional Enterprise GPS Enforcement for Standard Field Order Form (matches Catalog Order Modal)
+    let capturedBillGps = null;
+    if (isBookerMode && window.EB_GPS && typeof window.EB_GPS.enforceOrCaptureForOrder === 'function') {
+        const userProfileWithUid = Object.assign({ uid: myUid }, myUser || {});
+        const gpsCheck = await window.EB_GPS.enforceOrCaptureForOrder(myAgency, userProfileWithUid, 'Field Order Booking');
+        if (!gpsCheck.ok) {
+            Swal.fire({
+                icon: 'warning',
+                title: '📍 GPS Location Required',
+                text: gpsCheck.error || 'Admin requires GPS location for your account.',
+                confirmButtonColor: '#10b981'
+            });
+            return;
+        }
+        if (gpsCheck.gps) {
+            capturedBillGps = gpsCheck.gps;
+        }
+    }
+
     const saveBtn = document.getElementById('saveBillBtn');
     const savePrintBtn = document.getElementById('saveAndPrintBillBtn');
     const saveThermalBtn = document.getElementById('saveAndThermalPrintBtn');
@@ -5029,6 +5133,7 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
         date: new Date().toISOString().slice(0, 10),
         time: new Date().toLocaleTimeString('en-PK', {hour:'2-digit', minute:'2-digit'}),
         template: forceTemplate || getActiveBillTemplate(),
+        gpsLocation: capturedBillGps,
         createdAt: new Date().toISOString()
     };
 
@@ -5086,6 +5191,20 @@ async function executeSaveBill(forceFieldOrder = false, directPrint = false, for
             try {
                 await db.collection('orders').doc(billRef.id).set(billData);
             } catch (eM) {}
+
+            // Update staff lastGpsLocation if GPS was captured
+            if (capturedBillGps && myUid) {
+                db.collection('users').doc(myUid).set({
+                    lastGpsLocation: {
+                        lat: capturedBillGps.lat,
+                        lng: capturedBillGps.lng,
+                        accuracy: capturedBillGps.accuracy,
+                        shopName: billData.customerShopName || billData.customerName || '',
+                        route: billData.customerRoute || billData.route || '',
+                        capturedAt: capturedBillGps.capturedAt
+                    }
+                }, { merge: true }).catch(() => {});
+            }
 
             showSuccessScreen(billData, false);
             if (saveBtn) saveBtn.disabled = false;
@@ -5815,112 +5934,215 @@ if (logoutBtn) {
 // (catProducts, catIndex, catActiveCategory, catSearchQuery, catCart, listFilterState initialized at top of file)
 
 // ============================================
-// 🌐 LANGUAGE MANAGER (ENGLISH DEFAULT / URDU+ENGLISH)
+// 🌐 LANGUAGE MANAGER (CONTROLLED EXCLUSIVELY BY SIDEBAR TOGGLE)
 // ============================================
 function getAppLanguage() {
+    if (window.ebLang && typeof window.ebLang.getLang === 'function') {
+        return window.ebLang.getLang();
+    }
     return localStorage.getItem('eb_app_language') || document.documentElement.getAttribute('data-lang') || 'en';
 }
 
 function setAppLanguage(lang) {
     const nextLang = (lang === 'en-ur' || lang === 'ur') ? 'en-ur' : 'en';
-    localStorage.setItem('eb_app_language', nextLang);
+    try { localStorage.setItem('eb_app_language', nextLang); } catch (_) {}
     document.documentElement.setAttribute('data-lang', nextLang);
     if (document.body) document.body.setAttribute('data-lang', nextLang);
 
-    const toggleBtnText = document.getElementById('langToggleText');
-    if (toggleBtnText) {
-        toggleBtnText.innerText = nextLang === 'en' ? 'English' : '🇵🇰 اردو + English';
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(document);
     }
 
     applyLanguageLabels();
-    renderInteractiveProductList();
-    renderCatalogueItem();
+    if (typeof updateCatalogueRateTier === 'function') {
+        try { updateCatalogueRateTier(); } catch (_) {}
+    } else {
+        renderInteractiveProductList();
+        renderCatalogueItem();
+    }
 }
 
 function applyLanguageLabels() {
     const isUrdu = getAppLanguage() === 'en-ur';
 
-    // Top view labels
+    // Top view labels (Always English-first, compact Urdu inline in Mix mode)
     const lblList = document.getElementById('lblViewList');
     if (lblList) {
-        lblList.innerText = isUrdu ? 'لسٹ ویو (List View)' : 'List View';
+        lblList.innerHTML = 'List View <span class="eb-ur-sub">(لسٹ ویو)</span>';
     }
     const lblCat = document.getElementById('lblViewCatalogue');
     if (lblCat) {
-        lblCat.innerText = isUrdu ? 'ویژول کیٹلاگ (Catalogue)' : 'Visual Catalogue';
+        lblCat.innerHTML = 'Visual Catalogue <span class="eb-ur-sub">(کیٹلاگ)</span>';
     }
 
-    // Rate tier buttons
-    const btnWholesale = document.getElementById('btnWholesaleRate');
-    if (btnWholesale) {
-        btnWholesale.innerHTML = isUrdu 
-            ? '<i class="fas fa-store"></i> 🏪 ہول سیل ریٹ (Wholesale)' 
-            : '<i class="fas fa-store"></i> Wholesale Rate';
-    }
-    const btnRetail = document.getElementById('btnRetailRate');
-    if (btnRetail) {
-        btnRetail.innerHTML = isUrdu 
-            ? '<i class="fas fa-tag"></i> 🏷️ پرچون ریٹ (Retail)' 
-            : '<i class="fas fa-tag"></i> Retail Rate';
-    }
-
-    // Save buttons
+    // Save buttons (English-first + compact Urdu sub)
     const saveBillBtn = document.getElementById('saveBillBtn');
     if (saveBillBtn) {
-        saveBillBtn.innerHTML = isUrdu 
-            ? '<i class="fas fa-check-circle"></i> 💾 کاؤنٹر سیل انوائس (Direct Sale)' 
-            : '<i class="fas fa-check-circle"></i> 💾 DIRECT SALE INVOICE';
+        saveBillBtn.innerHTML = '<i class="fas fa-check-circle"></i> <span>💾 SAVE ONLY <span class="eb-ur-sub">(صرف محفوظ کریں)</span></span>';
     }
     const bookOrderBtn = document.getElementById('bookFieldOrderBtn');
     if (bookOrderBtn) {
-        bookOrderBtn.innerHTML = isUrdu 
-            ? '<i class="fas fa-clipboard-check"></i> 📥 فیلڈ آرڈر بکنگ (Book Field Order)' 
-            : '<i class="fas fa-clipboard-check"></i> 📥 BOOK FIELD ORDER';
+        bookOrderBtn.innerHTML = '<i class="fas fa-clipboard-check"></i> <span>📥 BOOK FIELD ORDER <span class="eb-ur-sub">(آرڈر بک کریں)</span></span>';
     }
 
-    // Search placeholders
+    // Search placeholders (Pure English in en mode, EN + compact Urdu in en-ur mode)
     const listSearch = document.getElementById('listSearchInput');
     if (listSearch) {
-        listSearch.placeholder = isUrdu 
-            ? '🔍 پروڈکٹ نام، بارکوڈ یا برانڈ سرچ کریں...' 
-            : 'Quick search product name, brand or barcode...';
+        listSearch.placeholder = isUrdu
+            ? '🔍 Search item, brand or barcode... (پروڈکٹ سرچ کریں)'
+            : '🔍 Search item, brand, category or barcode...';
     }
     const catSearch = document.getElementById('catSearchInput');
     if (catSearch) {
-        catSearch.placeholder = isUrdu 
-            ? '🔍 کیٹلاگ میں پروڈکٹ سرچ کریں...' 
-            : 'Quick search catalogue products...';
+        catSearch.placeholder = isUrdu
+            ? '🔍 Search catalogue products... (کیٹلاگ سرچ کریں)'
+            : '🔍 Search product name, brand, category or barcode...';
     }
 
     // Filter pill labels
     const tAll = document.querySelector('.t-all');
-    if (tAll) tAll.innerText = isUrdu ? 'تمام پروڈکٹس' : 'All Products';
+    if (tAll) tAll.innerHTML = 'All Products <span class="eb-ur-sub">(تمام)</span>';
     const tOffers = document.querySelector('.t-offers');
-    if (tOffers) tOffers.innerText = isUrdu ? 'خصوصی آفرز' : 'Active Offers';
+    if (tOffers) tOffers.innerHTML = 'Active Offers <span class="eb-ur-sub">(آفرز)</span>';
     const tBooked = document.querySelector('.t-booked');
-    if (tBooked) tBooked.innerText = isUrdu ? 'بک شدہ آئٹمز' : 'Booked in Cart';
+    if (tBooked) tBooked.innerHTML = 'Booked in Cart <span class="eb-ur-sub">(بک شدہ)</span>';
 
-    // Customer & Booker Notice Labels
-    const custLabel = document.querySelector('#billFormCard .form-group label');
-    if (custLabel) {
-        custLabel.innerHTML = isUrdu 
-            ? '👤 گاہک / دکان دار منتخب کریں (یا کاؤنٹر سیل) <span class="ur-sub">/ Select Shopkeeper or Counter Sale</span>' 
-            : '👤 Select Customer / Shop (or Counter Sale)';
-    }
-    const bookerNoticeText = document.getElementById('bookerNoticeText');
-    if (bookerNoticeText) {
-        bookerNoticeText.innerHTML = isUrdu
-            ? 'آئٹمز منتخب کرنے کے لیے پہلے اوپر دکان دار منتخب کریں <span class="ur-sub">/ Select Shopkeeper First</span>'
-            : 'Please select a shopkeeper above to choose items';
-    }
+    // Customer & Booker Notice Labels (Category-Aware)
+    applyBillingCategoryUI();
 }
 
+function applyBillingCategoryUI() {
+    const isUrdu = getAppLanguage() === 'en-ur';
+    const posCustLbl = document.getElementById('posCustBoxLabel');
+    const custInp = document.getElementById('custNameInput');
+    const catCustLbl = document.getElementById('catCustBoxLabel');
+    const catQuickAddBtn = document.getElementById('catQuickAddCustBtn');
+    const catCustInp = document.getElementById('catCustInput');
+    const btnWhl = document.getElementById('btnWholesaleRate');
+    const btnRet = document.getElementById('btnRetailRate');
+    const bookerNoticeText = document.getElementById('bookerNoticeText');
+    const btnFocusNotice = document.getElementById('btnFocusShopkeeperNotice');
+    const bCustBadge = document.getElementById('bookerSelectedCustBadge');
+    const catRevCustHead = document.getElementById('catReviewCustHeading');
+
+    if (isRestaurantAgency()) {
+        if (posCustLbl) posCustLbl.innerHTML = '👤 <span>Select Customer / Guest / Corporate <span class="ur-sub">(کسٹمر / مہمان منتخب کریں)</span></span>';
+        if (custInp) custInp.placeholder = isUrdu
+            ? '🔍 Search customer name or phone... (گاہک تلاش کریں / خالی = کاؤنٹر آرڈر)'
+            : '🔍 Search customer name, phone or delivery address... (Blank = Walk-in / Counter Order)';
+        if (catCustLbl) catCustLbl.innerHTML = '👤 Select Customer / Table / Corporate <span class="ur-sub">(گاہک منتخب کریں)</span> <span style="color:#ef4444;">*</span>';
+        if (catQuickAddBtn) catQuickAddBtn.innerHTML = '<i class="fas fa-plus-circle"></i> + Add Customer <span class="ur-sub">(نیا گاہک)</span>';
+        if (catCustInp) catCustInp.placeholder = isUrdu
+            ? '🔍 Search customer, phone or address... (گاہک سرچ کریں)'
+            : '🔍 Search customer name, phone or delivery address...';
+        if (btnWhl) btnWhl.innerHTML = '<i class="fas fa-building"></i> 🏢 Corporate / Deal <span class="eb-ur-sub">(ڈیل)</span>';
+        if (btnRet) btnRet.innerHTML = '<i class="fas fa-utensils"></i> 🍽️ Menu Rate <span class="eb-ur-sub">(مینو)</span>';
+        if (bookerNoticeText) {
+            bookerNoticeText.innerHTML = 'Please select a customer / guest above to choose menu items <span class="ur-sub">(پہلے گاہک منتخب کریں)</span>';
+        }
+        if (btnFocusNotice) btnFocusNotice.innerHTML = 'Select Customer <span class="eb-ur-sub">(گاہک چنیں)</span>';
+        if (bCustBadge && !selectedCustomer) bCustBadge.innerHTML = '👤 No customer selected <span class="eb-ur-sub">(منتخب نہیں)</span>';
+        if (catRevCustHead) catRevCustHead.innerHTML = 'CUSTOMER / GUEST <span class="ur-sub">(کسٹمر / مہمان)</span>:';
+    } else if (isMedicalAgency()) {
+        if (posCustLbl) posCustLbl.innerHTML = '👤 <span>Select Patient / Clinic / Doctor <span class="ur-sub">(مریض / کلینک منتخب کریں)</span></span>';
+        if (custInp) custInp.placeholder = isUrdu
+            ? '🔍 Search patient, clinic or phone... (مریض یا کلینک سرچ کریں)'
+            : '🔍 Search patient, clinic, doctor or phone... (Blank = Walk-in Patient)';
+        if (catCustLbl) catCustLbl.innerHTML = '👤 Select Clinic / Medical Store / Patient <span class="ur-sub">(کلینک یا مریض)</span> <span style="color:#ef4444;">*</span>';
+        if (catQuickAddBtn) catQuickAddBtn.innerHTML = '<i class="fas fa-plus-circle"></i> + Add Patient / Clinic <span class="ur-sub">(نیا کلینک/مریض)</span>';
+        if (catCustInp) catCustInp.placeholder = isUrdu
+            ? '🔍 Search clinic, doctor or patient... (کلینک یا مریض)'
+            : '🔍 Search clinic, doctor, patient or phone...';
+        if (btnWhl) btnWhl.innerHTML = '<i class="fas fa-hospital"></i> 🏥 Trade / Clinic <span class="eb-ur-sub">(ٹریڈ)</span>';
+        if (btnRet) btnRet.innerHTML = '<i class="fas fa-capsules"></i> 💊 Retail MRP <span class="eb-ur-sub">(پرچون)</span>';
+        if (bookerNoticeText) {
+            bookerNoticeText.innerHTML = 'Please select a clinic / customer above to choose medicines <span class="ur-sub">(پہلے کلینک منتخب کریں)</span>';
+        }
+        if (btnFocusNotice) btnFocusNotice.innerHTML = 'Select Clinic <span class="eb-ur-sub">(کلینک چنیں)</span>';
+        if (bCustBadge && !selectedCustomer) bCustBadge.innerHTML = '👤 No patient/clinic selected <span class="eb-ur-sub">(منتخب نہیں)</span>';
+        if (catRevCustHead) catRevCustHead.innerHTML = 'PATIENT / CLINIC / CUSTOMER <span class="ur-sub">(مریض / کلینک)</span>:';
+    } else if (isMobileShopAgency()) {
+        if (posCustLbl) posCustLbl.innerHTML = '👤 <span>Select Customer / Sub-Dealer <span class="ur-sub">(گاہک / ڈیلر منتخب کریں)</span></span>';
+        if (custInp) custInp.placeholder = isUrdu
+            ? '🔍 Search customer, sub-dealer or phone... (گاہک یا ڈیلر سرچ کریں)'
+            : '🔍 Search customer, sub-dealer or phone... (Blank = Walk-in Customer)';
+        if (catCustLbl) catCustLbl.innerHTML = '👤 Select Sub-Dealer / Customer <span class="ur-sub">(ڈیلر یا گاہک)</span> <span style="color:#ef4444;">*</span>';
+        if (catQuickAddBtn) catQuickAddBtn.innerHTML = '<i class="fas fa-plus-circle"></i> + Add Dealer / Customer <span class="ur-sub">(نیا گاہک)</span>';
+        if (catCustInp) catCustInp.placeholder = isUrdu
+            ? '🔍 Search customer or sub-dealer... (گاہک یا ڈیلر)'
+            : '🔍 Search customer, sub-dealer or phone...';
+        if (btnWhl) btnWhl.innerHTML = '<i class="fas fa-store"></i> 🏪 Dealer Rate <span class="eb-ur-sub">(ڈیلر ریٹ)</span>';
+        if (btnRet) btnRet.innerHTML = '<i class="fas fa-mobile-screen"></i> 📱 Customer Rate <span class="eb-ur-sub">(کسٹمر ریٹ)</span>';
+        if (bookerNoticeText) {
+            bookerNoticeText.innerHTML = 'Please select a sub-dealer / customer above to choose items <span class="ur-sub">(پہلے ڈیلر منتخب کریں)</span>';
+        }
+        if (btnFocusNotice) btnFocusNotice.innerHTML = 'Select Customer <span class="eb-ur-sub">(گاہک چنیں)</span>';
+        if (bCustBadge && !selectedCustomer) bCustBadge.innerHTML = '👤 No customer selected <span class="eb-ur-sub">(منتخب نہیں)</span>';
+        if (catRevCustHead) catRevCustHead.innerHTML = 'CUSTOMER / SUB-DEALER <span class="ur-sub">(گاہک / ڈیلر)</span>:';
+    } else if (isBookDepotAgency()) {
+        if (posCustLbl) posCustLbl.innerHTML = '👤 <span>Select School / Bookshop / Customer <span class="ur-sub">(اسکول / دکان دار منتخب کریں)</span></span>';
+        if (custInp) custInp.placeholder = isUrdu
+            ? '🔍 Search school, bookshop or phone... (اسکول یا بک شاپ سرچ کریں)'
+            : '🔍 Search school, bookshop, student or phone... (Blank = Counter Sale)';
+        if (catCustLbl) catCustLbl.innerHTML = '👤 Select School / Bookshop <span class="ur-sub">(اسکول یا بک شاپ)</span> <span style="color:#ef4444;">*</span>';
+        if (catQuickAddBtn) catQuickAddBtn.innerHTML = '<i class="fas fa-plus-circle"></i> + Add School / Shop <span class="ur-sub">(نیا اسکول/دکان)</span>';
+        if (catCustInp) catCustInp.placeholder = isUrdu
+            ? '🔍 Search school or bookshop... (اسکول یا دکان)'
+            : '🔍 Search school, bookshop or phone...';
+        if (btnWhl) btnWhl.innerHTML = '<i class="fas fa-school"></i> 🏫 School / Wholesale <span class="eb-ur-sub">(تھوک)</span>';
+        if (btnRet) btnRet.innerHTML = '<i class="fas fa-book"></i> 📚 Retail Rate <span class="eb-ur-sub">(پرچون)</span>';
+        if (bookerNoticeText) {
+            bookerNoticeText.innerHTML = 'Please select a school / bookshop above to choose books <span class="ur-sub">(پہلے اسکول یا دکان منتخب کریں)</span>';
+        }
+        if (btnFocusNotice) btnFocusNotice.innerHTML = 'Select School / Shop <span class="eb-ur-sub">(اسکول چنیں)</span>';
+        if (bCustBadge && !selectedCustomer) bCustBadge.innerHTML = '👤 No school/shop selected <span class="eb-ur-sub">(منتخب نہیں)</span>';
+        if (catRevCustHead) catRevCustHead.innerHTML = 'SCHOOL / BOOKSHOP / CUSTOMER <span class="ur-sub">(اسکول / دکان دار)</span>:';
+    } else if (isDistributorAgency()) {
+        if (posCustLbl) posCustLbl.innerHTML = '👤 <span>Select Retailer / Shopkeeper <span class="ur-sub">(دکان دار / ریٹیلر منتخب کریں)</span></span>';
+        if (custInp) custInp.placeholder = isUrdu
+            ? '🔍 Search shopkeeper, route or phone... (دکان دار یا روٹ سرچ کریں)'
+            : '🔍 Search shopkeeper, store code, route or phone... (Blank = Counter Sale)';
+        if (catCustLbl) catCustLbl.innerHTML = '👤 Select Retailer / Shopkeeper <span class="ur-sub">(دکان دار منتخب کریں)</span> <span style="color:#ef4444;">*</span>';
+        if (catQuickAddBtn) catQuickAddBtn.innerHTML = '<i class="fas fa-plus-circle"></i> + Add Shopkeeper <span class="ur-sub">(نیا دکان دار)</span>';
+        if (catCustInp) catCustInp.placeholder = isUrdu
+            ? '🔍 Search shopkeeper, shop or route... (دکان دار سرچ کریں)'
+            : '🔍 Search shopkeeper name, shop name, route or phone...';
+        if (btnWhl) btnWhl.innerHTML = '<i class="fas fa-truck"></i> 🚚 Trade Price (TP) <span class="eb-ur-sub">(ٹریڈ)</span>';
+        if (btnRet) btnRet.innerHTML = '<i class="fas fa-tag"></i> 🏷️ Retail MRP <span class="eb-ur-sub">(پرچون)</span>';
+        if (bookerNoticeText) {
+            bookerNoticeText.innerHTML = 'Please select a shopkeeper above to choose items <span class="ur-sub">(پہلے دکان دار منتخب کریں)</span>';
+        }
+        if (btnFocusNotice) btnFocusNotice.innerHTML = 'Select Shopkeeper <span class="eb-ur-sub">(دکان دار چنیں)</span>';
+        if (bCustBadge && !selectedCustomer) bCustBadge.innerHTML = '👤 No shopkeeper selected <span class="eb-ur-sub">(منتخب نہیں)</span>';
+        if (catRevCustHead) catRevCustHead.innerHTML = 'RETAILER / SHOPKEEPER <span class="ur-sub">(دکان دار / ریٹیلر)</span>:';
+    } else {
+        if (posCustLbl) posCustLbl.innerHTML = '👤 <span>Select Shopkeeper / Customer <span class="ur-sub">(دکان دار منتخب کریں)</span></span>';
+        if (custInp) custInp.placeholder = isUrdu
+            ? '🔍 Search shopkeeper name or phone... (دکان دار سرچ کریں / خالی = کاؤنٹر سیل)'
+            : '🔍 Search shopkeeper name or phone... (Blank = Counter Sale)';
+        if (catCustLbl) catCustLbl.innerHTML = '👤 Select Shopkeeper <span class="ur-sub">(دکان دار منتخب کریں)</span> <span style="color:#ef4444;">*</span>';
+        if (catQuickAddBtn) catQuickAddBtn.innerHTML = '<i class="fas fa-plus-circle"></i> + Add Shopkeeper <span class="ur-sub">(نیا دکان دار)</span>';
+        if (catCustInp) catCustInp.placeholder = isUrdu
+            ? '🔍 Search shopkeeper name or phone... (دکان دار سرچ کریں)'
+            : '🔍 Search shopkeeper name, shop name, or phone...';
+        if (btnWhl) btnWhl.innerHTML = '<i class="fas fa-store"></i> 🏪 Wholesale <span class="eb-ur-sub">(ہول سیل)</span>';
+        if (btnRet) btnRet.innerHTML = '<i class="fas fa-tag"></i> 🏷️ Retail <span class="eb-ur-sub">(پرچون)</span>';
+        if (bookerNoticeText) {
+            bookerNoticeText.innerHTML = 'Please select a shopkeeper above to choose items <span class="ur-sub">(پہلے دکان دار منتخب کریں)</span>';
+        }
+        if (btnFocusNotice) btnFocusNotice.innerHTML = 'Select Shopkeeper <span class="eb-ur-sub">(دکان دار چنیں)</span>';
+        if (bCustBadge && !selectedCustomer) bCustBadge.innerHTML = '👤 No shopkeeper selected <span class="eb-ur-sub">(منتخب نہیں)</span>';
+        if (catRevCustHead) catRevCustHead.innerHTML = 'SHOPKEEPER / CUSTOMER <span class="ur-sub">(دکان دار)</span>:';
+    }
+}
+window.applyBillingCategoryUI = applyBillingCategoryUI;
+
 function initLanguageManager() {
-    const btnToggle = document.getElementById('btnLangToggle');
-    if (btnToggle) {
-        btnToggle.addEventListener('click', () => {
-            const cur = getAppLanguage();
-            setAppLanguage(cur === 'en' ? 'en-ur' : 'en');
+    if (!window.__ebBillsLangListenerBound) {
+        window.__ebBillsLangListenerBound = true;
+        window.addEventListener('eb-lang-changed', (e) => {
+            const nextLang = (e && e.detail && e.detail.lang) || getAppLanguage();
+            setAppLanguage(nextLang);
         });
     }
     setAppLanguage(getAppLanguage());
@@ -6087,9 +6309,7 @@ function renderInteractiveProductList() {
 
     const statsEl = document.getElementById('listProductsStats');
     if (statsEl) {
-        statsEl.innerText = isUrdu 
-            ? `دکھائے گئے: ${filtered.length} / ${allMyStock.length} پروڈکٹس` 
-            : `Showing ${filtered.length} of ${allMyStock.length} products`;
+        statsEl.innerHTML = `Showing ${filtered.length} of ${allMyStock.length} products <span class="eb-ur-sub">(کل پروڈکٹس)</span>`;
     }
 
     if (filtered.length === 0) {
@@ -6097,10 +6317,10 @@ function renderInteractiveProductList() {
             <div style="text-align:center; padding:30px 15px; color:#94a3b8; background:#fff; border:1px dashed #cbd5e1; border-radius:12px;">
                 <i class="fas fa-boxes-stacked" style="font-size:38px; color:#cbd5e1; margin-bottom:8px;"></i>
                 <div style="font-size:14px; font-weight:800; color:#475569;">
-                    ${isUrdu ? 'کوئی پروڈکٹ نہیں ملا' : 'No matching products found'}
+                    No matching products found <span class="eb-ur-block">کوئی پروڈکٹ نہیں ملا</span>
                 </div>
                 <div style="font-size:12px;">
-                    ${isUrdu ? 'تلاش یا فلٹر تبدیل کر کے دوبارہ دیکھیں' : 'Try searching with another name or clear filters'}
+                    Try searching with another name or clear filters <span class="eb-ur-compact">تلاش یا فلٹر تبدیل کر کے دوبارہ دیکھیں</span>
                 </div>
             </div>
         `;
@@ -6148,7 +6368,7 @@ function renderInteractiveProductList() {
                         <span class="list-item-rate">Rs ${Number(rate).toLocaleString()}</span>
                         <span class="list-item-unit">/ ${UNIT_LBL(item.unit)}</span>
                         <span class="stock-badge ${stockColor}">
-                            ${isUrdu ? 'دستیاب:' : 'Stock:'} <b>${availQty}</b>
+                            Stock <span class="eb-ur-sub">(دستیاب)</span>: <b>${availQty}</b>
                         </span>
                     </div>
                 </div>
@@ -6622,16 +6842,15 @@ function initVisualCatalogue() {
 }
 
 function updateCatalogueRateTier() {
-    const isUrdu = getAppLanguage() === 'en-ur';
     const badge = document.getElementById('catPriceTierBadge');
     if (badge) {
         if (activeRateTier === 'wholesale') {
-            badge.innerText = isUrdu ? '🏪 ہول سیل ریٹ (Wholesale)' : '🏪 Wholesale Rate';
+            badge.innerHTML = '🏪 Wholesale Rate <span class="eb-ur-sub">(ہول سیل ریٹ)</span>';
             badge.style.background = '#e0f2fe';
             badge.style.color = '#0369a1';
             badge.style.borderColor = '#bae6fd';
         } else {
-            badge.innerText = isUrdu ? '🏷️ پرچون ریٹ (Retail)' : '🏷️ Retail Rate';
+            badge.innerHTML = '🏷️ Retail Rate <span class="eb-ur-sub">(پرچون ریٹ)</span>';
             badge.style.background = '#dcfce7';
             badge.style.color = '#15803d';
             badge.style.borderColor = '#bbf7d0';
@@ -7618,6 +7837,25 @@ async function submitCatalogueFieldOrder() {
         const receivedAmt = parseFloat(document.getElementById('catReviewReceived')?.value) || 0;
         const netBalance = Math.max(0, grandTotal - receivedAmt);
 
+        // 📍 Optional Enterprise GPS Enforcement (ONLY mandatory if Super Admin Unlocked + Agency ON + Booker GPS ON)
+        let capturedOrderGps = null;
+        if (window.EB_GPS && typeof window.EB_GPS.enforceOrCaptureForOrder === 'function') {
+            const userProfileWithUid = Object.assign({ uid: myUid }, myUser || {});
+            const gpsCheck = await window.EB_GPS.enforceOrCaptureForOrder(myAgency, userProfileWithUid, 'Field Order Booking');
+            if (!gpsCheck.ok) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: '📍 GPS Location Required (لازمی)',
+                    text: gpsCheck.error || 'Admin ne aap ke liye GPS location lazmi rakhi hai.',
+                    confirmButtonColor: '#10b981'
+                });
+                return;
+            }
+            if (gpsCheck.gps) {
+                capturedOrderGps = gpsCheck.gps;
+            }
+        }
+
         const restMeta = (typeof getRestaurantOrderMeta === 'function') ? getRestaurantOrderMeta() : null;
         const orderData = {
             agencyId: myAgencyId,
@@ -7653,6 +7891,7 @@ async function submitCatalogueFieldOrder() {
             received: receivedAmt,
             balance: netBalance,
             bookerNotes: notes,
+            gpsLocation: capturedOrderGps,
             createdBy: myUid,
             bookerId: myUid,
             bookerName: bookerName,
@@ -7673,6 +7912,20 @@ async function submitCatalogueFieldOrder() {
             try {
                 await db.collection('orders').doc(billRef.id).set(orderData);
             } catch (eOrd) {}
+
+            // Update staff lastGpsLocation if GPS was captured
+            if (capturedOrderGps && myUid) {
+                db.collection('users').doc(myUid).set({
+                    lastGpsLocation: {
+                        lat: capturedOrderGps.lat,
+                        lng: capturedOrderGps.lng,
+                        accuracy: capturedOrderGps.accuracy,
+                        shopName: orderData.customerShop || orderData.customerName || '',
+                        route: orderData.customerRoute || '',
+                        capturedAt: capturedOrderGps.capturedAt
+                    }
+                }, { merge: true }).catch(() => {});
+            }
 
             // Update customer balance in Firestore
             if (selectedCustomer && selectedCustomer.id) {

@@ -124,32 +124,32 @@
     <!-- ===== 🔝 EXECUTIVE HEADER ===== -->
     <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
         <div>
-            <h1 style="font-size: 20px; font-weight: 900; color: #0f172a; display: flex; align-items: center; gap: 10px; margin: 0;">
-                <i class="fas fa-wallet" style="color: #ef4444; font-size: 24px;"></i> 
-                Business Expenses Manager (کاروباری اخراجات)
+            <h1 id="expensePageMainTitle" style="font-size: 20px; font-weight: 900; color: #0f172a; display: flex; align-items: center; gap: 10px; margin: 0;">
+                <i class="fas fa-wallet" style="color: #ef4444; font-size: 24px;"></i>
+                <span data-eb-en="Business Expenses Manager" data-eb-ur="کاروباری اخراجات">Business Expenses Manager</span>
             </h1>
-            <p style="font-size: 12px; color: #64748b; margin: 3px 0 0 0;">
-                روزانہ، ہفتہ وار، ماہانہ اور کیٹیگری وار اخراجات (Electricity, Water, Fuel, Guests, Rent) کا مکمل حساب کتاب
+            <p id="expensePageMainSub" style="font-size: 12px; color: #64748b; margin: 3px 0 0 0;" data-eb-compact="1" data-eb-en="Complete daily, weekly, monthly &amp; category-wise expense accounting" data-eb-ur="روزانہ، ہفتہ وار، ماہانہ اور کیٹیگری وار اخراجات کا مکمل حساب کتاب">
+                Complete daily, weekly, monthly &amp; category-wise expense accounting
             </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <button class="btn btn-sm" id="btnOpenAddExpenseModal" style="background:#ef4444; color:#fff; font-weight:bold;" title="Record New Expense">
-                <i class="fas fa-plus-circle"></i> + Record Expense (نیا خرچ)
+                <i class="fas fa-plus-circle"></i> <span data-eb-en="+ Record Expense" data-eb-ur="نیا خرچ">+ Record Expense</span>
             </button>
-            <button class="btn btn-sm" id="btnQuickOpenSalaryTab" style="background:#059669; color:#fff; font-weight:bold;" title="Manage Staff Salaries & Commission">
-                <i class="fas fa-user-tie"></i> Staff Salaries (اسٹاف تنخواہیں)
+            <button class="btn btn-sm" id="btnQuickOpenSalaryTab" style="background:#059669; color:#fff; font-weight:bold;" title="Manage Staff Salaries &amp; Commission">
+                <i class="fas fa-user-tie"></i> <span data-eb-en="Staff Salaries" data-eb-ur="اسٹاف تنخواہیں">Staff Salaries</span>
             </button>
             <button class="btn btn-sm" id="btnOpenCatModal" style="background:#6366f1; color:#fff;" title="Manage Categories">
-                <i class="fas fa-tags"></i> Categories (کیٹیگریز)
+                <i class="fas fa-tags"></i> <span data-eb-en="Categories" data-eb-ur="کیٹیگریز">Categories</span>
             </button>
             <button class="btn btn-sm" id="btnRefreshExpenses" style="background:#0284c7; color:#fff;" title="Reload Data">
-                <i class="fas fa-rotate"></i> Refresh
+                <i class="fas fa-rotate"></i> <span data-eb-en="Refresh" data-eb-ur="ریفریش">Refresh</span>
             </button>
             <button class="btn btn-sm" id="btnExportExpenseCSV" style="background:#10b981; color:#fff;" title="Download Excel CSV">
-                <i class="fas fa-file-excel"></i> Export CSV
+                <i class="fas fa-file-excel"></i> <span data-eb-en="Export CSV" data-eb-ur="ایکسپورٹ">Export CSV</span>
             </button>
             <button class="btn btn-sm" id="btnPrintExpenses" style="background:#475569; color:#fff;" title="Print Report">
-                <i class="fas fa-print"></i> Print
+                <i class="fas fa-print"></i> <span data-eb-en="Print" data-eb-ur="پرنٹ">Print</span>
             </button>
         </div>
     </div>
@@ -159,7 +159,7 @@
         <div class="kpi-card" style="border-left: 4px solid #ef4444; background: #fff5f5;">
             <div class="kpi-icon" style="color:#ef4444;"><i class="fas fa-money-bill-wave"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title" style="color:#b91c1c; font-weight:bold;">Total Expenses (کل اخراجات)</span>
+                <span class="kpi-title" style="color:#b91c1c; font-weight:bold;" data-eb-en="Total Expenses" data-eb-ur="کل اخراجات">Total Expenses</span>
                 <span class="kpi-val" id="kpiTotalExpenses" style="color:#b91c1c;">Rs --</span>
                 <small class="kpi-sub" id="kpiExpenseCount">-- Vouchers</small>
             </div>
@@ -168,7 +168,7 @@
         <div class="kpi-card" style="border-left: 4px solid #f59e0b;">
             <div class="kpi-icon" style="color:#f59e0b;"><i class="fas fa-calendar-day"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title">Today's Expense (آج کے اخراجات)</span>
+                <span class="kpi-title" data-eb-en="Today's Expense" data-eb-ur="آج کے اخراجات">Today's Expense</span>
                 <span class="kpi-val" id="kpiTodayExpenses">Rs --</span>
                 <small class="kpi-sub" id="kpiTodayCount">-- Transactions Today</small>
             </div>
@@ -177,16 +177,16 @@
         <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
             <div class="kpi-icon" style="color:#3b82f6;"><i class="fas fa-calendar-alt"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title">This Month (موجودہ مہینہ)</span>
+                <span class="kpi-title" data-eb-en="This Month" data-eb-ur="موجودہ مہینہ">This Month</span>
                 <span class="kpi-val" id="kpiMonthExpenses">Rs --</span>
-                <small class="kpi-sub" id="kpiMonthSub">Active Month Total</small>
+                <small class="kpi-sub" id="kpiMonthSub" data-eb-en="Active Month Total" data-eb-ur="اس مہینے کا کل">Active Month Total</small>
             </div>
         </div>
 
         <div class="kpi-card" style="border-left: 4px solid #8b5cf6;">
             <div class="kpi-icon" style="color:#8b5cf6;"><i class="fas fa-trophy"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title">Top Expense Category (سب سے بڑا خرچ)</span>
+                <span class="kpi-title" data-eb-en="Top Expense Category" data-eb-ur="سب سے بڑا خرچ">Top Expense Category</span>
                 <span class="kpi-val" id="kpiTopCategory" style="font-size:16px;">--</span>
                 <small class="kpi-sub" id="kpiTopCategoryAmount">Rs --</small>
             </div>
@@ -195,7 +195,7 @@
         <div class="kpi-card" style="border-left: 4px solid #06b6d4;">
             <div class="kpi-icon" style="color:#06b6d4;"><i class="fas fa-receipt"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title">Avg per Voucher (اوسط فی خرچ)</span>
+                <span class="kpi-title" data-eb-en="Avg per Voucher" data-eb-ur="اوسط فی خرچ">Avg per Voucher</span>
                 <span class="kpi-val" id="kpiAvgExpense">Rs --</span>
                 <small class="kpi-sub" id="kpiActiveCategories">-- Categories</small>
             </div>
@@ -204,9 +204,9 @@
         <div class="kpi-card" style="border-left: 4px solid #059669; background: #ecfdf5;">
             <div class="kpi-icon" style="color:#059669;"><i class="fas fa-user-tie"></i></div>
             <div class="kpi-details">
-                <span class="kpi-title" style="color:#047857; font-weight:bold;">Staff Salaries &amp; Comm. (تنخواہیں)</span>
+                <span class="kpi-title" style="color:#047857; font-weight:bold;" data-eb-en="Staff Salaries &amp; Comm." data-eb-ur="تنخواہیں و کمیشن">Staff Salaries &amp; Comm.</span>
                 <span class="kpi-val" id="kpiStaffSalaries" style="color:#047857;">Rs --</span>
-                <small class="kpi-sub" id="kpiSalarySub">Paid Salaries &amp; Advances</small>
+                <small class="kpi-sub" id="kpiSalarySub" data-eb-en="Paid Salaries &amp; Advances" data-eb-ur="تنخواہیں اور پیشگی">Paid Salaries &amp; Advances</small>
             </div>
         </div>
     </div>
@@ -214,46 +214,46 @@
     <!-- ===== 📅 DATE FILTER & PRESETS BAR ===== -->
     <div class="date-filter-bar">
         <div class="date-presets" id="expenseDatePresets">
-            <button class="date-preset-btn" data-preset="today">Today (آج)</button>
-            <button class="date-preset-btn" data-preset="yesterday">Yesterday (گزشتہ کل)</button>
-            <button class="date-preset-btn" data-preset="thisweek">This Week (اس ہفتے)</button>
-            <button class="date-preset-btn" data-preset="last7">Last 7 Days (7 دن)</button>
-            <button class="date-preset-btn active" data-preset="thismonth">This Month (موجودہ مہینہ)</button>
-            <button class="date-preset-btn" data-preset="lastmonth">Last Month (پچھلا مہینہ)</button>
-            <button class="date-preset-btn" data-preset="alltime">All Time (تمام)</button>
+            <button class="date-preset-btn" data-preset="today" data-eb-en="Today" data-eb-ur="آج">Today</button>
+            <button class="date-preset-btn" data-preset="yesterday" data-eb-en="Yesterday" data-eb-ur="گزشتہ کل">Yesterday</button>
+            <button class="date-preset-btn" data-preset="thisweek" data-eb-en="This Week" data-eb-ur="اس ہفتے">This Week</button>
+            <button class="date-preset-btn" data-preset="last7" data-eb-en="Last 7 Days" data-eb-ur="7 دن">Last 7 Days</button>
+            <button class="date-preset-btn active" data-preset="thismonth" data-eb-en="This Month" data-eb-ur="موجودہ مہینہ">This Month</button>
+            <button class="date-preset-btn" data-preset="lastmonth" data-eb-en="Last Month" data-eb-ur="پچھلا مہینہ">Last Month</button>
+            <button class="date-preset-btn" data-preset="alltime" data-eb-en="All Time" data-eb-ur="تمام">All Time</button>
         </div>
 
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <div class="custom-date-inputs">
                 <input type="date" id="expenseDateStart" title="Start Date">
-                <span style="font-size:12px; color:#64748b; font-weight:bold;">to</span>
+                <span style="font-size:12px; color:#64748b; font-weight:bold;" data-eb-en="to" data-eb-ur="تک">to</span>
                 <input type="date" id="expenseDateEnd" title="End Date">
-                <button class="btn btn-sm" id="btnApplyExpenseDate" style="background:#0284c7; color:#fff;">
+                <button class="btn btn-sm" id="btnApplyExpenseDate" style="background:#0284c7; color:#fff;" data-eb-en="Apply" data-eb-ur="لاگو کریں">
                     Apply
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- ===== 📑 5 EXPENSE VIEW TABS ===== -->
+    <!-- ===== 📑 6 EXPENSE VIEW TABS ===== -->
     <div class="report-tabs-nav" id="expenseViewTabs">
         <button class="report-tab-btn active" data-view="all">
-            <i class="fas fa-list-check"></i> 1. All Expenses List (تمام اخراجات)
+            <i class="fas fa-list-check"></i> <span data-eb-en="1. All Expenses List" data-eb-ur="تمام اخراجات">1. All Expenses List</span>
         </button>
         <button class="report-tab-btn" data-view="category">
-            <i class="fas fa-chart-pie"></i> 2. Category-wise Breakdown (کیٹیگری وار)
+            <i class="fas fa-chart-pie"></i> <span data-eb-en="2. Category-wise Breakdown" data-eb-ur="کیٹیگری وار">2. Category-wise Breakdown</span>
         </button>
         <button class="report-tab-btn" data-view="day">
-            <i class="fas fa-calendar-day"></i> 3. Day-wise Breakdown (روزانہ اخراجات)
+            <i class="fas fa-calendar-day"></i> <span data-eb-en="3. Day-wise Breakdown" data-eb-ur="روزانہ اخراجات">3. Day-wise Breakdown</span>
         </button>
         <button class="report-tab-btn" data-view="weekly">
-            <i class="fas fa-calendar-week"></i> 4. Weekly-wise Breakdown (ہفتہ وار)
+            <i class="fas fa-calendar-week"></i> <span data-eb-en="4. Weekly-wise Breakdown" data-eb-ur="ہفتہ وار">4. Weekly-wise Breakdown</span>
         </button>
         <button class="report-tab-btn" data-view="monthly">
-            <i class="fas fa-calendar-alt"></i> 5. Monthly-wise Breakdown (ماہانہ)
+            <i class="fas fa-calendar-alt"></i> <span data-eb-en="5. Monthly-wise Breakdown" data-eb-ur="ماہانہ">5. Monthly-wise Breakdown</span>
         </button>
         <button class="report-tab-btn" data-view="salary" style="background:#ecfdf5; border-color:#86efac; color:#047857; font-weight:700;">
-            <i class="fas fa-user-tie"></i> 6. Staff Salaries &amp; Payroll (تنخواہیں و پیشگی)
+            <i class="fas fa-user-tie"></i> <span data-eb-en="6. Staff Salaries &amp; Payroll" data-eb-ur="تنخواہیں و پیشگی">6. Staff Salaries &amp; Payroll</span>
         </button>
     </div>
 
@@ -263,39 +263,39 @@
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
                 <h2 id="expenseViewTitle" style="font-size:16px; font-weight:bold; color:#0f172a; margin:0;">
-                    <i class="fas fa-list-check" style="color:#ef4444;"></i> Detailed Expenses Vouchers
+                    <i class="fas fa-list-check" style="color:#ef4444;"></i> <span data-eb-en="Detailed Expenses Vouchers" data-eb-ur="مکمل اخراجات واؤچرز">Detailed Expenses Vouchers</span>
                 </h2>
-                <small class="header-note" id="expenseViewSubTitle">تاریخ وار تمام ادائیگیوں اور واؤچرز کی مکمل تفصیل</small>
+                <small class="header-note" id="expenseViewSubTitle" data-eb-compact="1" data-eb-en="Date-wise list of all recorded payments and vouchers" data-eb-ur="تاریخ وار تمام ادائیگیوں اور واؤچرز کی مکمل تفصیل">Date-wise list of all recorded payments and vouchers</small>
             </div>
 
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                 <!-- Category Filter -->
                 <select id="expenseFilterCategory" style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:600; outline:none; background:#fff;">
-                    <option value="all">All Categories (تمام کیٹیگریز)</option>
+                    <option value="all" data-eb-en="All Categories" data-eb-ur="All Categories (تمام کیٹیگریز)">All Categories</option>
                 </select>
 
                 <!-- Payment Method Filter -->
                 <select id="expenseFilterPayMode" style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:600; outline:none; background:#fff;">
-                    <option value="all">All Payment Modes (ادائیگی موڈ)</option>
-                    <option value="cash">Cash (کیش)</option>
-                    <option value="bank">Bank Transfer (بینک)</option>
-                    <option value="wallet">JazzCash / EasyPaisa</option>
-                    <option value="cheque">Cheque (چیک)</option>
+                    <option value="all" data-eb-en="All Payment Modes" data-eb-ur="All Payment Modes (ادائیگی موڈ)">All Payment Modes</option>
+                    <option value="cash" data-eb-en="Cash" data-eb-ur="Cash (کیش)">Cash</option>
+                    <option value="bank" data-eb-en="Bank Transfer" data-eb-ur="Bank Transfer (بینک)">Bank Transfer</option>
+                    <option value="wallet" data-eb-en="JazzCash / EasyPaisa" data-eb-ur="JazzCash / EasyPaisa (والٹ)">JazzCash / EasyPaisa</option>
+                    <option value="cheque" data-eb-en="Cheque" data-eb-ur="Cheque (چیک)">Cheque</option>
                 </select>
 
                 <!-- Sort Order -->
                 <select id="expenseSortSelect" style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:600; outline:none; background:#fff;">
-                    <option value="date_desc">Date: Newest First (تازہ ترین)</option>
-                    <option value="date_asc">Date: Oldest First (پرانی تاریخ)</option>
-                    <option value="amount_desc">Amount: Highest First (زیادہ رقم)</option>
-                    <option value="amount_asc">Amount: Lowest First (کم رقم)</option>
-                    <option value="category_asc">Category: A to Z</option>
+                    <option value="date_desc" data-eb-en="Date: Newest First" data-eb-ur="Date: Newest First (تازہ ترین)">Date: Newest First</option>
+                    <option value="date_asc" data-eb-en="Date: Oldest First" data-eb-ur="Date: Oldest First (پرانی تاریخ)">Date: Oldest First</option>
+                    <option value="amount_desc" data-eb-en="Amount: Highest First" data-eb-ur="Amount: Highest First (زیادہ رقم)">Amount: Highest First</option>
+                    <option value="amount_asc" data-eb-en="Amount: Lowest First" data-eb-ur="Amount: Lowest First (کم رقم)">Amount: Lowest First</option>
+                    <option value="category_asc" data-eb-en="Category: A to Z" data-eb-ur="Category: A to Z (کیٹیگری وار)">Category: A to Z</option>
                 </select>
 
                 <!-- Search Input -->
                 <div style="position:relative; width:100%; max-width:200px;">
                     <i class="fas fa-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:12px;"></i>
-                    <input type="text" id="expenseSearchInput" placeholder="Search title, vendor..." style="width:100%; padding:6px 10px 6px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none;">
+                    <input type="text" id="expenseSearchInput" placeholder="Search title, vendor..." data-eb-ph-en="Search title, vendor..." data-eb-ph-ur="Search title, vendor... (تلاش کریں)" style="width:100%; padding:6px 10px 6px 30px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; outline:none;">
                 </div>
             </div>
         </div>
@@ -304,21 +304,21 @@
         <div id="salaryPayrollToolbar" style="display:none; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px 14px; margin-bottom:14px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 <label style="font-size:12px; font-weight:800; color:#065f46;">
-                    📅 Payroll Month:
+                    <span data-eb-en="📅 Payroll Month:" data-eb-ur="تنخواہ کا مہینہ:">📅 Payroll Month:</span>
                     <input type="month" id="salaryMonthInput" style="margin-left:4px; padding:5px 8px; border:1px solid #6ee7b7; border-radius:6px; font-size:12px; font-weight:700; background:#fff;">
                 </label>
                 <select id="salaryStatusFilter" style="padding:6px 10px; border:1px solid #6ee7b7; border-radius:6px; font-size:12px; font-weight:700; background:#fff; color:#065f46;">
-                    <option value="all">All Staff (تمام عملہ)</option>
-                    <option value="pending">⏳ Salary Pending</option>
-                    <option value="paid">✅ Paid This Month</option>
+                    <option value="all" data-eb-en="All Staff" data-eb-ur="All Staff (تمام عملہ)">All Staff</option>
+                    <option value="pending" data-eb-en="⏳ Salary Pending" data-eb-ur="⏳ Salary Pending (باقی تنخواہ)">⏳ Salary Pending</option>
+                    <option value="paid" data-eb-en="✅ Paid This Month" data-eb-ur="✅ Paid This Month (ادا شدہ)">✅ Paid This Month</option>
                 </select>
-                <span id="salarySummaryPill" style="font-size:12px; font-weight:800; color:#047857; background:#fff; padding:5px 10px; border-radius:8px; border:1px solid #a7f3d0;">
+                <span id="salarySummaryPill" style="font-size:12px; font-weight:800; color:#047857; background:#fff; padding:5px 10px; border-radius:8px; border:1px solid #a7f3d0;" data-eb-en="Loading payroll summary..." data-eb-ur="تنخواہوں کا خلاصہ لوڈ ہو رہا ہے...">
                     Loading payroll summary...
                 </span>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-sm" id="btnAddPayrollStaff" style="background:#0284c7; color:#fff; font-weight:bold;">
-                    <i class="fas fa-user-plus"></i> + Add Godown / Driver / Office Staff
+                    <i class="fas fa-user-plus"></i> <span data-eb-en="+ Add Godown / Driver / Office Staff" data-eb-ur="نیا اسٹاف شامل کریں">+ Add Godown / Driver / Office Staff</span>
                 </button>
             </div>
         </div>
@@ -327,7 +327,7 @@
         <div class="table-responsive" id="expenseTableContainer">
             <div style="text-align:center; padding:40px; color:#94a3b8;">
                 <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
-                <p style="margin-top:10px;">Loading expenses data...</p>
+                <p style="margin-top:10px;" data-eb-en="Loading expenses data..." data-eb-ur="اخراجات کا ڈیٹا لوڈ ہو رہا ہے...">Loading expenses data...</p>
             </div>
         </div>
     </div>
@@ -340,7 +340,7 @@
     <div class="expense-modal-box">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #f1f5f9; padding-bottom:12px;">
             <h2 id="modalExpenseTitle" style="font-size:17px; font-weight:900; color:#0f172a; margin:0; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-plus-circle" style="color:#ef4444;"></i> Record Expense (نیا خرچ درج کریں)
+                <i class="fas fa-plus-circle" style="color:#ef4444;"></i> <span data-eb-en="Record Expense" data-eb-ur="نیا خرچ درج کریں">Record Expense</span>
             </h2>
             <button type="button" id="btnCloseExpenseModal" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
                 <i class="fas fa-times"></i>
@@ -352,15 +352,15 @@
 
             <!-- Category & Add New Cat Button Row -->
             <div>
-                <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">
-                    📂 Expense Category (خرچ کی مد / کیٹیگری) *
+                <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;" data-eb-en="📂 Expense Category *" data-eb-ur="خرچ کی مد / کیٹیگری">
+                    📂 Expense Category *
                 </label>
                 <div style="display:flex; gap:8px;">
                     <select id="expCategorySelect" required style="flex:1; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:600; outline:none; background:#fff;">
                         <!-- Options injected dynamically -->
                     </select>
                     <button type="button" id="btnQuickAddCat" class="btn btn-sm" style="background:#6366f1; color:#fff; white-space:nowrap; padding:0 12px;" title="Add Custom Category">
-                        <i class="fas fa-plus"></i> New Cat
+                        <i class="fas fa-plus"></i> <span data-eb-en="New Cat" data-eb-ur="نئی مد">New Cat</span>
                     </button>
                 </div>
             </div>
@@ -368,14 +368,14 @@
             <!-- Amount & Date Row -->
             <div class="form-row">
                 <div class="form-group" style="flex:1;">
-                    <label style="font-size:12px; font-weight:700; color:#475569;">
-                        💵 Amount in PKR (رقم) *
+                    <label style="font-size:12px; font-weight:700; color:#475569;" data-eb-en="💵 Amount in PKR *" data-eb-ur="رقم (روپے)">
+                        💵 Amount in PKR *
                     </label>
                     <input type="number" id="expAmount" required min="1" step="any" placeholder="e.g. 3500" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:15px; font-weight:800; color:#b91c1c;">
                 </div>
                 <div class="form-group" style="flex:1;">
-                    <label style="font-size:12px; font-weight:700; color:#475569;">
-                        📅 Expense Date (تاریخ) *
+                    <label style="font-size:12px; font-weight:700; color:#475569;" data-eb-en="📅 Expense Date *" data-eb-ur="تاریخ">
+                        📅 Expense Date *
                     </label>
                     <input type="date" id="expDate" required style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
                 </div>
@@ -383,8 +383,8 @@
 
             <!-- Description / Item Name -->
             <div class="form-group">
-                <label style="font-size:12px; font-weight:700; color:#475569;">
-                    📝 Title / Item Description (خرچ کی تفصیل) *
+                <label style="font-size:12px; font-weight:700; color:#475569;" data-eb-en="📝 Title / Item Description *" data-eb-ur="خرچ کی تفصیل">
+                    📝 Title / Item Description *
                 </label>
                 <input type="text" id="expTitle" required placeholder="e.g. LESCO Electricity Bill Depot, 10 Litre Petrol Van" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
             </div>
@@ -392,20 +392,20 @@
             <!-- Paid To & Payment Method -->
             <div class="form-row">
                 <div class="form-group" style="flex:1;">
-                    <label style="font-size:12px; font-weight:700; color:#475569;">
-                        👤 Paid To / Vendor (کس کو رقم دی)
+                    <label style="font-size:12px; font-weight:700; color:#475569;" data-eb-en="👤 Paid To / Vendor" data-eb-ur="کس کو رقم دی">
+                        👤 Paid To / Vendor
                     </label>
                     <input type="text" id="expPaidTo" placeholder="e.g. WAPDA, Shell Pump, Hotel" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
                 </div>
                 <div class="form-group" style="flex:1;">
-                    <label style="font-size:12px; font-weight:700; color:#475569;">
-                        💳 Payment Method (ادائیگی کا طریقہ) *
+                    <label style="font-size:12px; font-weight:700; color:#475569;" data-eb-en="💳 Payment Method *" data-eb-ur="ادائیگی کا طریقہ">
+                        💳 Payment Method *
                     </label>
                     <select id="expPayMethod" required style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:600; background:#fff;">
-                        <option value="cash">Cash (نقد کیش)</option>
-                        <option value="bank">Bank Transfer (بینک اکاؤنٹ)</option>
-                        <option value="wallet">JazzCash / EasyPaisa (موبائل والٹ)</option>
-                        <option value="cheque">Cheque (بینک چیک)</option>
+                        <option value="cash" data-eb-en="Cash" data-eb-ur="Cash (نقد کیش)">Cash</option>
+                        <option value="bank" data-eb-en="Bank Transfer" data-eb-ur="Bank Transfer (بینک اکاؤنٹ)">Bank Transfer</option>
+                        <option value="wallet" data-eb-en="JazzCash / EasyPaisa" data-eb-ur="JazzCash / EasyPaisa (موبائل والٹ)">JazzCash / EasyPaisa</option>
+                        <option value="cheque" data-eb-en="Cheque" data-eb-ur="Cheque (بینک چیک)">Cheque</option>
                     </select>
                 </div>
             </div>
@@ -413,25 +413,25 @@
             <!-- Receipt No & Remarks -->
             <div class="form-row">
                 <div class="form-group" style="flex:1;">
-                    <label style="font-size:12px; font-weight:700; color:#475569;">
-                        🔢 Bill / Receipt No (رسید نمبر - اختیاری)
+                    <label style="font-size:12px; font-weight:700; color:#475569;" data-eb-en="🔢 Bill / Receipt No (Optional)" data-eb-ur="رسید نمبر - اختیاری">
+                        🔢 Bill / Receipt No (Optional)
                     </label>
                     <input type="text" id="expReceiptNo" placeholder="e.g. BILL-9821" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
                 </div>
                 <div class="form-group" style="flex:1;">
-                    <label style="font-size:12px; font-weight:700; color:#475569;">
-                        💬 Remarks / Notes (نوٹس)
+                    <label style="font-size:12px; font-weight:700; color:#475569;" data-eb-en="💬 Remarks / Notes" data-eb-ur="نوٹس / ریمارکس">
+                        💬 Remarks / Notes
                     </label>
-                    <input type="text" id="expNotes" placeholder="e.g. Meter Reading 4290" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+                    <input type="text" id="expNotes" placeholder="e.g. Meter Reading 4290" data-eb-ph-en="e.g. Meter Reading 4290" data-eb-ph-ur="e.g. Meter Reading 4290 (نوٹ لکھیں)" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
                 </div>
             </div>
 
             <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px; border-top:1px solid #f1f5f9; padding-top:14px;">
-                <button type="button" class="btn btn-sm" id="btnCancelExpense" style="background:#64748b; color:#fff;">
+                <button type="button" class="btn btn-sm" id="btnCancelExpense" style="background:#64748b; color:#fff;" data-eb-en="Cancel" data-eb-ur="منسوخ">
                     Cancel
                 </button>
                 <button type="submit" class="btn btn-sm" id="btnSaveExpense" style="background:#ef4444; color:#fff; font-weight:bold; padding:8px 20px;">
-                    <i class="fas fa-save"></i> Save Expense (محفوظ کریں)
+                    <i class="fas fa-save"></i> <span data-eb-en="Save Expense" data-eb-ur="محفوظ کریں">Save Expense</span>
                 </button>
             </div>
         </form>
@@ -444,7 +444,7 @@
     <div class="expense-modal-box">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #f1f5f9; padding-bottom:12px;">
             <h2 style="font-size:17px; font-weight:900; color:#0f172a; margin:0; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-tags" style="color:#6366f1;"></i> Expense Categories Manager (کیٹیگریز)
+                <i class="fas fa-tags" style="color:#6366f1;"></i> <span data-eb-en="Expense Categories Manager" data-eb-ur="کیٹیگریز مینیجر">Expense Categories Manager</span>
             </h2>
             <button type="button" id="btnCloseCatModal" style="background:none; border:none; font-size:18px; color:#94a3b8; cursor:pointer;">
                 <i class="fas fa-times"></i>
@@ -453,62 +453,62 @@
 
         <!-- Add Category Form -->
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; margin-bottom:16px;">
-            <h4 style="margin:0 0 10px 0; font-size:13px; font-weight:800; color:#1e293b;">
-                ➕ Create New Category (نئی کیٹیگری بنائیں)
+            <h4 style="margin:0 0 10px 0; font-size:13px; font-weight:800; color:#1e293b;" data-eb-en="➕ Create New Category" data-eb-ur="نئی کیٹیگری بنائیں">
+                ➕ Create New Category
             </h4>
             <form id="formNewCat" style="display:flex; flex-direction:column; gap:10px;">
                 <div class="form-row">
                     <div class="form-group" style="flex:1;">
-                        <label style="font-size:11px; font-weight:700; color:#475569;">Name in English *</label>
+                        <label style="font-size:11px; font-weight:700; color:#475569;" data-eb-en="Name in English *" data-eb-ur="انگریزی نام">Name in English *</label>
                         <input type="text" id="newCatName" required placeholder="e.g. Generator Fuel" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
                     </div>
                     <div class="form-group" style="flex:1;">
-                        <label style="font-size:11px; font-weight:700; color:#475569;">نام برائے اردو (اختیاری)</label>
-                        <input type="text" id="newCatUrdu" placeholder="e.g. جنریٹر کا ڈیزل" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+                        <label style="font-size:11px; font-weight:700; color:#475569;" data-eb-en="Urdu Name (Optional)" data-eb-ur="نام برائے اردو (اختیاری)">Urdu Name (Optional)</label>
+                        <input type="text" id="newCatUrdu" placeholder="e.g. Generator Fuel (Optional)" data-eb-ph-en="e.g. Urdu label (optional)" data-eb-ph-ur="مثلاً: جنریٹر کا ڈیزل" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group" style="flex:1;">
-                        <label style="font-size:11px; font-weight:700; color:#475569;">Icon (آئیکن)</label>
+                        <label style="font-size:11px; font-weight:700; color:#475569;" data-eb-en="Icon" data-eb-ur="آئیکن">Icon</label>
                         <select id="newCatIcon" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
-                            <option value="fa-bolt">⚡ Electricity / Power</option>
-                            <option value="fa-faucet-drip">💧 Water / Utilities</option>
-                            <option value="fa-gas-pump">⛽ Fuel / Petrol / Diesel</option>
-                            <option value="fa-mug-hot">☕ Guests / Tea / Food</option>
-                            <option value="fa-building">🏢 Rent / Property</option>
-                            <option value="fa-user-tie">💼 Salaries / Wages</option>
-                            <option value="fa-box-archive">📦 Packaging & Supplies</option>
-                            <option value="fa-screwdriver-wrench">🛠️ Maintenance & Repair</option>
-                            <option value="fa-truck">🚚 Transport & Carriage</option>
-                            <option value="fa-wifi">🌐 Internet & Phone</option>
-                            <option value="fa-scale-balanced">🧾 Tax & Legal</option>
-                            <option value="fa-receipt">🔄 Miscellaneous</option>
+                            <option value="fa-bolt" data-eb-en="⚡ Electricity / Power" data-eb-ur="⚡ Electricity / Power (بجلی)">⚡ Electricity / Power</option>
+                            <option value="fa-faucet-drip" data-eb-en="💧 Water / Utilities" data-eb-ur="💧 Water / Utilities (پانی و بل)">💧 Water / Utilities</option>
+                            <option value="fa-gas-pump" data-eb-en="⛽ Fuel / Petrol / Diesel" data-eb-ur="⛽ Fuel / Petrol (پٹرول / ڈیزل)">⛽ Fuel / Petrol / Diesel</option>
+                            <option value="fa-mug-hot" data-eb-en="☕ Guests / Tea / Food" data-eb-ur="☕ Guests / Tea (چائے پانی)">☕ Guests / Tea / Food</option>
+                            <option value="fa-building" data-eb-en="🏢 Rent / Property" data-eb-ur="🏢 Rent / Property (کرایہ)">🏢 Rent / Property</option>
+                            <option value="fa-user-tie" data-eb-en="💼 Salaries / Wages" data-eb-ur="💼 Salaries / Wages (تنخواہیں)">💼 Salaries / Wages</option>
+                            <option value="fa-box-archive" data-eb-en="📦 Packaging & Supplies" data-eb-ur="📦 Packaging & Supplies (پیکنگ)">📦 Packaging & Supplies</option>
+                            <option value="fa-screwdriver-wrench" data-eb-en="🛠️ Maintenance & Repair" data-eb-ur="🛠️ Maintenance (مرمت)">🛠️ Maintenance & Repair</option>
+                            <option value="fa-truck" data-eb-en="🚚 Transport & Carriage" data-eb-ur="🚚 Transport (کرایہ و ٹرانسپورٹ)">🚚 Transport & Carriage</option>
+                            <option value="fa-wifi" data-eb-en="🌐 Internet & Phone" data-eb-ur="🌐 Internet & Phone (انٹرنیٹ و فون)">🌐 Internet & Phone</option>
+                            <option value="fa-scale-balanced" data-eb-en="🧾 Tax & Legal" data-eb-ur="🧾 Tax & Legal (ٹیکس)">🧾 Tax & Legal</option>
+                            <option value="fa-receipt" data-eb-en="🔄 Miscellaneous" data-eb-ur="🔄 Miscellaneous (متفرق)">🔄 Miscellaneous</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex:1;">
-                        <label style="font-size:11px; font-weight:700; color:#475569;">Color (رنگ)</label>
+                        <label style="font-size:11px; font-weight:700; color:#475569;" data-eb-en="Color" data-eb-ur="رنگ">Color</label>
                         <select id="newCatColor" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; background:#fff;">
-                            <option value="#ef4444">🔴 Red (#ef4444)</option>
-                            <option value="#f59e0b">🟡 Amber (#f59e0b)</option>
-                            <option value="#10b981">🟢 Green (#10b981)</option>
-                            <option value="#3b82f6">🔵 Blue (#3b82f6)</option>
-                            <option value="#8b5cf6">🟣 Purple (#8b5cf6)</option>
-                            <option value="#06b6d4">🩵 Cyan (#06b6d4)</option>
-                            <option value="#64748b">⚪ Slate (#64748b)</option>
+                            <option value="#ef4444" data-eb-en="🔴 Red" data-eb-ur="🔴 Red (سرخ)">🔴 Red</option>
+                            <option value="#f59e0b" data-eb-en="🟡 Amber" data-eb-ur="🟡 Amber (پیلا)">🟡 Amber</option>
+                            <option value="#10b981" data-eb-en="🟢 Green" data-eb-ur="🟢 Green (سبز)">🟢 Green</option>
+                            <option value="#3b82f6" data-eb-en="🔵 Blue" data-eb-ur="🔵 Blue (نیلا)">🔵 Blue</option>
+                            <option value="#8b5cf6" data-eb-en="🟣 Purple" data-eb-ur="🟣 Purple (جامنی)">🟣 Purple</option>
+                            <option value="#06b6d4" data-eb-en="🩵 Cyan" data-eb-ur="🩵 Cyan (آسمانی)">🩵 Cyan</option>
+                            <option value="#64748b" data-eb-en="⚪ Slate" data-eb-ur="⚪ Slate (سرمئی)">⚪ Slate</option>
                         </select>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-sm" id="btnSaveCategory" style="background:#6366f1; color:#fff; font-weight:bold; align-self:flex-end;">
-                    <i class="fas fa-plus"></i> Add Category
+                    <i class="fas fa-plus"></i> <span data-eb-en="Add Category" data-eb-ur="شامل کریں">Add Category</span>
                 </button>
             </form>
         </div>
 
         <!-- Categories List -->
-        <h4 style="margin:0 0 10px 0; font-size:13px; font-weight:800; color:#1e293b;">
-            📋 Active Categories (دستیاب کیٹیگریز)
+        <h4 style="margin:0 0 10px 0; font-size:13px; font-weight:800; color:#1e293b;" data-eb-en="📋 Active Categories" data-eb-ur="دستیاب کیٹیگریز">
+            📋 Active Categories
         </h4>
         <div id="catListContainer" style="max-height:260px; overflow-y:auto; padding-right:4px;">
             <!-- Categories injected here -->

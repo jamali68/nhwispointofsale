@@ -13,7 +13,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NH POS — Wholesale ERP Dashboard</title>
+    <title>NH POS — Business ERP Dashboard</title>
 
     <!-- Preconnect for Lightning Fast CDN Handshakes -->
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -586,8 +586,8 @@
         <div id="loadingText" style="font-family:'Segoe UI',Roboto,-apple-system,sans-serif; font-size:16px; font-weight:800; color:#ffffff; letter-spacing:0.3px; line-height:1.3;">
             <span>System is Loading Please Wait<span class="running-dots"></span></span>
         </div>
-        <div style="font-family:'Segoe UI',Roboto,-apple-system,sans-serif; font-size:12px; font-weight:600; color:#6ee7b7; margin-top:5px; letter-spacing:0.2px;">
-            براہِ کرم انتظار فرمائیں (Please wait)
+        <div class="eb-ur-block" style="font-size:12px; font-weight:600; color:#6ee7b7; margin-top:5px; letter-spacing:0.2px;">
+            براہِ کرم انتظار فرمائیں
         </div>
     </div>
 </div>
@@ -599,22 +599,22 @@
         <div style="display:flex; align-items:center; gap:10px;">
             <span style="font-size:24px;">👑</span>
             <div>
-                <div style="font-weight:800; font-size:13.5px; color:#e0e7ff;">Super Admin SaaS Master Account Active</div>
-                <div style="font-size:11.5px; color:#c7d2fe;">آپ سپر ایڈمن کے طور پر لاگ ان ہیں۔ اپنے ماسٹر کنٹرول روم پر جائیں جہاں تمام کلائنٹ دکانیں، رینکنگز اور پیکیجز کا مکمل کنٹرول ہے۔</div>
+                <div style="font-weight:800; font-size:13.5px; color:#e0e7ff;">Super Admin SaaS Master Account Active <span class="eb-ur-sub">(سپر ایڈمن ماسٹر اکاؤنٹ فعال)</span></div>
+                <div style="font-size:11.5px; color:#c7d2fe;">Logged in as Super Admin with full access to all client stores, rankings, and packages. <span class="eb-ur-block">آپ سپر ایڈمن کے طور پر لاگ ان ہیں۔ تمام کلائنٹ دکانیں، رینکنگز اور پیکیجز کا مکمل کنٹرول دستیاب ہے۔</span></div>
             </div>
         </div>
         <a href="admin.html" style="background:#8b5cf6; color:#fff; text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:800; font-size:12px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(139,92,246,0.4);">
-            <i class="fas fa-gauge-high"></i> Open Super Admin Command Center
+            <i class="fas fa-gauge-high"></i> Open Super Admin Command Center <span class="eb-ur-sub">(کنٹرول روم)</span>
         </a>
     </div>
 
     <!-- ⚠️ SUBSCRIPTION EXPIRY LOCK BANNER -->
     <div id="subExpiryBanner" style="display:none; background:#fee2e2; border:1.5px solid #fecaca; border-radius:12px; padding:12px 16px; margin-bottom:15px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div style="color:#b91c1c; font-size:13px; font-weight:bold;">
-            <i class="fas fa-exclamation-triangle"></i> ⚠️ Agency Subscription Expired! Package renew ya upgrade karwane ke liye developer se rabta karein.
+            <i class="fas fa-exclamation-triangle"></i> ⚠️ Agency Subscription Expired! Please contact support to renew or upgrade your package. <span class="eb-ur-block">ایجنسی سبسکرپشن کی مدت ختم ہو چکی ہے، پیکیج تجدید کے لیے رابطہ کریں۔</span>
         </div>
         <a href="https://wa.me/923346800959?text=Assalam-o-Alaikum%20Developer!%20I%20want%20to%20renew%20or%20upgrade%20my%20agency%20subscription" target="_blank" style="background:#25D366; color:#fff; padding:7px 14px; border-radius:8px; text-decoration:none; font-size:12px; font-weight:bold; display:inline-flex; align-items:center; gap:6px;">
-            <i class="fab fa-whatsapp"></i> WhatsApp Developer: +923346800959
+            <i class="fab fa-whatsapp"></i> WhatsApp Support: +923346800959 <span class="eb-ur-sub">(واٹس ایپ رابطہ)</span>
         </a>
     </div>
 
@@ -623,13 +623,13 @@
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:16px;">🏢</span>
             <div>
-                <span style="font-size:11px; color:#15803d; font-weight:bold; text-transform:uppercase;">Active Branch:</span>
+                <span style="font-size:11px; color:#15803d; font-weight:bold; text-transform:uppercase;">Active Branch <span class="eb-ur-sub">(فعال برانچ)</span>:</span>
                 <select id="dashBranchSelect" style="margin-left:6px; padding:4px 10px; border-radius:6px; border:1px solid #86efac; font-weight:bold; font-size:12px; color:#1e293b; outline:none; background:#fff; cursor:pointer;">
                 </select>
             </div>
         </div>
         <a href="multi-agency.html" style="font-size:12px; font-weight:bold; color:#0284c7; text-decoration:none;">
-            <i class="fas fa-network-wired"></i> Branch Hub →
+            <i class="fas fa-network-wired"></i> Branch Hub <span class="eb-ur-sub">(برانچ ہب)</span> →
         </a>
     </div>
 
@@ -639,23 +639,23 @@
             <div style="font-size:24px;">🚨</div>
             <div>
                 <div style="font-size:13px; font-weight:800; color:#b91c1c;">
-                    ⚠️ فوری مارکیٹ وصولی انتباہ (Overdue Khata Alert)
+                    ⚠️ Overdue Khata Recovery Alert <span class="eb-ur-sub">(فوری مارکیٹ وصولی انتباہ)</span>
                 </div>
                 <div style="font-size:11px; color:#991b1b;" id="bookerOverdueBannerText">
-                    آپ کے روٹ کے دکان داروں کے بقایا جات واجب الادا ہو چکے ہیں۔ برائے مہربانی آج ہی وزٹ کریں۔
+                    Overdue balances exist on your route. Please follow up today. <span class="eb-ur-block">آپ کے روٹ کے دکان داروں کے بقایا جات واجب الادا ہو چکے ہیں۔ برائے مہربانی آج ہی وزٹ کریں۔</span>
                 </div>
             </div>
         </div>
         <button class="btn btn-sm" onclick="scrollToDefaulters()" style="background:#b91c1c; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer;">
-            فہرست دیکھیں 👇
+            View List <span class="eb-ur-sub">(فہرست دیکھیں)</span> 👇
         </button>
     </div>
 
     <!-- ===== ERP HEADER ===== -->
     <div class="erp-header-row">
         <div class="erp-title-group">
-            <h1 id="bizHeadingName">Wholesale Business Overview</h1>
-            <div class="sub-text" id="erpSubText">Real-time connected control center &amp; sales insights</div>
+            <h1 id="bizHeadingName">Business Overview</h1>
+            <div class="sub-text" id="erpSubText">Real-time connected control center &amp; sales insights <span class="eb-ur-sub">(لائیو بزنس کنٹرول سینٹر اور سیلز جائزہ)</span></div>
         </div>
         <div class="user-quick-profile">
             <div class="role-pill" id="userRolePill">OWNER</div>
@@ -695,7 +695,7 @@
 
                 <div style="display:flex; gap:8px;">
                     <button onclick="window.location.href='bills.html'" style="background:#10b981; color:#fff; border:none; padding:10px 18px; border-radius:10px; font-weight:bold; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(16,185,129,0.3);">
-                        <i class="fas fa-plus-circle"></i> + نیا آرڈر بک کریں
+                        <i class="fas fa-plus-circle"></i> + Book New Order <span class="eb-ur-sub">(نیا آرڈر بک کریں)</span>
                     </button>
                 </div>
             </div>
@@ -703,7 +703,7 @@
             <!-- Gamified Level Progress Bar -->
             <div style="margin-top:16px; background:rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; margin-bottom:6px;">
-                    <span style="color:#cbd5e1;"><i class="fas fa-trophy" style="color:#f59e0b;"></i> <b id="bkLevelTitle">Bronze Booker</b> (کارکردگی درجہ)</span>
+                    <span style="color:#cbd5e1;"><i class="fas fa-trophy" style="color:#f59e0b;"></i> <b id="bkLevelTitle">Bronze Booker</b> <span class="eb-ur-sub">(کارکردگی درجہ)</span></span>
                     <span style="color:#38bdf8; font-weight:bold;" id="bkLevelProgressText">0 / 25 Orders to Next Level</span>
                 </div>
                 <div style="background:rgba(255,255,255,0.15); height:8px; border-radius:4px; overflow:hidden;">
@@ -717,61 +717,61 @@
             <!-- Card 1: Today Orders -->
             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:11px; font-weight:bold; color:#64748b;">آج کے آرڈرز</span>
+                    <span style="font-size:11px; font-weight:bold; color:#64748b;">Today's Orders <span class="eb-ur-block">آج کے آرڈرز</span></span>
                     <span style="background:#e0f2fe; color:#0284c7; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px;"><i class="fas fa-clipboard-check"></i></span>
                 </div>
                 <div style="font-size:22px; font-weight:800; color:#0f172a;" id="bkTodayOrdersCount">0</div>
-                <div style="font-size:11px; color:#10b981; margin-top:2px;">Month: <b id="bkMonthOrdersCount">0</b> Orders</div>
+                <div style="font-size:11px; color:#10b981; margin-top:2px;">Month <span class="eb-ur-sub">(ماہانہ)</span>: <b id="bkMonthOrdersCount">0</b> Orders</div>
             </div>
 
             <!-- Card 2: Today Sales Amount -->
             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:11px; font-weight:bold; color:#64748b;">آج کی کل سیل</span>
+                    <span style="font-size:11px; font-weight:bold; color:#64748b;">Today's Sales <span class="eb-ur-block">آج کی کل سیل</span></span>
                     <span style="background:#dcfce7; color:#16a34a; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px;"><i class="fas fa-coins"></i></span>
                 </div>
                 <div style="font-size:22px; font-weight:800; color:#16a34a;" id="bkTodaySalesVal">Rs 0</div>
-                <div style="font-size:11px; color:#64748b; margin-top:2px;">Month: <b id="bkMonthSalesVal">Rs 0</b></div>
+                <div style="font-size:11px; color:#64748b; margin-top:2px;">Month <span class="eb-ur-sub">(ماہانہ)</span>: <b id="bkMonthSalesVal">Rs 0</b></div>
             </div>
 
             <!-- Card 3: Daily Target Progress -->
             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:11px; font-weight:bold; color:#64748b;">روزانہ ہدف (Target)</span>
+                    <span style="font-size:11px; font-weight:bold; color:#64748b;">Daily Target <span class="eb-ur-block">روزانہ ہدف</span></span>
                     <span style="background:#fef3c7; color:#d97706; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px;"><i class="fas fa-bullseye"></i></span>
                 </div>
                 <div style="font-size:22px; font-weight:800; color:#d97706;" id="bkTargetPercent">0%</div>
-                <div style="font-size:11px; color:#64748b; margin-top:2px;">Target: <b id="bkTargetVal">30</b> Orders/Day</div>
+                <div style="font-size:11px; color:#64748b; margin-top:2px;">Target <span class="eb-ur-sub">(ہدف)</span>: <b id="bkTargetVal">30</b> Orders/Day</div>
             </div>
 
             <!-- Card 4: Shops Covered -->
             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:11px; font-weight:bold; color:#64748b;">دکانوں کی کوریج</span>
+                    <span style="font-size:11px; font-weight:bold; color:#64748b;">Shops Covered <span class="eb-ur-block">دکانوں کی کوریج</span></span>
                     <span style="background:#ccfbf1; color:#0d9488; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px;"><i class="fas fa-store"></i></span>
                 </div>
                 <div style="font-size:22px; font-weight:800; color:#0d9488;" id="bkShopsCovered">0</div>
-                <div style="font-size:11px; color:#64748b; margin-top:2px;">Unique Shops Booked</div>
+                <div style="font-size:11px; color:#64748b; margin-top:2px;">Unique Shops Booked <span class="eb-ur-block">بک شدہ دکانیں</span></div>
             </div>
 
             <!-- Card 5: Recovery Cash -->
             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:11px; font-weight:bold; color:#64748b;">کیش وصولی (Recovery)</span>
+                    <span style="font-size:11px; font-weight:bold; color:#64748b;">Cash Recovery <span class="eb-ur-block">کیش وصولی</span></span>
                     <span style="background:#e0e7ff; color:#4338ca; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px;"><i class="fas fa-hand-holding-dollar"></i></span>
                 </div>
                 <div style="font-size:22px; font-weight:800; color:#4338ca;" id="bkRecoveryVal">Rs 0</div>
-                <div style="font-size:11px; color:#64748b; margin-top:2px;">Cash Collected</div>
+                <div style="font-size:11px; color:#64748b; margin-top:2px;">Cash Collected <span class="eb-ur-block">وصول شدہ رقم</span></div>
             </div>
 
             <!-- Card 6: Returns / Damage -->
             <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                    <span style="font-size:11px; font-weight:bold; color:#64748b;">واپسی مال (Returns)</span>
+                    <span style="font-size:11px; font-weight:bold; color:#64748b;">Returns <span class="eb-ur-block">واپسی مال</span></span>
                     <span style="background:#fae8ff; color:#a21caf; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px;"><i class="fas fa-undo"></i></span>
                 </div>
                 <div style="font-size:22px; font-weight:800; color:#a21caf;" id="bkReturnsCount">0</div>
-                <div style="font-size:11px; color:#64748b; margin-top:2px;">Unsold Returned Items</div>
+                <div style="font-size:11px; color:#64748b; margin-top:2px;">Unsold Returned Items <span class="eb-ur-block">واپس شدہ آئٹمز</span></div>
             </div>
         </div>
 
@@ -779,10 +779,10 @@
         <div style="background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px; margin-bottom:22px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
                 <h3 style="margin:0; font-size:16px; color:#0f172a; display:flex; align-items:center; gap:8px;">
-                    <i class="fas fa-list-check" style="color:#0284c7;"></i> میرے حالیہ بک کیے گئے آرڈرز (My Field Orders)
+                    <i class="fas fa-list-check" style="color:#0284c7;"></i> My Recent Field Orders <span class="eb-ur-sub">(میرے حالیہ بک کیے گئے آرڈرز)</span>
                 </h3>
                 <a href="delivery-returns.html" style="font-size:12px; color:#0284c7; text-decoration:none; font-weight:bold;">
-                    تمام فیلڈ آرڈرز دیکھیں →
+                    View All Field Orders <span class="eb-ur-sub">(تمام فیلڈ آرڈرز)</span> →
                 </a>
             </div>
 
@@ -790,16 +790,16 @@
                 <table style="width:100%; border-collapse:collapse; font-size:13px;">
                     <thead>
                         <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0; text-align:left;">
-                            <th style="padding:10px 12px; color:#475569;">Order / Bill #</th>
-                            <th style="padding:10px 12px; color:#475569;">Customer / Shop</th>
-                            <th style="padding:10px 12px; color:#475569;">Items</th>
-                            <th style="padding:10px 12px; color:#475569;">Amount</th>
-                            <th style="padding:10px 12px; color:#475569;">Status</th>
-                            <th style="padding:10px 12px; color:#475569; text-align:right;">Action</th>
+                            <th style="padding:10px 12px; color:#475569;">Order / Bill # <span class="eb-ur-block">آرڈر نمبر</span></th>
+                            <th style="padding:10px 12px; color:#475569;">Customer / Shop <span class="eb-ur-block">دکان / گاہک</span></th>
+                            <th style="padding:10px 12px; color:#475569;">Items <span class="eb-ur-block">آئٹمز</span></th>
+                            <th style="padding:10px 12px; color:#475569;">Amount <span class="eb-ur-block">رقم</span></th>
+                            <th style="padding:10px 12px; color:#475569;">Status <span class="eb-ur-block">صورتحال</span></th>
+                            <th style="padding:10px 12px; color:#475569; text-align:right;">Action <span class="eb-ur-block">عمل</span></th>
                         </tr>
                     </thead>
                     <tbody id="bkOrdersTableBody">
-                        <tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">Loading your field orders...</td></tr>
+                        <tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">Loading your field orders... <span class="eb-ur-sub">(آرڈرز لوڈ ہو رہے ہیں...)</span></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -817,11 +817,11 @@
         <div class="erp-kpi-card" onclick="window.location.href='bills.html'">
             <div class="kpi-head">
                 <div class="kpi-icon-box" style="background:#e0f2fe; color:#0284c7;">🛒</div>
-                <div class="kpi-title">ORDERS &amp; BILLS</div>
+                <div class="kpi-title">ORDERS &amp; BILLS <span class="eb-ur-block">آرڈرز اور بلز</span></div>
             </div>
             <div class="kpi-main-val" id="kpiTodayOrders">0</div>
             <div class="kpi-sub-row">
-                <span>Month Total</span>
+                <span>Month Total <span class="eb-ur-sub">(ماہانہ کل)</span></span>
                 <span class="kpi-sub-val" id="kpiMonthOrders">0 Bills</span>
             </div>
         </div>
@@ -830,11 +830,11 @@
         <div class="erp-kpi-card" onclick="window.location.href='stock.html'">
             <div class="kpi-head">
                 <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;">📦</div>
-                <div class="kpi-title">INVENTORY VALUE</div>
+                <div class="kpi-title">INVENTORY VALUE <span class="eb-ur-block">اسٹاک کی مالیت</span></div>
             </div>
             <div class="kpi-main-val" id="kpiStockValue">Rs 0</div>
             <div class="kpi-sub-row">
-                <span>Low Stock</span>
+                <span>Low Stock <span class="eb-ur-sub">(کم اسٹاک)</span></span>
                 <span class="kpi-sub-val" id="kpiLowStockCount" style="color:#ef4444;">0 Items</span>
             </div>
         </div>
@@ -843,11 +843,11 @@
         <div class="erp-kpi-card" onclick="window.location.href='customers.html'">
             <div class="kpi-head">
                 <div class="kpi-icon-box" style="background:#ccfbf1; color:#0d9488;">👥</div>
-                <div class="kpi-title">CUSTOMER CREDIT</div>
+                <div class="kpi-title">CUSTOMER CREDIT <span class="eb-ur-block">گاہکوں کا ادھار کھاتہ</span></div>
             </div>
             <div class="kpi-main-val" id="kpiTotalKhata">Rs 0</div>
             <div class="kpi-sub-row">
-                <span>Overdue (30+ Days)</span>
+                <span>Overdue (30+ Days) <span class="eb-ur-sub">(پرانا بقایا)</span></span>
                 <span class="kpi-sub-val" id="kpiOverdueKhata" style="color:#b91c1c;">Rs 0</span>
             </div>
         </div>
@@ -856,11 +856,11 @@
         <div class="erp-kpi-card" onclick="window.location.href='alerts.html'">
             <div class="kpi-head">
                 <div class="kpi-icon-box" style="background:#fae8ff; color:#c026d3;">🚚</div>
-                <div class="kpi-title">PURCHASE REORDER</div>
+                <div class="kpi-title">PURCHASE REORDER <span class="eb-ur-block">خریداری ری آرڈر</span></div>
             </div>
             <div class="kpi-main-val" id="kpiReorderCount">0 Items</div>
             <div class="kpi-sub-row">
-                <span>Est. Reorder Cost</span>
+                <span>Est. Reorder Cost <span class="eb-ur-sub">(متوقع لاگت)</span></span>
                 <span class="kpi-sub-val" id="kpiReorderCost">Rs 0</span>
             </div>
         </div>
@@ -869,24 +869,24 @@
         <div class="erp-kpi-card" onclick="window.location.href='reports.html?tab=sales'">
             <div class="kpi-head">
                 <div class="kpi-icon-box" style="background:#dcfce7; color:#16a34a;">📈</div>
-                <div class="kpi-title">MONTH SALES</div>
+                <div class="kpi-title">MONTH SALES <span class="eb-ur-block">ماہانہ سیلز</span></div>
             </div>
             <div class="kpi-main-val" id="kpiMonthSales">Rs 0</div>
             <div class="kpi-sub-row">
-                <span>Today's Sales</span>
+                <span>Today's Sales <span class="eb-ur-sub">(آج کی سیل)</span></span>
                 <span class="kpi-sub-val" id="kpiTodaySales" style="color:#16a34a;">Rs 0</span>
             </div>
         </div>
 
-        <!-- 6. FIELD BOOKER ORDERS (NEW EXECUTIVE KPI BOX) -->
-        <div class="erp-kpi-card" onclick="window.location.href='booker-orders.html'" title="Click to open Booker Orders & Approval Portal" style="border: 1px solid #fde68a;">
+        <!-- 6. FIELD BOOKER / STAFF ORDERS (CATEGORY-AWARE KPI BOX) -->
+        <div class="erp-kpi-card" id="kpiFieldOrdersCard" onclick="window.location.href='booker-orders.html'" title="Click to open Orders & Approval Portal" style="border: 1px solid #fde68a;">
             <div>
                 <div class="kpi-head" style="justify-content:space-between;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <div class="kpi-icon-box" style="background:#fef3c7; color:#d97706;">📱</div>
+                        <div class="kpi-icon-box" id="kpiFieldIconBox" style="background:#fef3c7; color:#d97706;">📱</div>
                         <div>
-                            <div class="kpi-title" style="color:#b45309;">BOOKER ORDERS</div>
-                            <div style="font-size:9px; color:#94a3b8; font-weight:700;">فیلڈ آرڈرز و بکرز</div>
+                            <div class="kpi-title" id="kpiFieldCardTitle" style="color:#b45309;">BOOKER ORDERS</div>
+                            <div id="kpiFieldCardSubUr" class="eb-ur-block" style="font-size:9px; color:#94a3b8; font-weight:700;">فیلڈ آرڈرز و بکرز</div>
                         </div>
                     </div>
                     <span id="kpiFieldPendingBadge" class="pulse-alert" style="display:none; background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px;">
@@ -901,8 +901,8 @@
 
             <div style="margin-top:auto;">
                 <div class="kpi-sub-row" style="margin-top:6px; padding-top:6px;">
-                    <span style="display:flex; align-items:center; gap:4px;">
-                        <i class="fas fa-users" style="color:#d97706; font-size:10px;"></i> Bookers Active
+                    <span id="kpiBookerActiveLabel" style="display:flex; align-items:center; gap:4px;">
+                        <i class="fas fa-users" style="color:#d97706; font-size:10px;"></i> Bookers Active <span class="eb-ur-sub">(فعال بکرز)</span>
                     </span>
                     <span class="kpi-sub-val" id="kpiBookerParticipation">0 / 0</span>
                 </div>
@@ -924,12 +924,12 @@
         <div class="analytics-box">
             <div class="box-header">
                 <div class="box-title">
-                    <i class="fas fa-chart-line" style="color:#0284c7;"></i> Sales &amp; Revenue Trend
+                    <i class="fas fa-chart-line" style="color:#0284c7;"></i> Sales &amp; Revenue Trend <span class="eb-ur-sub">(سیلز اور آمدنی کا رجحان)</span>
                 </div>
                 <div class="chart-toggle-tabs">
-                    <button class="chart-tab-btn active" data-period="daily">Daily</button>
-                    <button class="chart-tab-btn" data-period="weekly">Weekly</button>
-                    <button class="chart-tab-btn" data-period="monthly">Monthly</button>
+                    <button class="chart-tab-btn active" data-period="daily">Daily <span class="eb-ur-sub">(روزانہ)</span></button>
+                    <button class="chart-tab-btn" data-period="weekly">Weekly <span class="eb-ur-sub">(ہفتہ وار)</span></button>
+                    <button class="chart-tab-btn" data-period="monthly">Monthly <span class="eb-ur-sub">(ماہانہ)</span></button>
                 </div>
             </div>
             <div style="position:relative; height:240px; width:100%;">
@@ -937,11 +937,11 @@
             </div>
         </div>
 
-        <!-- Warehouse Stock Status Donut -->
+        <!-- Warehouse / Inventory Stock Status Donut -->
         <div class="analytics-box">
             <div class="box-header">
-                <div class="box-title">
-                    <i class="fas fa-cubes" style="color:#9333ea;"></i> Warehouse Stock Status
+                <div class="box-title" id="dashStockDonutTitle">
+                    <i class="fas fa-cubes" style="color:#9333ea;"></i> Inventory Stock Status <span class="eb-ur-sub">(اسٹاک کی صورتحال)</span>
                 </div>
             </div>
             <div class="stock-donut-container">
@@ -950,15 +950,15 @@
                 </div>
                 <div class="donut-legend">
                     <div class="legend-row">
-                        <span><span class="legend-dot" style="background:#10b981;"></span> In-Stock Available</span>
+                        <span><span class="legend-dot" style="background:#10b981;"></span> In-Stock Available <span class="eb-ur-sub">(دستیاب)</span></span>
                         <b id="legendAvailableUnits">0 Units</b>
                     </div>
                     <div class="legend-row">
-                        <span><span class="legend-dot" style="background:#f59e0b;"></span> Low Stock Items</span>
+                        <span><span class="legend-dot" style="background:#f59e0b;"></span> Low Stock Items <span class="eb-ur-sub">(کم اسٹاک)</span></span>
                         <b id="legendLowUnits">0 Items</b>
                     </div>
                     <div class="legend-row">
-                        <span><span class="legend-dot" style="background:#ef4444;"></span> Out of Stock</span>
+                        <span><span class="legend-dot" style="background:#ef4444;"></span> Out of Stock <span class="eb-ur-sub">(ختم)</span></span>
                         <b id="legendOutUnits">0 Items</b>
                     </div>
                 </div>
@@ -966,35 +966,35 @@
         </div>
     </div>
 
-    <!-- ===== 👥 OPERATIONAL SPLIT: TOP SELLERS & BOOKER PERFORMANCE ===== -->
+    <!-- ===== 👥 OPERATIONAL SPLIT: TOP SELLERS & BOOKER/STAFF PERFORMANCE ===== -->
     <div class="erp-split-grid">
         <!-- Top Products -->
         <div class="analytics-box">
             <div class="box-header">
-                <div class="box-title"><i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Moving Products</div>
-                <a href="reports.html?tab=bestsellers" style="font-size:11px; color:#0284c7; text-decoration:none; font-weight:bold;">All Reports →</a>
+                <div class="box-title" id="dashTopProductsTitle"><i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Moving Products <span class="eb-ur-sub">(زیادہ بکنے والا سامان)</span></div>
+                <a href="reports.html?tab=bestsellers" style="font-size:11px; color:#0284c7; text-decoration:none; font-weight:bold;">All Reports <span class="eb-ur-sub">(رپورٹس)</span> →</a>
             </div>
             <div style="overflow-x:auto;">
                 <table class="mini-table">
-                    <thead><tr><th>Product</th><th>Category</th><th style="text-align:center;">Sold</th><th style="text-align:right;">Revenue</th></tr></thead>
+                    <thead><tr><th>Product <span class="eb-ur-block">آئٹم</span></th><th>Category <span class="eb-ur-block">کیٹیگری</span></th><th style="text-align:center;">Sold <span class="eb-ur-block">فروخت</span></th><th style="text-align:right;">Revenue <span class="eb-ur-block">آمدنی</span></th></tr></thead>
                     <tbody id="topProductsTbody">
-                        <tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:15px;">Loading top items...</td></tr>
+                        <tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:15px;">Loading top items... <span class="eb-ur-sub">(لوڈ ہو رہا ہے...)</span></td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Booker Leaderboard -->
+        <!-- Booker / Staff Leaderboard -->
         <div class="analytics-box">
             <div class="box-header">
-                <div class="box-title"><i class="fas fa-users-gear" style="color:#0284c7;"></i> Order Booker Performance</div>
-                <a href="owner.html" id="linkManageBookers" style="font-size:11px; color:#0284c7; text-decoration:none; font-weight:bold;">Team →</a>
+                <div class="box-title" id="dashBookerPerfTitle"><i class="fas fa-users-gear" style="color:#0284c7;"></i> Order Booker Performance <span class="eb-ur-sub">(آرڈر بکر کارکردگی)</span></div>
+                <a href="owner.html" id="linkManageBookers" style="font-size:11px; color:#0284c7; text-decoration:none; font-weight:bold;">Team <span class="eb-ur-sub">(ٹیم)</span> →</a>
             </div>
             <div style="overflow-x:auto;">
                 <table class="mini-table">
-                    <thead><tr><th>Booker</th><th style="text-align:center;">Orders</th><th style="text-align:right;">Sales Volume</th><th style="text-align:right;">Cash Collected</th></tr></thead>
+                    <thead><tr><th id="dashBookerColHeader">Booker <span class="eb-ur-block">بکر</span></th><th style="text-align:center;">Orders <span class="eb-ur-block">آرڈرز</span></th><th style="text-align:right;">Sales Volume <span class="eb-ur-block">کل سیل</span></th><th style="text-align:right;">Cash Collected <span class="eb-ur-block">کیش وصولی</span></th></tr></thead>
                     <tbody id="bookersTbody">
-                        <tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:15px;">Loading bookers...</td></tr>
+                        <tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:15px;">Loading performance... <span class="eb-ur-sub">(لوڈ ہو رہا ہے...)</span></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1010,20 +1010,20 @@
             <div class="recovery-title">
                 <span style="font-size:22px;">🚨</span>
                 <div>
-                    <h2>Defaulter &amp; Overdue Khata Recovery Center</h2>
+                    <h2>Defaulter &amp; Overdue Khata Recovery Center <span class="eb-ur-sub">(پرانے ادھار اور وصولی سینٹر)</span></h2>
                     <div class="recovery-subtext" id="defaulterSubtext">
-                        وہ دکان دار جن کی طرف سے پرانی ادھار رقم کی وصولی تاخیر کا شکار ہے۔
+                        Customers and shops with delayed credit balance recovery. <span class="eb-ur-block">وہ دکان دار جن کی طرف سے پرانی ادھار رقم کی وصولی تاخیر کا شکار ہے۔</span>
                     </div>
                 </div>
             </div>
 
             <!-- Overdue Days Filter Tabs (Admin Configurable) -->
             <div class="overdue-filter-group">
-                <span class="overdue-label">Threshold:</span>
-                <button class="overdue-pill active" data-days="30">30+ Days</button>
-                <button class="overdue-pill" data-days="45">45+ Days</button>
-                <button class="overdue-pill" data-days="60">60+ Days</button>
-                <button class="overdue-pill" data-days="90">90+ Days</button>
+                <span class="overdue-label">Threshold <span class="eb-ur-sub">(حد)</span>:</span>
+                <button class="overdue-pill active" data-days="30">30+ Days <span class="eb-ur-sub">(30+ دن)</span></button>
+                <button class="overdue-pill" data-days="45">45+ Days <span class="eb-ur-sub">(45+ دن)</span></button>
+                <button class="overdue-pill" data-days="60">60+ Days <span class="eb-ur-sub">(60+ دن)</span></button>
+                <button class="overdue-pill" data-days="90">90+ Days <span class="eb-ur-sub">(90+ دن)</span></button>
             </div>
         </div>
 
@@ -1032,16 +1032,16 @@
             <table class="mini-table" style="min-width:650px;">
                 <thead>
                     <tr class="defaulter-table-head">
-                        <th>Shop / Customer Name</th>
-                        <th>Route / Area</th>
-                        <th>Pending Khata</th>
-                        <th>Overdue Age</th>
-                        <th>Last Activity</th>
-                        <th>Actions</th>
+                        <th id="defaulterColShop">Shop / Customer Name <span class="eb-ur-block">دکان / گاہک کا نام</span></th>
+                        <th id="defaulterColRoute">Route / Area <span class="eb-ur-block">روٹ / علاقہ</span></th>
+                        <th>Pending Khata <span class="eb-ur-block">بقایا کھاتہ</span></th>
+                        <th>Overdue Age <span class="eb-ur-block">تاخیر کے دن</span></th>
+                        <th>Last Activity <span class="eb-ur-block">آخری لین دین</span></th>
+                        <th>Actions <span class="eb-ur-block">عمل</span></th>
                     </tr>
                 </thead>
                 <tbody id="defaultersTbody">
-                    <tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:20px;">Checking overdue customer khatas...</td></tr>
+                    <tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:20px;">Checking overdue customer khatas... <span class="eb-ur-sub">(پرانے کھاتے چیک ہو رہے ہیں...)</span></td></tr>
                 </tbody>
             </table>
         </div>
@@ -1053,68 +1053,68 @@
          ============================================ -->
     <div class="launchers-section" style="margin-top:20px; padding-top:16px;">
         <div class="launchers-heading" style="font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px;">
-            ⚡ Quick System Launchers
+            ⚡ Quick System Launchers <span class="eb-ur-sub">(فوری سسٹم شارٹ کٹس)</span>
         </div>
         <div class="modules-grid">
-            <div class="module-card" onclick="window.location.href='bills.html'">
+            <div class="module-card" id="launcherBillsCard" onclick="window.location.href='bills.html'">
                 <div class="icon">🧾</div>
-                <h3>Billing &amp; Orders</h3>
-                <p>Create Invoices &amp; Bookings</p>
+                <h3>Billing &amp; Orders <span class="eb-ur-block">بلنگ اور آرڈرز</span></h3>
+                <p>Create Invoices &amp; Bookings <span class="eb-ur-block">بل اور آرڈر بنائیں</span></p>
             </div>
-            <div class="module-card" onclick="window.location.href='stock.html'">
+            <div class="module-card" id="launcherStockCard" onclick="window.location.href='stock.html'">
                 <div class="icon">📦</div>
-                <h3>Stock Manager</h3>
-                <p>Inventory, Rates &amp; Barcodes</p>
+                <h3>Stock Manager <span class="eb-ur-block">اسٹاک مینیجر</span></h3>
+                <p>Inventory, Rates &amp; Barcodes <span class="eb-ur-block">اسٹاک، ریٹس اور بارکوڈ</span></p>
             </div>
-            <div class="module-card" onclick="window.location.href='customers.html'">
+            <div class="module-card" id="launcherCustomersCard" onclick="window.location.href='customers.html'">
                 <div class="icon">👥</div>
-                <h3>Customer Khata</h3>
-                <p>Ledgers &amp; Market Recovery</p>
+                <h3>Customer Khata <span class="eb-ur-block">گاہک اور کھاتہ</span></h3>
+                <p>Ledgers &amp; Market Recovery <span class="eb-ur-block">لیجر اور مارکیٹ وصولی</span></p>
             </div>
             <div class="module-card" onclick="window.location.href='profit.html'">
                 <div class="icon">💰</div>
-                <h3>Profit Analytics</h3>
-                <p>COGS, Margins &amp; Net P&amp;L</p>
+                <h3>Profit Analytics <span class="eb-ur-block">منافع کا تجزیہ</span></h3>
+                <p>COGS, Margins &amp; Net P&amp;L <span class="eb-ur-block">لاگت، مارجن اور خالص نفع</span></p>
             </div>
-            <div class="module-card" onclick="window.location.href='booker-orders.html'">
+            <div class="module-card" id="launcherBookerOrdersCard" onclick="window.location.href='booker-orders.html'">
                 <div class="icon">📋</div>
-                <h3>Booker Orders</h3>
-                <p>Live Orders &amp; Dispatch Queue</p>
+                <h3>Booker Orders <span class="eb-ur-block">بکر آرڈرز</span></h3>
+                <p>Live Orders &amp; Dispatch Queue <span class="eb-ur-block">لائیو آرڈرز اور ترسیل</span></p>
             </div>
             <div class="module-card" onclick="window.location.href='alerts.html'">
                 <div class="icon">🔔</div>
-                <h3>Low Stock Alerts</h3>
-                <p>Critical Warnings &amp; Reorder</p>
+                <h3>Low Stock Alerts <span class="eb-ur-block">کم اسٹاک الرٹس</span></h3>
+                <p>Critical Warnings &amp; Reorder <span class="eb-ur-block">وارننگ اور ری آرڈر</span></p>
             </div>
             <div class="module-card" onclick="window.location.href='reports.html'">
                 <div class="icon">📊</div>
-                <h3>Business Reports</h3>
-                <p>Sales, Claims &amp; Profitability</p>
+                <h3>Business Reports <span class="eb-ur-block">کاروباری رپورٹس</span></h3>
+                <p>Sales, Claims &amp; Profitability <span class="eb-ur-block">سیلز، کلیمز اور نفع</span></p>
             </div>
             <div class="module-card" onclick="window.location.href='multi-agency.html'">
                 <div class="icon">🏢</div>
-                <h3>Multi-Agency Hub</h3>
-                <p>Branches &amp; Comparison</p>
+                <h3>Multi-Agency Hub <span class="eb-ur-block">ملٹی ایجنسی ہب</span></h3>
+                <p>Branches &amp; Comparison <span class="eb-ur-block">برانچز اور موازنہ</span></p>
             </div>
-            <div class="module-card" onclick="window.location.href='delivery-returns.html'">
+            <div class="module-card" id="launcherDeliveryCard" onclick="window.location.href='delivery-returns.html'">
                 <div class="icon">🚚</div>
-                <h3>Van Dispatch &amp; Returns</h3>
-                <p>Delivery Suppliers &amp; Stock Return Inward</p>
+                <h3>Van Dispatch &amp; Returns <span class="eb-ur-block">وین ڈسپیچ اور واپسی</span></h3>
+                <p>Delivery Suppliers &amp; Stock Return Inward <span class="eb-ur-block">ترسیل اور مال واپسی</span></p>
             </div>
             <div class="module-card" id="cardOwnerBookers" onclick="window.location.href='owner.html'">
                 <div class="icon">👥</div>
-                <h3>Staff &amp; Bookers</h3>
-                <p>Field Staff &amp; Permissions</p>
+                <h3>Staff &amp; Bookers <span class="eb-ur-block">اسٹاف اور بکرز</span></h3>
+                <p>Field Staff &amp; Permissions <span class="eb-ur-block">فیلڈ ٹیم اور اجازتیں</span></p>
             </div>
             <div class="module-card" onclick="window.location.href='backup.html'">
                 <div class="icon">💾</div>
-                <h3>Backup &amp; Restore</h3>
-                <p>Cloud Snapshots &amp; JSON</p>
+                <h3>Backup &amp; Restore <span class="eb-ur-block">بیک اپ اور بحالی</span></h3>
+                <p>Cloud Snapshots &amp; JSON <span class="eb-ur-block">کلاؤڈ بیک اپ اور ڈیٹا</span></p>
             </div>
             <div class="module-card" onclick="window.location.href='settings.html'">
                 <div class="icon">⚙️</div>
-                <h3>Agency Settings</h3>
-                <p>Branding, POS &amp; Preferences</p>
+                <h3>Agency Settings <span class="eb-ur-block">ایجنسی سیٹنگز</span></h3>
+                <p>Branding, POS &amp; Preferences <span class="eb-ur-block">لوگو، پرنٹر اور سیٹنگز</span></p>
             </div>
         </div>
     </div>
@@ -1193,8 +1193,15 @@
             if (avEl) avEl.innerText = (uName || 'U').charAt(0).toUpperCase();
             if (cachedAgency) {
                 myAgency = cachedAgency;
+                if (window.BusinessCategories && typeof window.BusinessCategories.applyActiveCategoryProfile === 'function') {
+                    window.BusinessCategories.applyActiveCategoryProfile(myAgency);
+                }
                 const headName = document.getElementById('bizHeadingName');
-                if (headName) headName.innerText = cachedAgency.name || 'Wholesale Business Overview';
+                if (headName) headName.innerText = myAgency.name || 'Business Overview';
+                const cachedCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+                    ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
+                    : (myAgency.businessCategory || myAgency.businessType || localStorage.getItem('eb_active_business_category') || 'general');
+                setTimeout(() => { try { applyDashboardCategoryLabels(cachedCat); } catch (_) {} }, 0);
             }
         }
     } catch (_) {}
@@ -1259,15 +1266,16 @@
                     const catObj = (window.BusinessCategories && typeof window.BusinessCategories.getById === 'function')
                         ? window.BusinessCategories.getById(activeCatId)
                         : null;
-                    const bizName = (myAgency && myAgency.name) || 'Wholesale Business Overview';
+                    const bizName = (myAgency && myAgency.name) || (catObj ? `${catObj.nameEn} Overview` : 'Business Overview');
                     const bizCity = (myAgency && myAgency.city) || 'Depot';
-                    const bizTypeLabel = catObj ? `${catObj.icon} ${catObj.nameEn}` : ((myAgency && myAgency.businessType) || 'Distribution');
+                    const bizTypeLabel = catObj ? `${catObj.icon} ${catObj.nameEn}` : ((myAgency && myAgency.businessType) || 'Business');
                     document.getElementById('bizHeadingName').innerText = bizName;
                     const subText = `${bizName} • ${bizCity} (${bizTypeLabel})`;
                     const agencySubEl = document.getElementById('agencyDepotSub');
                     if (agencySubEl) agencySubEl.innerText = subText;
                     const topSubEl = document.getElementById('ebTopSubtitle');
                     if (topSubEl) topSubEl.innerText = subText;
+                    applyDashboardCategoryLabels(activeCatId);
                 }
             }
 
@@ -1301,6 +1309,144 @@
             document.getElementById('loadingText').innerText = '⚠️ Error: ' + e.message;
         }
     });
+
+    // ============================================
+    // 🎨 CATEGORY-SPECIFIC DASHBOARD LABELS & LAUNCHER CARDS (100% ISOLATED)
+    // ============================================
+    function applyDashboardCategoryLabels(activeCat) {
+        const cat = String(activeCat || 'general').toLowerCase().trim();
+        const kpiIcon = document.getElementById('kpiFieldIconBox');
+        const kpiTitle = document.getElementById('kpiFieldCardTitle');
+        const kpiSubUr = document.getElementById('kpiFieldCardSubUr');
+        const kpiActiveLbl = document.getElementById('kpiBookerActiveLabel');
+        const stockDonutTitle = document.getElementById('dashStockDonutTitle');
+        const topProdTitle = document.getElementById('dashTopProductsTitle');
+        const bookerPerfTitle = document.getElementById('dashBookerPerfTitle');
+        const bookerColHead = document.getElementById('dashBookerColHeader');
+        const defSub = document.getElementById('defaulterSubtext');
+        const defColShop = document.getElementById('defaulterColShop');
+        const defColRoute = document.getElementById('defaulterColRoute');
+
+        const lBills = document.getElementById('launcherBillsCard');
+        const lStock = document.getElementById('launcherStockCard');
+        const lBookerOrd = document.getElementById('launcherBookerOrdersCard');
+        const lDelivery = document.getElementById('launcherDeliveryCard');
+        const lStaff = document.getElementById('cardOwnerBookers');
+
+        const setCard = (el, icon, h3En, h3Ur, pEn, pUr) => {
+            if (!el) return;
+            const ic = el.querySelector('.icon');
+            const t = el.querySelector('h3');
+            const d = el.querySelector('p');
+            if (ic) ic.innerText = icon;
+            if (t) t.innerHTML = h3Ur ? `${h3En} <span class="eb-ur-block">${h3Ur}</span>` : h3En;
+            if (d) d.innerHTML = pUr ? `${pEn} <span class="eb-ur-block">${pUr}</span>` : pEn;
+        };
+
+        if (cat === 'restaurant') {
+            if (kpiIcon) kpiIcon.innerText = '🍽️';
+            if (kpiTitle) kpiTitle.innerText = 'KITCHEN & RIDER ORDERS';
+            if (kpiSubUr) kpiSubUr.innerText = 'ٹیبل، کچن و رائیڈر آرڈرز';
+            if (kpiActiveLbl) kpiActiveLbl.innerHTML = '<i class="fas fa-user-tie" style="color:#d97706; font-size:10px;"></i> Waiters &amp; Riders <span class="eb-ur-sub">(ویٹرز و رائیڈرز)</span>';
+            if (stockDonutTitle) stockDonutTitle.innerHTML = '<i class="fas fa-utensils" style="color:#9333ea;"></i> Menu &amp; Kitchen Pantry Status <span class="eb-ur-sub">(مینو اور کچن اسٹاک)</span>';
+            if (topProdTitle) topProdTitle.innerHTML = '<i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Selling Dishes &amp; Deals <span class="eb-ur-sub">(زیادہ بکنے والی ڈشز)</span>';
+            if (bookerPerfTitle) bookerPerfTitle.innerHTML = '<i class="fas fa-user-tie" style="color:#0284c7;"></i> Waiters &amp; Riders Performance <span class="eb-ur-sub">(ویٹرز و رائیڈرز کارکردگی)</span>';
+            if (bookerColHead) bookerColHead.innerHTML = 'Waiter / Rider <span class="eb-ur-block">ویٹر / رائیڈر</span>';
+            if (defSub) defSub.innerHTML = 'Regular guests and corporate accounts with pending credit recovery. <span class="eb-ur-block">وہ ریگولر کسٹمرز اور کارپوریٹ اکاؤنٹس جن کے کھاتے کی وصولی واجب الادا ہے۔</span>';
+            if (defColShop) defColShop.innerHTML = 'Guest / Corporate Account <span class="eb-ur-block">کسٹمر / کارپوریٹ اکاؤنٹ</span>';
+            if (defColRoute) defColRoute.innerHTML = 'Delivery Zone / Area <span class="eb-ur-block">ڈلیوری زون / علاقہ</span>';
+            setCard(lBills, '🍔', 'Fast Food POS &amp; KOT', 'فاسٹ فوڈ بل و کچن ٹوکن', 'Dine-in, Takeaway &amp; Delivery Bills', 'ڈائن ان، ٹیک اوے اور ڈلیوری');
+            setCard(lStock, '🍕', 'Menu, Deals &amp; Pantry', 'مینو، ڈیلز اور کچن اسٹاک', 'Menu Items, Recipes &amp; Pantry Stock', 'ڈشز، ریسیپی اور اسٹاک');
+            setCard(lBookerOrd, '👨‍🍳', 'Kitchen Queue &amp; Orders', 'کچن آرڈرز اور ڈسپیچ', 'Live Table, KOT &amp; Rider Orders', 'لائیو ٹیبل اور رائیڈر آرڈرز');
+            setCard(lDelivery, '🛵', 'Home Delivery &amp; Claims', 'ہوم ڈلیوری اور واپسی', 'Rider Dispatch, Wastage &amp; Returns', 'رائیڈر ڈسپیچ اور ضیاع');
+            setCard(lStaff, '🧑‍🍳', 'Waiters, Riders &amp; Staff', 'ویٹرز، رائیڈرز اور اسٹاف', 'Restaurant Team &amp; Permissions', 'ریسٹورنٹ ٹیم اور اجازتیں');
+        } else if (cat === 'mobile') {
+            if (kpiIcon) kpiIcon.innerText = '🔧';
+            if (kpiTitle) kpiTitle.innerText = 'REPAIRING & STAFF ORDERS';
+            if (kpiSubUr) kpiSubUr.innerText = 'موبائل ریپئرنگ و آرڈرز';
+            if (kpiActiveLbl) kpiActiveLbl.innerHTML = '<i class="fas fa-screwdriver-wrench" style="color:#d97706; font-size:10px;"></i> Techs &amp; Staff <span class="eb-ur-sub">(ٹیکنیشنز و اسٹاف)</span>';
+            if (stockDonutTitle) stockDonutTitle.innerHTML = '<i class="fas fa-mobile-screen-button" style="color:#9333ea;"></i> Mobile &amp; Accessories Stock <span class="eb-ur-sub">(موبائل و ایسیسریز اسٹاک)</span>';
+            if (topProdTitle) topProdTitle.innerHTML = '<i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Selling Mobiles &amp; Accessories <span class="eb-ur-sub">(زیادہ بکنے والے موبائل)</span>';
+            if (bookerPerfTitle) bookerPerfTitle.innerHTML = '<i class="fas fa-users-gear" style="color:#0284c7;"></i> Sales &amp; Technician Performance <span class="eb-ur-sub">(سیلز و ٹیکنیشن کارکردگی)</span>';
+            if (bookerColHead) bookerColHead.innerHTML = 'Staff / Technician <span class="eb-ur-block">اسٹاف / ٹیکنیشن</span>';
+            if (defSub) defSub.innerHTML = 'Customers and sub-dealers with overdue credit or installment balances. <span class="eb-ur-block">وہ گاہک اور سب ڈیلرز جن کی طرف سے ادھار یا قسط کی وصولی تاخیر کا شکار ہے۔</span>';
+            if (defColShop) defColShop.innerHTML = 'Customer / Dealer Name <span class="eb-ur-block">گاہک / ڈیلر کا نام</span>';
+            if (defColRoute) defColRoute.innerHTML = 'Market / Area <span class="eb-ur-block">مارکیٹ / علاقہ</span>';
+            setCard(lBills, '📱', 'Mobile POS &amp; IMEI Bill', 'موبائل بل اور آئی ایم ای آئی', 'Handsets, Accessories &amp; Warranty', 'موبائل، ایسیسریز اور وارنٹی');
+            setCard(lStock, '📦', 'Mobile &amp; IMEI Stock', 'موبائل اور آئی ایم ای آئی اسٹاک', 'IMEI 1-4, PTA Status &amp; Accessories', 'آئی ایم ای آئی اور پی ٹی اے');
+            setCard(lBookerOrd, '🔧', 'Repairing Jobs &amp; Orders', 'ریپئرنگ جابز اور آرڈرز', 'Job Cards, Technicians &amp; Bookings', 'جاب کارڈز اور ٹیکنیشنز');
+            setCard(lDelivery, '🛡️', 'Warranty Claims &amp; Returns', 'وارنٹی کلیمز اور واپسی', 'DOA, LCD Claims &amp; Customer Returns', 'وارنٹی اور ایل سی ڈی کلیم');
+            setCard(lStaff, '👥', 'Technicians &amp; Staff', 'ٹیکنیشنز اور اسٹاف', 'Shop Staff &amp; Permissions', 'دکان اسٹاف اور اجازتیں');
+        } else if (cat === 'medical') {
+            if (kpiIcon) kpiIcon.innerText = '💊';
+            if (kpiTitle) kpiTitle.innerText = 'PHARMACY & CLINIC ORDERS';
+            if (kpiSubUr) kpiSubUr.innerText = 'فارمیسی و کلینک آرڈرز';
+            if (kpiActiveLbl) kpiActiveLbl.innerHTML = '<i class="fas fa-user-nurse" style="color:#d97706; font-size:10px;"></i> Staff Active <span class="eb-ur-sub">(فعال اسٹاف)</span>';
+            if (stockDonutTitle) stockDonutTitle.innerHTML = '<i class="fas fa-pills" style="color:#9333ea;"></i> Pharmacy &amp; Medicine Stock <span class="eb-ur-sub">(فارمیسی و ادویات اسٹاک)</span>';
+            if (topProdTitle) topProdTitle.innerHTML = '<i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Moving Medicines <span class="eb-ur-sub">(زیادہ بکنے والی ادویات)</span>';
+            if (bookerPerfTitle) bookerPerfTitle.innerHTML = '<i class="fas fa-user-doctor" style="color:#0284c7;"></i> Pharmacist &amp; Staff Performance <span class="eb-ur-sub">(فارماسسٹ و اسٹاف کارکردگی)</span>';
+            if (bookerColHead) bookerColHead.innerHTML = 'Staff / Counter <span class="eb-ur-block">اسٹاف / کاؤنٹر</span>';
+            if (defSub) defSub.innerHTML = 'Patients, clinics, and medical accounts with pending balance recovery. <span class="eb-ur-block">وہ مریض، کلینکس اور میڈیکل کھاتہ دار جن کی طرف سے بقایا وصولی واجب الادا ہے۔</span>';
+            if (defColShop) defColShop.innerHTML = 'Patient / Clinic Name <span class="eb-ur-block">مریض / کلینک کا نام</span>';
+            if (defColRoute) defColRoute.innerHTML = 'Ward / Area <span class="eb-ur-block">وارڈ / علاقہ</span>';
+            setCard(lBills, '💊', 'Pharmacy POS &amp; FEFO', 'فارمیسی بل اور ایف ای ایف او', 'Pack / Loose Tablet Billing &amp; Rx', 'پیک / کھلی گولی بلنگ');
+            setCard(lStock, '🧪', 'Medicine &amp; Batch Stock', 'ادویات اور بیچ اسٹاک', 'Salt Formula, Shelf &amp; FEFO Expiry', 'فارمولا، شیلف اور ایکسپائری');
+            setCard(lBookerOrd, '📋', 'Clinic &amp; Supply Orders', 'کلینک اور سپلائی آرڈرز', 'Prescriptions &amp; Supply Bookings', 'نسخے اور سپلائی بکنگ');
+            setCard(lDelivery, '⚠️', 'Expiry Claims &amp; Returns', 'ایکسپائری کلیم اور واپسی', 'Near-Expiry Return &amp; Pharma Claims', 'ایکسپائری واپسی اور کلیمز');
+            setCard(lStaff, '👥', 'Pharmacy Staff', 'فارمیسی اسٹاف', 'Counter Staff &amp; Permissions', 'کاؤنٹر اسٹاف اور اجازتیں');
+        } else if (cat === 'books') {
+            if (kpiIcon) kpiIcon.innerText = '📚';
+            if (kpiTitle) kpiTitle.innerText = 'SCHOOL & BOOKER ORDERS';
+            if (kpiSubUr) kpiSubUr.innerText = 'اسکول و سپلائی آرڈرز';
+            if (kpiActiveLbl) kpiActiveLbl.innerHTML = '<i class="fas fa-users" style="color:#d97706; font-size:10px;"></i> Staff Active <span class="eb-ur-sub">(فعال اسٹاف)</span>';
+            if (stockDonutTitle) stockDonutTitle.innerHTML = '<i class="fas fa-book" style="color:#9333ea;"></i> Books &amp; Stationery Stock <span class="eb-ur-sub">(کتب و اسٹیشنری اسٹاک)</span>';
+            if (topProdTitle) topProdTitle.innerHTML = '<i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Moving Books &amp; Stationery <span class="eb-ur-sub">(زیادہ بکنے والی کتب)</span>';
+            if (bookerPerfTitle) bookerPerfTitle.innerHTML = '<i class="fas fa-users-gear" style="color:#0284c7;"></i> Sales &amp; Supply Team Performance <span class="eb-ur-sub">(سیلز و سپلائی ٹیم کارکردگی)</span>';
+            if (bookerColHead) bookerColHead.innerHTML = 'Staff / Booker <span class="eb-ur-block">اسٹاف / بکر</span>';
+            if (defSub) defSub.innerHTML = 'Schools, colleges, and bookshops with overdue credit balances. <span class="eb-ur-block">وہ اسکول، کالجز اور بک پوائنٹس جن کی طرف سے پرانا کھاتہ واجب الادا ہے۔</span>';
+            if (defColShop) defColShop.innerHTML = 'School / Bookshop Name <span class="eb-ur-block">اسکول / بک شاپ کا نام</span>';
+            if (defColRoute) defColRoute.innerHTML = 'Board / Route / Area <span class="eb-ur-block">بورڈ / روٹ / علاقہ</span>';
+            setCard(lBills, '📚', 'Book Depot POS &amp; Sets', 'بک ڈپو بل اور سیٹس', 'Syllabus Sets, Books &amp; Stationery', 'نصاب سیٹس، کتب اور اسٹیشنری');
+            setCard(lStock, '📦', 'Books &amp; Publisher Stock', 'کتب اور پبلشر اسٹاک', 'Publisher, Class, Edition &amp; ISBN', 'پبلشر، کلاس اور ایڈیشن');
+            setCard(lBookerOrd, '📋', 'School &amp; Supply Orders', 'اسکول اور سپلائی آرڈرز', 'School Lists &amp; Dispatch Queue', 'اسکول لسٹ اور ڈسپیچ');
+            setCard(lDelivery, '🚚', 'Supply &amp; Book Returns', 'سپلائی اور کتب واپسی', 'Specimen, Unsold Returns &amp; Claims', 'اسپیسیمن اور واپسی مال');
+            setCard(lStaff, '👥', 'Staff &amp; Bookers', 'اسٹاف اور بکرز', 'Sales Team &amp; Permissions', 'سیلز ٹیم اور اجازتیں');
+        } else if (cat === 'distributor') {
+            if (kpiIcon) kpiIcon.innerText = '🚚';
+            if (kpiTitle) kpiTitle.innerText = 'BOOKER & PJP ORDERS';
+            if (kpiSubUr) kpiSubUr.innerText = 'فیلڈ بکرز و روٹ آرڈرز';
+            if (kpiActiveLbl) kpiActiveLbl.innerHTML = '<i class="fas fa-users" style="color:#d97706; font-size:10px;"></i> Bookers Active <span class="eb-ur-sub">(فعال بکرز)</span>';
+            if (stockDonutTitle) stockDonutTitle.innerHTML = '<i class="fas fa-warehouse" style="color:#9333ea;"></i> Agency Godown Stock Status <span class="eb-ur-sub">(ایجنسی گودام اسٹاک)</span>';
+            if (topProdTitle) topProdTitle.innerHTML = '<i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Moving FMCG SKUs <span class="eb-ur-sub">(زیادہ بکنے والے آئٹمز)</span>';
+            if (bookerPerfTitle) bookerPerfTitle.innerHTML = '<i class="fas fa-users-gear" style="color:#0284c7;"></i> Order Booker Performance <span class="eb-ur-sub">(آرڈر بکر کارکردگی)</span>';
+            if (bookerColHead) bookerColHead.innerHTML = 'Order Booker <span class="eb-ur-block">آرڈر بکر</span>';
+            if (defSub) defSub.innerHTML = 'Market retailers and shops with pending credit recovery. <span class="eb-ur-block">وہ مارکیٹ ریٹیلرز اور دکان دار جن کی طرف سے پرانا کریڈٹ کھاتہ واجب الادا ہے۔</span>';
+            if (defColShop) defColShop.innerHTML = 'Retailer / Shop Name <span class="eb-ur-block">دکان دار کا نام</span>';
+            if (defColRoute) defColRoute.innerHTML = 'Weekly Route (PJP) <span class="eb-ur-block">ہفتہ وار روٹ</span>';
+            setCard(lBills, '🧾', 'Agency Billing &amp; Schemes', 'ایجنسی بلنگ اور اسکیمز', 'TP, T.O %, Bonus &amp; Route Invoices', 'ٹریڈ پرائس، بونس اور روٹ بل');
+            setCard(lStock, '📦', 'FMCG Godown Stock', 'ایف ایم سی جی گودام اسٹاک', 'Principals, Cartons, Schemes &amp; Expiry', 'کمپنیاں، کارٹن اور ایکسپائری');
+            setCard(lBookerOrd, '📋', 'Booker Orders &amp; Load', 'بکر آرڈرز اور لوڈ شیٹ', 'PJP Bookings &amp; Van Load Summary', 'روٹ بکنگ اور وین لوڈ');
+            setCard(lDelivery, '🚚', 'Van Dispatch &amp; Claims', 'وین ڈسپیچ اور کلیمز', 'Van Load Sheets, Returns &amp; Principal Claims', 'لوڈ شیٹ، واپسی اور کمپنی کلیم');
+            setCard(lStaff, '👥', 'Bookers &amp; Van Team', 'بکرز اور وین ٹیم', 'Field Bookers, Drivers &amp; Permissions', 'فیلڈ بکرز، ڈرائیورز اور اجازتیں');
+        } else {
+            if (kpiIcon) kpiIcon.innerText = '📱';
+            if (kpiTitle) kpiTitle.innerText = 'BOOKER ORDERS';
+            if (kpiSubUr) kpiSubUr.innerText = 'فیلڈ آرڈرز و بکرز';
+            if (kpiActiveLbl) kpiActiveLbl.innerHTML = '<i class="fas fa-users" style="color:#d97706; font-size:10px;"></i> Bookers Active <span class="eb-ur-sub">(فعال بکرز)</span>';
+            if (stockDonutTitle) stockDonutTitle.innerHTML = '<i class="fas fa-cubes" style="color:#9333ea;"></i> Warehouse Stock Status <span class="eb-ur-sub">(گودام اسٹاک صورتحال)</span>';
+            if (topProdTitle) topProdTitle.innerHTML = '<i class="fas fa-trophy" style="color:#f59e0b;"></i> Top Moving Products <span class="eb-ur-sub">(زیادہ بکنے والا سامان)</span>';
+            if (bookerPerfTitle) bookerPerfTitle.innerHTML = '<i class="fas fa-users-gear" style="color:#0284c7;"></i> Order Booker Performance <span class="eb-ur-sub">(آرڈر بکر کارکردگی)</span>';
+            if (bookerColHead) bookerColHead.innerHTML = 'Booker <span class="eb-ur-block">بکر</span>';
+            if (defSub) defSub.innerHTML = 'Customers and shops with delayed credit balance recovery. <span class="eb-ur-block">وہ دکان دار جن کی طرف سے پرانی ادھار رقم کی وصولی تاخیر کا شکار ہے۔</span>';
+            if (defColShop) defColShop.innerHTML = 'Shop / Customer Name <span class="eb-ur-block">دکان / گاہک کا نام</span>';
+            if (defColRoute) defColRoute.innerHTML = 'Route / Area <span class="eb-ur-block">روٹ / علاقہ</span>';
+            setCard(lBills, '🧾', 'Billing &amp; Orders', 'بلنگ اور آرڈرز', 'Create Invoices &amp; Bookings', 'بل اور آرڈر بنائیں');
+            setCard(lStock, '📦', 'Stock Manager', 'اسٹاک مینیجر', 'Inventory, Rates &amp; Barcodes', 'اسٹاک، ریٹس اور بارکوڈ');
+            setCard(lBookerOrd, '📋', 'Booker Orders', 'بکر آرڈرز', 'Live Orders &amp; Dispatch Queue', 'لائیو آرڈرز اور ترسیل');
+            setCard(lDelivery, '🚚', 'Van Dispatch &amp; Returns', 'وین ڈسپیچ اور واپسی', 'Delivery Suppliers &amp; Stock Return Inward', 'ترسیل اور مال واپسی');
+            setCard(lStaff, '👥', 'Staff &amp; Bookers', 'اسٹاف اور بکرز', 'Field Staff &amp; Permissions', 'فیلڈ ٹیم اور اجازتیں');
+        }
+    }
 
     // ============================================
     // 💎 SYNC SAAS MODULE CARDS ON DASHBOARD (LOCK BADGES & UPGRADE)
@@ -1579,7 +1725,8 @@
 
         if (myOrders.length === 0) {
             tb.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:#94a3b8;">
-                آپ نے ابھی تک کوئی آرڈر بک نہیں کیا۔ اوپر دیا گیا بٹن دبا کر پہلا فیلڈ آرڈر بک کریں!
+                No orders booked yet. Click the button above to book your first field order!
+                <span class="eb-ur-block">آپ نے ابھی تک کوئی آرڈر بک نہیں کیا۔ اوپر دیا گیا بٹن دبا کر پہلا فیلڈ آرڈر بک کریں!</span>
             </td></tr>`;
             return;
         }
@@ -1679,7 +1826,6 @@
                 : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'general');
             if (myAgencyId) {
                 localStorage.setItem(`eb_low_stock_count_${myAgencyId}_${activeCat}`, String(lowStockCount));
-                localStorage.setItem(`eb_low_stock_count_${myAgencyId}`, String(lowStockCount));
                 localStorage.setItem(`eb_stock_cache_${myAgencyId}_${activeCat}`, JSON.stringify({
                     items: allStock,
                     timestamp: new Date().toISOString()
@@ -1922,13 +2068,15 @@
         };
         const activeColors = chartPalette[activeThemeAttr] || chartPalette.light;
 
+        const isMixLang = window.ebLang && typeof window.ebLang.isMix === 'function' ? window.ebLang.isMix() : (localStorage.getItem('eb_app_language') === 'en-ur');
+
         salesChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Sales (Rs)',
+                        label: isMixLang ? 'Sales (Rs) — سیلز' : 'Sales (Rs)',
                         data: salesData,
                         borderColor: activeColors.line,
                         backgroundColor: activeColors.fill,
@@ -1937,7 +2085,7 @@
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Orders Count',
+                        label: isMixLang ? 'Orders Count — آرڈرز' : 'Orders Count',
                         data: ordersData,
                         borderColor: '#a855f7',
                         backgroundColor: 'transparent',
@@ -2018,10 +2166,14 @@
 
         const isDarkMode = document.body.classList.contains('dark-theme') || document.documentElement.getAttribute('data-theme') === 'dark';
 
+        const isMixLang = window.ebLang && typeof window.ebLang.isMix === 'function' ? window.ebLang.isMix() : (localStorage.getItem('eb_app_language') === 'en-ur');
+
         stockChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Available', 'Low Stock', 'Out of Stock'],
+                labels: isMixLang
+                    ? ['Available (دستیاب)', 'Low Stock (کم اسٹاک)', 'Out of Stock (ختم)']
+                    : ['Available', 'Low Stock', 'Out of Stock'],
                 datasets: [{
                     data: [available || 1, low, out],
                     backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
@@ -2040,7 +2192,7 @@
         });
     }
 
-    // Listen for theme change message or same-window toggle to re-render charts immediately
+    // Listen for theme or language change to re-render charts immediately
     function refreshDashboardChartsTheme() {
         setTimeout(() => {
             try { renderSalesTrendChart(currentChartPeriod); } catch (_) {}
@@ -2048,11 +2200,12 @@
         }, 80);
     }
     window.addEventListener('message', (e) => {
-        if (e.data && e.data.type === 'THEME_CHANGED') {
+        if (e.data && (e.data.type === 'THEME_CHANGED' || e.data.type === 'LANG_CHANGED')) {
             refreshDashboardChartsTheme();
         }
     });
     window.addEventListener('eb-theme-changed', refreshDashboardChartsTheme);
+    window.addEventListener('eb-lang-changed', refreshDashboardChartsTheme);
 
     // ============================================
     // 🏆 4. TOP PRODUCTS & BOOKERS
@@ -2109,7 +2262,15 @@
         const tbody = document.getElementById('bookersTbody');
 
         if (list.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:15px;">No booker activity yet.</td></tr>';
+            const activeCat = (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function')
+                ? window.BusinessCategories.resolveActiveCategory(myAgency, 'general')
+                : ((myAgency && (myAgency.businessCategory || myAgency.businessType)) || 'general');
+            const emptyMsg = activeCat === 'restaurant'
+                ? 'No waiter / rider activity yet.'
+                : (activeCat === 'mobile'
+                    ? 'No staff / technician activity yet.'
+                    : (activeCat === 'medical' ? 'No pharmacy staff activity yet.' : 'No booker / staff activity yet.'));
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:15px;">${emptyMsg}</td></tr>`;
             return;
         }
 
@@ -2157,7 +2318,8 @@
                 <tr>
                     <td colspan="6" style="text-align:center; color:#10b981; font-weight:bold; padding:24px;">
                         <i class="fas fa-check-circle" style="font-size:22px; display:block; margin-bottom:6px;"></i>
-                        Mashallah! ${overdueThresholdDays} din se purana koi defaulter khata nahi hai.
+                        No overdue customer khata older than ${overdueThresholdDays} days.
+                        <span class="eb-ur-block">ماشاءاللہ! ${overdueThresholdDays} دن سے پرانا کوئی ڈیفالٹر کھاتہ نہیں ہے۔</span>
                     </td>
                 </tr>
             `;
@@ -2172,11 +2334,11 @@
                 </td>
                 <td><span style="font-size:11px; color:#475569;">${c.route || 'General Area'}</span></td>
                 <td><b style="color:#b91c1c; font-size:13px;">Rs ${Math.round(c.bal).toLocaleString()}</b></td>
-                <td><span class="badge-overdue-days">⚠️ ${c.diffDays} Din Purana</span></td>
+                <td><span class="badge-overdue-days">⚠️ ${c.diffDays} Days <span class="eb-ur-sub">(${c.diffDays} دن پرانا)</span></span></td>
                 <td><span style="font-size:11px; color:#64748b;">${c.lastDateStr}</span></td>
                 <td>
                     <button class="btn btn-sm" onclick="sendWhatsAppRecoveryNotice('${(c.shopName || c.name).replace(/'/g, "\\'")}', '${c.mobile || ''}', ${c.bal}, ${c.diffDays})" style="background:#10b981; color:#fff; border:none; padding:4px 8px; border-radius:6px; font-size:11px; cursor:pointer;" title="WhatsApp Payment Demand">
-                        <i class="fab fa-whatsapp"></i> Notice
+                        <i class="fab fa-whatsapp"></i> Notice <span class="eb-ur-sub">(نوٹس)</span>
                     </button>
                     ${c.mobile ? `<a href="tel:${c.mobile}" style="background:#0284c7; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; text-decoration:none; margin-left:4px;" title="Call"><i class="fas fa-phone"></i></a>` : ''}
                 </td>
@@ -2246,7 +2408,7 @@
             const txt = document.getElementById('bookerOverdueBannerText');
             if (banner && txt) {
                 banner.style.display = 'flex';
-                txt.innerText = `آپ کے روٹ کے ${overdueCount} دکان داروں کا کل Rs. ${Math.round(totalOverdue).toLocaleString()} بقایا 30 دن سے زائد پرانا ہے۔ آج وزٹ کریں!`;
+                txt.innerHTML = `${overdueCount} shops on your route have Rs. ${Math.round(totalOverdue).toLocaleString()} overdue for 30+ days. Please follow up today! <span class="eb-ur-block">آپ کے روٹ کے ${overdueCount} دکان داروں کا کل Rs. ${Math.round(totalOverdue).toLocaleString()} بقایا 30 دن سے زائد پرانا ہے۔ آج وزٹ کریں!</span>`;
             }
         }
     }

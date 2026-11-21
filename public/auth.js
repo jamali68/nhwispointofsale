@@ -49,6 +49,7 @@ const AUTH_TEXTS = {
         msgTooMany: "Too many attempts. Please try again later.",
         msgNetwork: "Network error. Please check your internet connection.",
         msgGeneric: "Something went wrong. Please try again.",
+        msgUnauthorizedDomain: "Google Sign-In is not authorized on this preview domain yet. Use Email & Password login, or add this domain in Firebase Console → Authentication → Settings → Authorized domains.",
         msgFirebaseLoad: "⚠️ Firebase service failed to load — Please check internet and refresh!"
     },
     ur: {
@@ -78,6 +79,7 @@ const AUTH_TEXTS = {
         msgTooMany: "بہت زیادہ کوششیں۔ تھوڑی دیر بعد کوشش کریں۔",
         msgNetwork: "انٹرنیٹ کا مسئلہ ہے۔ چیک کریں۔",
         msgGeneric: "کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔",
+        msgUnauthorizedDomain: "اس ڈومین پر گوگل لاگ اِن کی اجازت ابھی فائر بیس کنسول میں شامل نہیں ہے۔ براہِ کرم ای میل اور پاسورڈ سے لاگ اِن کریں یا اس ڈومین کو Firebase Authorized Domains میں شامل کریں۔",
         msgFirebaseLoad: "⚠️ فائر بیس لوڈ نہیں ہوا — انٹرنیٹ چیک کریں اور ریفریش کریں!"
     }
 };
@@ -142,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'auth/weak-password': return 'msgShort';
             case 'auth/too-many-requests': return 'msgTooMany';
             case 'auth/network-request-failed': return 'msgNetwork';
+            case 'auth/unauthorized-domain': return 'msgUnauthorizedDomain';
             case 'permission-denied': return 'msgWrongPass';
             default: return 'msgGeneric';
         }
@@ -199,9 +202,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const legendBar = document.getElementById('bizTypeLegendBar');
         if (legendBar) {
-            legendBar.innerHTML = lang === 'ur'
-                ? '<span class="biztype-legend-pill is-complete">✅ مکمل (Complete)</span><span class="biztype-legend-pill is-working">🛠️ کام جاری (Under Development)</span><span class="biztype-legend-pill is-soon">🚧 جلد دستیاب (Coming Soon)</span>'
-                : '<span class="biztype-legend-pill is-complete">✅ Complete</span><span class="biztype-legend-pill is-working">🛠️ Working / Under Development</span><span class="biztype-legend-pill is-soon">🚧 Coming Soon</span>';
+            legendBar.style.display = 'none';
+            legendBar.innerHTML = '';
         }
         if (typeof syncBizTypeTriggerDisplay === 'function') syncBizTypeTriggerDisplay();
         if (bizModal && bizModal.classList.contains('open') && typeof renderBizTypeModalList === 'function') {
@@ -214,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // -------------------------------------------
-    // 🏷️ CUSTOM BUSINESS TYPE PICKER (With Complete / Under Development + Coming Soon)
+    // 🏷️ CUSTOM BUSINESS TYPE PICKER (Clean Production Categories Only)
     // -------------------------------------------
     function escapeHtmlAuth(str) {
         return String(str || '')
@@ -225,8 +227,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getBizCategoriesSafe() {
+        if (window.BusinessCategories && typeof window.BusinessCategories.getCompletedCategories === 'function') {
+            return window.BusinessCategories.getCompletedCategories();
+        }
         if (window.BusinessCategories && typeof window.BusinessCategories.getAll === 'function') {
-            return window.BusinessCategories.getAll();
+            const doneIds = Array.isArray(window.BusinessCategories.COMPLETED_CATEGORY_IDS)
+                ? window.BusinessCategories.COMPLETED_CATEGORY_IDS
+                : ['books', 'mobile', 'wholesaler', 'medical', 'restaurant', 'distributor'];
+            return window.BusinessCategories.getAll().filter(c => doneIds.includes(c.id));
         }
         const sel = document.getElementById('bizType');
         if (!sel) return [];
@@ -238,21 +246,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 nameUr: '',
                 icon: ''
             }));
-    }
-
-    function getBizStatusMetaSafe(catId) {
-        if (window.BusinessCategories && typeof window.BusinessCategories.getCategoryStatusMeta === 'function') {
-            return window.BusinessCategories.getCategoryStatusMeta(catId, authLang);
-        }
-        const isDone = (catId === 'books' || catId === 'mobile' || catId === 'wholesaler' || catId === 'medical');
-        const isWorking = (catId === 'restaurant' || catId === 'fast_food' || catId === 'cafe' || catId === 'hotel' || catId === 'burger_pizza' || catId === 'kitchen');
-        if (isDone) {
-            return { code: 'complete', badgeText: '✅ Complete • Active & Ready', optionTag: '✅ Complete', color: '#15803d', bg: '#dcfce7', border: '#86efac' };
-        }
-        if (isWorking) {
-            return { code: 'working', badgeText: '🛠️ Working / Under Development • Coming Soon', optionTag: '🛠️ Working / Under Development • Coming Soon', color: '#b45309', bg: '#fef3c7', border: '#fcd34d' };
-        }
-        return { code: 'coming_soon', badgeText: '🚧 Under Development • Coming Soon', optionTag: '🚧 Under Development • Coming Soon', color: '#64748b', bg: '#f1f5f9', border: '#cbd5e1' };
     }
 
     function syncHiddenBizSelectOptions() {
@@ -270,13 +263,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         cats.forEach(cat => {
             const opt = document.createElement('option');
-            const meta = getBizStatusMetaSafe(cat.id);
             opt.value = cat.id;
-            opt.textContent = `${cat.icon || ''} ${cat.nameEn} — ${meta.optionTag}`.trim();
+            opt.textContent = `${cat.icon || ''} ${cat.nameEn}`.trim();
             if (prevVal && prevVal === cat.id) opt.selected = true;
             sel.appendChild(opt);
         });
-        if (prevVal) sel.value = prevVal;
+        if (prevVal && cats.some(c => c.id === prevVal)) sel.value = prevVal;
     }
 
     function syncBizTypeTriggerDisplay() {
@@ -287,27 +279,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!sel || !btn || !lbl || !sub) return;
 
         const val = sel.value;
+        sub.style.display = 'none';
+        sub.textContent = '';
+
         if (!val) {
             btn.classList.remove('has-value');
             lbl.textContent = T().selectType;
-            sub.style.display = 'none';
-            sub.textContent = '';
             return;
         }
 
         const cats = getBizCategoriesSafe();
         const cat = cats.find(c => c.id === val);
-        const meta = getBizStatusMetaSafe(val);
         btn.classList.add('has-value');
         btn.style.borderColor = '';
         lbl.textContent = cat
             ? `${cat.icon ? cat.icon + ' ' : ''}${authLang === 'ur' && cat.nameUr ? cat.nameUr : cat.nameEn}`
             : val;
-        sub.style.display = 'inline-flex';
-        sub.style.color = meta.color;
-        sub.style.background = meta.bg;
-        sub.style.border = `1px solid ${meta.border}`;
-        sub.textContent = meta.badgeText;
     }
 
     function renderBizTypeModalList(queryText = '') {
@@ -329,18 +316,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         listEl.innerHTML = cats.map(cat => {
-            const meta = getBizStatusMetaSafe(cat.id);
             const isSelected = currentVal === cat.id;
             const primaryTitle = authLang === 'ur' && cat.nameUr ? cat.nameUr : cat.nameEn;
             const secondaryTitle = authLang === 'ur' ? cat.nameEn : (cat.nameUr || '');
             return `
-                <button type="button" class="biztype-option-item status-${meta.code}${isSelected ? ' selected' : ''}" data-cat-id="${escapeHtmlAuth(cat.id)}">
+                <button type="button" class="biztype-option-item${isSelected ? ' selected' : ''}" data-cat-id="${escapeHtmlAuth(cat.id)}">
                     <div class="biztype-option-main">
                         <div class="biztype-option-title">
                             ${escapeHtmlAuth(cat.icon || '🏷️')} ${escapeHtmlAuth(primaryTitle)}
                             ${secondaryTitle ? `<span class="biztype-option-ur">${escapeHtmlAuth(secondaryTitle)}</span>` : ''}
                         </div>
-                        <span class="biztype-status-pill ${meta.code}">${escapeHtmlAuth(meta.badgeText)}</span>
                     </div>
                     <span class="biztype-radio-dot" aria-hidden="true"></span>
                 </button>
@@ -566,6 +551,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 createdBy: role === 'super-admin' ? 'system-first' : 'signup'
             });
 
+            // 🛡️ Guard #4: Seal Session Integrity Token
+            if (window.EB_GUARD && typeof window.EB_GUARD.sealUserSession === 'function') {
+                window.EB_GUARD.sealUserSession(uid, role, role === 'super-admin' ? 'super-admin-hq' : agencyId);
+            }
+
             // ✅ Success!
             btnLoading('signupBtn', false);
             
@@ -599,6 +589,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const inputRaw = document.getElementById('loginEmail').value.trim();
         const pass = document.getElementById('loginPassword').value;
+
+        // 🛡️ Security Guard #1 & #2: Anti-Brute-Force, Dictionary Bot Probe & Rate Limit Check
+        if (window.EB_GUARD) {
+            if (typeof window.EB_GUARD.checkRateLimit === 'function') {
+                const rl = window.EB_GUARD.checkRateLimit('auth_login_attempt');
+                if (!rl.allowed) {
+                    return showAuthMsg('🛡️ Security Guard #2: Automated login flood blocked! Wait ' + rl.cooldownSec + 's.', 'error');
+                }
+            }
+            if (typeof window.EB_GUARD.checkLoginAllowed === 'function') {
+                const guardCheck = window.EB_GUARD.checkLoginAllowed(inputRaw);
+                if (!guardCheck.allowed) {
+                    return showAuthMsg(guardCheck.message, 'error');
+                }
+            }
+            if (typeof window.EB_GUARD.inspectPayloadForAttack === 'function') {
+                const checkUser = window.EB_GUARD.inspectPayloadForAttack(inputRaw, 'loginEmail', true);
+                if (!checkUser.safe) {
+                    return showAuthMsg('🛡️ Security Guard #3: Malicious payload blocked (' + checkUser.threatType + ')!', 'error');
+                }
+            }
+        }
 
         btnLoading('loginBtn', true);
 
@@ -653,20 +665,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            // 🛡️ Guard #1: Reset Brute-Force Counter on Valid Login
+            if (window.EB_GUARD && typeof window.EB_GUARD.resetLoginLockout === 'function') {
+                window.EB_GUARD.resetLoginLockout();
+            }
+
             let targetUrl = 'dashboard.html';
             const curUser = auth.currentUser;
             if (curUser) {
+                let resolvedRole = 'owner';
+                let resolvedAgencyId = '';
                 if (curUser.email === 'aliimtiaz1126@gmail.com') {
                     targetUrl = 'admin.html';
+                    resolvedRole = 'super-admin';
                 } else {
                     try {
                         const uDoc = await db.collection('users').doc(curUser.uid).get();
-                        if (uDoc.exists && uDoc.data().role === 'super-admin') {
-                            targetUrl = 'admin.html';
+                        if (uDoc.exists) {
+                            resolvedRole = uDoc.data().role || 'owner';
+                            resolvedAgencyId = uDoc.data().agencyId || '';
+                            if (resolvedRole === 'super-admin') {
+                                targetUrl = 'admin.html';
+                            }
                         }
                     } catch (eR) {
                         console.warn('Role redirect check:', eR);
                     }
+                }
+                // 🛡️ Guard #4: Seal Session Integrity Token
+                if (window.EB_GUARD && typeof window.EB_GUARD.sealUserSession === 'function') {
+                    window.EB_GUARD.sealUserSession(curUser.uid, resolvedRole, resolvedAgencyId);
                 }
             }
 
@@ -674,6 +702,14 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = targetUrl;
         } catch (error) {
             btnLoading('loginBtn', false);
+            // 🛡️ Guard #1: Record Failed Login & Enforce Lockout if Threshold Reached
+            if (window.EB_GUARD && typeof window.EB_GUARD.recordFailedLoginAttempt === 'function') {
+                const lockInfo = window.EB_GUARD.recordFailedLoginAttempt(inputRaw, error.code || 'login-failed');
+                if (lockInfo && lockInfo.secondsLeft > 0) {
+                    showAuthMsg('🛡️ Security Guard #1: Account locked for ' + lockInfo.secondsLeft + 's due to ' + lockInfo.failedCount + ' failed login attempts!', 'error');
+                    return;
+                }
+            }
             showAuthMsg(translateFirebaseError(error));
             console.error('Login Error:', error);
         }
@@ -736,20 +772,75 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = targetUrl;
 
         } catch (error) {
-            if (error.code === 'auth/popup-closed-by-user') {
-                return; // User ne popup band kiya — koi masla nahi
+            const errCode = error && error.code ? String(error.code) : '';
+            if (errCode === 'auth/popup-closed-by-user' || errCode === 'auth/cancelled-popup-request') {
+                return; // User closed or superseded popup — ignore quietly
             }
-            if (error.code === 'auth/popup-blocked') {
+
+            const showUnauthorizedDomainNotice = () => {
+                const currentHost = window.location.hostname || 'current domain';
+                const safeHost = String(currentHost).replace(/[<>&"']/g, '');
+                console.warn('[Auth] Google OAuth domain not yet whitelisted in Firebase:', safeHost);
+                showAuthMsg(
+                    authLang === 'ur'
+                        ? `⚠️ گوگل لاگ اِن کے لیے "${safeHost}" فائر بیس Authorized Domains میں شامل نہیں ہے۔ ای میل اور پاسورڈ سے لاگ اِن کریں۔`
+                        : `⚠️ Google Sign-In requires adding "${safeHost}" to Firebase Authorized Domains. You can log in immediately with Email & Password above.`
+                );
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: authLang === 'ur' ? 'Google Sign-In ڈومین کی اجازت درکار ہے' : 'Google Sign-In Domain Setup Needed',
+                        html: `
+                            <div style="text-align:left; font-size:13px; color:#334155; line-height:1.55;">
+                                <p style="margin:0 0 8px 0;">
+                                    ${authLang === 'ur'
+                                        ? 'یہ پریویو ڈومین ابھی آپ کے Firebase پراجیکٹ (<b>multipos-ed91a</b>) کے <b>Authorized Domains</b> میں شامل نہیں ہے:'
+                                        : 'This domain is not yet listed under <b>Authorized Domains</b> in your Firebase project (<b>multipos-ed91a</b>):'}
+                                </p>
+                                <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; padding:8px 10px; font-family:monospace; font-size:12px; color:#0f172a; word-break:break-all; margin-bottom:10px;">
+                                    ${safeHost}
+                                </div>
+                                <p style="margin:0 0 6px 0; font-size:12px; color:#475569;">
+                                    <b>${authLang === 'ur' ? 'فوری حل:' : 'Quick options:'}</b><br>
+                                    1. ${authLang === 'ur' ? 'ابھی فوراً <b>Email &amp; Password</b> سے لاگ اِن کریں (ہر ڈومین پر چلتا ہے)۔' : 'Log in immediately using <b>Email &amp; Password</b> above (works on every domain).'}<br>
+                                    2. ${authLang === 'ur' ? 'یا Firebase Console → Authentication → Settings → Authorized domains میں اوپر دیا گیا ڈومین شامل کریں۔' : 'Or add the domain above in Firebase Console → Authentication → Settings → Authorized domains.'}
+                                </p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: authLang === 'ur' ? '📋 ڈومین کاپی کریں' : '📋 Copy Domain',
+                        cancelButtonText: authLang === 'ur' ? 'ای میل لاگ اِن استعمال کریں' : 'Use Email Login',
+                        confirmButtonColor: '#0284c7',
+                        cancelButtonColor: '#10b981'
+                    }).then((res) => {
+                        if (res.isConfirmed && navigator.clipboard) {
+                            navigator.clipboard.writeText(currentHost).catch(() => {});
+                        }
+                        const emailInput = document.getElementById('loginEmail');
+                        if (emailInput) emailInput.focus();
+                    });
+                }
+            };
+
+            if (errCode === 'auth/unauthorized-domain') {
+                showUnauthorizedDomainNotice();
+                return;
+            }
+            if (errCode === 'auth/popup-blocked') {
                 // Popup blocked — redirect method try karo
                 try {
                     await auth.signInWithRedirect(provider);
                 } catch (e2) {
-                    showAuthMsg('msgGeneric');
+                    if (e2 && e2.code === 'auth/unauthorized-domain') {
+                        showUnauthorizedDomainNotice();
+                    } else {
+                        showAuthMsg(translateFirebaseError(e2 || {}));
+                    }
                 }
                 return;
             }
-            console.error('Google Login Error:', error);
-            showAuthMsg('msgGeneric');
+            console.warn('Google Login notice:', errCode || error);
+            showAuthMsg(translateFirebaseError(error || {}));
         }
     }
 

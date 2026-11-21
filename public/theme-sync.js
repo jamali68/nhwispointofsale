@@ -1,5 +1,11 @@
-// 🏷️ Central Application Version (Single source of truth)
-window.EASYBILL_VERSION = '5.7.4';
+// 🏷️ Central Application Version (Auto-synced from sw.js — Single Source of Truth)
+window.EASYBILL_VERSION = (function() {
+    try {
+        return localStorage.getItem('eb_sw_version') || '';
+    } catch (_) {
+        return '';
+    }
+})();
 
 // ==========================================================================
 // 🛡️ FIRESTORE OFFLINE-FIRST & LONG-POLLING RESILIENCE ENGINE
@@ -124,10 +130,73 @@ window.EASYBILL_VERSION = '5.7.4';
     }
 })();
 
-// 🔄 Live Version Synchronization with manifest.json
-(function syncManifestVersion() {
-    if (typeof window !== 'undefined' && window.fetch) {
-        fetch('manifest.json?t=' + Date.now(), { cache: 'no-cache' })
+// 🔄 Live Version Synchronization directly from sw.js (Single Source of Truth)
+(function installSwVersionSync() {
+    if (typeof window === 'undefined') return;
+
+    function extractVersionFromSwSource(src) {
+        if (!src || typeof src !== 'string') return '';
+        var m =
+            src.match(/SW_VERSION\s*=\s*['"]([^'"]+)['"]/) ||
+            src.match(/nhpos-pwa-v([0-9]+(?:\.[0-9]+)*)/) ||
+            src.match(/TURBO SERVICE WORKER\s*\(v([0-9]+(?:\.[0-9]+)*)\)/);
+        return m && m[1] ? String(m[1]).replace(/^v/i, '').trim() : '';
+    }
+
+    function applySyncedVersion(ver) {
+        var clean = String(ver || '').replace(/^v/i, '').trim();
+        if (!clean) return;
+        window.EASYBILL_VERSION = clean;
+        try {
+            localStorage.setItem('eb_sw_version', clean);
+        } catch (_) {}
+        if (typeof document !== 'undefined') {
+            var els = document.querySelectorAll('.eb-sidebar-version, [data-app-version]');
+            els.forEach(function(el) {
+                el.textContent = 'Version ' + clean;
+            });
+        }
+        try {
+            window.dispatchEvent(new CustomEvent('eb-version-synced', { detail: { version: clean } }));
+        } catch (_) {}
+    }
+
+    function queryActiveSwVersion() {
+        return new Promise(function(resolve) {
+            if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller || typeof MessageChannel === 'undefined') {
+                resolve('');
+                return;
+            }
+            var settled = false;
+            var timer = setTimeout(function() {
+                if (!settled) {
+                    settled = true;
+                    resolve('');
+                }
+            }, 1500);
+            try {
+                var channel = new MessageChannel();
+                channel.port1.onmessage = function(ev) {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timer);
+                    var ver = ev && ev.data && ev.data.version ? String(ev.data.version) : '';
+                    resolve(ver);
+                };
+                navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+            } catch (_) {
+                if (!settled) {
+                    settled = true;
+                    clearTimeout(timer);
+                    resolve('');
+                }
+            }
+        });
+    }
+
+    function fallbackManifestVersion() {
+        if (!window.fetch) return Promise.resolve('');
+        return fetch('manifest.json?t=' + Date.now(), { cache: 'no-store' })
             .then(function(r) {
                 if (r.ok && (r.headers.get('content-type') || '').includes('json')) {
                     return r.json();
@@ -135,15 +204,61 @@ window.EASYBILL_VERSION = '5.7.4';
                 return null;
             })
             .then(function(m) {
-                if (m && m.version) {
-                    window.EASYBILL_VERSION = m.version;
-                    var els = document.querySelectorAll('.eb-sidebar-version, [data-app-version]');
-                    els.forEach(function(el) {
-                        el.textContent = 'Version ' + m.version;
-                    });
-                }
+                return m && m.version ? String(m.version) : '';
             })
-            .catch(function() {});
+            .catch(function() { return ''; });
+    }
+
+    function syncVersionFromSw() {
+        if (!window.fetch) return Promise.resolve(window.EASYBILL_VERSION || '');
+        var isSubpath = window.location.pathname.startsWith('/nhsm/');
+        var swPath = isSubpath ? '/nhsm/sw.js' : 'sw.js';
+
+        return fetch(swPath + '?vcheck=' + Date.now(), { cache: 'no-store' })
+            .then(function(r) {
+                if (!r.ok) return '';
+                return r.text();
+            })
+            .then(function(src) {
+                var ver = extractVersionFromSwSource(src);
+                if (ver) {
+                    applySyncedVersion(ver);
+                    return ver;
+                }
+                return queryActiveSwVersion().then(function(swVer) {
+                    if (swVer) {
+                        applySyncedVersion(swVer);
+                        return swVer;
+                    }
+                    return fallbackManifestVersion().then(function(mVer) {
+                        if (mVer) applySyncedVersion(mVer);
+                        return mVer || window.EASYBILL_VERSION || '';
+                    });
+                });
+            })
+            .catch(function() {
+                return queryActiveSwVersion().then(function(swVer) {
+                    if (swVer) {
+                        applySyncedVersion(swVer);
+                        return swVer;
+                    }
+                    return fallbackManifestVersion().then(function(mVer) {
+                        if (mVer) applySyncedVersion(mVer);
+                        return mVer || window.EASYBILL_VERSION || '';
+                    });
+                });
+            });
+    }
+
+    window.ebApplyAppVersion = applySyncedVersion;
+    window.ebSyncAppVersion = syncVersionFromSw;
+
+    syncVersionFromSw();
+    if (typeof document !== 'undefined') {
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.EASYBILL_VERSION) applySyncedVersion(window.EASYBILL_VERSION);
+            syncVersionFromSw();
+        });
     }
 })();
 
@@ -245,6 +360,15 @@ window.EASYBILL_VERSION = '5.7.4';
         (document.head || document.documentElement).appendChild(guardScript);
     }
 
+    // 📍 Ensure Optional Enterprise GPS Engine is loaded across all pages
+    if (!document.getElementById('eb-gps-tracker-script') && typeof window.EB_GPS === 'undefined') {
+        const gpsScript = document.createElement('script');
+        gpsScript.id = 'eb-gps-tracker-script';
+        gpsScript.async = false;
+        gpsScript.src = 'gps-tracker.js';
+        (document.head || document.documentElement).appendChild(gpsScript);
+    }
+
     const STORAGE_KEY = 'eb_theme_mode';
     
     // Read saved theme preference (Light Mode is the default)
@@ -264,9 +388,133 @@ window.EASYBILL_VERSION = '5.7.4';
         'theme-orange': { label: 'Sunset Orange', iconClass: 'fas fa-sun', metaColor: '#7c2d12', isDark: false }
     };
 
+    function getSavedLang() {
+        try {
+            const v = localStorage.getItem('eb_app_language');
+            if (v === 'en-ur' || v === 'en') {
+                window.__ebCachedLang = v;
+                return v;
+            }
+        } catch (_) {}
+        return window.__ebCachedLang || 'en';
+    }
+
+    function saveLang(val) {
+        const normalized = val === 'en-ur' ? 'en-ur' : 'en';
+        window.__ebCachedLang = normalized;
+        try {
+            localStorage.setItem('eb_app_language', normalized);
+        } catch (_) {}
+        return normalized;
+    }
+
+    function ensureBilingualGlobalCss() {
+        if (document.getElementById('eb-bilingual-global-style')) return;
+        const styleEl = document.createElement('style');
+        styleEl.id = 'eb-bilingual-global-style';
+        styleEl.textContent = `
+            /* 🌐 NH POS Universal Offline-First Bilingual Engine (Controlled ONLY by Sidebar Language Toggle) */
+            html:not([data-lang="en-ur"]) .eb-ur-sub,
+            html:not([data-lang="en-ur"]) .eb-ur-block,
+            html:not([data-lang="en-ur"]) .eb-ur-compact,
+            html:not([data-lang="en-ur"]) .eb-ur-line,
+            html:not([data-lang="en-ur"]) .ur-sub {
+                display: none !important;
+            }
+            html[data-lang="en-ur"] .eb-ur-sub,
+            html[data-lang="en-ur"] .ur-sub:not(.eb-item-ur) {
+                display: inline-block;
+                font-family: 'Segoe UI', 'Tahoma', 'Arial', system-ui, -apple-system, sans-serif;
+                font-size: 0.78em;
+                font-weight: 600;
+                line-height: 1.25;
+                opacity: 0.85;
+                margin-left: 4px;
+                direction: rtl;
+                unicode-bidi: isolate;
+                vertical-align: baseline;
+            }
+            html[data-lang="en-ur"] .eb-ur-block {
+                display: block;
+                font-family: 'Segoe UI', 'Tahoma', 'Arial', system-ui, -apple-system, sans-serif;
+                font-size: 0.73em;
+                font-weight: 600;
+                opacity: 0.82;
+                margin-top: 2px;
+                line-height: 1.28;
+                overflow-wrap: break-word;
+                direction: rtl;
+                unicode-bidi: isolate;
+            }
+            html[data-lang="en-ur"] .eb-ur-compact {
+                display: block;
+                font-family: 'Segoe UI', 'Tahoma', 'Arial', system-ui, -apple-system, sans-serif;
+                font-size: 0.70em;
+                font-weight: 600;
+                opacity: 0.82;
+                margin-top: 2px;
+                line-height: 1.26;
+                overflow-wrap: break-word;
+                direction: rtl;
+                unicode-bidi: isolate;
+            }
+            html[data-lang="en-ur"] .eb-ur-line {
+                display: block;
+                font-family: 'Segoe UI', 'Tahoma', 'Arial', system-ui, -apple-system, sans-serif;
+                font-size: 0.80em;
+                font-weight: 600;
+                opacity: 0.85;
+                margin-top: 2px;
+                line-height: 1.32;
+                overflow-wrap: break-word;
+                direction: rtl;
+                unicode-bidi: isolate;
+            }
+            /* Compact Urdu scaling inside buttons, badges, tabs & dense controls so layouts never overflow */
+            html[data-lang="en-ur"] button .eb-ur-sub,
+            html[data-lang="en-ur"] button .ur-sub:not(.eb-item-ur),
+            html[data-lang="en-ur"] .btn .eb-ur-sub,
+            html[data-lang="en-ur"] .btn .ur-sub:not(.eb-item-ur),
+            html[data-lang="en-ur"] .view-tab-btn .eb-ur-sub,
+            html[data-lang="en-ur"] .rate-tier-btn .eb-ur-sub,
+            html[data-lang="en-ur"] th .eb-ur-sub,
+            html[data-lang="en-ur"] th .ur-sub:not(.eb-item-ur) {
+                font-size: 0.73em !important;
+                line-height: 1.18 !important;
+                font-weight: 600;
+            }
+        `;
+        (document.head || document.documentElement).appendChild(styleEl);
+    }
+
+    function applyBilingualDom(root) {
+        try {
+            const scope = root || document;
+            const isMix = getSavedLang() === 'en-ur';
+            scope.querySelectorAll('[data-eb-ph-en]').forEach(el => {
+                const en = el.getAttribute('data-eb-ph-en') || '';
+                const ur = el.getAttribute('data-eb-ph-ur') || '';
+                el.setAttribute('placeholder', isMix && ur ? `${en} (${ur})` : en);
+            });
+            scope.querySelectorAll('[data-eb-title-en]').forEach(el => {
+                const en = el.getAttribute('data-eb-title-en') || '';
+                const ur = el.getAttribute('data-eb-title-ur') || '';
+                el.setAttribute('title', isMix && ur ? `${en} (${ur})` : en);
+            });
+            scope.querySelectorAll('option[data-eb-en]').forEach(opt => {
+                const en = opt.getAttribute('data-eb-en') || '';
+                const ur = opt.getAttribute('data-eb-ur') || '';
+                opt.textContent = isMix && ur ? `${en} (${ur})` : en;
+            });
+        } catch (_) {}
+    }
+
     function applyLanguage(lang) {
-        const activeLang = lang || localStorage.getItem('eb_app_language') || 'en';
+        const activeLang = lang ? saveLang(lang) : getSavedLang();
+        ensureBilingualGlobalCss();
         document.documentElement.setAttribute('data-lang', activeLang);
+        if (document.body) document.body.setAttribute('data-lang', activeLang);
+        applyBilingualDom(document);
     }
 
     function syncThemeDropupUI(activeTheme) {
@@ -387,6 +635,12 @@ window.EASYBILL_VERSION = '5.7.4';
                 localStorage.setItem(STORAGE_KEY, event.data.theme);
             }
             applyTheme(event.data.theme);
+        } else if (event.data && event.data.type === 'LANG_CHANGED' && event.data.lang) {
+            localStorage.setItem('eb_app_language', event.data.lang);
+            applyLanguage(event.data.lang);
+            try {
+                window.dispatchEvent(new CustomEvent('eb-lang-changed', { detail: { lang: event.data.lang } }));
+            } catch (_) {}
         } else if (event.data && event.data.type === 'PING_MODULE') {
             notifyParentModuleReady();
         }
@@ -417,6 +671,11 @@ window.EASYBILL_VERSION = '5.7.4';
     window.addEventListener('storage', (event) => {
         if (event.key === STORAGE_KEY && event.newValue) {
             applyTheme(event.newValue);
+        } else if (event.key === 'eb_app_language' && event.newValue) {
+            applyLanguage(event.newValue);
+            try {
+                window.dispatchEvent(new CustomEvent('eb-lang-changed', { detail: { lang: event.newValue } }));
+            } catch (_) {}
         }
     });
 
@@ -437,16 +696,26 @@ window.EASYBILL_VERSION = '5.7.4';
     };
 
     window.ebLang = {
-        getLang: () => localStorage.getItem('eb_app_language') || 'en',
+        getLang: getSavedLang,
+        isMix: () => getSavedLang() === 'en-ur',
+        mixHtml: (en, ur, asBlock = false) => {
+            if (!ur) return String(en || '');
+            const cls = asBlock === 'compact' ? 'eb-ur-compact' : (asBlock ? 'eb-ur-block' : 'eb-ur-sub');
+            return `${en} <span class="${cls}">${ur}</span>`;
+        },
+        mixText: (en, ur) => {
+            const isMix = getSavedLang() === 'en-ur';
+            return (isMix && ur) ? `${en} (${ur})` : String(en || '');
+        },
+        applyBilingualDom,
         setLang: (newLang) => {
-            localStorage.setItem('eb_app_language', newLang);
-            applyLanguage(newLang);
-            window.dispatchEvent(new CustomEvent('eb-lang-changed', { detail: { lang: newLang } }));
+            const saved = saveLang(newLang);
+            applyLanguage(saved);
+            window.dispatchEvent(new CustomEvent('eb-lang-changed', { detail: { lang: saved } }));
         },
         toggleLang: () => {
-            const current = localStorage.getItem('eb_app_language') || 'en';
-            const next = current === 'en-ur' ? 'en' : 'en-ur';
-            localStorage.setItem('eb_app_language', next);
+            const next = getSavedLang() === 'en-ur' ? 'en' : 'en-ur';
+            saveLang(next);
             applyLanguage(next);
             window.dispatchEvent(new CustomEvent('eb-lang-changed', { detail: { lang: next } }));
             return next;
@@ -455,11 +724,27 @@ window.EASYBILL_VERSION = '5.7.4';
 
     // 📱 PWA Service Worker Registration & Live Version Deployment (Active on Netlify / GitHub Pages)
     if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event && event.data && event.data.type === 'SW_VERSION' && event.data.version) {
+                if (typeof window.ebApplyAppVersion === 'function') {
+                    window.ebApplyAppVersion(event.data.version);
+                }
+            }
+        });
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (typeof window.ebSyncAppVersion === 'function') {
+                window.ebSyncAppVersion();
+            }
+        });
+
         window.addEventListener('load', () => {
             if (window.location.hostname.includes('run.app')) {
                 navigator.serviceWorker.getRegistrations().then((regs) => {
                     regs.forEach((r) => r.unregister());
                 }).catch(() => {});
+                if (typeof window.ebSyncAppVersion === 'function') {
+                    window.ebSyncAppVersion();
+                }
                 return;
             }
             const isSubpath = window.location.pathname.startsWith('/nhsm/');
@@ -469,6 +754,9 @@ window.EASYBILL_VERSION = '5.7.4';
                 .then((registration) => {
                     // Check for updates silently in the background
                     try { registration.update(); } catch (_) {}
+                    if (typeof window.ebSyncAppVersion === 'function') {
+                        window.ebSyncAppVersion();
+                    }
 
                     registration.onupdatefound = () => {
                         const installingWorker = registration.installing;
@@ -478,7 +766,14 @@ window.EASYBILL_VERSION = '5.7.4';
                                     // Silent background update staged: never reload or interrupt active user forms!
                                     // The new version will take effect automatically on the user's next refresh, navigation, or app reopen.
                                     window.__nhPendingSwUpdateReady = true;
+                                    if (typeof window.ebSyncAppVersion === 'function') {
+                                        window.ebSyncAppVersion();
+                                    }
                                     console.log('[PWA] New update downloaded silently in background — will apply on next refresh or reopen.');
+                                } else if (installingWorker.state === 'activated') {
+                                    if (typeof window.ebSyncAppVersion === 'function') {
+                                        window.ebSyncAppVersion();
+                                    }
                                 }
                             };
                         }
@@ -584,6 +879,8 @@ window.EASYBILL_VERSION = '5.7.4';
         console.log('[PWA] NH POS was successfully installed!');
         localStorage.setItem('eb_pwa_installed', 'true');
         localStorage.setItem('nhpos_pwa_installed', 'true');
+        // Ensure language preference is persisted immediately upon PWA install for instant offline use
+        saveLang(getSavedLang());
         deferredInstallPrompt = null;
         window.deferredInstallPrompt = null;
         const banner = document.getElementById('nhposPwaInstallBanner');

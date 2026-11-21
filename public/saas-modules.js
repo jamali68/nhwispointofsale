@@ -158,8 +158,19 @@
             icon: 'fa-network-wired',
             url: 'multi-agency.html',
             isCore: false,
-            minTier: 'multi_pro',
+            minTier: 'starter_single',
             description: 'Connect multiple cities, central warehouse sync, and inter-branch transfers.'
+        },
+        'gps_tracking': {
+            id: 'gps_tracking',
+            nameEn: 'GPS Live Location & Check-In',
+            nameUr: 'جی پی ایس لائیو لوکیشن ٹریکنگ',
+            icon: 'fa-location-dot',
+            url: 'settings.html?tab=secSecurity',
+            isCore: false,
+            minTier: 'wholesale_dist',
+            defaultLocked: true,
+            description: 'Optional live Google Maps tracking & shop GPS check-in for field Order Bookers (Paid Add-On controlled by Super Admin).'
         },
         'settings': {
             id: 'settings',
@@ -190,7 +201,8 @@
                 ...BASE_CORE_MODULES,
                 booker_orders: false, delivery_returns: false, claims: false,
                 expenses: false, alerts: false, reports: false, profit: false,
-                owner: false, backup: false, session_security: false, multi_agency: false
+                owner: false, backup: false, session_security: false, multi_agency: false,
+                gps_tracking: false
             },
             features: [
                 '1 Branch / Store',
@@ -206,12 +218,13 @@
             fee: 2000,
             badgeColor: '#10b981',
             tierRank: 1,
-            limits: { maxBranches: 1, maxItems: 500, monthlyBills: 99999, maxBookers: 3 },
+            limits: { maxBranches: 25, maxItems: 500, monthlyBills: 99999, maxBookers: 3 },
             allowedModules: {
                 ...BASE_CORE_MODULES,
                 booker_orders: true, delivery_returns: true, claims: true,
                 expenses: true, alerts: true, reports: true, profit: true,
-                owner: true, backup: true, session_security: true, multi_agency: false
+                owner: true, backup: true, session_security: true, multi_agency: true,
+                gps_tracking: false
             },
             features: [
                 'Unlimited Monthly Invoices',
@@ -230,12 +243,13 @@
             fee: 3500,
             badgeColor: '#f59e0b',
             tierRank: 2,
-            limits: { maxBranches: 1, maxItems: 1500, monthlyBills: 99999, maxBookers: 6 },
+            limits: { maxBranches: 25, maxItems: 1500, monthlyBills: 99999, maxBookers: 6 },
             allowedModules: {
                 ...BASE_CORE_MODULES,
                 booker_orders: true, delivery_returns: true, claims: true,
                 expenses: true, alerts: true, reports: true, profit: true,
-                owner: true, backup: true, session_security: true, multi_agency: false
+                owner: true, backup: true, session_security: true, multi_agency: true,
+                gps_tracking: false
             },
             features: [
                 'All Single Agency Pro Features',
@@ -257,7 +271,8 @@
                 ...BASE_CORE_MODULES,
                 booker_orders: true, delivery_returns: true, claims: true,
                 expenses: true, alerts: true, reports: true, profit: true,
-                owner: true, backup: true, session_security: true, multi_agency: true
+                owner: true, backup: true, session_security: true, multi_agency: true,
+                gps_tracking: false
             },
             features: [
                 'Up to 3 Connected Branches / Depots',
@@ -279,7 +294,8 @@
                 ...BASE_CORE_MODULES,
                 booker_orders: true, delivery_returns: true, claims: true,
                 expenses: true, alerts: true, reports: true, profit: true,
-                owner: true, backup: true, session_security: true, multi_agency: true
+                owner: true, backup: true, session_security: true, multi_agency: true,
+                gps_tracking: false
             },
             features: [
                 'Up to 10 Branches / Megastores',
@@ -390,9 +406,74 @@
 
         // A2. Check Explicit Permissions Toggle First (Super Admin per-agency Lock/Unlock overrides package defaults)
         const permKey = (moduleId === 'delivery_returns' || moduleId === 'claims') ? 'delivery_returns' : moduleId;
+        if (moduleId === 'multi_agency') {
+            return {
+                allowed: true,
+                locked: false,
+                reason: 'owner_multi_agency_enabled',
+                badgeText: '',
+                module: mod
+            };
+        }
         const effectivePermissions = (customPermissions && typeof customPermissions === 'object')
             ? customPermissions
             : (agencyData && agencyData.permissions && typeof agencyData.permissions === 'object' ? agencyData.permissions : null);
+
+        // A2-STRICT. Default-Locked Paid Add-Ons (e.g. GPS Live Tracking)
+        // Remains LOCKED by default unless Super Admin explicitly unlocks it per Agency (`gps_tracking: true`) or Paid Package,
+        // and NEVER accidentally unlocked by legacy `permissions.all: true`.
+        if (mod.defaultLocked === true) {
+            if (effectivePermissions && (effectivePermissions[permKey] === false || effectivePermissions[moduleId] === false)) {
+                return {
+                    allowed: false,
+                    locked: true,
+                    reason: 'admin_locked',
+                    badgeText: 'LOCKED',
+                    lockReasonUr: 'یہ ماڈیول سپر ایڈمن کی طرف سے لاک کیا گیا ہے',
+                    module: mod
+                };
+            }
+            if (state.isExpired) {
+                return {
+                    allowed: false,
+                    locked: true,
+                    reason: 'package_expired',
+                    badgeText: 'LOCKED',
+                    lockReasonUr: 'پیکیج کی مدت ختم ہو چکی ہے — GPS ان لاک رکھنے کے لیے فیس ادا کریں',
+                    module: mod
+                };
+            }
+            const explicitGpsOn = Boolean(
+                effectivePermissions &&
+                (effectivePermissions[permKey] === true || effectivePermissions[moduleId] === true)
+            );
+            const activePkgForAddon = SAAS_PACKAGES[state.tier];
+            const pkgGpsOn = Boolean(
+                state.isPaid &&
+                activePkgForAddon &&
+                activePkgForAddon.allowedModules &&
+                activePkgForAddon.allowedModules[moduleId] === true
+            );
+            if (explicitGpsOn || pkgGpsOn) {
+                return {
+                    allowed: true,
+                    locked: false,
+                    reason: explicitGpsOn ? 'super_admin_unlocked' : 'paid_package_unlocked',
+                    badgeText: '',
+                    module: mod
+                };
+            }
+            return {
+                allowed: false,
+                locked: true,
+                reason: 'admin_locked',
+                badgeText: 'LOCKED',
+                lockReasonUr: 'جی پی ایس لائیو لوکیشن بائی ڈیفالٹ لاک ہے — پیڈ پیکیج پر سپر ایڈمن سے ان لاک کروائیں',
+                requiredTier: mod.minTier,
+                module: mod
+            };
+        }
+
         if (effectivePermissions && typeof effectivePermissions === 'object') {
             if (effectivePermissions[permKey] === false || effectivePermissions[moduleId] === false) {
                 return {

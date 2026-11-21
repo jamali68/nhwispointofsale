@@ -7,7 +7,7 @@
 // ✅ Role-aware menu (Booker ko limited)
 // ============================================
 
-window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
+window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return localStorage.getItem('eb_sw_version') || ''; } catch (_) { return ''; } })();
 
 (function initSidebar() {
     if (typeof window.__nhPatchFirebaseFirestore === 'function') {
@@ -156,9 +156,12 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             title: 'REPORTS <span class="ur-sub">(کاروباری رپورٹس)</span>',
             items: [
                 { icon: 'fa-sack-dollar', text: 'Profit Analytics <span class="ur-sub">(منافع کا تجزیہ)</span>', url: 'profit.html', roles: ['super-admin', 'owner'], phase: 'PROFIT' },
-                { icon: 'fa-boxes-stacked', text: 'Wholesale & PJP Reports <span class="ur-sub">(ہول سیل و ڈسٹری بیوشن)</span>', url: 'reports.html?tab=wholesaler_analytics', roles: ['super-admin', 'owner'] },
-                { icon: 'fa-pills', text: 'Pharmacy & Expiry Reports <span class="ur-sub">(میڈیکل و ایکسپائری رپورٹ)</span>', url: 'reports.html?tab=medical_analytics', roles: ['super-admin', 'owner'] },
-                { icon: 'fa-utensils', text: 'Restaurant & Fast Food Reports <span class="ur-sub">(ریسٹورنٹ و کچن رپورٹ)</span>', url: 'reports.html?tab=restaurant_analytics', roles: ['super-admin', 'owner'] },
+                { icon: 'fa-mobile-screen-button', text: 'Mobile & IMEI Reports <span class="ur-sub">(موبائل و ریپئرنگ رپورٹ)</span>', url: 'reports.html?tab=mobile_analytics', roles: ['super-admin', 'owner'], categories: ['mobile'] },
+                { icon: 'fa-book-open', text: 'Publisher & Class Reports <span class="ur-sub">(کتب و نصاب رپورٹ)</span>', url: 'reports.html?tab=books_analytics', roles: ['super-admin', 'owner'], categories: ['books'] },
+                { icon: 'fa-boxes-stacked', text: 'Wholesale & PJP Reports <span class="ur-sub">(ہول سیل و ڈسٹری بیوشن)</span>', url: 'reports.html?tab=wholesaler_analytics', roles: ['super-admin', 'owner'], categories: ['wholesaler'] },
+                { icon: 'fa-truck-fast', text: 'Distributor & FMCG Reports <span class="ur-sub">(ڈسٹری بیوشن و روٹ رپورٹ)</span>', url: 'reports.html?tab=wholesaler_analytics', roles: ['super-admin', 'owner'], categories: ['distributor'] },
+                { icon: 'fa-pills', text: 'Pharmacy & Expiry Reports <span class="ur-sub">(میڈیکل و ایکسپائری رپورٹ)</span>', url: 'reports.html?tab=medical_analytics', roles: ['super-admin', 'owner'], categories: ['medical'] },
+                { icon: 'fa-utensils', text: 'Restaurant & Fast Food Reports <span class="ur-sub">(ریسٹورنٹ و کچن رپورٹ)</span>', url: 'reports.html?tab=restaurant_analytics', roles: ['super-admin', 'owner'], categories: ['restaurant'] },
                 { icon: 'fa-chart-column', text: 'Sales Reports <span class="ur-sub">(سیلز رپورٹس)</span>', url: 'reports.html?tab=sales', roles: ['super-admin', 'owner', 'booker'] },
                 { icon: 'fa-trophy', text: 'Best Sellers <span class="ur-sub">(زیادہ بکنے والا سامان)</span>', url: 'reports.html?tab=bestsellers', roles: ['super-admin', 'owner'] },
                 { icon: 'fa-hourglass-half', text: 'Slow & Dead Stock <span class="ur-sub">(سست و رکا ہوا مال)</span>', url: 'reports.html?tab=slow', roles: ['super-admin', 'owner'] },
@@ -170,8 +173,8 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             title: 'SETTINGS <span class="ur-sub">(ترتیبات و سیٹنگز)</span>',
             items: [
                 { icon: 'fa-cloud-arrow-up', text: 'Backup & Restore <span class="ur-sub">(بیک اپ و ڈیٹا بحالی)</span>', url: 'backup.html', roles: ['super-admin', 'owner'] },
+                { icon: 'fa-cloud-arrow-down', text: 'Cloud Sync & Shifts <span class="ur-sub">(کلاؤڈ سنک و شفٹس)</span>', url: 'settings.html?tab=secSyncSchedule', roles: ['super-admin', 'owner', 'booker'] },
                 { icon: 'fa-gear', text: 'Settings <span class="ur-sub">(ایجنسی سیٹنگز)</span>', url: 'settings.html', roles: ['super-admin', 'owner'] },
-                { icon: 'fa-cloud-arrow-down', text: 'Cloud Sync & Shifts <span class="ur-sub">(کلاؤڈ سنک و شفٹس)</span>', url: 'settings.html?tab=secSyncSchedule', roles: ['booker'] },
             ]
         }
     ];
@@ -192,6 +195,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
         {
             title: 'SYSTEM & LOGS <span class="ur-sub">(سسٹم و ڈیٹا لاگز)</span>',
             items: [
+                { icon: 'fa-network-wired', text: 'Multi-Agency Hub <span class="ur-sub">(ملٹی ایجنسی و برانچز آڈٹ)</span>', url: 'multi-agency.html', roles: ['super-admin', 'owner'] },
                 { icon: 'fa-money-bill-wave', text: 'Subscriptions & Revenue <span class="ur-sub">(ماہانہ فیس لاگ)</span>', url: 'admin.html#tabOverview', roles: ['super-admin'] },
                 { icon: 'fa-cloud-arrow-up', text: 'Cloud Data Backup <span class="ur-sub">(بیک اپ و ڈیٹا بحالی)</span>', url: 'backup.html', roles: ['super-admin'] },
             ]
@@ -593,7 +597,12 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
         .eb-universal-topbar {
             position: sticky;
             top: 0; left: 0; right: 0;
-            width: 100%;
+            width: 100vw;
+            max-width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            margin-top: 0 !important;
+            border-radius: 0 !important;
             height: 54px;
             background: #1e293b;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -601,22 +610,24 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 14px;
+            padding: 0 12px;
             box-sizing: border-box;
             box-shadow: 0 2px 10px rgba(0,0,0,0.12);
         }
         .eb-topbar-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             min-width: 0;
             flex: 1;
+            margin-right: 6px;
         }
         .eb-topbar-brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             min-width: 0;
+            flex: 1;
         }
         .eb-topbar-icon {
             width: 36px; height: 36px;
@@ -632,6 +643,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             flex-direction: column;
             justify-content: center;
             min-width: 0;
+            flex: 1;
             line-height: 1.2;
             overflow: hidden;
         }
@@ -678,7 +690,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             flex-shrink: 0;
         }
         .eb-topbar-sync {
-            position: relative;
+            display: none !important;
         }
         .eb-sync-badge {
             position: absolute;
@@ -768,15 +780,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             border: 1px solid #fca5a5;
         }
         .eb-pkg-pill {
-            font-size: 8.5px;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            display: inline-flex;
-            align-items: center;
-            line-height: 1.2;
+            display: none !important;
         }
         .eb-pkg-free { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
         .eb-pkg-paid { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
@@ -807,8 +811,10 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
                 padding-top: 0 !important;
             }
             .eb-universal-topbar {
-                margin-left: 270px;
-                width: calc(100% - 270px);
+                margin-left: calc(270px + 50% - 50vw);
+                margin-right: calc(50% - 50vw);
+                width: calc(100vw - 270px);
+                max-width: calc(100vw - 270px);
             }
             .eb-universal-topbar #ebHamburgerBtn {
                 display: none !important;
@@ -977,6 +983,26 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
                 window.__myAgencyData = myAgencyData;
                 window.__myProfile = myProfile;
 
+                // Fetch all owned Sub-Agencies / Branches for Sidebar Branch Switcher
+                if (myProfile.role === 'owner' || myProfile.role === 'super-admin') {
+                    try {
+                        const bMap = new Map();
+                        const [qUid, qEmail] = await Promise.all([
+                            db.collection('agencies').where('ownerUid', '==', user.uid).get().catch(() => ({ forEach: () => {} })),
+                            db.collection('agencies').where('ownerEmail', '==', (user.email || '').toLowerCase()).get().catch(() => ({ forEach: () => {} }))
+                        ]);
+                        qUid.forEach(d => { const dt = d.data(); if (dt && dt.status !== 'deleted') bMap.set(d.id, { id: d.id, name: dt.name || 'Branch', city: dt.city || '', businessCategory: dt.businessCategory || dt.businessType || '' }); });
+                        qEmail.forEach(d => { const dt = d.data(); if (dt && dt.status !== 'deleted') bMap.set(d.id, { id: d.id, name: dt.name || 'Branch', city: dt.city || '', businessCategory: dt.businessCategory || dt.businessType || '' }); });
+                        if (myAgencyData && myAgencyData.id && !bMap.has(myAgencyData.id)) {
+                            bMap.set(myAgencyData.id, { id: myAgencyData.id, name: myAgencyData.name || 'Main Branch', city: myAgencyData.city || '', businessCategory: myAgencyData.businessCategory || myAgencyData.businessType || '' });
+                        }
+                        const branchList = Array.from(bMap.values());
+                        if (branchList.length > 0) {
+                            localStorage.setItem('eb_sidebar_branches', JSON.stringify(branchList));
+                        }
+                    } catch (_) {}
+                }
+
                 renderSidebar();
                 updateAvatar();
                 updatePackageBadgeInTopBar();
@@ -1119,6 +1145,24 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
         return matchedUrl;
     }
 
+    function resolveSidebarActiveCategory(agObj) {
+        if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+            return window.BusinessCategories.resolveActiveCategory(agObj, 'general');
+        }
+        const raw = (agObj && (agObj.activeBusinessCategory || agObj.businessCategory || agObj.businessType))
+            || localStorage.getItem('eb_active_business_category')
+            || localStorage.getItem('eb_active_category')
+            || 'general';
+        const s = String(raw || 'general').toLowerCase().trim();
+        if (s === 'book_depot' || s === 'stationery' || s === 'book_points' || s === 'books') return 'books';
+        if (s === 'mobile_shop' || s === 'mobile_repair' || s === 'mobile') return 'mobile';
+        if (s === 'pharmacy' || s === 'medical_store' || s === 'chemist' || s === 'pharma' || s === 'medical') return 'medical';
+        if (s === 'wholesale' || s === 'mandi' || s === 'wholesaler') return 'wholesaler';
+        if (s === 'fmcg_distributor' || s === 'distribution_agency' || s === 'agency' || s === 'distributor') return 'distributor';
+        if (s === 'fast_food' || s === 'cafe' || s === 'hotel' || s === 'burger_pizza' || s === 'kitchen' || s === 'restaurant') return 'restaurant';
+        return s || 'general';
+    }
+
     // 4️⃣ SIDEBAR RENDER
     function renderSidebar() {
         const existingSidebar = document.getElementById('ebSidebar');
@@ -1136,6 +1180,15 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
         const currentPath = window.location.pathname.split('/').pop() || 'dashboard.html';
         const currentFullHref = window.location.pathname + window.location.search + window.location.hash;
 
+        let agObj = window.__myAgencyData || myAgencyData || null;
+        if (!agObj) {
+            try {
+                const cachedAg = sessionStorage.getItem('eb_agency_data');
+                if (cachedAg) agObj = JSON.parse(cachedAg);
+            } catch (_) {}
+        }
+        const activeCat = resolveSidebarActiveCategory(agObj);
+
         const sidebar = document.createElement('div');
         sidebar.className = 'eb-sidebar';
         sidebar.id = 'ebSidebar';
@@ -1144,8 +1197,29 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             ? '👑 SaaS Master Platform'
             : `🏢 ${myProfile.agencyName || myProfile.name || 'My Business'}`;
 
+        let sidebarBranches = [];
+        try {
+            sidebarBranches = JSON.parse(localStorage.getItem('eb_sidebar_branches') || '[]');
+        } catch (_) {}
+        const curActiveAgId = (myProfile && myProfile.agencyId) || localStorage.getItem('eb_active_agencyId') || (myAgencyData && myAgencyData.id) || '';
+        const showSidebarBranchBar = (role === 'owner' || isSuperAdmin);
+        const branchOptsHtml = sidebarBranches.length > 0
+            ? sidebarBranches.map((b, idx) => `<option value="${b.id}" ${b.id === curActiveAgId ? 'selected' : ''}>#${idx + 1} ${b.name}${b.city ? ' (' + b.city + ')' : ''}</option>`).join('')
+            : `<option value="${curActiveAgId}">#1 ${myProfile.agencyName || 'Main Branch'}</option>`;
+
+        const sidebarBranchBoxHtml = showSidebarBranchBar ? `
+        <div id="ebSidebarBranchBox" style="margin: 12px 12px 4px; padding: 10px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(56, 189, 248, 0.22); border-radius: 10px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; gap:6px;">
+                <span style="font-size:10px; font-weight:800; color:#38bdf8; text-transform:uppercase; letter-spacing:0.4px;">🏢 Sub-Agency / Branch (${sidebarBranches.length || 1})</span>
+                <a href="multi-agency.html" style="font-size:10.5px; font-weight:800; color:#10b981; text-decoration:none; background:rgba(16,185,129,0.16); border:1px solid rgba(16,185,129,0.45); padding:2px 8px; border-radius:6px; white-space:nowrap;">📊 + Add / Audit</a>
+            </div>
+            <select id="ebSidebarBranchSelect" style="width:100%; background:#0f172a; color:#f8fafc; border:1px solid rgba(255,255,255,0.18); border-radius:7px; padding:5px 8px; font-size:11.5px; font-weight:700; outline:none; cursor:pointer;" title="Switch Active Sub-Agency / Branch">
+                ${branchOptsHtml}
+            </select>
+        </div>` : '';
+
         let menuHtml = `<div class="eb-sidebar-header" style="padding: 16px 14px 12px; border-bottom: 1px solid rgba(255,255,255,0.08);">
-            <div class="eb-sidebar-brand" style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+            <div class="eb-sidebar-brand" style="display:flex; align-items:center; gap:12px; margin-bottom:4px;">
                 <img src="icon-192.png" alt="NH POS Logo" class="eb-sidebar-logo" style="width:42px; height:42px; border-radius:10px; object-fit:cover; border:1px solid rgba(255,255,255,0.2); box-shadow:0 3px 10px rgba(0,0,0,0.3); background:#F9F5E4; flex-shrink:0;">
                 <div style="min-width:0;">
                     <div class="eb-sidebar-appname" style="font-size:15px; font-weight:800; color:#fff; display:flex; align-items:center; gap:5px; line-height:1.2;">
@@ -1153,18 +1227,24 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
                         ${isSuperAdmin ? '<span style="font-size:12px;">👑</span>' : ''}
                     </div>
                     <div class="eb-sidebar-agency" style="padding-left:0; font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agencyTitleText}</div>
-                    <div class="eb-sidebar-version" style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">Version ${window.EASYBILL_VERSION || '5.6.9'}</div>
+                    <div class="eb-sidebar-version" data-app-version style="padding-left:0; font-size:10px; color:#4ade80; font-weight:700;">${window.EASYBILL_VERSION ? 'Version ' + window.EASYBILL_VERSION : 'Version ...'}</div>
                 </div>
             </div>
         </div>`;
 
         const activeMenuList = isSuperAdmin ? SUPER_ADMIN_MENU : MENU;
+        let branchBoxRendered = false;
 
         activeMenuList.forEach(section => {
             const allowedItems = section.items.filter(it => {
                 if (isSuperAdmin) return it.roles.includes('super-admin');
                 // Roles check: admin only pages stay hidden from non-super-admins
                 if (!it.roles.includes(role)) return false;
+
+                // Category isolation check: category-specific options ONLY show in their own active category
+                if (Array.isArray(it.categories) && it.categories.length > 0 && !it.categories.includes(activeCat)) {
+                    return false;
+                }
 
                 // Booker specific permissions set by their employer owner
                 if (role === 'booker' && myProfile && myProfile.permissions) {
@@ -1180,6 +1260,12 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             if (allowedItems.length === 0) return;
 
             const secParsed = splitEnUrText(section.title);
+            // Place Sub-Agency Switcher & + Add / Audit box right above SETTINGS section (not at sidebar top)
+            if (!branchBoxRendered && sidebarBranchBoxHtml && String(secParsed.en || section.title).toUpperCase().includes('SETTINGS')) {
+                menuHtml += sidebarBranchBoxHtml;
+                branchBoxRendered = true;
+            }
+
             menuHtml += `<div class="eb-menu-section-title">
                 <span>${secParsed.en || section.title}</span>
                 ${secParsed.ur ? `<span class="eb-sec-ur ur-sub">${secParsed.ur}</span>` : ''}
@@ -1188,10 +1274,10 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             allowedItems.forEach(item => {
                 const modId = getModuleIdFromUrl(item.url);
 
-                // 🛡️ Evaluate SaaS Lock Status
+                // 🛡️ Evaluate SaaS Lock Status (Multi-Agency Hub is always unlocked for Owners)
                 let isLocked = false;
                 let lockBadge = '';
-                if (modId && window.SaaSModules) {
+                if (modId && modId !== 'multi_agency' && window.SaaSModules) {
                     const access = window.SaaSModules.checkModuleAccess(
                         modId,
                         myAgencyData,
@@ -1208,17 +1294,58 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
                 let phaseTag = item.phase ? `<span class="eb-phase-tag">${item.phase}</span>` : '';
                 let itemText = item.text;
                 let itemIcon = item.icon;
-                if (role === 'booker' && item.url === 'bills.html') {
-                    itemText = 'Book Order <span class="ur-sub">(آرڈر بک کریں)</span>';
-                    itemIcon = 'fa-clipboard-check';
-                }
-                if (role === 'booker' && item.url === 'booker-orders.html') {
-                    itemText = 'My Field Orders <span class="ur-sub">(میرے فیلڈ آرڈرز)</span>';
-                    itemIcon = 'fa-clipboard-list';
-                }
-                if (role === 'booker' && item.url.includes('claims')) {
-                    itemText = 'Market Claims & Damages <span class="ur-sub">(مارکیٹ کلیمز)</span>';
-                    itemIcon = 'fa-triangle-exclamation';
+                if (activeCat === 'restaurant') {
+                    if (item.url === 'bills.html') {
+                        itemText = role === 'booker'
+                            ? 'Table / Counter Order <span class="ur-sub">(ٹیبل و کاؤنٹر آرڈر)</span>'
+                            : 'Fast Food POS & KOT <span class="ur-sub">(فاسٹ فوڈ بل و کچن ٹوکن)</span>';
+                        itemIcon = 'fa-utensils';
+                    } else if (item.url === 'booker-orders.html') {
+                        itemText = role === 'booker'
+                            ? 'My Table & Rider Orders <span class="ur-sub">(میرے ٹیبل و رائیڈر آرڈرز)</span>'
+                            : 'Kitchen Queue & Orders <span class="ur-sub">(کچن آرڈرز و ڈسپیچ)</span>';
+                        itemIcon = 'fa-bell-concierge';
+                    } else if (item.url === 'delivery-returns.html') {
+                        itemText = 'Home Delivery & Returns <span class="ur-sub">(ہوم ڈلیوری و پارسل واپسی)</span>';
+                        itemIcon = 'fa-motorcycle';
+                    } else if (item.url.includes('claims')) {
+                        itemText = 'Kitchen Wastage & Claims <span class="ur-sub">(کچن ضیاع و سپلائر کلیمز)</span>';
+                        itemIcon = 'fa-fire-burner';
+                    } else if (item.url === 'stock.html') {
+                        itemText = 'Menu, Deals & Pantry <span class="ur-sub">(مینو، ڈیلز و کچن اسٹاک)</span>';
+                        itemIcon = 'fa-burger';
+                    } else if (item.url === 'owner.html') {
+                        itemText = 'Waiters, Riders & Staff <span class="ur-sub">(ویٹرز، رائیڈرز و اسٹاف)</span>';
+                        itemIcon = 'fa-user-tie';
+                    }
+                } else {
+                    if (item.url === 'owner.html') {
+                        if (activeCat === 'medical') {
+                            itemText = 'Pharmacists & Staff <span class="ur-sub">(فارماسسٹ و میڈیکل اسٹاف)</span>';
+                            itemIcon = 'fa-user-md';
+                        } else if (activeCat === 'mobile') {
+                            itemText = 'Sales & Repair Lab Team <span class="ur-sub">(سیلز و ریپیئرنگ لیب اسٹاف)</span>';
+                            itemIcon = 'fa-user-gear';
+                        } else if (activeCat === 'books') {
+                            itemText = 'Salesmen & School Team <span class="ur-sub">(سیلزمین و اسکول سپلائی ٹیم)</span>';
+                            itemIcon = 'fa-users';
+                        } else if (activeCat === 'wholesaler') {
+                            itemText = 'Munshis, Bookers & Team <span class="ur-sub">(منشی، بکر و گودام اسٹاف)</span>';
+                            itemIcon = 'fa-users';
+                        }
+                    }
+                    if (role === 'booker' && item.url === 'bills.html') {
+                        itemText = 'Book Order <span class="ur-sub">(آرڈر بک کریں)</span>';
+                        itemIcon = 'fa-clipboard-check';
+                    }
+                    if (role === 'booker' && item.url === 'booker-orders.html') {
+                        itemText = 'My Field Orders <span class="ur-sub">(میرے فیلڈ آرڈرز)</span>';
+                        itemIcon = 'fa-clipboard-list';
+                    }
+                    if (role === 'booker' && item.url.includes('claims')) {
+                        itemText = 'Market Claims & Damages <span class="ur-sub">(مارکیٹ کلیمز)</span>';
+                        itemIcon = 'fa-triangle-exclamation';
+                    }
                 }
                 
                 const parsed = splitEnUrText(itemText);
@@ -1253,6 +1380,11 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
                 }
             });
         });
+
+        if (!branchBoxRendered && sidebarBranchBoxHtml) {
+            menuHtml += sidebarBranchBoxHtml;
+            branchBoxRendered = true;
+        }
 
         // 🛡️ If the user navigated directly to a locked page URL, trigger paywall
         const activeModId = getModuleIdFromUrl(currentPath);
@@ -1349,6 +1481,26 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
         sidebar.innerHTML = menuHtml;
         document.body.appendChild(sidebar);
 
+        // 🏢 Handle Quick Sub-Agency / Branch Switcher inside Sidebar Header
+        const sidebarBranchSel = sidebar.querySelector('#ebSidebarBranchSelect');
+        if (sidebarBranchSel) {
+            sidebarBranchSel.addEventListener('change', async () => {
+                const targetAgId = sidebarBranchSel.value;
+                if (!targetAgId) return;
+                localStorage.setItem('eb_active_agencyId', targetAgId);
+                try {
+                    sessionStorage.removeItem('eb_agency_data');
+                    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+                        await firebase.firestore().collection('users').doc(firebase.auth().currentUser.uid).update({
+                            agencyId: targetAgId,
+                            lastSwitchedAt: new Date().toISOString()
+                        });
+                    }
+                } catch (_) {}
+                window.location.reload();
+            });
+        }
+
         // 🎯 Immediately mark whichever sidebar item matches the active route/query/hash/profile
         refreshActiveSidebarItem();
 
@@ -1428,20 +1580,33 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             }, true);
         } catch (_) {}
 
-        // 🔄 Sync sidebar version with manifest.json live
-        if (typeof window !== 'undefined' && window.fetch) {
-            fetch('manifest.json?t=' + Math.floor(Date.now() / 60000), { cache: 'default' })
-                .then(r => {
-                    if (r.ok && (r.headers.get('content-type') || '').includes('json')) {
-                        return r.json();
-                    }
-                    return null;
-                })
-                .then(m => {
-                    if (m && m.version) {
-                        window.EASYBILL_VERSION = m.version;
-                        const vEl = sidebar.querySelector('.eb-sidebar-version');
-                        if (vEl) vEl.textContent = `Version ${m.version}`;
+        // 🔄 Auto-sync sidebar version directly from sw.js (Single Source of Truth)
+        const updateSidebarVersionText = (ver) => {
+            if (!ver) return;
+            const cleanVer = String(ver).replace(/^v/i, '').trim();
+            if (!cleanVer) return;
+            window.EASYBILL_VERSION = cleanVer;
+            const vEl = sidebar.querySelector('.eb-sidebar-version');
+            if (vEl) vEl.textContent = `Version ${cleanVer}`;
+        };
+        if (window.EASYBILL_VERSION) updateSidebarVersionText(window.EASYBILL_VERSION);
+        window.addEventListener('eb-version-synced', (e) => {
+            if (e && e.detail && e.detail.version) {
+                updateSidebarVersionText(e.detail.version);
+            }
+        });
+        if (typeof window.ebSyncAppVersion === 'function') {
+            window.ebSyncAppVersion();
+        } else if (typeof window !== 'undefined' && window.fetch) {
+            const swPath = window.location.pathname.startsWith('/nhsm/') ? '/nhsm/sw.js' : 'sw.js';
+            fetch(swPath + '?vcheck=' + Date.now(), { cache: 'no-store' })
+                .then(r => (r.ok ? r.text() : ''))
+                .then(txt => {
+                    if (!txt) return;
+                    const m = txt.match(/SW_VERSION\s*=\s*['"]([^'"]+)['"]/) || txt.match(/nhpos-pwa-v([0-9]+(?:\.[0-9]+)*)/);
+                    if (m && m[1]) {
+                        try { localStorage.setItem('eb_sw_version', m[1]); } catch (_) {}
+                        updateSidebarVersionText(m[1]);
                     }
                 }).catch(() => {});
         }
@@ -1506,17 +1671,6 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
                         <span>OFFLINE</span>
                     </div>
 
-                    <!-- 📦 Package Tier Indicator -->
-                    ${isSuperAdmin 
-                        ? '<span class="eb-pkg-pill" style="background:linear-gradient(135deg, #8b5cf6, #6366f1); color:#fff; font-weight:800; border:1px solid #c084fc;">👑 SUPER ADMIN</span>'
-                        : `<span class="eb-pkg-pill ${agencyPackageState.isExpired ? 'eb-pkg-expired' : (agencyPackageState.isPaid ? 'eb-pkg-paid' : 'eb-pkg-free')}" id="ebTopPkgPill" title="${agencyPackageState.statusText}">
-                            ${agencyPackageState.isExpired ? 'EXPIRED' : (agencyPackageState.isPaid ? 'PRO' : 'FREE')}
-                           </span>`}
-
-                    <button type="button" class="eb-topbar-btn eb-topbar-sync" id="ebTopSyncBtn" title="⚡ Cloud Sync & Quota Protection">
-                        <i class="fas fa-cloud"></i>
-                        <span class="eb-sync-badge" id="ebTopSyncDot"></span>
-                    </button>
                     <a class="eb-topbar-btn eb-topbar-bell" href="alerts.html" title="Low Stock Alerts">
                         <i class="fas fa-bell"></i>
                         <span class="eb-bell-badge" id="ebSidebarBellBadge" style="display:none;">0</span>
@@ -1599,6 +1753,14 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || '5.7.4';
             if (sideText) sideText.innerText = isNowUrdu ? 'English + اردو' : 'English Only';
             const pageLangLabel = document.getElementById('currentLangLabel');
             if (pageLangLabel) pageLangLabel.innerText = isNowUrdu ? 'Language: Urdu Mix (مکس)' : 'Language: English';
+
+            // Sync dynamic bilingual attributes & notify all page modules immediately
+            if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+                window.ebLang.applyBilingualDom(document);
+            }
+            try {
+                window.dispatchEvent(new CustomEvent('eb-lang-changed', { detail: { lang: nextLang } }));
+            } catch (_) {}
 
             // Broadcast to other components or frames
             if (window.parent && window.parent !== window) {

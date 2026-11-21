@@ -78,6 +78,148 @@ let currentSearch = '';
 let editingItemId = null;
 let modalItemId = null;
 let modalMode = 'in';
+let lastStockSyncState = { status: 'shield', timeLabel: '' };
+
+// ============================================
+// 🌐 UNIFIED BILINGUAL HELPERS (SYNCED WITH SIDEBAR & theme-sync.js)
+// ============================================
+function ebIsMix() {
+    return !!(window.ebLang && typeof window.ebLang.isMix === 'function' && window.ebLang.isMix());
+}
+
+function ebT(en, urMix) {
+    return ebIsMix() ? (urMix || en) : en;
+}
+
+function ebEscAttr(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function ebMix(en, ur, asBlock = false) {
+    if (!ur) return en;
+    return asBlock
+        ? `${en}<span class="eb-ur-block">${ur}</span>`
+        : `${en} <span class="eb-ur-sub">(${ur})</span>`;
+}
+
+function ebCompact(en, ur) {
+    if (!ur) return en;
+    return `${en}<span class="eb-ur-compact">${ur}</span>`;
+}
+
+function ebApplyBilingualDom(root) {
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(root || document);
+    }
+}
+
+function ebSetPh(el, en, ur) {
+    if (!el) return;
+    el.setAttribute('data-eb-ph-en', en || '');
+    el.setAttribute('data-eb-ph-ur', ur || en || '');
+    el.placeholder = ebIsMix() ? (ur || en || '') : (en || '');
+}
+
+function ebSplitBilingual(raw) {
+    const str = String(raw || '').trim();
+    const hasUrdu = /[\u0600-\u06FF]/.test(str);
+    if (!hasUrdu) return { en: str, ur: '', mix: str };
+
+    // Handle "-- Select / اختیاری --" style
+    if (/^--\s*Select\s*\/\s*اختیاری\s*--$/i.test(str)) {
+        return { en: '-- Select (Optional) --', ur: 'اختیاری', mix: '-- Select / اختیاری --' };
+    }
+
+    // Handle "مثلاً: ..." placeholders
+    const egMatch = str.match(/^مثلاً\s*[:：]?\s*(.+)$/);
+    if (egMatch) {
+        const rest = egMatch[1].trim();
+        const restEn = rest.replace(/\([^()]*[\u0600-\u06FF][^()]*\)/g, '').replace(/[\u0600-\u06FF]+[\u0600-\u06FF\s/،۔\-–—]*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+        const enOut = restEn ? `e.g. ${restEn}` : 'Enter value...';
+        return { en: enOut, ur: str, mix: str };
+    }
+
+    // Handle "Outer (Inner)" pattern
+    const m = str.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
+    if (m) {
+        const outer = m[1].trim();
+        const inner = m[2].trim();
+        const outerUr = /[\u0600-\u06FF]/.test(outer);
+        const innerUr = /[\u0600-\u06FF]/.test(inner);
+        if (innerUr && !outerUr) {
+            return { en: outer, ur: inner, mix: `${outer} (${inner})` };
+        }
+        if (outerUr && !innerUr) {
+            const prefMatch = outer.match(/^([^\u0600-\u06FFa-zA-Z0-9]*)/);
+            const prefix = prefMatch ? prefMatch[1] : '';
+            const urClean = outer.slice(prefix.length).trim();
+            const enFull = `${prefix}${inner}`.trim();
+            return { en: enFull, ur: urClean, mix: `${enFull} (${urClean})` };
+        }
+        if (outerUr && innerUr) {
+            const prefMatch = outer.match(/^([^\u0600-\u06FFa-zA-Z0-9]*)/);
+            const prefix = prefMatch ? prefMatch[1] : '';
+            const urOuter = outer.slice(prefix.length).trim();
+            const enPart = inner.replace(/[—\-–]?\s*[\u0600-\u06FF][\u0600-\u06FF\s/،۔()\-–—]*$/g, '').trim();
+            if (enPart) {
+                const enFull = `${prefix}${enPart}`.trim();
+                return { en: enFull, ur: urOuter, mix: `${enFull} (${urOuter})` };
+            }
+        }
+    }
+
+    // Handle "English / اردو" pattern
+    const slashParts = str.split('/').map(s => s.trim()).filter(Boolean);
+    if (slashParts.length >= 2) {
+        const enParts = slashParts.filter(p => !/[\u0600-\u06FF]/.test(p));
+        const urParts = slashParts.filter(p => /[\u0600-\u06FF]/.test(p));
+        if (enParts.length > 0 && urParts.length > 0) {
+            const enJoined = enParts.join(' / ');
+            const urJoined = urParts.join(' / ');
+            return { en: enJoined, ur: urJoined, mix: `${enJoined} (${urJoined})` };
+        }
+    }
+
+    const stripped = str.replace(/\([^()]*[\u0600-\u06FF][^()]*\)/g, ' ').replace(/[\u0600-\u06FF]+[\u0600-\u06FF\s/،۔\-–—]*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    return { en: stripped || str, ur: str, mix: str };
+}
+
+function ebFormatBilingualHtml(raw, useCompact = false) {
+    const parts = ebSplitBilingual(raw);
+    if (!parts.ur || parts.en === parts.ur) return parts.en;
+    return useCompact ? ebCompact(parts.en, parts.ur) : ebMix(parts.en, parts.ur);
+}
+
+function ebBilingualizeSelectOptions(selectEl) {
+    if (!selectEl) return;
+    const isMixMode = ebIsMix();
+    Array.from(selectEl.options || []).forEach(opt => {
+        if (!opt.hasAttribute('data-eb-en')) {
+            const raw = opt.textContent || '';
+            const parts = ebSplitBilingual(raw);
+            opt.setAttribute('data-eb-en', parts.en);
+            opt.setAttribute('data-eb-ur', (parts.ur && parts.en !== parts.ur) ? parts.mix : parts.en);
+        }
+        opt.textContent = isMixMode
+            ? (opt.getAttribute('data-eb-ur') || opt.getAttribute('data-eb-en') || opt.textContent)
+            : (opt.getAttribute('data-eb-en') || opt.textContent);
+    });
+}
+
+function ebSetSelectOption(opt, enText, urText) {
+    const fullUr = urText ? `${enText} (${urText})` : enText;
+    opt.setAttribute('data-eb-en', enText);
+    opt.setAttribute('data-eb-ur', fullUr);
+    opt.textContent = ebIsMix() ? fullUr : enText;
+}
+
+function ebTag(icon, enLabel, urLabel, valueHtml) {
+    return `${icon} <b>${ebMix(enLabel, urLabel)}:</b> ${valueHtml}`;
+}
 
 // ============================================
 // 🛡️ AUTH GUARD & SMART INITIALIZATION
@@ -462,12 +604,12 @@ function updateAddExtraImeiButtonState() {
 
     if (!is3Open) {
         btn.style.display = 'inline-flex';
-        btn.innerHTML = '➕ Add IMEI 3 / 4';
-        btn.title = 'تیسرا یا چوتھا IMEI نمبر شامل کرنے کے لیے کلک کریں';
+        btn.innerHTML = ebMix('➕ Add IMEI 3 / 4', 'اضافی IMEI');
+        btn.title = ebT('Click to add 3rd or 4th IMEI number', 'Click to add 3rd or 4th IMEI (تیسرا یا چوتھا IMEI شامل کریں)');
     } else if (!is4Open) {
         btn.style.display = 'inline-flex';
-        btn.innerHTML = '➕ Add IMEI 4';
-        btn.title = 'چوتھا IMEI نمبر شامل کرنے کے لیے کلک کریں';
+        btn.innerHTML = ebMix('➕ Add IMEI 4', 'چوتھا IMEI');
+        btn.title = ebT('Click to add 4th IMEI number', 'Click to add 4th IMEI (چوتھا IMEI شامل کریں)');
     } else {
         btn.style.display = 'none';
     }
@@ -587,28 +729,37 @@ window.openAddCustomBrandModal = async function(brandType = 'primary', fieldIdOv
     const bCfg = (brandField && brandField.brandButtonsConfig) ? brandField.brandButtonsConfig : {};
     const isSecondary = brandType === 'accessory' || brandType === 'secondary';
 
-    const title = isSecondary
-        ? (bCfg.secondaryModalTitle || '🔌 نیا یا اپنا ذاتی ایسیسریز برانڈ (New / Own Accessory Brand)')
-        : (bCfg.primaryModalTitle || '📱 نیا موبائل برانڈ شامل کریں (Add New Mobile Brand)');
-    const desc = isSecondary
-        ? (bCfg.secondaryModalDesc || 'اگر آپ اپنی دکان کے نام کی پروڈکٹس (Own Brand) یا مارکیٹ کا کوئی نیا برانڈ شامل کرنا چاہتے ہیں تو یہاں نام لکھیں:')
-        : (bCfg.primaryModalDesc || 'مارکیٹ کا کوئی بھی نیا برانڈ یا کمپنی کا نام درج کریں:');
-    const placeholder = isSecondary
-        ? (bCfg.secondaryPlaceholder || 'مثلاً: Al-Madina Accessories, Star Chargers, Zero, Joyroom...')
-        : (bCfg.primaryPlaceholder || 'مثلاً: Sparx, VGOTel, Dcode, Nothing Phone, Sharp Aquos...');
+    const rawTitle = isSecondary
+        ? (bCfg.secondaryModalTitle || '🔌 New / Own Accessory Brand (نیا یا ذاتی برانڈ)')
+        : (bCfg.primaryModalTitle || '📱 Add New Brand / Company (نیا برانڈ شامل کریں)');
+    const rawDesc = isSecondary
+        ? (bCfg.secondaryModalDesc || 'Enter your own shop brand or a new accessory/secondary brand name:')
+        : (bCfg.primaryModalDesc || 'Enter any new brand, publisher, or company name:');
+    const rawPlaceholder = isSecondary
+        ? (bCfg.secondaryPlaceholder || 'e.g. Al-Madina Accessories, Star Chargers, Zero, Joyroom...')
+        : (bCfg.primaryPlaceholder || 'e.g. Sparx, VGOTel, Dcode, Nothing Phone...');
+
+    const titleParts = ebSplitBilingual(rawTitle);
+    const phParts = ebSplitBilingual(rawPlaceholder);
+    const descEn = isSecondary
+        ? 'Enter your own shop brand or a new secondary brand name:'
+        : 'Enter a new brand, publisher, or company name:';
+    const descHtml = ebIsMix()
+        ? `<div style="font-size:12.5px; color:#475569; margin-bottom:8px; text-align:left;">${descEn}<div style="direction:rtl; text-align:right; font-size:11.5px; color:#64748b; margin-top:3px;">${rawDesc}</div></div>`
+        : `<div style="font-size:12.5px; color:#475569; margin-bottom:8px; text-align:left;">${descEn}</div>`;
 
     const { value: newBrand } = await Swal.fire({
-        title: title,
-        html: `<div style="font-size:12.5px; color:#475569; margin-bottom:8px; text-align:right; direction:rtl;">${desc}</div>`,
+        title: ebIsMix() ? titleParts.mix : titleParts.en,
+        html: descHtml,
         input: 'text',
-        inputPlaceholder: placeholder,
+        inputPlaceholder: ebIsMix() ? phParts.mix : phParts.en,
         showCancelButton: true,
-        confirmButtonText: '✅ شامل اور منتخب کریں (Add & Select)',
-        cancelButtonText: 'منسوخ کریں',
+        confirmButtonText: ebT('✅ Add & Select', '✅ Add & Select (شامل کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: isSecondary ? '#7c3aed' : '#0284c7',
         inputValidator: (val) => {
             if (!val || !val.trim()) {
-                return 'براہ کرم برانڈ / پبلشر کا نام درج کریں!';
+                return ebT('Please enter a brand / company name!', 'Please enter a brand name (برانڈ کا نام درج کریں)');
             }
         }
     });
@@ -626,7 +777,7 @@ window.openAddCustomBrandModal = async function(brandType = 'primary', fieldIdOv
             toast: true,
             position: 'top-end',
             icon: 'success',
-            title: `✅ "${cleanBrand}" منتخب ہو گیا!`,
+            title: ebT(`✅ "${cleanBrand}" selected!`, `✅ "${cleanBrand}" selected (منتخب ہو گیا)`),
             timer: 1800,
             showConfirmButton: false
         });
@@ -671,21 +822,25 @@ window.selectOtherBrandOption = async function(fieldIdOverride = '') {
         defaultOther = bCfg.otherPrimaryDefault;
     }
 
+    const otherParts = ebSplitBilingual(defaultOther);
+    const displayOther = ebIsMix() ? otherParts.mix : otherParts.en;
+    const modalTitleParts = ebSplitBilingual(bCfg.otherBtnLabel || '🏷️ Other Brand (دیگر برانڈ)');
+
     const { value: chosenOther, isConfirmed } = await Swal.fire({
-        title: bCfg.otherBtnLabel || '🏷️ Other Brand (دیگر برانڈ)',
-        html: `<div style="font-size:12.5px; color:#475569; margin-bottom:6px; text-align:right; direction:rtl;">
-                آپ براہِ راست <b>"${defaultOther}"</b> منتخب کر سکتے ہیں یا اگر چاہیں تو بریکٹ میں نام بھی لکھ سکتے ہیں:
-               </div>`,
+        title: ebIsMix() ? modalTitleParts.mix : modalTitleParts.en,
+        html: ebIsMix()
+            ? `<div style="font-size:12.5px; color:#475569; margin-bottom:6px; text-align:left;">Select <b>"${otherParts.en}"</b> directly or customize the name below:<div style="direction:rtl; text-align:right; font-size:11.5px; color:#64748b; margin-top:3px;">آپ براہِ راست <b>"${displayOther}"</b> منتخب کر سکتے ہیں یا اپنی مرضی کا نام لکھیں:</div></div>`
+            : `<div style="font-size:12.5px; color:#475569; margin-bottom:6px; text-align:left;">Select <b>"${otherParts.en}"</b> directly or enter a custom name below:</div>`,
         input: 'text',
-        inputValue: defaultOther,
+        inputValue: displayOther,
         showCancelButton: true,
-        confirmButtonText: '✅ منتخب کریں (Select Other)',
-        cancelButtonText: 'منسوخ کریں',
+        confirmButtonText: ebT('✅ Select Other', '✅ Select Other (منتخب کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: '#d97706'
     });
 
     if (isConfirmed) {
-        const finalVal = (chosenOther && chosenOther.trim()) ? chosenOther.trim() : defaultOther;
+        const finalVal = (chosenOther && chosenOther.trim()) ? chosenOther.trim() : displayOther;
         saveCustomBrandForCategory(finalVal, 'other');
         const inp = document.getElementById(`customField_${targetFieldId}`);
         if (inp) {
@@ -704,8 +859,10 @@ window.openManageCustomBrandsModal = async function(fieldIdOverride = '') {
     if (!list || list.length === 0) {
         Swal.fire({
             icon: 'info',
-            title: 'کوئی کسٹم برانڈ / ایجنسی محفوظ نہیں ہے',
-            html: '<div style="direction:rtl; font-size:13px; color:#475569;">پہلے <b>+ New</b> بٹن سے اپنی پرنسپل کمپنی یا برانڈ شامل کریں، پھر آپ اسے یہاں سے ترمیم (Edit) یا حذف (Delete) کر سکیں گے۔</div>',
+            title: ebT('No Custom Brands Saved', 'No Custom Brands Saved (کوئی کسٹم برانڈ محفوظ نہیں)'),
+            html: ebIsMix()
+                ? '<div style="font-size:13px; color:#475569; text-align:left;">First add a brand or company using the <b>+ New</b> button, then you can edit or delete it here.<div style="direction:rtl; text-align:right; font-size:11.5px; color:#64748b; margin-top:4px;">پہلے <b>+ New</b> بٹن سے برانڈ یا کمپنی شامل کریں، پھر یہاں سے ایڈٹ یا ڈیلیٹ کریں۔</div></div>'
+                : '<div style="font-size:13px; color:#475569;">First add a brand or company using the <b>+ New</b> button, then you can edit or delete it here.</div>',
             confirmButtonColor: '#0284c7'
         });
         return;
@@ -723,15 +880,17 @@ window.openManageCustomBrandsModal = async function(fieldIdOverride = '') {
     }).join('');
 
     await Swal.fire({
-        title: '✏️ کسٹم کمپنیاں / برانڈز منیجر (Edit / Delete)',
+        title: ebT('✏️ Manage Custom Brands / Companies', '✏️ Manage Custom Brands (کسٹم برانڈز منیجر)'),
         html: `
-            <div style="direction:rtl; text-align:right; font-size:12px; color:#475569; margin-bottom:8px;">
-                اس کیٹیگری میں آپ کی شامل کردہ کمپنیاں / برانڈز درج ذیل ہیں (نام تبدیل کر کے <b>✏️ Save</b> دبائیں یا <b>🗑️</b> سے ہٹائیں):
+            <div style="text-align:left; font-size:12px; color:#475569; margin-bottom:8px;">
+                ${ebIsMix()
+                    ? 'Edit a name and click <b>✏️ Save</b>, or remove using <b>🗑️</b>:<div style="direction:rtl; text-align:right; font-size:11px; color:#64748b; margin-top:2px;">نام تبدیل کر کے <b>✏️ Save</b> دبائیں یا <b>🗑️</b> سے ہٹائیں:</div>'
+                    : 'Edit a saved brand/company name and click <b>✏️ Save</b>, or click <b>🗑️</b> to delete:'}
             </div>
             <div style="max-height:260px; overflow-y:auto; direction:ltr;">${rowsHtml}</div>
         `,
         showConfirmButton: true,
-        confirmButtonText: 'بند کریں (Done)',
+        confirmButtonText: ebT('Done', 'Done (بند کریں)'),
         confirmButtonColor: '#334155'
     });
 };
@@ -850,6 +1009,7 @@ function applyDynamicCustomFieldVisibility(preserveUnitVal = '') {
             }
         }
         window.BusinessCategories.populateUnitSelect(unitSelect, currentCategoryDef.id, activeGroup, targetUnit);
+        ebBilingualizeSelectOptions(unitSelect);
         syncUnitPackSizeHelper();
     }
 
@@ -902,57 +1062,73 @@ function syncUnitPackSizeHelper() {
 
     if (isMobile && mobGroup === 'handset') {
         if (limitInput && !limitInput.value && !editingItemId) {
-            limitInput.placeholder = '2 (Low Stock Alert for Phones)';
+            ebSetPh(limitInput, '2 (Low Stock Alert for Phones)', '2 (فونز کے لیے کم اسٹاک الرٹ)');
         }
         if (qtyInput && !qtyInput.value && !editingItemId) {
             qtyInput.placeholder = '1';
         }
     } else if ((isWholesaler || isDistributor) && limitInput && !editingItemId) {
-        limitInput.placeholder = isDistributor ? '5 (Low Carton / Van Stock Alert)' : '5 (Low Carton / Bag Alert)';
+        ebSetPh(
+            limitInput,
+            isDistributor ? '5 (Low Carton / Van Stock Alert)' : '5 (Low Carton / Bag Alert)',
+            isDistributor ? '5 (کارٹن / وین اسٹاک الرٹ)' : '5 (کم کارٹن / بوری الرٹ)'
+        );
     } else if (isMedical && limitInput && !editingItemId) {
-        limitInput.placeholder = '5 (Low Box / Bottle Alert)';
+        ebSetPh(limitInput, '5 (Low Box / Bottle Alert)', '5 (کم ڈبہ / بوتل الرٹ)');
     } else if (isRestaurant && limitInput && !editingItemId) {
-        limitInput.placeholder = '5 (Low Menu / Cold Drink Alert)';
+        ebSetPh(limitInput, '5 (Low Menu / Cold Drink Alert)', '5 (کم مینو / ڈرنک الرٹ)');
     } else if (limitInput && !editingItemId) {
-        limitInput.placeholder = '10';
+        ebSetPh(limitInput, '10', '10');
     }
 
     if (!packInput) return;
 
     if (u === 'dozen') {
-        packInput.placeholder = '12 Pcs per Dozen (درجن میں 12 عدد)';
+        ebSetPh(packInput, '12 Pcs per Dozen', '12 Pcs per Dozen (درجن میں 12 عدد)');
         if (!packInput.value && !editingItemId) packInput.value = '12';
     } else if (u === 'maund') {
-        packInput.placeholder = '40 kg per Maund (من میں 40 کلو)';
+        ebSetPh(packInput, '40 kg per Maund', '40 kg per Maund (من میں 40 کلو)');
         if (!packInput.value && !editingItemId) packInput.value = '40';
     } else if (u === 'ream') {
-        packInput.placeholder = '500 Sheets per Ream (رم میں 500 شیٹس)';
+        ebSetPh(packInput, '500 Sheets per Ream', '500 Sheets per Ream (رم میں 500 شیٹس)');
         if (!packInput.value && !editingItemId) packInput.value = '500';
     } else if (u === 'strip') {
-        packInput.placeholder = isMedical ? 'مثلاً: 10 یا 14 Tablets per Strip (پتے میں گولیاں)' : '10 Units per Strip';
-        if (isMedical && !packInput.value && !editingItemId) packInput.value = '10';
+        if (isMedical) {
+            ebSetPh(packInput, 'e.g. 10 or 14 Tablets per Strip', 'مثلاً: 10 یا 14 Tablets per Strip (پتے میں گولیاں)');
+            if (!packInput.value && !editingItemId) packInput.value = '10';
+        } else {
+            ebSetPh(packInput, '10 Units per Strip', '10 Units per Strip (فی پتا تعداد)');
+        }
     } else if (u === 'deal' || u === 'serving' || u === 'order' || u === 'plate') {
-        packInput.placeholder = isRestaurant
-            ? `مثلاً: 4 یا 6 Pcs / Items in ${UNIT_LABELS[u] || u} (وِنگز / ڈیل آئٹمز تعداد)`
-            : 'اختیاری (1 Serving / Order)';
+        const uLbl = UNIT_LABELS[u] || u;
+        if (isRestaurant) {
+            ebSetPh(packInput, `e.g. 4 or 6 Pcs / Items in ${uLbl}`, `مثلاً: 4 یا 6 Pcs / Items in ${uLbl} (وِنگز / ڈیل تعداد)`);
+        } else {
+            ebSetPh(packInput, 'Optional (1 Serving / Order)', 'اختیاری (1 Serving / Order)');
+        }
     } else if (u === 'set') {
-        packInput.placeholder = isMobile
-            ? 'مثلاً: 5 Pcs in Combo / Repairing Kit (سیٹ میں آئٹمز کی تعداد)'
-            : 'مثلاً: 8 Books in Set (سیٹ میں کتابوں کی تعداد)';
+        if (isMobile) {
+            ebSetPh(packInput, 'e.g. 5 Pcs in Combo / Repairing Kit', 'مثلاً: 5 Pcs in Kit (سیٹ میں آئٹمز تعداد)');
+        } else {
+            ebSetPh(packInput, 'e.g. 8 Books in Set', 'مثلاً: 8 Books in Set (سیٹ میں کتابیں)');
+        }
     } else if (u === 'master_ctn' || u === 'carton' || u === 'crate' || u === 'bag' || u === 'box' || u === 'packet' || u === 'pack' || u === 'bundle') {
-        packInput.placeholder = isMedical
-            ? `مثلاً: 10 Strips یا 100 Tablets per ${UNIT_LABELS[u] || u} (فی ڈبہ پتے/گولیاں)`
-            : (isDistributor
-                ? `مثلاً: 12 یا 24 یا 48 Boxes/Packs per ${UNIT_LABELS[u] || u} (فی کارٹن ڈبے/پیکٹس)`
-                : (isWholesaler
-                    ? `مثلاً: 24 یا 48 Pcs / kg per ${UNIT_LABELS[u] || u} (فی کارٹن/بوری تعداد)`
-                    : (isMobile
-                        ? `مثلاً: 10 Protectors یا 20 Cables per ${UNIT_LABELS[u] || u}`
-                        : (isRestaurant
-                            ? `مثلاً: 6 یا 12 Pcs per ${UNIT_LABELS[u] || u} (باکس / ڈیل پیسز)`
-                            : 'مثلاً: 10 یا 12 یا 24 Pcs per ' + (UNIT_LABELS[u] || u)))));
+        const uLbl = UNIT_LABELS[u] || u;
+        if (isMedical) {
+            ebSetPh(packInput, `e.g. 10 Strips or 100 Tablets per ${uLbl}`, `مثلاً: 10 Strips / 100 Tabs per ${uLbl} (فی ڈبہ پتے)`);
+        } else if (isDistributor) {
+            ebSetPh(packInput, `e.g. 12, 24 or 48 Boxes/Packs per ${uLbl}`, `مثلاً: 12 / 24 / 48 Boxes per ${uLbl} (فی کارٹن ڈبے)`);
+        } else if (isWholesaler) {
+            ebSetPh(packInput, `e.g. 24 or 48 Pcs / kg per ${uLbl}`, `مثلاً: 24 یا 48 Pcs/kg per ${uLbl} (فی کارٹن تعداد)`);
+        } else if (isMobile) {
+            ebSetPh(packInput, `e.g. 10 Protectors or 20 Cables per ${uLbl}`, `مثلاً: 10 یا 20 Pcs per ${uLbl}`);
+        } else if (isRestaurant) {
+            ebSetPh(packInput, `e.g. 6 or 12 Pcs per ${uLbl}`, `مثلاً: 6 یا 12 Pcs per ${uLbl} (باکس / ڈیل پیسز)`);
+        } else {
+            ebSetPh(packInput, `e.g. 10, 12 or 24 Pcs per ${uLbl}`, `مثلاً: 10 / 12 / 24 Pcs per ${uLbl}`);
+        }
     } else {
-        packInput.placeholder = 'اختیاری (1 Piece / Single Unit)';
+        ebSetPh(packInput, 'Optional (1 Piece / Single Unit)', 'Optional (اختیاری — 1 پیس)');
     }
 
     const whCalcPack = document.getElementById('whCalcPackSize');
@@ -1026,15 +1202,18 @@ window.cloneVariantItem = function(itemId) {
     document.getElementById('addItemForm').style.display = 'block';
     const arrow = document.getElementById('toggleArrow');
     if (arrow) arrow.classList.add('open');
+    const isMobClone = currentCategoryDef && currentCategoryDef.id === 'mobile';
     const headerH2 = document.querySelector('.add-item-header h2');
     if (headerH2) {
-        headerH2.innerHTML = `<i class="fas fa-clone"></i> New Variant / New IMEI Copy: ${item.name || ''}`;
+        headerH2.innerHTML = isMobClone
+            ? `<i class="fas fa-clone"></i> ${ebMix('New Variant / New IMEI Copy', 'نیا ویرینٹ / نیا IMEI')}: ${item.name || ''}`
+            : `<i class="fas fa-clone"></i> ${ebMix('New Variant Copy', 'نیا ویرینٹ کاپی')}: ${item.name || ''}`;
     }
 
     document.getElementById('addItemForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
     setTimeout(() => {
         const imei1El = document.getElementById('customField_imei1');
-        if (imei1El && imei1El.offsetParent !== null) {
+        if (isMobClone && imei1El && imei1El.offsetParent !== null) {
             imei1El.focus();
         } else {
             document.getElementById('itemName')?.focus();
@@ -1045,7 +1224,9 @@ window.cloneVariantItem = function(itemId) {
         toast: true,
         position: 'top-end',
         icon: 'info',
-        title: '🧬 نیا ویرینٹ / نیا IMEI شامل کرنے کے لیے فارم تیار ہے!',
+        title: isMobClone
+            ? ebT('🧬 Form ready to add new variant / IMEI!', '🧬 Form ready (نیا ویرینٹ / IMEI شامل کریں)')
+            : ebT('🧬 Form ready to add new variant!', '🧬 Form ready (نیا ویرینٹ شامل کریں)'),
         timer: 2400,
         showConfirmButton: false
     });
@@ -1094,60 +1275,82 @@ window.openCategoryVariantGenerator = async function() {
                     ? 'Ticky Pack Box (24 Pcs), Half-Roll Carton (12 Boxes), Family Pack Carton (24 Packs), Jumbo Value Pack'
                     : (isWholesaler ? '250g Pack, 500g Box, 1kg Pouch, Master Carton 24 Pcs' : 'Class 1, Class 2, Class 3, Class 4, Class 5'))));
 
+    const tipEn = isMobile
+        ? '💡 <b>Mobile & Accessories Tip:</b> Create multiple models, colors, or RAM/ROM variants of the same product in one click.'
+        : (isMedical
+            ? '💡 <b>Pharmacy Tip:</b> Add multiple potencies & pack sizes (e.g. 250mg, 500mg, 1g, Syrup) in one click.'
+            : (isRestaurant
+                ? '💡 <b>Fast Food Tip:</b> Add multiple sizes, portions, or combo deals (e.g. Small, Medium, Large Pizza) in one click.'
+                : (isDistributor
+                    ? '💡 <b>FMCG Agency Tip:</b> Create multiple pack/carton sizes (e.g. Ticky Pack, Half-Roll, Family Pack) in one click.'
+                    : (isWholesaler
+                        ? '💡 <b>Wholesale Tip:</b> Create multiple pack/carton sizes (e.g. 250g, 500g, 1kg, Master Carton) in one click.'
+                        : '💡 <b>Book Depot Tip:</b> Add multiple classes (Class 1 to Class 10) for a book/notebook series in one click.'))));
+    const tipUr = isMobile
+        ? 'ایک ہی پروڈکٹ کے مختلف ماڈلز، کلرز یا RAM/ROM ویرینٹس ایک ساتھ اسٹاک میں بنائیں۔'
+        : (isMedical
+            ? 'ایک ہی دوائی کی مختلف پوٹینسی اور پیکنگ (250mg، 500mg، Syrup) ایک کلک میں شامل کریں۔'
+            : (isRestaurant
+                ? 'ایک ہی ڈش کے مختلف سائز، پورشن یا کومبو ڈیلز ایک کلک میں مینو میں شامل کریں۔'
+                : (isDistributor
+                    ? 'ایک ہی پروڈکٹ کے مختلف پیک / کارٹن سائز ایک کلک میں اسٹاک میں بنائیں۔'
+                    : (isWholesaler
+                        ? 'ایک ہی پروڈکٹ کی مختلف پیکنگ / کارٹن سائز ایک کلک میں اسٹاک میں شامل کریں۔'
+                        : 'ایک ہی کتاب یا کاپی سیریز کی مختلف کلاسز ایک کلک میں اسٹاک میں شامل کریں۔'))));
+
+    const varLblEn = isMobile
+        ? '📲 Models / RAM-Storage / Colors (comma separated) *'
+        : (isMedical
+            ? '💊 Potency / Strength / Packing (comma separated) *'
+            : (isRestaurant
+                ? '📏 Sizes / Portions / Deal Variants (comma separated) *'
+                : ((isWholesaler || isDistributor) ? '📦 Packing / Carton / Size Variants (comma separated) *' : '🎓 Classes / Page Variants (comma separated) *')));
+    const varLblUr = isMobile
+        ? 'ماڈلز / RAM-Storage / کلرز (کوما لگا کر لکھیں)'
+        : (isMedical
+            ? 'پوٹینسی / مقدار / پیکنگ (کوما لگا کر لکھیں)'
+            : (isRestaurant
+                ? 'سائز / پورشن / ڈیل ویرینٹس (کوما لگا کر لکھیں)'
+                : ((isWholesaler || isDistributor) ? 'پیکنگ / کارٹن / سائز ویرینٹس (کوما لگا کر لکھیں)' : 'کلاسز / صفحات ویرینٹس (کوما لگا کر لکھیں)')));
+
     const { value: formValues } = await Swal.fire({
-        title: modalTitle,
+        title: ebIsMix() ? `${modalTitle}` : modalTitle,
         html: `
-            <div style="text-align:right; direction:rtl; font-size:12.5px; color:#334155; line-height:1.6;">
+            <div style="text-align:left; font-size:12.5px; color:#334155; line-height:1.6;">
                 <p style="margin-bottom:8px; background:#f0f9ff; border:1px solid #bae6fd; padding:8px; border-radius:8px; color:#0369a1;">
-                    ${isMobile
-                        ? '💡 <b>موبائل اور ایسیسریز ٹپ:</b> ایک ہی پروڈکٹ کے مختلف ماڈلز، کلرز یا RAM/ROM ویرینٹس (مثلاً گلاس پروٹیکٹرز، کورز، پینلز یا فون کلرز) ایک ساتھ اسٹاک میں بنائیں۔'
-                        : (isMedical
-                            ? '💡 <b>فارمیسی ٹپ:</b> ایک ہی دوائی کی مختلف پوٹینسی اور پیکنگ (مثلاً 250mg، 500mg، 1g، Syrup 60ml، DS Syrup) ایک کلک میں اسٹاک میں شامل کریں۔'
-                            : (isRestaurant
-                                ? '💡 <b>فاسٹ فوڈ و مینو ٹپ:</b> ایک ہی ڈش کے مختلف سائز، پورشن یا کومبو ڈیلز (مثلاً Small, Medium, Large Pizza یا Single/Family Deal) ایک کلک میں مینو میں شامل کریں۔'
-                                : (isDistributor
-                                    ? '💡 <b>ڈسٹری بیوٹر و ایجنسی ٹپ:</b> ایک ہی پروڈکٹ کے مختلف پیک سائز (مثلاً Ticky Pack، Half-Roll، Family Pack یا ڈائپر سائز Small, Medium, Large, XL) ایک کلک میں اسٹاک میں بنائیں۔'
-                                    : (isWholesaler
-                                        ? '💡 <b>ہول سیل و ڈسٹری بیوشن ٹپ:</b> ایک ہی کمپنی پروڈکٹ کی مختلف پیکنگ / کارٹن سائز (مثلاً 250g، 500g، 1kg، Master Carton) ایک کلک میں اسٹاک میں شامل کریں۔'
-                                        : '💡 <b>بک ڈپو ٹپ:</b> ایک ہی کتاب یا کاپی سیریز کی مختلف کلاسز (Class 1 تا Class 10) ایک کلک میں اسٹاک میں شامل کریں۔'))))}
+                    ${tipEn}${ebIsMix() ? `<span class="eb-ur-compact" style="display:block; margin-top:3px; direction:rtl; text-align:right;">${tipUr}</span>` : ''}
                 </p>
                 <div style="margin-bottom:8px;">
-                    <label style="font-weight:bold; display:block; margin-bottom:3px;">📦 بنیادی پروڈکٹ / ڈش کا نام (Base Item Name) *</label>
-                    <input id="vgBaseName" class="swal2-input" style="margin:0; width:100%; height:36px; font-size:13px; direction:ltr;" value="${sampleBase}">
+                    <label style="font-weight:bold; display:block; margin-bottom:3px;">📦 Base Item Name * ${ebIsMix() ? '<span class="eb-ur-sub">(بنیادی آئٹم کا نام)</span>' : ''}</label>
+                    <input id="vgBaseName" class="swal2-input" style="margin:0; width:100%; height:36px; font-size:13px;" value="${sampleBase}">
                 </div>
                 <div style="margin-bottom:8px;">
                     <label style="font-weight:bold; display:block; margin-bottom:3px;">
-                        ${isMobile
-                            ? '📲 ماڈلز / RAM-Storage / کلرز (کوما لگا کر لکھیں) *'
-                            : (isMedical
-                                ? '💊 پوٹینسی / مقدار / پیکنگ (کوما لگا کر لکھیں) *'
-                                : (isRestaurant
-                                    ? '📏 سائز / پورشن / ڈیل ویرینٹس (کوما لگا کر لکھیں) *'
-                                    : ((isWholesaler || isDistributor) ? '📦 پیکنگ / کارٹن / سائز ویرینٹس (کوما لگا کر لکھیں) *' : '🎓 کلاسز / صفحات ویرینٹس (کوما لگا کر لکھیں) *')))}
+                        ${varLblEn}${ebIsMix() ? ` <span class="eb-ur-sub">(${varLblUr})</span>` : ''}
                     </label>
-                    <input id="vgVariantsList" class="swal2-input" style="margin:0; width:100%; height:36px; font-size:13px; direction:ltr;" placeholder="${sampleVariants}" value="${sampleVariants}">
+                    <input id="vgVariantsList" class="swal2-input" style="margin:0; width:100%; height:36px; font-size:13px;" placeholder="${sampleVariants}" value="${sampleVariants}">
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; direction:ltr;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
                     <div>
                         <label style="font-weight:bold; font-size:11.5px; display:block; margin-bottom:2px;">🏷️ ${isRestaurant ? 'Kitchen Station / Line' : (isDistributor ? 'Principal Agency / Division' : 'Brand / Company')}</label>
                         <input id="vgBrand" class="swal2-input" style="margin:0; width:100%; height:34px; font-size:12.5px;" value="${currentBrand}" placeholder="${isMobile ? 'e.g. Samsung, Apple, Crown' : (isMedical ? 'e.g. GSK, Getz, Sami, Abbott' : (isRestaurant ? 'e.g. Woodfire Pizza Oven, Burger Bar' : (isDistributor ? 'e.g. Biscuits Division, Snacks Agency, Baby Care' : (isWholesaler ? 'e.g. Wholesale Division, Bulk Commodity' : 'e.g. Oxford, PCTB'))))}">
                     </div>
                     <div>
-                        <label style="font-weight:bold; font-size:11.5px; display:block; margin-bottom:2px;">🔢 Qty Per Variant</label>
+                        <label style="font-weight:bold; font-size:11.5px; display:block; margin-bottom:2px;">🔢 Qty Per Variant ${ebIsMix() ? '<span class="eb-ur-sub">(تعداد)</span>' : ''}</label>
                         <input id="vgQty" type="number" class="swal2-input" style="margin:0; width:100%; height:34px; font-size:12.5px;" value="5" min="0">
                     </div>
                 </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; direction:ltr;">
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
                     <div>
-                        <label style="font-weight:bold; font-size:11px; display:block; margin-bottom:2px;">💵 Cost Rate</label>
+                        <label style="font-weight:bold; font-size:11px; display:block; margin-bottom:2px;">💵 Cost Rate ${ebIsMix() ? '<span class="eb-ur-sub">(لاگت)</span>' : ''}</label>
                         <input id="vgCost" type="number" class="swal2-input" style="margin:0; width:100%; height:34px; font-size:12px;" value="${currentCost || 100}" min="0">
                     </div>
                     <div>
-                        <label style="font-weight:bold; font-size:11px; display:block; margin-bottom:2px;">🏪 Wholesale</label>
+                        <label style="font-weight:bold; font-size:11px; display:block; margin-bottom:2px;">🏪 Wholesale ${ebIsMix() ? '<span class="eb-ur-sub">(ہول سیل)</span>' : ''}</label>
                         <input id="vgWholesale" type="number" class="swal2-input" style="margin:0; width:100%; height:34px; font-size:12px;" value="${currentWholesale || 150}" min="0">
                     </div>
                     <div>
-                        <label style="font-weight:bold; font-size:11px; display:block; margin-bottom:2px;">🏷️ Retail Rate</label>
+                        <label style="font-weight:bold; font-size:11px; display:block; margin-bottom:2px;">🏷️ Retail Rate ${ebIsMix() ? '<span class="eb-ur-sub">(پرچون)</span>' : ''}</label>
                         <input id="vgRetail" type="number" class="swal2-input" style="margin:0; width:100%; height:34px; font-size:12px;" value="${currentRetail || 200}" min="0">
                     </div>
                 </div>
@@ -1155,8 +1358,8 @@ window.openCategoryVariantGenerator = async function() {
         `,
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: '🚀 Create All Variants',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: ebT('🚀 Create All Variants', '🚀 Create All Variants (تمام بنائیں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: '#0284c7',
         preConfirm: () => {
             const base = document.getElementById('vgBaseName')?.value.trim();
@@ -1167,12 +1370,12 @@ window.openCategoryVariantGenerator = async function() {
             const wholesale = parseFloat(document.getElementById('vgWholesale')?.value) || 0;
             const retail = parseFloat(document.getElementById('vgRetail')?.value) || 0;
             if (!base || !varsRaw) {
-                Swal.showValidationMessage('Base Product Name aur Variants list lazmi درج کریں!');
+                Swal.showValidationMessage(ebT('Base Product Name and Variants list are required!', 'Base Name & Variants required (بنیادی نام اور ویرینٹس لازمی ہیں)'));
                 return false;
             }
             const variants = varsRaw.split(',').map(s => s.trim()).filter(Boolean);
             if (variants.length === 0) {
-                Swal.showValidationMessage('Kam az kam 1 variant درج کریں!');
+                Swal.showValidationMessage(ebT('Please enter at least 1 variant!', 'Enter at least 1 variant (کم از کم 1 ویرینٹ درج کریں)'));
                 return false;
             }
             return { base, variants, brand, qty, cost, wholesale, retail };
@@ -1256,7 +1459,7 @@ window.openCategoryVariantGenerator = async function() {
         Swal.fire({
             icon: 'success',
             title: `🎉 ${createdCount} Variants Created!`,
-            text: `${createdCount} نئے ویرینٹس کامیابی سے اسٹاک میں شامل ہو گئے۔`,
+            text: ebT(`${createdCount} new variants added to stock successfully.`, `${createdCount} new variants added (${createdCount} نئے ویرینٹس اسٹاک میں شامل ہو گئے)`),
             timer: 2200,
             showConfirmButton: false
         });
@@ -1265,6 +1468,266 @@ window.openCategoryVariantGenerator = async function() {
         Swal.fire('Error', 'Variants create nahi ho sakay: ' + (err.message || err), 'error');
     }
 };
+
+function getCategoryStockUiConfig(catId) {
+    if (catId === 'restaurant') {
+        return {
+            statTotal: 'Menu Items', statTotalUr: 'مینو آئٹمز',
+            statValue: 'Menu Sales Value', statValueUr: 'مینو فروخت مالیت',
+            statCost: 'Food Cost Value', statCostUr: 'فوڈ لاگت',
+            statLow: 'Low Stock', statLowUr: 'کم اسٹاک',
+            statOut: 'Sold Out', statOutUr: 'ختم شدہ',
+            addHeader: '<i class="fas fa-utensils"></i> Add New Menu Item / Combo Deal', addHeaderUr: 'نئی ڈش / کومبو ڈیل شامل کریں',
+            photoTitle: 'Menu Item Photo (Menu Card Portrait 3:4 • 600×800 px)', photoTitleUr: 'ڈش کی تصویر',
+            photoBadge: '🍔 Menu Card Portrait', photoBadgeUr: 'مینو پورٹریٹ',
+            nameLabel: '🍔 Dish / Menu Item Name *', nameLabelUr: 'ڈش / مینو آئٹم کا نام',
+            namePlaceholder: 'e.g. Zinger Burger, Chicken Tikka Pizza Large, Family Deal 1',
+            namePlaceholderUr: 'مثلاً: Zinger Burger, Tikka Pizza Large, Family Deal 1',
+            catLabel: '🍽️ Menu Category', catLabelUr: 'مینو کیٹیگری',
+            catPlaceholder: 'e.g. Burgers, Pizza, Combo Deals, BBQ, Cold Drinks',
+            catPlaceholderUr: 'مثلاً: Burgers, Pizza, Combo Deals, BBQ, Cold Drinks',
+            costLabel: '🍳 Food Cost / Prep Cost *', costLabelUr: 'فوڈ لاگت قیمت',
+            costPlaceholder: 'Kitchen food cost', costPlaceholderUr: 'Kitchen food cost (فوڈ لاگت)',
+            wholesaleLabel: '🛵 Deal / Delivery Rate *', wholesaleLabelUr: 'ڈیل / ڈلیوری ریٹ',
+            wholesalePlaceholder: 'Deal / Delivery rate', wholesalePlaceholderUr: 'Deal / Delivery rate (ڈیل ریٹ)',
+            retailLabel: '🍔 Menu Selling Price *', retailLabelUr: 'مینو ریٹ',
+            retailPlaceholder: 'Menu selling price', retailPlaceholderUr: 'Menu selling price (مینو قیمت)',
+            cardCostTag: 'Food Cost', cardCostTagUr: 'لاگت',
+            cardWhTag: 'Deal/Deliv', cardWhTagUr: 'ڈیل',
+            cardRetTag: 'Menu', cardRetTagUr: 'مینو',
+            listTitle: 'Menu & Kitchen Items', listTitleUr: 'مینو اور کچن آئٹمز',
+            staffNotice: '<i class="fas fa-eye"></i> Waiter / Staff Mode: View & Kitchen Stock Only', staffNoticeUr: 'صرف دیکھیں اور کچن اسٹاک',
+            showTradeScheme: false,
+            cloneTitle: '🧬 Clone Menu Variant / Add Another Size or Flavor',
+            searchEn: 'Search by burger, pizza, combo deal, kitchen station, size, flavor/spice or barcode...',
+            searchUr: 'Search burger, pizza, combo deal, station, size... (ڈش، ڈیل یا بارکوڈ تلاش کریں)'
+        };
+    }
+    if (catId === 'medical') {
+        return {
+            statTotal: 'Total Medicines', statTotalUr: 'کل ادویات',
+            statValue: 'MRP Stock Value', statValueUr: 'MRP اسٹاک مالیت',
+            statCost: 'Trade Price Cost', statCostUr: 'ٹریڈ پرائس لاگت',
+            statLow: 'Shortage / Low', statLowUr: 'کم اسٹاک',
+            statOut: 'Out of Stock', statOutUr: 'ختم اسٹاک',
+            addHeader: '<i class="fas fa-pills"></i> Add New Medicine / Surgical Item', addHeaderUr: 'نئی دوائی / سرجیکل آئٹم شامل کریں',
+            photoTitle: 'Medicine Pack Photo (Pack Portrait 3:4 • 600×800 px)', photoTitleUr: 'دوائی پیک تصویر',
+            photoBadge: '💊 Medicine Pack Portrait', photoBadgeUr: 'پیک پورٹریٹ',
+            nameLabel: '💊 Medicine / Product Name *', nameLabelUr: 'دوائی / پروڈکٹ کا نام',
+            namePlaceholder: 'e.g. Panadol Advance 500mg, Augmentin 625mg, Brufen Syrup',
+            namePlaceholderUr: 'مثلاً: Panadol 500mg, Augmentin 625mg, Brufen Syrup',
+            catLabel: '📂 Medicine / Therapeutic Category', catLabelUr: 'دوائی کیٹیگری',
+            catPlaceholder: 'e.g. Tablets & Capsules, Syrups, Antibiotics, Surgical',
+            catPlaceholderUr: 'مثلاً: Tablets, Syrups, Antibiotics, Surgical',
+            costLabel: '💵 Net Trade Cost *', costLabelUr: 'خریداری لاگت',
+            costPlaceholder: 'Net purchase cost', costPlaceholderUr: 'Net purchase cost (خریداری لاگت)',
+            wholesaleLabel: '🏥 Trade Price / Clinic Rate *', wholesaleLabelUr: 'TP / کلینک ریٹ',
+            wholesalePlaceholder: 'Trade Price (TP)', wholesalePlaceholderUr: 'Trade Price (TP ریٹ)',
+            retailLabel: '💊 Printed MRP / Retail *', retailLabelUr: 'ایم آر پی ریٹ',
+            retailPlaceholder: 'Printed MRP rate', retailPlaceholderUr: 'Printed MRP rate (درج قیمت)',
+            cardCostTag: 'Cost', cardCostTagUr: 'لاگت',
+            cardWhTag: 'TP/Bulk', cardWhTagUr: 'بلک',
+            cardRetTag: 'MRP', cardRetTagUr: 'ایم آر پی',
+            listTitle: 'Pharmacy Inventory Items', listTitleUr: 'فارمیسی اسٹاک آئٹمز',
+            staffNotice: '<i class="fas fa-eye"></i> Dispenser Mode: View & Stock Movement Only', staffNoticeUr: 'صرف دیکھیں اور اسٹاک آمدورفت',
+            showTradeScheme: false,
+            cloneTitle: '🧬 Clone Medicine Variant / Add Another Potency (mg/ml) or Pack',
+            searchEn: 'Search by medicine name, generic salt/formula, pharma company, batch #, rack or barcode...',
+            searchUr: 'Search medicine, formula, company, batch #, rack... (دوائی، فارمولا یا بیچ تلاش کریں)'
+        };
+    }
+    if (catId === 'mobile') {
+        return {
+            statTotal: 'Total Handsets & Items', statTotalUr: 'کل موبائل و آئٹمز',
+            statValue: 'Retail Value', statValueUr: 'پرچون مالیت',
+            statCost: 'Purchase Cost', statCostUr: 'خریداری لاگت',
+            statLow: 'Low Stock', statLowUr: 'کم اسٹاک',
+            statOut: 'Out of Stock', statOutUr: 'ختم اسٹاک',
+            addHeader: '<i class="fas fa-mobile-alt"></i> Add New Mobile / Accessory Item', addHeaderUr: 'نیا موبائل / ایسیسری شامل کریں',
+            photoTitle: 'Handset / Accessory Photo (Catalog Portrait 3:4 • 600×800 px)', photoTitleUr: 'موبائل / ڈبہ تصویر',
+            photoBadge: '📱 Handset / Box Portrait', photoBadgeUr: 'موبائل پورٹریٹ',
+            nameLabel: '📱 Mobile Model / Accessory Name *', nameLabelUr: 'موبائل ماڈل / ایسیسری نام',
+            namePlaceholder: 'e.g. Infinix Note 40 8/256GB, Samsung A15, 25W Fast Charger',
+            namePlaceholderUr: 'مثلاً: Infinix Note 40 8/256GB, Samsung A15, 25W Charger',
+            catLabel: '📂 Mobile / Accessory Category', catLabelUr: 'موبائل / ایسیسری کیٹیگری',
+            catPlaceholder: 'e.g. Smartphones, Chargers & Cables, Earbuds, LCD Panels',
+            catPlaceholderUr: 'مثلاً: Smartphones, Chargers, Earbuds, LCD Panels',
+            costLabel: '💵 Purchase / Cost Rate *', costLabelUr: 'خریداری قیمت',
+            costPlaceholder: 'Purchase cost', costPlaceholderUr: 'Purchase cost (خریداری لاگت)',
+            wholesaleLabel: '🤝 Dealer / Minimum Rate *', wholesaleLabelUr: 'ڈیلر / فائنل ریٹ',
+            wholesalePlaceholder: 'Dealer / Minimum rate', wholesalePlaceholderUr: 'Dealer rate (ڈیلر ریٹ)',
+            retailLabel: '📱 Customer Selling Price *', retailLabelUr: 'کسٹمر ریٹ',
+            retailPlaceholder: 'Customer retail price', retailPlaceholderUr: 'Customer retail price (کسٹمر ریٹ)',
+            cardCostTag: 'Cost', cardCostTagUr: 'لاگت',
+            cardWhTag: 'Dealer', cardWhTagUr: 'ڈیلر',
+            cardRetTag: 'Retail', cardRetTagUr: 'پرچون',
+            listTitle: 'Mobile & Accessory Inventory', listTitleUr: 'موبائل اور ایسیسریز اسٹاک',
+            staffNotice: '<i class="fas fa-eye"></i> Sales Staff Mode: View & Stock Movement Only', staffNoticeUr: 'صرف دیکھیں اور اسٹاک آمدورفت',
+            showTradeScheme: false,
+            cloneTitle: '🧬 Clone Variant / Add Another IMEI or Color',
+            searchEn: 'Search by mobile model, brand, IMEI, RAM/ROM, PTA status or barcode...',
+            searchUr: 'Search mobile model, brand, IMEI, PTA status... (ماڈل، برانڈ یا IMEI تلاش کریں)'
+        };
+    }
+    if (catId === 'books') {
+        return {
+            statTotal: 'Total Books & Items', statTotalUr: 'کل کتب و اسٹیشنری',
+            statValue: 'Printed MRP Value', statValueUr: 'درج قیمت مالیت',
+            statCost: 'Net Purchase Cost', statCostUr: 'خریداری لاگت',
+            statLow: 'Low Stock', statLowUr: 'کم اسٹاک',
+            statOut: 'Out of Stock', statOutUr: 'ختم اسٹاک',
+            addHeader: '<i class="fas fa-book"></i> Add New Book / Stationery Item', addHeaderUr: 'نئی کتاب / اسٹیشنری شامل کریں',
+            photoTitle: 'Book Cover / Stationery Photo (Portrait 3:4 • 600×800 px)', photoTitleUr: 'کتاب / اسٹیشنری تصویر',
+            photoBadge: '📚 Book Cover Portrait', photoBadgeUr: 'کور پورٹریٹ',
+            nameLabel: '📚 Book Title / Stationery Name *', nameLabelUr: 'کتاب / اسٹیشنری کا نام',
+            namePlaceholder: 'e.g. Oxford Countdown Maths Class 5, Dollar Pointer Pack',
+            namePlaceholderUr: 'مثلاً: Oxford Maths Class 5, Dollar Pointer Pack',
+            catLabel: '📂 Book / Stationery Category', catLabelUr: 'کتاب / اسٹیشنری کیٹیگری',
+            catPlaceholder: 'e.g. School Textbooks, Keybooks, Copies & Registers, Pens',
+            catPlaceholderUr: 'مثلاً: Textbooks, Keybooks, Copies & Registers, Pens',
+            costLabel: '💵 Net Purchase Cost *', costLabelUr: 'خریداری لاگت',
+            costPlaceholder: 'Net cost after publisher disc', costPlaceholderUr: 'Net cost (خریداری لاگت)',
+            wholesaleLabel: '🏫 School / Bulk Rate *', wholesaleLabelUr: 'اسکول / ہول سیل ریٹ',
+            wholesalePlaceholder: 'School / Wholesale rate', wholesalePlaceholderUr: 'School / Bulk rate (ہول سیل ریٹ)',
+            retailLabel: '📚 Printed MRP / Retail *', retailLabelUr: 'درج قیمت / پرچون',
+            retailPlaceholder: 'Printed price (MRP)', retailPlaceholderUr: 'Printed price (درج شدہ قیمت)',
+            cardCostTag: 'Cost', cardCostTagUr: 'لاگت',
+            cardWhTag: 'School/Bulk', cardWhTagUr: 'بلک',
+            cardRetTag: 'MRP', cardRetTagUr: 'پرچون',
+            listTitle: 'Book Depot & Stationery Inventory', listTitleUr: 'بک ڈپو اور اسٹیشنری اسٹاک',
+            staffNotice: '<i class="fas fa-eye"></i> Counter Staff Mode: View & Stock Movement Only', staffNoticeUr: 'صرف دیکھیں اور اسٹاک آمدورفت',
+            showTradeScheme: false,
+            cloneTitle: '🧬 Clone Book Variant / Add Another Class or Subject',
+            searchEn: 'Search by book title, class/grade, publisher/board, subject, ISBN or barcode...',
+            searchUr: 'Search book title, class, publisher, subject, ISBN... (کتاب، کلاس یا پبلشر تلاش کریں)'
+        };
+    }
+    if (catId === 'distributor') {
+        return {
+            statTotal: 'Total FMCG SKUs', statTotalUr: 'کل FMCG آئٹمز',
+            statValue: 'Trade / MRP Value', statValueUr: 'ٹریڈ / MRP مالیت',
+            statCost: 'Company Invoice Cost', statCostUr: 'کمپنی انوائس لاگت',
+            statLow: 'Low Cartons', statLowUr: 'کم کارٹن',
+            statOut: 'Out of Stock', statOutUr: 'ختم اسٹاک',
+            addHeader: '<i class="fas fa-truck-loading"></i> Add New FMCG Carton / Agency SKU', addHeaderUr: 'نیا FMCG کارٹن / ایجنسی آئٹم شامل کریں',
+            photoTitle: 'Product / Carton Photo (Booker Catalog 3:4 • 600×800 px)', photoTitleUr: 'پروڈکٹ / کارٹن تصویر',
+            photoBadge: '📐 Fixed Booker Angle', photoBadgeUr: 'بکر کیٹلاگ',
+            nameLabel: '📦 FMCG Product / Carton Name *', nameLabelUr: 'پروڈکٹ / کارٹن کا نام',
+            namePlaceholder: 'e.g. Peek Freans Sooper Half-Roll Carton, Bona Papa Diaper Large',
+            namePlaceholderUr: 'مثلاً: Sooper Half-Roll Carton, Bona Papa Diaper Large',
+            catLabel: '🏭 Principal Division / Category', catLabelUr: 'پرنسپل ڈویژن / کیٹیگری',
+            catPlaceholder: 'e.g. Biscuits & Wafers, Diapers & Hygiene, Snacks & Nimko',
+            catPlaceholderUr: 'مثلاً: Biscuits, Diapers & Hygiene, Snacks & Nimko',
+            costLabel: '🏭 Company Invoice Cost *', costLabelUr: 'کمپنی انوائس لاگت',
+            costPlaceholder: 'Company invoice cost', costPlaceholderUr: 'Company invoice cost (انوائس لاگت)',
+            wholesaleLabel: '🚚 Trade Price / TP *', wholesaleLabelUr: 'ٹریڈ پرائس TP',
+            wholesalePlaceholder: 'Shopkeeper Trade Price (TP)', wholesalePlaceholderUr: 'Trade Price TP (دکاندار ریٹ)',
+            retailLabel: '🏷️ Consumer MRP / Retail *', retailLabelUr: 'ایم آر پی ریٹ',
+            retailPlaceholder: 'Printed Consumer MRP', retailPlaceholderUr: 'Printed MRP (پرچون ریٹ)',
+            cardCostTag: 'Cost', cardCostTagUr: 'لاگت',
+            cardWhTag: 'TP', cardWhTagUr: 'TP',
+            cardRetTag: 'MRP', cardRetTagUr: 'MRP',
+            listTitle: 'FMCG Agency & Van Stock SKUs', listTitleUr: 'ایف ایم سی جی اور وین اسٹاک',
+            staffNotice: '<i class="fas fa-eye"></i> Order Booker Mode: View & Movement Only', staffNoticeUr: 'آرڈر بکر موڈ — صرف دیکھیں',
+            showTradeScheme: true,
+            cloneTitle: '🧬 Clone SKU Variant / Add Another Carton Packing or Flavor',
+            searchEn: 'Search by FMCG item, principal agency/division, carton packing, TP/MRP, scheme, batch/expiry or barcode...',
+            searchUr: 'Search FMCG item, agency, carton, TP/MRP, scheme, expiry... (آئٹم، ایجنسی یا بارکوڈ تلاش کریں)'
+        };
+    }
+    return {
+        statTotal: 'Total Wholesale Items', statTotalUr: 'کل ہول سیل آئٹمز',
+        statValue: 'Retail / Mandi Value', statValueUr: 'منڈی / پرچون مالیت',
+        statCost: 'Purchase Cost', statCostUr: 'خریداری لاگت',
+        statLow: 'Low Stock', statLowUr: 'کم اسٹاک',
+        statOut: 'Out of Stock', statOutUr: 'ختم اسٹاک',
+        addHeader: '<i class="fas fa-boxes"></i> Add New Wholesale Product / Carton', addHeaderUr: 'نیا ہول سیل آئٹم / کارٹن شامل کریں',
+        photoTitle: 'Product Photo (Catalog Portrait 3:4 • 600×800 px)', photoTitleUr: 'پروڈکٹ تصویر',
+        photoBadge: '📐 Fixed Booker Angle', photoBadgeUr: 'بکر کیٹلاگ',
+        nameLabel: '📝 Wholesale Product Name *', nameLabelUr: 'ہول سیل پروڈکٹ کا نام',
+        namePlaceholder: 'e.g. Shan Biryani Masala Carton, Guard Basmati Rice 25kg Bag',
+        namePlaceholderUr: 'مثلاً: Shan Masala Carton, Basmati Rice 25kg Bag',
+        catLabel: '📂 Wholesale Category', catLabelUr: 'ہول سیل کیٹیگری',
+        catPlaceholder: 'e.g. Karyana & Pulses, Cooking Oil & Ghee, Tea & Spices',
+        catPlaceholderUr: 'مثلاً: Karyana, Cooking Oil & Ghee, Tea & Spices',
+        costLabel: '💵 Purchase Rate *', costLabelUr: 'خریداری قیمت',
+        costPlaceholder: 'Cost price', costPlaceholderUr: 'Cost price (خریداری قیمت)',
+        wholesaleLabel: '🏪 Wholesale Rate *', wholesaleLabelUr: 'ہول سیل ریٹ',
+        wholesalePlaceholder: 'Wholesale rate', wholesalePlaceholderUr: 'Wholesale rate (ہول سیل ریٹ)',
+        retailLabel: '🏷️ Retail Rate *', retailLabelUr: 'پرچون ریٹ',
+        retailPlaceholder: 'Retail rate (MRP)', retailPlaceholderUr: 'Retail rate (پرچون ریٹ)',
+        cardCostTag: 'Cost', cardCostTagUr: 'لاگت',
+        cardWhTag: 'Wholesale', cardWhTagUr: 'ہول سیل',
+        cardRetTag: 'Retail', cardRetTagUr: 'پرچون',
+        listTitle: 'Wholesale Inventory Items', listTitleUr: 'ہول سیل اسٹاک آئٹمز',
+        staffNotice: '<i class="fas fa-eye"></i> Booker Mode: View & Movement Only', staffNoticeUr: 'بکر موڈ — صرف دیکھیں',
+        showTradeScheme: true,
+        cloneTitle: '🧬 Clone Wholesale Variant / Add Another Pack Size or Weight',
+        searchEn: 'Search by product name, company/brand, carton packing, SKU/batch, scheme or barcode...',
+        searchUr: 'Search product, company, carton packing, SKU, scheme... (نام، کمپنی یا بارکوڈ تلاش کریں)'
+    };
+}
+
+function applyCategoryStaticLabels() {
+    if (!currentCategoryDef) return;
+    const uiCfg = getCategoryStockUiConfig(currentCategoryDef.id);
+
+    const badgeTxt = document.getElementById('bizCategoryText');
+    if (badgeTxt) {
+        const catUr = currentCategoryDef.nameUr || '';
+        badgeTxt.innerHTML = ebMix(`Mode: ${currentCategoryDef.icon} ${currentCategoryDef.nameEn}`, catUr);
+    }
+
+    const setMixHtml = (id, en, ur) => {
+        const el = document.getElementById(id);
+        if (el && en) el.innerHTML = ebMix(en, ur);
+    };
+    setMixHtml('lblStatTotal', uiCfg.statTotal, uiCfg.statTotalUr);
+    setMixHtml('lblStatValue', uiCfg.statValue, uiCfg.statValueUr);
+    setMixHtml('lblStatCost', uiCfg.statCost, uiCfg.statCostUr);
+    setMixHtml('lblStatLow', uiCfg.statLow, uiCfg.statLowUr);
+    setMixHtml('lblStatOut', uiCfg.statOut, uiCfg.statOutUr);
+    setMixHtml('lblProductPhotoTitle', uiCfg.photoTitle, uiCfg.photoTitleUr);
+    setMixHtml('photoAngleBadge', uiCfg.photoBadge, uiCfg.photoBadgeUr);
+    setMixHtml('lblItemName', uiCfg.nameLabel, uiCfg.nameLabelUr);
+    setMixHtml('lblItemCategory', uiCfg.catLabel, uiCfg.catLabelUr);
+    setMixHtml('lblRatePurchase', uiCfg.costLabel, uiCfg.costLabelUr);
+    setMixHtml('lblRateWholesale', uiCfg.wholesaleLabel, uiCfg.wholesaleLabelUr);
+    setMixHtml('lblRateRetail', uiCfg.retailLabel, uiCfg.retailLabelUr);
+    setMixHtml('inventoryListTitleText', uiCfg.listTitle, uiCfg.listTitleUr);
+
+    const addHeaderEl = document.getElementById('addItemHeaderTitle');
+    if (addHeaderEl && !editingItemId) {
+        addHeaderEl.innerHTML = ebMix(uiCfg.addHeader, uiCfg.addHeaderUr);
+    }
+
+    const bookerNoticeEl = document.getElementById('bookerNotice');
+    if (bookerNoticeEl) {
+        bookerNoticeEl.innerHTML = ebMix(uiCfg.staffNotice, uiCfg.staffNoticeUr);
+    }
+
+    ebSetPh(document.getElementById('itemName'), uiCfg.namePlaceholder, uiCfg.namePlaceholderUr);
+    ebSetPh(document.getElementById('itemCategory'), uiCfg.catPlaceholder, uiCfg.catPlaceholderUr);
+    ebSetPh(document.getElementById('itemPurchase'), uiCfg.costPlaceholder, uiCfg.costPlaceholderUr);
+    ebSetPh(document.getElementById('itemWholesale'), uiCfg.wholesalePlaceholder, uiCfg.wholesalePlaceholderUr);
+    ebSetPh(document.getElementById('itemRate'), uiCfg.retailPlaceholder, uiCfg.retailPlaceholderUr);
+    ebSetPh(document.getElementById('searchInput'), uiCfg.searchEn, uiCfg.searchUr);
+
+    const tradeSchemeRow = document.getElementById('tradeSchemeBoxRow');
+    if (tradeSchemeRow) {
+        tradeSchemeRow.style.display = uiCfg.showTradeScheme ? 'flex' : 'none';
+    }
+
+    const tag = document.getElementById('customFieldsCategoryTag');
+    if (tag) {
+        tag.innerHTML = `
+            <span>${ebMix(`${currentCategoryDef.icon} ${currentCategoryDef.nameEn}`, currentCategoryDef.nameUr || '')}</span>
+            <button type="button" onclick="window.openCategoryVariantGenerator()" style="margin-left:6px; background:#0284c7; color:#fff; border:none; border-radius:8px; padding:2px 8px; font-size:10.5px; font-weight:bold; cursor:pointer;">
+                ${ebMix('⚡ Multi-Variant Generator', 'ملٹی ویرینٹ')}
+            </button>
+        `;
+    }
+}
 
 function setupIndustryCategoryMode() {
     const rawType = (myAgency && (myAgency.businessType || myAgency.businessCategory || myAgency.category))
@@ -1279,27 +1742,7 @@ function setupIndustryCategoryMode() {
 
     if (!currentCategoryDef) return;
 
-    // Update Top bar badge
-    const badgeTxt = document.getElementById('bizCategoryText');
-    if (badgeTxt) {
-        badgeTxt.innerText = `Mode: ${currentCategoryDef.icon} ${currentCategoryDef.nameEn}`;
-    }
-
-    // Update search bar placeholder dynamically by business mode
-    const searchInp = document.getElementById('searchInput');
-    if (searchInp) {
-        if (currentCategoryDef.id === 'wholesaler') {
-            searchInp.placeholder = 'Search by product name, company/brand, carton packing, SKU/batch, scheme or barcode...';
-        } else if (currentCategoryDef.id === 'distributor') {
-            searchInp.placeholder = 'Search by FMCG item, principal agency/division, carton packing, TP/MRP, scheme, batch/expiry or barcode...';
-        } else if (currentCategoryDef.id === 'mobile') {
-            searchInp.placeholder = 'Search by mobile model, brand, IMEI, RAM/ROM, PTA status or barcode...';
-        } else if (currentCategoryDef.id === 'medical') {
-            searchInp.placeholder = 'Search by medicine name, generic salt/formula, pharma company, batch #, rack or barcode...';
-        } else if (currentCategoryDef.id === 'restaurant') {
-            searchInp.placeholder = 'Search by burger, pizza, combo deal, kitchen station, size, flavor/spice or barcode...';
-        }
-    }
+    applyCategoryStaticLabels();
 
     // Populate Datalist with Industry Subcategories
     const datalist = document.getElementById('categorySuggestions');
@@ -1315,18 +1758,9 @@ function setupIndustryCategoryMode() {
     // Render Custom Fields Container (e.g. Class, Publisher, Author, Edition, Pages, ISBN for Book Depot)
     const container = document.getElementById('customIndustryFieldsContainer');
     const grid = document.getElementById('customFieldsGrid');
-    const tag = document.getElementById('customFieldsCategoryTag');
 
     if (container && grid && Array.isArray(currentCategoryDef.customFields) && currentCategoryDef.customFields.length > 0) {
         container.style.display = 'block';
-        if (tag) {
-            tag.innerHTML = `
-                <span>${currentCategoryDef.icon} ${currentCategoryDef.nameEn}</span>
-                <button type="button" onclick="window.openCategoryVariantGenerator()" style="margin-left:6px; background:#0284c7; color:#fff; border:none; border-radius:8px; padding:2px 8px; font-size:10.5px; font-weight:bold; cursor:pointer;">
-                    ⚡ Multi-Variant Generator
-                </button>
-            `;
-        }
         
         grid.innerHTML = '';
         currentCategoryDef.customFields.forEach(f => {
@@ -1349,7 +1783,7 @@ function setupIndustryCategoryMode() {
             lbl.style.gap = '4px';
 
             const lblText = document.createElement('span');
-            lblText.innerText = f.label;
+            lblText.innerHTML = ebFormatBilingualHtml(f.label);
             lbl.appendChild(lblText);
 
             if (f.isImeiField) {
@@ -1370,7 +1804,7 @@ function setupIndustryCategoryMode() {
                     addImeiBtn.type = 'button';
                     addImeiBtn.id = 'addExtraImeiBtn';
                     addImeiBtn.style.cssText = 'background:#0284c7; color:#fff; border:none; border-radius:6px; padding:2px 7px; font-size:10px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:3px;';
-                    addImeiBtn.innerHTML = '➕ Add IMEI 3 / 4';
+                    addImeiBtn.innerHTML = ebMix('➕ Add IMEI 3 / 4', 'اضافی IMEI');
                     addImeiBtn.onclick = () => window.revealNextExtraImeiField();
                     rightBox.appendChild(addImeiBtn);
                 }
@@ -1380,8 +1814,8 @@ function setupIndustryCategoryMode() {
                     const hideBtn = document.createElement('button');
                     hideBtn.type = 'button';
                     hideBtn.style.cssText = 'background:#fee2e2; color:#dc2626; border:1px solid #fecaca; border-radius:5px; padding:1px 5px; font-size:9.5px; font-weight:bold; cursor:pointer;';
-                    hideBtn.innerHTML = '✖ ہٹائیں';
-                    hideBtn.title = 'اس اضافی IMEI خانے کو بند کریں';
+                    hideBtn.innerHTML = ebMix('✖ Remove', 'ہٹائیں');
+                    hideBtn.title = 'Hide extra IMEI field';
                     hideBtn.onclick = () => window.hideExtraImeiField(f.id);
                     rightBox.appendChild(hideBtn);
                 }
@@ -1401,12 +1835,14 @@ function setupIndustryCategoryMode() {
                     o.textContent = optVal === '' ? '-- Select / اختیاری --' : optVal;
                     inp.appendChild(o);
                 });
+                ebBilingualizeSelectOptions(inp);
             } else {
                 inp = document.createElement('input');
                 inp.type = f.type || 'text';
                 inp.className = 'custom-industry-field';
                 inp.dataset.fieldId = f.id;
-                inp.placeholder = f.placeholder || '';
+                const phParts = ebSplitBilingual(f.placeholder || '');
+                ebSetPh(inp, phParts.en, phParts.mix);
                 inp.style.fontSize = '12px';
 
                 if (f.isImeiField) {
@@ -1458,26 +1894,26 @@ function setupIndustryCategoryMode() {
                 const btnNewPrimary = document.createElement('button');
                 btnNewPrimary.type = 'button';
                 btnNewPrimary.style.cssText = 'background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:6px; padding:3px 7px; font-size:10px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:3px;';
-                btnNewPrimary.innerHTML = bCfg.primaryBtnLabel || '📱 + New Mobile Brand';
+                btnNewPrimary.innerHTML = ebFormatBilingualHtml(bCfg.primaryBtnLabel || '📱 + New Mobile Brand (نیا برانڈ)');
                 btnNewPrimary.onclick = () => window.openAddCustomBrandModal('primary', f.id);
 
                 const btnNewSecondary = document.createElement('button');
                 btnNewSecondary.type = 'button';
                 btnNewSecondary.style.cssText = 'background:#f3e8ff; color:#6d28d9; border:1px solid #d8b4fe; border-radius:6px; padding:3px 7px; font-size:10px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:3px;';
-                btnNewSecondary.innerHTML = bCfg.secondaryBtnLabel || '🔌 + Own / New Accessory Brand';
+                btnNewSecondary.innerHTML = ebFormatBilingualHtml(bCfg.secondaryBtnLabel || '🔌 + Own / New Brand (ذاتی برانڈ)');
                 btnNewSecondary.onclick = () => window.openAddCustomBrandModal('secondary', f.id);
 
                 const btnOtherBr = document.createElement('button');
                 btnOtherBr.type = 'button';
                 btnOtherBr.style.cssText = 'background:#fef3c7; color:#b45309; border:1px solid #fcd34d; border-radius:6px; padding:3px 7px; font-size:10px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:3px;';
-                btnOtherBr.innerHTML = bCfg.otherBtnLabel || '🏷️ Other Brand (دیگر برانڈ)';
+                btnOtherBr.innerHTML = ebFormatBilingualHtml(bCfg.otherBtnLabel || '🏷️ Other Brand (دیگر برانڈ)');
                 btnOtherBr.onclick = () => window.selectOtherBrandOption(f.id);
 
                 const btnManageBr = document.createElement('button');
                 btnManageBr.type = 'button';
                 btnManageBr.style.cssText = 'background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; border-radius:6px; padding:3px 7px; font-size:10px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:3px;';
-                btnManageBr.innerHTML = '✏️/🗑️ Edit / Delete';
-                btnManageBr.title = 'اپنے محفوظ کردہ برانڈز یا کمپنیوں کے نام تبدیل یا حذف کریں';
+                btnManageBr.innerHTML = ebMix('✏️/🗑️ Edit / Delete', 'ترمیم / حذف');
+                btnManageBr.title = 'Rename or delete saved custom brands/companies';
                 btnManageBr.onclick = () => window.openManageCustomBrandsModal(f.id);
 
                 brandActionRow.appendChild(btnNewPrimary);
@@ -1510,11 +1946,13 @@ function setupIndustryCategoryMode() {
         const unitSelectEl = document.getElementById('itemUnit');
         if (unitSelectEl && window.BusinessCategories && typeof window.BusinessCategories.populateUnitSelect === 'function') {
             window.BusinessCategories.populateUnitSelect(unitSelectEl, currentCategoryDef.id, '', unitSelectEl.value);
+            ebBilingualizeSelectOptions(unitSelectEl);
         }
     }
 
     setupPurchaseAndSupplierHelper();
     populateCategoryFilter();
+    ebApplyBilingualDom(document);
 }
 
 // Custom Supplier / Distributor Storage Helpers
@@ -1554,40 +1992,51 @@ window.openAddCustomSupplierModal = async function(targetInputId = 'itemSupplier
     const isDist = currentCategoryDef && currentCategoryDef.id === 'distributor';
     const isMed = currentCategoryDef && currentCategoryDef.id === 'medical';
     const isRest = currentCategoryDef && currentCategoryDef.id === 'restaurant';
-    const titleTxt = isMob
-        ? '🏢 نیا موبائل ڈسٹری بیوٹر / ہول سیل ڈیلر شامل کریں'
+
+    const titleEn = isMob
+        ? '🏢 Add Mobile Distributor / Wholesale Dealer'
         : (isMed
-            ? '🏥 نیا فارما ڈسٹری بیوٹر / ہول سیل میڈیسن سپلائر شامل کریں'
+            ? '🏥 Add Pharma Distributor / Medicine Supplier'
             : (isRest
-                ? '🍔 نیا فروزن فوڈ / کچن ہول سیل سپلائر شامل کریں'
+                ? '🍔 Add Frozen Food / Kitchen Wholesale Supplier'
                 : (isDist
-                    ? '🚚 نئی پرنسپل کمپنی / ریجنل فیکٹری ڈپو شامل کریں'
-                    : (isWh ? '🏭 نئی پرنسپل کمپنی / سپر اسٹاکسٹ / منڈی ڈیلر شامل کریں' : '🏛️ نیا پبلشر / ہول سیل سپلائر شامل کریں'))));
-    const placeholderTxt = isMob
-        ? 'مثلاً: Airlink Lahore, Hall Road LCD House, Al-Madina Telecom...'
+                    ? '🚚 Add Principal Company / Regional Factory Depot'
+                    : (isWh ? '🏭 Add Principal Company / Super Stockist / Mandi Dealer' : '🏛️ Add Publisher / Wholesale Supplier'))));
+    const titleUr = isMob
+        ? 'نیا موبائل ڈسٹری بیوٹر / ڈیلر'
         : (isMed
-            ? 'مثلاً: M&P Pharma, UDL, IBL, Premier Agency, Katchery Bazar Medicine...'
+            ? 'نیا فارما ڈسٹری بیوٹر / سپلائر'
             : (isRest
-                ? "مثلاً: K&N's Pakistan, Sabroso, Dawn Foods, Metro Cash & Carry, Pepsi Agency..."
+                ? 'نیا کچن ہول سیل سپلائر'
                 : (isDist
-                    ? 'مثلاً: Regional Biscuits Depot, Snacks Factory Hub, Central Diaper Agency...'
-                    : (isWh ? 'مثلاً: Regional Wholesale Depot, Central Mandi Broker...' : 'مثلاً: Al-Faisal Publishers, Urdu Bazar Wholesale House...'))));
+                    ? 'نئی پرنسپل کمپنی / فیکٹری ڈپو'
+                    : (isWh ? 'نئی پرنسپل کمپنی / منڈی ڈیلر' : 'نیا پبلشر / سپلائر'))));
+
+    const placeholderEn = isMob
+        ? 'e.g. Airlink Lahore, Hall Road LCD House, Al-Madina Telecom...'
+        : (isMed
+            ? 'e.g. M&P Pharma, UDL, IBL, Premier Agency...'
+            : (isRest
+                ? "e.g. K&N's Pakistan, Sabroso, Dawn Foods, Metro, Pepsi Agency..."
+                : (isDist
+                    ? 'e.g. Regional Biscuits Depot, Snacks Factory Hub, Diaper Agency...'
+                    : (isWh ? 'e.g. Regional Wholesale Depot, Central Mandi Broker...' : 'e.g. Al-Faisal Publishers, Urdu Bazar Wholesale House...'))));
 
     const { value: formValues } = await Swal.fire({
-        title: titleTxt,
+        title: ebT(titleEn, `${titleEn} (${titleUr})`),
         html: `
-            <div style="text-align:right; direction:rtl; font-size:13px; color:#334155;">
+            <div style="text-align:left; font-size:13px; color:#334155;">
                 <div style="margin-bottom:8px;">
-                    <label style="font-weight:bold; display:block; margin-bottom:3px;">🏢 سپلائر / ڈسٹری بیوٹر / پارٹی کا نام *</label>
-                    <input id="swalSupName" class="swal2-input" placeholder="${placeholderTxt}" style="margin:0; width:100%; box-sizing:border-box; font-size:13px; height:38px;">
+                    <label style="font-weight:bold; display:block; margin-bottom:3px;">🏢 Supplier / Distributor / Party Name * ${ebIsMix() ? '<span class="eb-ur-sub">(سپلائر کا نام)</span>' : ''}</label>
+                    <input id="swalSupName" class="swal2-input" placeholder="${placeholderEn}" style="margin:0; width:100%; box-sizing:border-box; font-size:13px; height:38px;">
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                     <div>
-                        <label style="font-weight:bold; display:block; margin-bottom:3px;">📞 فون / واٹس ایپ نمبر (اختیاری)</label>
-                        <input id="swalSupPhone" class="swal2-input" placeholder="0300-1234567" style="margin:0; width:100%; box-sizing:border-box; font-size:12px; height:36px; direction:ltr;">
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">📞 Phone / WhatsApp (Optional) ${ebIsMix() ? '<span class="eb-ur-sub">(فون نمبر)</span>' : ''}</label>
+                        <input id="swalSupPhone" class="swal2-input" placeholder="0300-1234567" style="margin:0; width:100%; box-sizing:border-box; font-size:12px; height:36px;">
                     </div>
                     <div>
-                        <label style="font-weight:bold; display:block; margin-bottom:3px;">📍 مارکیٹ / شہر (اختیاری)</label>
+                        <label style="font-weight:bold; display:block; margin-bottom:3px;">📍 Market / City (Optional) ${ebIsMix() ? '<span class="eb-ur-sub">(مارکیٹ / شہر)</span>' : ''}</label>
                         <input id="swalSupCity" class="swal2-input" placeholder="Hall Road / Urdu Bazar" style="margin:0; width:100%; box-sizing:border-box; font-size:12px; height:36px;">
                     </div>
                 </div>
@@ -1595,15 +2044,15 @@ window.openAddCustomSupplierModal = async function(targetInputId = 'itemSupplier
         `,
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: '✅ Save Supplier (محفوظ کریں)',
-        cancelButtonText: 'Cancel',
+        confirmButtonText: ebT('✅ Save Supplier', '✅ Save Supplier (محفوظ کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: '#0284c7',
         preConfirm: () => {
             const name = (document.getElementById('swalSupName')?.value || '').trim();
             const phone = (document.getElementById('swalSupPhone')?.value || '').trim();
             const city = (document.getElementById('swalSupCity')?.value || '').trim();
             if (!name) {
-                Swal.showValidationMessage('سپلائر یا ڈیلر کا نام لکھنا لازمی ہے!');
+                Swal.showValidationMessage(ebT('Supplier or dealer name is required!', 'Supplier name is required (سپلائر کا نام لازمی ہے)'));
                 return false;
             }
             return { name, phone, city };
@@ -1623,7 +2072,7 @@ window.openAddCustomSupplierModal = async function(targetInputId = 'itemSupplier
         }
         Swal.fire({
             toast: true, position: 'top-end', showConfirmButton: false,
-            timer: 1800, icon: 'success', title: `✅ "${displayLabel}" سپلائر لسٹ میں شامل ہو گیا!`
+            timer: 1800, icon: 'success', title: ebT(`✅ "${displayLabel}" added to suppliers!`, `✅ "${displayLabel}" added (سپلائر شامل ہو گیا)`)
         });
     }
 };
@@ -1804,14 +2253,14 @@ function updateWholesaleCartonBreakdown() {
                 badge.innerHTML = `🍔 <b>${whPack} Pcs/${UNIT_LABELS[unitVal] || unitVal}</b> &nbsp;|&nbsp; 🍳 Food Cost: <b>Rs ${perSrvCost}/pc</b>${perSrvRet > 0 ? ` &nbsp;|&nbsp; 🏷️ Menu: <b>Rs ${perSrvRet}/pc</b>` : ''}${foodCostPct > 0 ? ` &nbsp;|&nbsp; 📊 FC%: <b>${foodCostPct}%</b> (Margin: <b>+${marginPct}%</b>)` : ''}`;
                 return;
             }
-            badge.innerHTML = `🍔 Deal / Batch Size: <b>${whPack} Pcs</b> — اوپر Batch Food Cost یا Menu Rate درج کریں۔`;
+            badge.innerHTML = ebCompact(`🍔 Deal / Batch Size: <b>${whPack} Pcs</b> — enter Batch Food Cost or Menu Rate above.`, 'اوپر بیچ لاگت یا مینو ریٹ درج کریں');
             return;
         }
         if (effCost > 0 && itemRet > 0) {
             badge.innerHTML = `🍳 Food Cost: <b>Rs ${effCost}</b> (${foodCostPct}%) &nbsp;|&nbsp; 💰 Kitchen Margin: <b>+Rs ${Math.round((itemRet - effCost) * 100) / 100} (${marginPct}%)</b>`;
             return;
         }
-        badge.innerHTML = `💡 Menu Price اور Food Cost لکھیں — فی سرونگ لاگت اور Food Cost % خود نظر آئے گا`;
+        badge.innerHTML = ebCompact('💡 Enter Menu Price & Food Cost to view per-serving cost & FC%', 'مینو ریٹ اور فوڈ کاسٹ لکھیں — فی سرونگ لاگت خود نظر آئے گی');
         return;
     }
 
@@ -1825,11 +2274,11 @@ function updateWholesaleCartonBreakdown() {
             badge.innerHTML = `📦 <b>${whPack} Pcs/${UNIT_LABELS[unitVal] || unitVal}</b> &nbsp;|&nbsp; 💵 Cost: <b>Rs ${perPcCost}/pc</b>${perPcWh > 0 ? ` &nbsp;|&nbsp; 🏪 Wh: <b>Rs ${perPcWh}/pc</b>` : ''}${perPcRet > 0 ? ` &nbsp;|&nbsp; 🏷️ Ret: <b>Rs ${perPcRet}/pc</b>` : ''}`;
             return;
         }
-        badge.innerHTML = `📦 Pack Size: <b>${whPack} Pcs</b> — اوپر Master Carton Cost یا Purchase Rate لکھیں۔`;
+        badge.innerHTML = ebCompact(`📦 Pack Size: <b>${whPack} Pcs</b> — enter Master Carton Cost or Purchase Rate above.`, 'اوپر کارٹن لاگت یا خریداری ریٹ لکھیں');
     } else if (cartonCostInput > 0) {
-        badge.innerHTML = `⚠️ فی پیس حساب نکالنے کے لیے <b>Pack Size</b> (مثلاً 12 یا 24) درج کریں۔`;
+        badge.innerHTML = ebCompact('⚠️ Enter <b>Pack Size</b> (e.g. 12 or 24) to calculate per-piece rate.', 'فی پیس حساب کے لیے پیک سائز (مثلاً 12 یا 24) درج کریں');
     } else {
-        badge.innerHTML = `💡 Pack Size اور Rate لکھیں — فی پیس لاگت اور منافع خود نظر آئے گا`;
+        badge.innerHTML = ebCompact('💡 Enter Pack Size & Rate to view per-piece cost & margin', 'پیک سائز اور ریٹ لکھیں — فی پیس لاگت اور منافع خود نظر آئے گا');
     }
 }
 
@@ -1857,41 +2306,44 @@ function setupPurchaseAndSupplierHelper() {
     const btnWhPerPc = document.getElementById('btnWhApplyPerPiece');
     const btnWhCtnCost = document.getElementById('btnWhApplyCartonCost');
     if (isRestMode) {
-        if (whBarTitle) whBarTitle.innerText = '🍔 بیچ / کومبو ڈیل ↔ فی سرونگ فوڈ کاسٹ کیلکولیٹر (Batch / Deal Food Cost & Margin %)';
-        if (whPackLbl) whPackLbl.innerText = '🔢 بیچ / ڈیل میں کل پیسز یا سرونگز (Servings / Pcs)';
-        if (whCostLbl) whCostLbl.innerText = '🍳 مکمل بیچ / ڈیل فوڈ لاگت (Total Batch / Deal Cost)';
-        if (btnWhPerPc) btnWhPerPc.innerText = '🔢 Divide Rates per Serving/Pc';
-        if (btnWhCtnCost) btnWhCtnCost.innerText = '📥 Calc Food Cost / Serving';
+        if (whBarTitle) whBarTitle.innerHTML = ebCompact('🍔 Batch / Deal Food Cost & Margin % Calculator', 'بیچ / کومبو ڈیل ↔ فی سرونگ فوڈ کاسٹ کیلکولیٹر');
+        if (whPackLbl) whPackLbl.innerHTML = ebMix('🔢 Servings / Pcs in Deal', 'ڈیل میں کل پیسز');
+        if (whCostLbl) whCostLbl.innerHTML = ebMix('🍳 Total Batch / Deal Cost', 'کل بیچ فوڈ لاگت');
+        if (btnWhPerPc) btnWhPerPc.innerHTML = ebMix('🔢 Divide Rates per Serving/Pc', 'فی سرونگ ریٹ');
+        if (btnWhCtnCost) btnWhCtnCost.innerHTML = ebMix('📥 Calc Food Cost / Serving', 'فی سرونگ لاگت');
     } else if (isDistMode) {
-        if (whBarTitle) whBarTitle.innerText = '🚚 ماسٹر کارٹن ↔ فی ڈبہ/پیکٹ ٹریڈ پرائس (TP) و مارجن کیلکولیٹر (Carton to Box/Pack TP Calculator)';
-        if (whPackLbl) whPackLbl.innerText = '🔢 کارٹن میں کل ڈبے / پیکٹس (Boxes / Packs per Carton)';
-        if (whCostLbl) whCostLbl.innerText = '🏭 کارٹن انوائس لاگت (Master Carton Net Cost)';
-        if (btnWhPerPc) btnWhPerPc.innerText = '🔢 Convert Carton → Per-Box/Pack Rates';
-        if (btnWhCtnCost) btnWhCtnCost.innerText = '📥 Calc Per-Box Cost from Carton';
+        if (whBarTitle) whBarTitle.innerHTML = ebCompact('🚚 Carton to Box/Pack TP & Margin Calculator', 'ماسٹر کارٹن ↔ فی ڈبہ/پیکٹ ٹریڈ پرائس (TP) کیلکولیٹر');
+        if (whPackLbl) whPackLbl.innerHTML = ebMix('🔢 Boxes / Packs per Carton', 'فی کارٹن ڈبے / پیکٹس');
+        if (whCostLbl) whCostLbl.innerHTML = ebMix('🏭 Master Carton Net Cost', 'کارٹن انوائس لاگت');
+        if (btnWhPerPc) btnWhPerPc.innerHTML = ebMix('🔢 Convert Carton → Per-Box/Pack', 'فی ڈبہ ریٹ');
+        if (btnWhCtnCost) btnWhCtnCost.innerHTML = ebMix('📥 Calc Per-Box Cost from Carton', 'فی ڈبہ لاگت');
     } else {
-        if (whBarTitle) whBarTitle.innerText = '📦 ماسٹر کارٹن ↔ فی پیس ریٹ کیلکولیٹر (Master Carton to Per-Piece Cost & Margin Calculator)';
-        if (whPackLbl) whPackLbl.innerText = '🔢 پیسز فی کارٹن / بوری (Pack Size)';
-        if (whCostLbl) whCostLbl.innerText = '🏭 کارٹن خریداری لاگت (Master Carton Cost)';
-        if (btnWhPerPc) btnWhPerPc.innerText = '🔢 Convert Carton → Per-Piece Rates';
-        if (btnWhCtnCost) btnWhCtnCost.innerText = '📥 Calc Per-Piece Cost from Carton';
+        if (whBarTitle) whBarTitle.innerHTML = ebCompact('📦 Master Carton to Per-Piece Cost & Margin Calculator', 'ماسٹر کارٹن ↔ فی پیس ریٹ کیلکولیٹر');
+        if (whPackLbl) whPackLbl.innerHTML = ebMix('🔢 Pack Size (Pcs/Carton)', 'پیسز فی کارٹن / بوری');
+        if (whCostLbl) whCostLbl.innerHTML = ebMix('🏭 Master Carton Cost', 'کارٹن خریداری لاگت');
+        if (btnWhPerPc) btnWhPerPc.innerHTML = ebMix('🔢 Convert Carton → Per-Piece Rates', 'فی پیس ریٹ');
+        if (btnWhCtnCost) btnWhCtnCost.innerHTML = ebMix('📥 Calc Per-Piece Cost from Carton', 'فی پیس لاگت');
     }
 
     // Dynamically update helper box titles & field labels for the active category (Books vs Mobile vs Wholesaler vs Medical vs Restaurant)
     const helperTitleEl = document.getElementById('purchaseHelperTitle');
     if (helperTitleEl) {
-        helperTitleEl.innerText = pCfg.helperTitle || 'پبلشر ڈسکاؤنٹ اور خریداری ریٹ کیلکولیٹر (Publisher Trade Discount & Supplier - اختیاری)';
+        helperTitleEl.innerHTML = ebFormatBilingualHtml(pCfg.helperTitle || 'Publisher Trade Discount & Supplier Calculator (پبلشر ڈسکاؤنٹ اور خریداری ریٹ کیلکولیٹر)', true);
     }
     const lblSup = document.getElementById('lblItemSupplier');
-    if (lblSup && pCfg.supplierLabel) lblSup.innerText = pCfg.supplierLabel;
+    if (lblSup && pCfg.supplierLabel) lblSup.innerHTML = ebFormatBilingualHtml(pCfg.supplierLabel);
     const supInp = document.getElementById('itemSupplierName');
-    if (supInp && pCfg.supplierPlaceholder) supInp.placeholder = pCfg.supplierPlaceholder;
+    if (supInp && pCfg.supplierPlaceholder) {
+        const sp = ebSplitBilingual(pCfg.supplierPlaceholder);
+        ebSetPh(supInp, sp.en, sp.mix);
+    }
 
     const lblMrp = document.getElementById('lblItemMrp');
-    if (lblMrp && pCfg.mrpLabel) lblMrp.innerText = pCfg.mrpLabel;
+    if (lblMrp && pCfg.mrpLabel) lblMrp.innerHTML = ebFormatBilingualHtml(pCfg.mrpLabel);
     const lblPubDisc = document.getElementById('lblItemPubDisc');
-    if (lblPubDisc && pCfg.discountLabel) lblPubDisc.innerText = pCfg.discountLabel;
+    if (lblPubDisc && pCfg.discountLabel) lblPubDisc.innerHTML = ebFormatBilingualHtml(pCfg.discountLabel);
     const lblWhDisc = document.getElementById('lblItemWhDisc');
-    if (lblWhDisc && pCfg.wholesaleDiscountLabel) lblWhDisc.innerText = pCfg.wholesaleDiscountLabel;
+    if (lblWhDisc && pCfg.wholesaleDiscountLabel) lblWhDisc.innerHTML = ebFormatBilingualHtml(pCfg.wholesaleDiscountLabel);
 
     // Show/hide Used Phone Seller CNIC Verification toggle button in Mobile mode
     const btnUsedSeller = document.getElementById('btnToggleUsedSellerBox');
@@ -2160,7 +2612,7 @@ function applyImageUrlPermission() {
         if (activeBox) activeBox.style.display = 'flex';
         if (urlInput) {
             urlInput.disabled = false;
-            urlInput.placeholder = "Paste image web link (https://...)";
+            ebSetPh(urlInput, 'Paste image web link (https://...)', 'Paste image web link (تصویر کا ویب لنک پیسٹ کریں)');
         }
         if (loadBtn) loadBtn.disabled = false;
     } else {
@@ -2169,7 +2621,7 @@ function applyImageUrlPermission() {
         if (activeBox) activeBox.style.display = 'none';
         if (urlInput) {
             urlInput.disabled = true;
-            urlInput.placeholder = "🔒 Locked by Admin";
+            ebSetPh(urlInput, '🔒 Locked by Admin', '🔒 Locked by Admin (ایڈمن کی طرف سے لاک)');
         }
         if (loadBtn) loadBtn.disabled = true;
     }
@@ -2192,6 +2644,21 @@ function getCacheKey() {
     return `eb_stock_cache_${myAgencyId}_${getActiveStockCategoryId()}`;
 }
 
+function renderStockSyncBadges() {
+    const timeEl = document.getElementById('lastSyncTime');
+    const badgeEl = document.getElementById('cacheStatusBadge');
+    if (lastStockSyncState.status === 'live') {
+        if (timeEl) timeEl.innerHTML = `${ebMix('Synced', 'سنک شدہ')}: ${lastStockSyncState.timeLabel}`;
+        if (badgeEl) {
+            badgeEl.style.background = '#dcfce7';
+            badgeEl.style.color = '#15803d';
+            badgeEl.innerHTML = `<i class="fas fa-check-circle"></i> ${ebMix('Live Synced', 'لائیو سنک شدہ')}`;
+        }
+    } else if (lastStockSyncState.status === 'cached') {
+        if (timeEl) timeEl.innerHTML = `${ebMix('Cached', 'کیش شدہ')}: ${lastStockSyncState.timeLabel}`;
+    }
+}
+
 function loadFromCache() {
     try {
         const cachedStr = localStorage.getItem(getCacheKey());
@@ -2212,7 +2679,8 @@ function loadFromCache() {
                 }
                 if (parsed.timestamp) {
                     const d = new Date(parsed.timestamp);
-                    document.getElementById('lastSyncTime').innerText = 'Cached: ' + d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    lastStockSyncState = { status: 'cached', timeLabel: d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+                    renderStockSyncBadges();
                 }
             }
         }
@@ -2241,10 +2709,8 @@ function saveToCache(items) {
         if (window.ebSidebar && typeof window.ebSidebar.syncBadge === 'function') {
             window.ebSidebar.syncBadge();
         }
-        document.getElementById('lastSyncTime').innerText = 'Synced: ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        document.getElementById('cacheStatusBadge').style.background = '#dcfce7';
-        document.getElementById('cacheStatusBadge').style.color = '#15803d';
-        document.getElementById('cacheStatusBadge').innerHTML = '<i class="fas fa-check-circle"></i> Live Synced';
+        lastStockSyncState = { status: 'live', timeLabel: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+        renderStockSyncBadges();
     } catch (e) {
         console.warn('Cache save error:', e);
     }
@@ -2290,21 +2756,21 @@ async function fetchFreshStock() {
         if (window.hideNHLoader) window.hideNHLoader();
         // If offline and cache exists, we keep showing cache!
         if (allItems.length === 0) {
-            container.innerHTML = '<div class="error-inline">⚠️ Cloud sync failed. Check internet connection.</div>';
+            container.innerHTML = `<div class="error-inline">⚠️ ${ebMix('Cloud sync failed. Check internet connection.', 'کلاؤڈ سنک ناکام — انٹرنیٹ چیک کریں')}</div>`;
         }
     }
 }
 
 document.getElementById('syncStockBtn').addEventListener('click', async () => {
     const btn = document.getElementById('syncStockBtn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${ebMix('Syncing...', 'سنک ہو رہا ہے')}`;
     btn.disabled = true;
     await fetchFreshStock();
-    btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Live';
+    btn.innerHTML = `<i class="fas fa-sync-alt"></i> ${ebMix('Sync Live', 'لائیو سنک')}`;
     btn.disabled = false;
     Swal.fire({
         toast: true, position: 'top-end', showConfirmButton: false,
-        timer: 1600, icon: 'success', title: '✅ Stock data synchronized!'
+        timer: 1600, icon: 'success', title: ebT('✅ Stock data synchronized!', '✅ Stock synchronized (اسٹاک سنک ہو گیا)')
     });
 });
 
@@ -2344,7 +2810,7 @@ function renderStats() {
     document.getElementById('statTotal').innerText = total;
     document.getElementById('statValue').innerText = 'Rs ' + fmtPKR(retailValue);
     document.getElementById('statCostValue').innerText = 'Rs ' + fmtPKR(costValue);
-    document.getElementById('statProfitEst').innerText = 'Est. Profit: Rs ' + fmtPKR(estProfit);
+    document.getElementById('statProfitEst').innerHTML = `${ebMix('Est. Profit', 'متوقع منافع')}: Rs ${fmtPKR(estProfit)}`;
     document.getElementById('statLow').innerText = low;
     document.getElementById('statOut').innerText = out;
 
@@ -2366,22 +2832,26 @@ if (valCard) {
         });
         const retailProfit = retailVal - costVal;
         const wholesaleProfit = wholesaleVal - costVal;
+        const catId = (currentCategoryDef && currentCategoryDef.id) ? currentCategoryDef.id : 'wholesaler';
+        const uiCfg = getCategoryStockUiConfig(catId);
 
         Swal.fire({
-            title: '💼 Inventory Financial Valuation',
+            title: catId === 'restaurant'
+                ? ebT('🍔 Menu & Kitchen Cost Valuation', '🍔 Menu & Kitchen Valuation (مینو مالیت)')
+                : ebT('💼 Inventory Financial Valuation', '💼 Inventory Valuation (اسٹاک مالیت)'),
             html: `
                 <div style="text-align:left; font-size:14px; line-height:1.9; background:#f8fafc; padding:16px; border-radius:12px; border:1px solid #e2e8f0; color:#1e293b;">
-                    <div>📦 <b>Total Unique Products:</b> ${totalItems}</div>
+                    <div>📦 <b>${ebMix(uiCfg.statTotal, uiCfg.statTotalUr)}:</b> ${totalItems}</div>
                     <hr style="margin:8px 0; border:none; border-top:1px dashed #cbd5e1;">
-                    <div>💵 <b>Purchase Cost (خریداری مالیت):</b> <span style="font-weight:bold; color:#475569;">Rs ${fmtPKR(costVal)}</span></div>
-                    <div>🏪 <b>Wholesale Value (ہول سیل مالیت):</b> <span style="font-weight:bold; color:#0284c7;">Rs ${fmtPKR(wholesaleVal)}</span></div>
-                    <div>🏷️ <b>Retail Value (پرچون مالیت):</b> <span style="font-weight:bold; color:#15803d;">Rs ${fmtPKR(retailVal)}</span></div>
+                    <div>💵 <b>${ebMix(`${uiCfg.cardCostTag} Value`, uiCfg.statCostUr)}:</b> <span style="font-weight:bold; color:#475569;">Rs ${fmtPKR(costVal)}</span></div>
+                    <div>🏪 <b>${ebMix(`${uiCfg.cardWhTag} Value`, `${uiCfg.cardWhTagUr} مالیت`)}:</b> <span style="font-weight:bold; color:#0284c7;">Rs ${fmtPKR(wholesaleVal)}</span></div>
+                    <div>🏷️ <b>${ebMix(`${uiCfg.cardRetTag} Value`, uiCfg.statValueUr)}:</b> <span style="font-weight:bold; color:#15803d;">Rs ${fmtPKR(retailVal)}</span></div>
                     <hr style="margin:8px 0; border:none; border-top:1px dashed #cbd5e1;">
-                    <div>📈 <b>Wholesale Margin:</b> <span style="color:#0369a1; font-weight:bold;">+Rs ${fmtPKR(wholesaleProfit)}</span></div>
-                    <div>💰 <b>Full Retail Margin:</b> <span style="color:#15803d; font-weight:bold;">+Rs ${fmtPKR(retailProfit)}</span></div>
+                    <div>📈 <b>${ebMix(`${uiCfg.cardWhTag} Margin`, 'ہول سیل منافع')}:</b> <span style="color:#0369a1; font-weight:bold;">+Rs ${fmtPKR(wholesaleProfit)}</span></div>
+                    <div>💰 <b>${ebMix(`Full ${uiCfg.cardRetTag} Margin`, 'مکمل پرچون منافع')}:</b> <span style="color:#15803d; font-weight:bold;">+Rs ${fmtPKR(retailProfit)}</span></div>
                 </div>
             `,
-            confirmButtonText: 'Close',
+            confirmButtonText: ebT('Close', 'Close (بند کریں)'),
             confirmButtonColor: '#27ae60'
         });
     });
@@ -2402,7 +2872,11 @@ function populateCategoryFilter() {
         });
 
         const currentVal = select.value;
-        select.innerHTML = '<option value="all">📂 All Categories</option>';
+        select.innerHTML = '';
+        const allCatOpt = document.createElement('option');
+        allCatOpt.value = 'all';
+        ebSetSelectOption(allCatOpt, '📂 All Categories', 'تمام کیٹگریز');
+        select.appendChild(allCatOpt);
         cats.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c;
@@ -2449,24 +2923,34 @@ function populateCategoryFilter() {
         quickBar.style.display = 'flex';
 
         const prevPri = priSelect.value || 'all';
-        priSelect.innerHTML = '<option value="all">🎓 All Classes / جماعتیں</option>';
+        priSelect.innerHTML = '';
+        const priAll = document.createElement('option');
+        priAll.value = 'all';
+        ebSetSelectOption(priAll, '🎓 All Classes', 'تمام جماعتیں');
+        priSelect.appendChild(priAll);
         classes.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c;
             opt.textContent = `🎓 ${c}`;
             priSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(priSelect);
         if (classes.has(prevPri)) priSelect.value = prevPri;
         else { priSelect.value = 'all'; currentIndustryPrimary = 'all'; }
 
         const prevSec = secSelect.value || 'all';
-        secSelect.innerHTML = '<option value="all">🏛️ All Publishers / Brands</option>';
+        secSelect.innerHTML = '';
+        const secAll = document.createElement('option');
+        secAll.value = 'all';
+        ebSetSelectOption(secAll, '🏛️ All Publishers / Brands', 'تمام پبلشرز');
+        secSelect.appendChild(secAll);
         publishers.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p;
             opt.textContent = `🏛️ ${p}`;
             secSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(secSelect);
         if (publishers.has(prevSec)) secSelect.value = prevSec;
         else { secSelect.value = 'all'; currentIndustrySecondary = 'all'; }
     } else if (isMobileMode) {
@@ -2490,24 +2974,34 @@ function populateCategoryFilter() {
         quickBar.style.display = 'flex';
 
         const prevPri = priSelect.value || 'all';
-        priSelect.innerHTML = '<option value="all">📱 All Brands / کمپنیاں</option>';
+        priSelect.innerHTML = '';
+        const priAll = document.createElement('option');
+        priAll.value = 'all';
+        ebSetSelectOption(priAll, '📱 All Brands', 'تمام کمپنیاں');
+        priSelect.appendChild(priAll);
         brands.forEach(b => {
             const opt = document.createElement('option');
             opt.value = b;
             opt.textContent = `📱 ${b}`;
             priSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(priSelect);
         if (brands.has(prevPri)) priSelect.value = prevPri;
         else { priSelect.value = 'all'; currentIndustryPrimary = 'all'; }
 
         const prevSec = secSelect.value || 'all';
-        secSelect.innerHTML = '<option value="all">📡 All PTA / کنڈیشن</option>';
+        secSelect.innerHTML = '';
+        const secAll = document.createElement('option');
+        secAll.value = 'all';
+        ebSetSelectOption(secAll, '📡 All PTA / Condition', 'تمام PTA / کنڈیشن');
+        secSelect.appendChild(secAll);
         ptaOrConditions.forEach(pc => {
             const opt = document.createElement('option');
             opt.value = pc;
             opt.textContent = `📡 ${pc}`;
             secSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(secSelect);
         if (ptaOrConditions.has(prevSec)) secSelect.value = prevSec;
         else { secSelect.value = 'all'; currentIndustrySecondary = 'all'; }
     } else if (isWholesalerMode || isDistributorMode) {
@@ -2544,32 +3038,46 @@ function populateCategoryFilter() {
         quickBar.style.display = 'flex';
 
         const prevPri = priSelect.value || 'all';
-        priSelect.innerHTML = isDistributorMode
-            ? '<option value="all">🚚 All Principal Agencies / ڈویژنز</option>'
-            : '<option value="all">🏭 All Principal Companies / کمپنیاں</option>';
+        priSelect.innerHTML = '';
+        const priAll = document.createElement('option');
+        priAll.value = 'all';
+        if (isDistributorMode) {
+            ebSetSelectOption(priAll, '🚚 All Principal Agencies', 'تمام ایجنسیاں / ڈویژنز');
+        } else {
+            ebSetSelectOption(priAll, '🏭 All Principal Companies', 'تمام کمپنیاں');
+        }
+        priSelect.appendChild(priAll);
         companies.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c;
             opt.textContent = `${isDistributorMode ? '🚚' : '🏭'} ${c}`;
             priSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(priSelect);
         if (companies.has(prevPri)) priSelect.value = prevPri;
         else { priSelect.value = 'all'; currentIndustryPrimary = 'all'; }
 
         const prevSec = secSelect.value || 'all';
-        secSelect.innerHTML = isDistributorMode
-            ? '<option value="all">📦 All Divisions, Schemes &amp; Expiry</option>'
-            : '<option value="all">📦 All Groups &amp; Schemes / اسکیمز</option>';
+        secSelect.innerHTML = '';
+        const secAll = document.createElement('option');
+        secAll.value = 'all';
+        if (isDistributorMode) {
+            ebSetSelectOption(secAll, '📦 All Divisions, Schemes & Expiry', 'تمام ڈویژنز، اسکیمز اور ایکسپائری');
+        } else {
+            ebSetSelectOption(secAll, '📦 All Groups & Schemes', 'تمام گروپس اور اسکیمز');
+        }
+        secSelect.appendChild(secAll);
         if (hasAnyScheme || isDistributorMode) {
             const schOpt = document.createElement('option');
             schOpt.value = '__active_scheme__';
-            schOpt.textContent = '🎁 Active Scheme / Bonus / T.O Items Only';
+            ebSetSelectOption(schOpt, '🎁 Active Scheme / Bonus / T.O Items Only', 'صرف اسکیم / بونس آئٹمز');
             secSelect.appendChild(schOpt);
         }
         if (isDistributorMode || nearOrExpiredCount > 0) {
             const expOpt = document.createElement('option');
             expOpt.value = '__near_expiry__';
-            expOpt.textContent = `⏳ Near-Expiry (≤90d) & Expired Only${nearOrExpiredCount > 0 ? ` (${nearOrExpiredCount})` : ''}`;
+            const cntSuffix = nearOrExpiredCount > 0 ? ` (${nearOrExpiredCount})` : '';
+            ebSetSelectOption(expOpt, `⏳ Near-Expiry (≤90d) & Expired Only${cntSuffix}`, 'قریب ایکسپائری / ایکسپائرڈ');
             secSelect.appendChild(expOpt);
         }
         groupsAndSchemes.forEach(gs => {
@@ -2578,6 +3086,7 @@ function populateCategoryFilter() {
             opt.textContent = `🎁 ${gs}`;
             secSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(secSelect);
         if (prevSec === '__active_scheme__' || prevSec === '__near_expiry__' || groupsAndSchemes.has(prevSec)) secSelect.value = prevSec;
         else { secSelect.value = 'all'; currentIndustrySecondary = 'all'; }
     } else if (isMedicalMode) {
@@ -2606,26 +3115,43 @@ function populateCategoryFilter() {
         quickBar.style.display = 'flex';
 
         const prevPri = priSelect.value || 'all';
-        priSelect.innerHTML = '<option value="all">🏥 All Pharma Companies / تمام کمپنیاں</option>';
+        priSelect.innerHTML = '';
+        const priAll = document.createElement('option');
+        priAll.value = 'all';
+        ebSetSelectOption(priAll, '🏥 All Pharma Companies', 'تمام فارما کمپنیاں');
+        priSelect.appendChild(priAll);
         pharmaCompanies.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c;
             opt.textContent = `🏥 ${c}`;
             priSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(priSelect);
         if (pharmaCompanies.has(prevPri)) priSelect.value = prevPri;
         else { priSelect.value = 'all'; currentIndustryPrimary = 'all'; }
 
         const prevSec = secSelect.value || 'all';
-        secSelect.innerHTML = `<option value="all">🧬 All Formulas &amp; Expiry Status</option>
-            <option value="__near_expiry__">⏳ Near-Expiry (≤90d) &amp; Expired Only${nearOrExpiredCount > 0 ? ` (${nearOrExpiredCount})` : ''}</option>
-            <option value="__expired_only__">🔴 Expired Medicines Only</option>`;
+        secSelect.innerHTML = '';
+        const secAll = document.createElement('option');
+        secAll.value = 'all';
+        ebSetSelectOption(secAll, '🧬 All Formulas & Expiry Status', 'تمام فارمولے اور ایکسپائری');
+        secSelect.appendChild(secAll);
+        const nearOpt = document.createElement('option');
+        nearOpt.value = '__near_expiry__';
+        const cntSuffix = nearOrExpiredCount > 0 ? ` (${nearOrExpiredCount})` : '';
+        ebSetSelectOption(nearOpt, `⏳ Near-Expiry (≤90d) & Expired Only${cntSuffix}`, 'قریب ایکسپائری / ایکسپائرڈ');
+        secSelect.appendChild(nearOpt);
+        const expOnlyOpt = document.createElement('option');
+        expOnlyOpt.value = '__expired_only__';
+        ebSetSelectOption(expOnlyOpt, '🔴 Expired Medicines Only', 'صرف ایکسپائرڈ ادویات');
+        secSelect.appendChild(expOnlyOpt);
         formulasAndRacks.forEach(fr => {
             const opt = document.createElement('option');
             opt.value = fr;
             opt.textContent = `🧬 ${fr}`;
             secSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(secSelect);
         if (prevSec === '__near_expiry__' || prevSec === '__expired_only__' || formulasAndRacks.has(prevSec)) secSelect.value = prevSec;
         else { secSelect.value = 'all'; currentIndustrySecondary = 'all'; }
     } else if (isRestaurantMode) {
@@ -2660,25 +3186,39 @@ function populateCategoryFilter() {
         quickBar.style.display = 'flex';
 
         const prevPri = priSelect.value || 'all';
-        priSelect.innerHTML = '<option value="all">👨‍🍳 All Kitchen Stations / تمام کاؤنٹرز</option>';
+        priSelect.innerHTML = '';
+        const priAll = document.createElement('option');
+        priAll.value = 'all';
+        ebSetSelectOption(priAll, '👨‍🍳 All Kitchen Stations', 'تمام کچن کاؤنٹرز');
+        priSelect.appendChild(priAll);
         stations.forEach(s => {
             const opt = document.createElement('option');
             opt.value = s;
             opt.textContent = `👨‍🍳 ${s}`;
             priSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(priSelect);
         if (stations.has(prevPri)) priSelect.value = prevPri;
         else { priSelect.value = 'all'; currentIndustryPrimary = 'all'; }
 
         const prevSec = secSelect.value || 'all';
-        secSelect.innerHTML = `<option value="all">🍔 All Sizes, Flavors &amp; KOT Zones</option>
-            <option value="__deals_combos__">🎁 Combo &amp; Family Deals Only${dealComboCount > 0 ? ` (${dealComboCount})` : ''}</option>`;
+        secSelect.innerHTML = '';
+        const secAll = document.createElement('option');
+        secAll.value = 'all';
+        ebSetSelectOption(secAll, '🍔 All Sizes, Flavors & KOT Zones', 'تمام سائز، فلیورز اور KOT زونز');
+        secSelect.appendChild(secAll);
+        const dealsOpt = document.createElement('option');
+        dealsOpt.value = '__deals_combos__';
+        const dSuffix = dealComboCount > 0 ? ` (${dealComboCount})` : '';
+        ebSetSelectOption(dealsOpt, `🎁 Combo & Family Deals Only${dSuffix}`, 'صرف کومبو / فیملی ڈیلز');
+        secSelect.appendChild(dealsOpt);
         sizesFlavorsZones.forEach(sfz => {
             const opt = document.createElement('option');
             opt.value = sfz;
             opt.textContent = `🌶️ ${sfz}`;
             secSelect.appendChild(opt);
         });
+        ebBilingualizeSelectOptions(secSelect);
         if (prevSec === '__deals_combos__' || sizesFlavorsZones.has(prevSec)) secSelect.value = prevSec;
         else { secSelect.value = 'all'; currentIndustrySecondary = 'all'; }
     } else {
@@ -2823,8 +3363,10 @@ function renderItems() {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="big-icon">📦</div>
-                <strong>Inventory Stock is Empty!</strong><br>
-                ${isBooker ? 'No items in stock yet.' : 'Click "Add New Product" above to create your first item!'}
+                <strong>${ebMix('Inventory Stock is Empty!', 'اسٹاک ابھی خالی ہے!')}</strong><br>
+                ${isBooker
+                    ? ebCompact('No items in stock yet.', 'ابھی اسٹاک میں کوئی آئٹم موجود نہیں۔')
+                    : ebCompact('Click "Add New Product" above to create your first item!', 'پہلا آئٹم شامل کرنے کے لیے اوپر "نیا آئٹم شامل کریں" پر کلک کریں۔')}
             </div>`;
         return;
     }
@@ -2833,8 +3375,8 @@ function renderItems() {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="big-icon">🔍</div>
-                Koi item match nahi hua!<br>
-                <small>Search ya category filter tabdeel karein</small>
+                <strong>${ebMix('No matching items found!', 'کوئی آئٹم میچ نہیں ہوا!')}</strong><br>
+                <small>${ebCompact('Try changing your search or category filter', 'سرچ یا کیٹگری فلٹر تبدیل کریں')}</small>
             </div>`;
         return;
     }
@@ -2854,12 +3396,12 @@ function renderItems() {
         let badge = '';
         if (qty <= 0) {
             statusClass = 'out-stock';
-            badge = '<span class="item-badge badge-out">💥 OUT OF STOCK</span>';
+            badge = `<span class="item-badge badge-out">💥 ${ebMix('OUT OF STOCK', 'اسٹاک ختم')}</span>`;
         } else if (qty <= limit) {
             statusClass = 'low-stock';
-            badge = `<span class="item-badge badge-low">⚠️ LOW STOCK (<= ${limit})</span>`;
+            badge = `<span class="item-badge badge-low">⚠️ ${ebMix('LOW STOCK', 'کم اسٹاک')} (<= ${limit})</span>`;
         } else {
-            badge = '<span class="item-badge badge-ok">✅ In Stock</span>';
+            badge = `<span class="item-badge badge-ok">✅ ${ebMix('In Stock', 'اسٹاک موجود')}</span>`;
         }
 
         const barcodeHtml = item.barcode ? `<span class="item-code-tag"><i class="fas fa-barcode"></i> ${item.barcode}</span>` : '';
@@ -2877,28 +3419,34 @@ function renderItems() {
 
         if ((item.industryFields && typeof item.industryFields === 'object') || item.supplierName || item.lastSupplier || item.publisherDiscPercent) {
             const parts = [];
-            if (ind.itemSubType) parts.push(`🏷️ <b>قسم:</b> ${ind.itemSubType}`);
-            if (ind.classGrade) parts.push(`🎓 <b>جماعت:</b> ${ind.classGrade}`);
-            if (ind.publisherBoard) parts.push(`🏛️ <b>بورڈ/پبلشر:</b> ${ind.publisherBoard}`);
-            if (ind.brandCompany) parts.push(`${isMedMode ? '🏥 <b>فارما کمپنی:</b>' : (isDistMode ? '🚚 <b>ایجنسی/ڈویژن:</b>' : (isWhMode ? '🏭 <b>کمپنی/برانڈ:</b>' : (isRestMode ? '👨‍🍳 <b>کچن اسٹیشن:</b>' : '📱 <b>برانڈ:</b>')))} ${ind.brandCompany}`);
-            if (ind.portionSize) parts.push(`📏 <b>سائز/پورشن:</b> ${ind.portionSize}`);
-            if (ind.spiceVariant) parts.push(`🌶️ <b>فلیور/مصالحہ:</b> ${ind.spiceVariant}`);
-            if (ind.prepTimeMins) parts.push(`⏱️ <b>تیاری:</b> ${ind.prepTimeMins}m`);
-            if (ind.kitchenKOTZone) parts.push(`🔔 <b>KOT زون:</b> ${ind.kitchenKOTZone}`);
-            if (ind.dealContents) parts.push(`🎁 <b>ڈیل آئٹمز:</b> ${ind.dealContents}`);
-            if (ind.addonsNote) parts.push(`🧀 <b>ایڈ آنز:</b> ${ind.addonsNote}`);
-            if (ind.tableNo) parts.push(`🍽️ <b>سروس موڈ:</b> ${ind.tableNo}`);
-            if (ind.genericFormula) parts.push(`🧬 <b>فارمولا/سالٹ:</b> ${ind.genericFormula}`);
-            if (ind.dosageStrength) parts.push(`⚖️ <b>پوٹینسی/پیک:</b> ${ind.dosageStrength}`);
-            if (ind.storageRack) parts.push(`🗄️ <b>ریک/اسٹیٹس:</b> ${ind.storageRack}`);
-            if (ind.modelVariant) parts.push(`📲 <b>ماڈل:</b> ${ind.modelVariant}`);
-            if (ind.ramStorage) parts.push(`💾 <b>ریم/اسپیک:</b> ${ind.ramStorage}`);
-            if (ind.cartonPacking) parts.push(`📦 <b>کارٹن پیکنگ:</b> ${ind.cartonPacking}`);
+            if (ind.itemSubType) parts.push(ebTag('🏷️', 'Type', 'قسم', ebFormatBilingualHtml(ind.itemSubType)));
+            if (ind.classGrade) parts.push(ebTag('🎓', 'Class', 'جماعت', ind.classGrade));
+            if (ind.publisherBoard) parts.push(ebTag('🏛️', 'Publisher', 'بورڈ/پبلشر', ind.publisherBoard));
+            if (ind.brandCompany) {
+                if (isMedMode) parts.push(ebTag('🏥', 'Pharma', 'فارما کمپنی', ind.brandCompany));
+                else if (isDistMode) parts.push(ebTag('🚚', 'Agency', 'ایجنسی/ڈویژن', ind.brandCompany));
+                else if (isWhMode) parts.push(ebTag('🏭', 'Company', 'کمپنی/برانڈ', ind.brandCompany));
+                else if (isRestMode) parts.push(ebTag('👨‍🍳', 'Station', 'کچن اسٹیشن', ind.brandCompany));
+                else parts.push(ebTag('📱', 'Brand', 'برانڈ', ind.brandCompany));
+            }
+            if (ind.portionSize) parts.push(ebTag('📏', 'Size', 'سائز/پورشن', ind.portionSize));
+            if (ind.spiceVariant) parts.push(ebTag('🌶️', 'Flavor', 'فلیور/مصالحہ', ind.spiceVariant));
+            if (ind.prepTimeMins) parts.push(ebTag('⏱️', 'Prep', 'تیاری', `${ind.prepTimeMins}m`));
+            if (ind.kitchenKOTZone) parts.push(ebTag('🔔', 'KOT Zone', 'KOT زون', ebFormatBilingualHtml(ind.kitchenKOTZone)));
+            if (ind.dealContents) parts.push(ebTag('🎁', 'Deal Items', 'ڈیل آئٹمز', ind.dealContents));
+            if (ind.addonsNote) parts.push(ebTag('🧀', 'Add-ons', 'ایڈ آنز', ind.addonsNote));
+            if (ind.tableNo) parts.push(ebTag('🍽️', 'Service', 'سروس موڈ', ebFormatBilingualHtml(ind.tableNo)));
+            if (ind.genericFormula) parts.push(ebTag('🧬', 'Formula', 'فارمولا/سالٹ', ind.genericFormula));
+            if (ind.dosageStrength) parts.push(ebTag('⚖️', 'Strength', 'پوٹینسی/پیک', ind.dosageStrength));
+            if (ind.storageRack) parts.push(ebTag('🗄️', 'Rack', 'ریک/اسٹیٹس', ebFormatBilingualHtml(ind.storageRack)));
+            if (ind.modelVariant) parts.push(ebTag('📲', 'Model', 'ماڈل', ind.modelVariant));
+            if (ind.ramStorage) parts.push(ebTag('💾', 'RAM/Spec', 'ریم/اسپیک', ind.ramStorage));
+            if (ind.cartonPacking) parts.push(ebTag('📦', 'Packing', 'کارٹن پیکنگ', ind.cartonPacking));
             if (Number(ind.retailMrp) > 0) parts.push(`🏷️ <b>MRP:</b> Rs ${fmtPKR(ind.retailMrp)}`);
             if (Number(ind.tradePriceTP) > 0) parts.push(`💰 <b>TP:</b> Rs ${fmtPKR(ind.tradePriceTP)}`);
             if (Number(ind.tradeOfferPercent) > 0) parts.push(`📉 <b>T.O:</b> ${ind.tradeOfferPercent}%`);
-            if (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme')) parts.push(`🎁 <b>بونس رول:</b> ${ind.bonusSchemeRule}`);
-            if (ind.vanRouteZone) parts.push(`🗺️ <b>روٹ/گودام:</b> ${ind.vanRouteZone}`);
+            if (ind.bonusSchemeRule && !String(ind.bonusSchemeRule).startsWith('No Scheme')) parts.push(ebTag('🎁', 'Bonus Rule', 'بونس رول', ebFormatBilingualHtml(ind.bonusSchemeRule)));
+            if (ind.vanRouteZone) parts.push(ebTag('🗺️', 'Route/Godown', 'روٹ/گودام', ind.vanRouteZone));
             if (ind.skuBatchCode) parts.push(`🔖 <b>SKU/Batch:</b> ${ind.skuBatchCode}`);
             const supDisplay = item.supplierName || item.lastSupplier || '';
             if (
@@ -2906,16 +3454,16 @@ function renderItems() {
                 supDisplay.toLowerCase() !== String(ind.publisherBoard || '').toLowerCase() &&
                 supDisplay.toLowerCase() !== String(ind.brandCompany || '').toLowerCase()
             ) {
-                parts.push(`🏢 <b>سپلائر:</b> ${supDisplay}`);
+                parts.push(ebTag('🏢', 'Supplier', 'سپلائر', supDisplay));
             }
-            if (ind.subjectAuthor) parts.push(`✍️ <b>مضمون:</b> ${ind.subjectAuthor}`);
-            if (ind.mediumLang) parts.push(`🌐 <b>میڈیم:</b> ${ind.mediumLang}`);
-            if (ind.editionYear) parts.push(`📅 <b>ایڈیشن:</b> ${ind.editionYear}`);
-            if (ind.pagesRuling) parts.push(`📒 <b>صفحات/سائز:</b> ${ind.pagesRuling}`);
-            if (ind.bindingVariant) parts.push(`🎨 <b>بائنڈنگ/ویرینٹ:</b> ${ind.bindingVariant}`);
-            if (ind.colorFinish) parts.push(`🎨 <b>رنگ:</b> ${ind.colorFinish}`);
-            if (ind.ptaStatus) parts.push(`📡 <b>PTA:</b> ${ind.ptaStatus}`);
-            if (ind.conditionGrade) parts.push(`✨ <b>کنڈیشن/کوالٹی:</b> ${ind.conditionGrade}`);
+            if (ind.subjectAuthor) parts.push(ebTag('✍️', 'Subject', 'مضمون', ind.subjectAuthor));
+            if (ind.mediumLang) parts.push(ebTag('🌐', 'Medium', 'میڈیم', ebFormatBilingualHtml(ind.mediumLang)));
+            if (ind.editionYear) parts.push(ebTag('📅', 'Edition', 'ایڈیشن', ind.editionYear));
+            if (ind.pagesRuling) parts.push(ebTag('📒', 'Pages/Size', 'صفحات/سائز', ind.pagesRuling));
+            if (ind.bindingVariant) parts.push(ebTag('🎨', 'Binding', 'بائنڈنگ/ویرینٹ', ebFormatBilingualHtml(ind.bindingVariant)));
+            if (ind.colorFinish) parts.push(ebTag('🎨', 'Color', 'رنگ', ind.colorFinish));
+            if (ind.ptaStatus) parts.push(`📡 <b>PTA:</b> ${ebFormatBilingualHtml(ind.ptaStatus)}`);
+            if (ind.conditionGrade) parts.push(ebTag('✨', 'Condition', 'کنڈیشن/کوالٹی', ebFormatBilingualHtml(ind.conditionGrade)));
             if (ind.imei1 || ind.imei2 || ind.imei3 || ind.imei4) {
                 if (ind.imei1) parts.push(`🔢 <b>IMEI-1:</b> ${ind.imei1}`);
                 if (ind.imei2) parts.push(`🔢 <b>IMEI-2:</b> ${ind.imei2}`);
@@ -2924,30 +3472,30 @@ function renderItems() {
             } else if (ind.imeiSerial) {
                 parts.push(`📱 <b>IMEI:</b> ${ind.imeiSerial}`);
             }
-            if (ind.warrantyInfo) parts.push(`🛡️ <b>وارنٹی:</b> ${ind.warrantyInfo}`);
+            if (ind.warrantyInfo) parts.push(ebTag('🛡️', 'Warranty', 'وارنٹی', ind.warrantyInfo));
             if (effectivePackSize > 1) {
                 const isMobMode = currentCategoryDef && currentCategoryDef.id === 'mobile';
                 const subLabel = item.unit === 'set' ? (isMobMode ? 'Items/Set' : 'Books/Set') : (item.unit === 'ream' ? 'Sheets/Ream' : (item.unit === 'maund' ? 'kg/Maund' : (isMedMode ? `Strips/Tabs per ${unit}` : `Pcs/${unit}`)));
-                parts.push(`📦 <b>پیکنگ:</b> ${effectivePackSize} ${subLabel}`);
+                parts.push(ebTag('📦', 'Pack', 'پیکنگ', `${effectivePackSize} ${subLabel}`));
             }
-            if (ind.isbnCode) parts.push(`🔢 <b>ISBN/کوڈ:</b> ${ind.isbnCode}`);
+            if (ind.isbnCode) parts.push(ebTag('🔢', 'ISBN/Code', 'ISBN/کوڈ', ind.isbnCode));
             if (ind.sellerCnic || ind.sellerName || ind.sellerPhone) {
                 const sellerSummary = [ind.sellerName, ind.sellerCnic ? `CNIC: ${ind.sellerCnic}` : '', ind.sellerPhone].filter(Boolean).join(' • ');
-                parts.push(`🪪 <b>فروخت کنندہ ریکارڈ:</b> ${sellerSummary}`);
+                parts.push(ebTag('🪪', 'Seller Record', 'فروخت کنندہ ریکارڈ', sellerSummary));
             }
-            if (Number(item.publisherDiscPercent) > 0) parts.push(`📉 <b>ڈسکاؤنٹ:</b> ${item.publisherDiscPercent}%`);
-            if (item.lastPurchaseInvoice) parts.push(`🧾 <b>بلٹی/بل:</b> ${item.lastPurchaseInvoice}`);
+            if (Number(item.publisherDiscPercent) > 0) parts.push(ebTag('📉', 'Discount', 'ڈسکاؤنٹ', `${item.publisherDiscPercent}%`));
+            if (item.lastPurchaseInvoice) parts.push(ebTag('🧾', 'Inv/Bilty', 'بلٹی/بل', item.lastPurchaseInvoice));
             if (ind.batchNo) parts.push(`💊 <b>Batch:</b> ${ind.batchNo}`);
             if (ind.expiryDate) {
                 const expInfo = classifyStockExpiryStatus(ind.expiryDate);
                 if (expInfo.status === 'expired') {
-                    parts.push(`<span style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:1px 6px; border-radius:6px; font-weight:800;">🔴 EXPIRED (${ind.expiryDate})</span>`);
+                    parts.push(`<span style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:1px 6px; border-radius:6px; font-weight:800;">🔴 ${ebMix('EXPIRED', 'ایکسپائرڈ')} (${ind.expiryDate})</span>`);
                 } else if (expInfo.status === 'critical') {
                     parts.push(`<span style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; padding:1px 6px; border-radius:6px; font-weight:800;">🟠 ${expInfo.label} (${ind.expiryDate})</span>`);
                 } else if (expInfo.status === 'warning') {
                     parts.push(`<span style="background:#fef9c3; color:#a16207; border:1px solid #fde047; padding:1px 6px; border-radius:6px; font-weight:700;">🟡 ${expInfo.label} (${ind.expiryDate})</span>`);
                 } else {
-                    parts.push(`⏳ <b>Exp:</b> ${ind.expiryDate}`);
+                    parts.push(ebTag('⏳', 'Exp', 'ایکسپائری', ind.expiryDate));
                 }
             }
             if (ind.shoeSize) parts.push(`👟 <b>Size:</b> ${ind.shoeSize}`);
@@ -2973,7 +3521,7 @@ function renderItems() {
             const subUnitSingle = item.unit === 'set' ? (isMobCategory ? 'pc' : 'book') : (item.unit === 'ream' ? 'sheet' : (item.unit === 'maund' ? 'kg' : 'pc'));
             subUnitRateHtml = `<span class="rate-tag" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;">≈ Rs ${perPieceRetail.toLocaleString()} / ${subUnitSingle}</span>`;
             if (isWhMode && perPieceCost > 0) {
-                subUnitRateHtml += ` <span class="rate-tag" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1;">Cost ≈ Rs ${perPieceCost.toLocaleString()} / ${subUnitSingle}</span>`;
+                subUnitRateHtml += ` <span class="rate-tag" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1;">${ebT('Cost', 'لاگت')} ≈ Rs ${perPieceCost.toLocaleString()} / ${subUnitSingle}</span>`;
             }
         }
 
@@ -2981,11 +3529,11 @@ function renderItems() {
         const safeName = String(item.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
         const photoHtml = item.photoUrl
-            ? `<div class="item-photo-portrait-wrapper" onclick="showItemPhotoModal('${item.id}', '${safeName}', '${item.photoUrl}')" title="Click to view photo (تصویر دیکھیں)" style="width:52px; height:70px; border-radius:10px; overflow:hidden; border:1.5px solid #cbd5e1; box-shadow:0 2px 6px rgba(0,0,0,0.06); flex-shrink:0; cursor:pointer; position:relative; background:#f8fafc;">
+            ? `<div class="item-photo-portrait-wrapper" onclick="showItemPhotoModal('${item.id}', '${safeName}', '${item.photoUrl}')" title="${ebEscAttr(ebT('Click to view photo', 'Click to view photo (تصویر دیکھیں)'))}" style="width:52px; height:70px; border-radius:10px; overflow:hidden; border:1.5px solid #cbd5e1; box-shadow:0 2px 6px rgba(0,0,0,0.06); flex-shrink:0; cursor:pointer; position:relative; background:#f8fafc;">
                 <img src="${item.photoUrl}" alt="${safeName}" style="width:100%; height:100%; object-fit:cover; display:block;">
                 <span style="position:absolute; bottom:2px; right:2px; background:rgba(15,23,42,0.7); color:#fff; font-size:7px; font-weight:800; padding:1px 3px; border-radius:3px;">3:4</span>
                </div>`
-            : `<div onclick="adjustProductPhotoDirectly('${item.id}')" title="Click to add photo" style="width:52px; height:70px; border-radius:10px; background:#f1f5f9; border:1.5px dashed #cbd5e1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; cursor:pointer; color:#94a3b8;">
+            : `<div onclick="adjustProductPhotoDirectly('${item.id}')" title="${ebEscAttr(ebT('Click to add photo', 'Click to add photo (تصویر لگائیں)'))}" style="width:52px; height:70px; border-radius:10px; background:#f1f5f9; border:1.5px dashed #cbd5e1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; cursor:pointer; color:#94a3b8;">
                 <span>📦</span>
                 <span style="font-size:8px; font-weight:700; color:#64748b; margin-top:2px;">+ Photo</span>
                </div>`;
@@ -2993,45 +3541,48 @@ function renderItems() {
         const schemeHtml = item.hasScheme ? `
             <div style="margin-top:4px;">
                 <span style="background:#fdf4ff; color:#a21caf; border:1px solid #f0abfc; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; display:inline-flex; align-items:center; gap:4px;">
-                    🎁 ${item.schemeLabel || 'Trade Scheme Active'}
+                    🎁 ${item.schemeLabel || ebMix('Trade Scheme Active', 'ٹریڈ اسکیم فعال')}
                 </span>
             </div>` : '';
 
-        const hasUsedSellerRecord = Boolean(ind.sellerCnic || ind.sellerName || String(ind.conditionGrade || '').toLowerCase().includes('used') || String(ind.conditionGrade || '').includes('استعمال شدہ'));
+        const hasUsedSellerRecord = isMobCategory && Boolean(ind.sellerCnic || ind.sellerName || String(ind.conditionGrade || '').toLowerCase().includes('used') || String(ind.conditionGrade || '').includes('استعمال شدہ'));
+        const cardUiCfg = getCategoryStockUiConfig(currentCategoryDef ? currentCategoryDef.id : 'wholesaler');
+        const cloneTipParts = ebSplitBilingual(cardUiCfg.cloneTitle || 'Clone Variant');
+        const cloneTip = ebIsMix() ? cloneTipParts.mix : cloneTipParts.en;
 
         html += `
         <div class="item-card ${statusClass}" style="display:flex; gap:12px; align-items:center;">
             ${photoHtml}
             <div class="item-info" style="flex:1;">
                 <div class="item-name">
-                    <span>${item.name || 'Unnamed Product'}</span>
+                    <span>${item.name || ebT('Unnamed Product', 'Unnamed Product (بے نام آئٹم)')}</span>
                     ${barcodeHtml}
                     ${catHtml}
                 </div>
                 ${industryDetailsHtml}
                 <div class="item-details">
-                    <span>📦 Current Stock: <b>${qty}</b> ${unit}${subUnitStockHtml}</span>
-                    <span>💰 Total Worth: <b>Rs ${fmtPKR(qty * retailRate)}</b></span>
+                    <span>📦 ${ebMix('Current Stock', 'موجودہ اسٹاک')}: <b>${qty}</b> ${unit}${subUnitStockHtml}</span>
+                    <span>💰 ${ebMix('Total Worth', 'کل مالیت')}: <b>Rs ${fmtPKR(qty * retailRate)}</b></span>
                 </div>
                 <div class="item-rates-row">
-                    <span class="rate-tag rate-cost">Cost: Rs ${fmtPKR(costRate)}</span>
-                    <span class="rate-tag rate-wholesale">Wholesale: Rs ${fmtPKR(wholesaleRate)}</span>
-                    <span class="rate-tag rate-retail">Retail: Rs ${fmtPKR(retailRate)}</span>
+                    <span class="rate-tag rate-cost">${ebMix(cardUiCfg.cardCostTag, cardUiCfg.cardCostTagUr)}: Rs ${fmtPKR(costRate)}</span>
+                    <span class="rate-tag rate-wholesale">${ebMix(cardUiCfg.cardWhTag, cardUiCfg.cardWhTagUr)}: Rs ${fmtPKR(wholesaleRate)}</span>
+                    <span class="rate-tag rate-retail">${ebMix(cardUiCfg.cardRetTag, cardUiCfg.cardRetTagUr)}: Rs ${fmtPKR(retailRate)}</span>
                     ${subUnitRateHtml}
                 </div>
                 ${schemeHtml}
                 ${badge}
             </div>
             <div class="item-actions">
-                <button class="btn-icon btn-in" onclick="openStockModal('${item.id}', 'in')" title="Restock / Purchase In">📥</button>
-                <button class="btn-icon btn-out" onclick="openStockModal('${item.id}', 'out')" title="Sale / Stock Out">📤</button>
-                <button class="btn-icon btn-history" onclick="viewHistory('${item.id}')" title="Movement Log">📜</button>
-                ${hasUsedSellerRecord ? `<button class="btn-icon" onclick="printUsedPhoneUndertakingFromItem('${item.id}')" title="🪪 View / Print Seller CNIC Purchase Undertaking (اقرار نامہ خریداری موبائل)" style="background:#dcfce7; color:#15803d;">🪪</button>` : ''}
+                <button class="btn-icon btn-in" onclick="openStockModal('${item.id}', 'in')" title="${ebEscAttr(ebT('Restock / Purchase In', 'Restock / Purchase In (اسٹاک ان)'))}">📥</button>
+                <button class="btn-icon btn-out" onclick="openStockModal('${item.id}', 'out')" title="${ebEscAttr(ebT('Sale / Stock Out', 'Sale / Stock Out (اسٹاک آؤٹ)'))}">📤</button>
+                <button class="btn-icon btn-history" onclick="viewHistory('${item.id}')" title="${ebEscAttr(ebT('Movement Log', 'Movement Log (ہسٹری لاگ)'))}">📜</button>
+                ${hasUsedSellerRecord ? `<button class="btn-icon" onclick="printUsedPhoneUndertakingFromItem('${item.id}')" title="${ebEscAttr(ebT('🪪 View / Print Seller CNIC Purchase Undertaking', '🪪 Seller CNIC Undertaking (اقرار نامہ خریداری موبائل)'))}" style="background:#dcfce7; color:#15803d;">🪪</button>` : ''}
                 ${!isBooker ? `
-                    <button class="btn-icon" onclick="cloneVariantItem('${item.id}')" title="🧬 Clone Variant / Add Another IMEI or Color" style="background:#e0f2fe; color:#0284c7;">🧬</button>
-                    <button class="btn-icon" onclick="adjustProductPhotoDirectly('${item.id}')" title="✂️ Adjust / Rotate Portrait Photo" style="background:#f5f3ff; color:#7c3aed;">📐</button>
-                    <button class="btn-icon btn-edit" onclick="editItem('${item.id}')" title="Edit Product">✏️</button>
-                    <button class="btn-icon btn-del" onclick="deleteItem('${item.id}', '${safeName}')" title="Delete Product">🗑️</button>
+                    <button class="btn-icon" onclick="cloneVariantItem('${item.id}')" title="${ebEscAttr(cloneTip)}" style="background:#e0f2fe; color:#0284c7;">🧬</button>
+                    <button class="btn-icon" onclick="adjustProductPhotoDirectly('${item.id}')" title="${ebEscAttr(ebT('✂️ Adjust / Rotate Portrait Photo', '✂️ Adjust / Rotate Photo (تصویر ایڈجسٹ کریں)'))}" style="background:#f5f3ff; color:#7c3aed;">📐</button>
+                    <button class="btn-icon btn-edit" onclick="editItem('${item.id}')" title="${ebEscAttr(ebT('Edit Product', 'Edit Product (ترمیم کریں)'))}">✏️</button>
+                    <button class="btn-icon btn-del" onclick="deleteItem('${item.id}', '${safeName}')" title="${ebEscAttr(ebT('Delete Product', 'Delete Product (ڈیلیٹ کریں)'))}">🗑️</button>
                 ` : ''}
             </div>
         </div>`;
@@ -3115,17 +3666,17 @@ if (rotatePhotoBtn) {
         if (!currentItemPhotoBase64) return;
         try {
             this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rotating...';
+            this.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${ebMix('Rotating...', 'گھمایا جا رہا ہے')}`;
             if (window.ImageOptimizer && window.ImageOptimizer.rotateImage90) {
                 const rotated = await window.ImageOptimizer.rotateImage90(currentItemPhotoBase64);
                 setPhotoPreview(rotated.dataUrl, rotated);
             }
         } catch (err) {
             console.error('Rotation error:', err);
-            Swal.fire('Error', 'Could not rotate image: ' + err.message, 'error');
+            Swal.fire(ebT('Error', 'Error (خرابی)'), ebT('Could not rotate image: ', 'تصویر گھمائی نہیں جا سکی: ') + err.message, 'error');
         } finally {
             this.disabled = false;
-            this.innerHTML = '<i class="fas fa-redo"></i> <span>Rotate 90° (گھمائیں)</span>';
+            this.innerHTML = `<i class="fas fa-redo"></i> ${ebMix('Rotate 90°', 'گھمائیں')}`;
         }
     });
 }
@@ -3152,7 +3703,7 @@ async function handleUrlImageLoad(url) {
     try {
         if (photoUrlLoadBtn) {
             photoUrlLoadBtn.disabled = true;
-            photoUrlLoadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            photoUrlLoadBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${ebMix('Loading...', 'لوڈ ہو رہا ہے')}`;
         }
 
         // Test loading the image
@@ -3161,7 +3712,7 @@ async function handleUrlImageLoad(url) {
         
         await new Promise((resolve, reject) => {
             img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error('Image load nahi ho saki. Link check karein ya direct download kar k upload karein.'));
+            img.onerror = () => reject(new Error(ebT('Could not load image. Check the link or upload directly.', 'تصویر لوڈ نہیں ہو سکی — لنک چیک کریں یا ڈائریکٹ اپلوڈ کریں۔')));
             img.src = url;
         });
 
@@ -3182,15 +3733,18 @@ async function handleUrlImageLoad(url) {
         setPhotoPreview(url);
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                title: 'Image Loaded!',
-                text: 'Image link load ho gaya hai. Agar website security (CORS) ki wajah se studio adjust na khulay to aap image right-click save kar k Upload Photo se bhi adjust kar saktay hain.',
+                title: ebT('Image Loaded!', 'Image Loaded (تصویر لوڈ ہو گئی)'),
+                text: ebT(
+                    'Image link loaded. If studio framing cannot open due to website CORS security, download the image and use Upload Photo.',
+                    'Image link loaded. Agar CORS ki wajah se studio na khulay to image save kar k Upload Photo se adjust karein.'
+                ),
                 icon: 'info'
             });
         }
     } finally {
         if (photoUrlLoadBtn) {
             photoUrlLoadBtn.disabled = false;
-            photoUrlLoadBtn.innerHTML = '<i class="fas fa-magic"></i> <span>Load & Frame</span>';
+            photoUrlLoadBtn.innerHTML = `<i class="fas fa-magic"></i> ${ebMix('Load & Frame', 'لوڈ و فریم')}`;
         }
     }
 }
@@ -3199,7 +3753,11 @@ if (photoUrlLoadBtn) {
     photoUrlLoadBtn.addEventListener('click', function() {
         const val = photoUrlInput ? photoUrlInput.value.trim() : '';
         if (!val) {
-            Swal.fire('Link Required', 'Pehle kisi bhi tasveer ka web link (URL) paste karein.', 'info');
+            Swal.fire(
+                ebT('Link Required', 'Link Required (لنک لازمی ہے)'),
+                ebT('Please paste an image web link (URL) first.', 'پہلے کسی تصویر کا ویب لنک (URL) پیسٹ کریں۔'),
+                'info'
+            );
             return;
         }
         handleUrlImageLoad(val);
@@ -3264,8 +3822,8 @@ window.adjustProductPhotoDirectly = function(itemId) {
 async function saveDirectProductPhoto(itemId, newPhotoUrl) {
     try {
         Swal.fire({
-            title: 'Saving Portrait Photo...',
-            text: 'Updating product in cloud database...',
+            title: ebT('Saving Portrait Photo...', 'Saving Photo... (تصویر محفوظ ہو رہی ہے)'),
+            text: ebT('Updating product in cloud database...', 'Updating cloud database (کلاؤڈ اپ ڈیٹ ہو رہا ہے)...'),
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading()
         });
@@ -3285,13 +3843,13 @@ async function saveDirectProductPhoto(itemId, newPhotoUrl) {
             toast: true,
             position: 'top-end',
             icon: 'success',
-            title: '✅ Portrait Photo Updated (تصویر محفوظ ہو گئی)',
+            title: ebT('✅ Portrait Photo Updated!', '✅ Portrait Photo Updated (تصویر محفوظ ہو گئی)'),
             timer: 2200,
             showConfirmButton: false
         });
     } catch (err) {
         console.error('Failed to update product photo directly:', err);
-        Swal.fire('Error', 'Failed to save photo: ' + err.message, 'error');
+        Swal.fire(ebT('Error', 'Error (خرابی)'), ebT('Failed to save photo: ', 'تصویر محفوظ نہ ہو سکی: ') + err.message, 'error');
     }
 }
 
@@ -3303,6 +3861,7 @@ window.showItemPhotoModal = function(itemId, safeName, photoUrl) {
     const retailRate = item ? (item.retailRate || item.price || item.rate || 0) : 0;
     const qty = item ? (item.stock || item.qty || 0) : null;
     const unit = (item && item.unit) ? item.unit : '';
+    const photoUiCfg = getCategoryStockUiConfig(currentCategoryDef ? currentCategoryDef.id : 'wholesaler');
 
     Swal.fire({
         html: `
@@ -3317,14 +3876,14 @@ window.showItemPhotoModal = function(itemId, safeName, photoUrl) {
                     ${safeName}
                 </h3>
 
-                <!-- 📱 Fixed Booker Detail directly under Title -->
+                <!-- 📱 Category Portrait Detail directly under Title -->
                 <div style="display: inline-flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 4px; max-width: 92%;">
                     <div style="font-size: 11.5px; font-weight: 700; color: #0369a1; background: #e0f2fe; border: 1px solid #bae6fd; padding: 5px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;">
-                        <i class="fas fa-camera"></i> <span>Fixed Booker Catalog: 600 × 800 px (3:4 Portrait)</span>
+                        <i class="fas fa-camera"></i> <span>${ebMix(photoUiCfg.photoBadge, photoUiCfg.photoBadgeUr)}: 600 × 800 px (3:4 Portrait)</span>
                     </div>
                     ${(qty !== null || retailRate > 0) ? `
                         <div style="font-size: 12px; color: #475569; display: inline-flex; align-items: center; gap: 8px;">
-                            ${qty !== null ? `<span>📦 Stock: <b style="color:#0f172a;">${qty}</b> ${unit}</span>` : ''}
+                            ${qty !== null ? `<span>📦 ${ebMix('Stock', 'اسٹاک')}: <b style="color:#0f172a;">${qty}</b> ${unit}</span>` : ''}
                             ${retailRate > 0 ? `<span style="color:#cbd5e1;">•</span> <span style="font-weight:700; color:#059669;">Rs ${Number(retailRate).toLocaleString()}</span>` : ''}
                         </div>
                     ` : ''}
@@ -3332,7 +3891,7 @@ window.showItemPhotoModal = function(itemId, safeName, photoUrl) {
             </div>
         `,
         showConfirmButton: true,
-        confirmButtonText: '<i class="fas fa-times"></i> Close (بند کریں)',
+        confirmButtonText: ebT('<i class="fas fa-times"></i> Close', '<i class="fas fa-times"></i> Close (بند کریں)'),
         confirmButtonColor: '#475569',
         showCancelButton: false,
         showDenyButton: false,
@@ -3424,23 +3983,25 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
     const limitInput = document.getElementById('itemLimit').value;
     const lowStockLimit = limitInput === '' ? 10 : parseFloat(limitInput);
 
-    if (!name) { Swal.fire('⚠️', 'Product ka naam lazmi hai!', 'warning'); return; }
+    if (!name) { Swal.fire('⚠️', ebT('Product name is required!', 'Product name is required (آئٹم کا نام لازمی ہے)'), 'warning'); return; }
 
     // Check plan item limit for new creations
     if (!editingItemId) {
         if (myLimits.maxItems && myLimits.maxItems < 90000 && allItems.length >= myLimits.maxItems) {
             Swal.fire({
                 icon: 'warning',
-                title: '📦 Item Limit Reached!',
-                html: `Aap کے موجودہ پیکیج میں زیادہ سے زیادہ <b>${myLimits.maxItems} items</b> شامل کرنے کی اجازت ہے۔<br><br>
-                       مزید آئٹمز شامل کرنے کے لیے <b>Super Admin</b> یا <b>Developer</b> سے پیکیج اپ گریڈ کروائیں:
-                       <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px; margin-top:10px; font-size:13px; font-weight:bold; color:#166534;">
-                           <i class="fab fa-whatsapp"></i> Developer WhatsApp: +923346800959
-                       </div>`,
+                title: ebT('📦 Item Limit Reached!', '📦 Item Limit Reached (آئٹم لمٹ پوری ہو گئی)'),
+                html: `${ebCompact(
+                        `Your current package allows up to <b>${myLimits.maxItems} items</b>. Contact Super Admin or Developer to upgrade your plan:`,
+                        `آپ کے موجودہ پیکیج میں زیادہ سے زیادہ ${myLimits.maxItems} آئٹمز شامل کرنے کی اجازت ہے۔ مزید آئٹمز کے لیے سپر ایڈمن یا ڈویلپر سے رابطہ کریں:`
+                    )}
+                    <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px; margin-top:10px; font-size:13px; font-weight:bold; color:#166534;">
+                        <i class="fab fa-whatsapp"></i> Developer WhatsApp: +923346800959
+                    </div>`,
                 showCancelButton: true,
-                confirmButtonText: '<i class="fab fa-whatsapp"></i> رابطہ ڈویلپر (+923346800959)',
+                confirmButtonText: ebT('<i class="fab fa-whatsapp"></i> Contact Developer (+923346800959)', '<i class="fab fa-whatsapp"></i> Contact Developer (رابطہ ڈویلپر)'),
                 confirmButtonColor: '#25D366',
-                cancelButtonText: 'Theek Hai'
+                cancelButtonText: ebT('OK', 'OK (ٹھیک ہے)')
             }).then(r => {
                 if (r.isConfirmed) {
                     window.open('https://wa.me/923346800959?text=' + encodeURIComponent(`السلام علیکم ڈویلپر صاحب!\nمیری ایجنسی: *${myAgency.name || ''}*\nمجھے اسٹاک آئٹم کی لمٹ بڑھوانی ہے (موجودہ لمٹ: ${myLimits.maxItems})۔`), '_blank');
@@ -3454,8 +4015,8 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
         if (dup) {
             Swal.fire({
                 icon: 'warning',
-                title: '⚠️ Duplicate Item Name!',
-                text: `"${name}" pehle se inventory mein moujood hai!`,
+                title: ebT('⚠️ Duplicate Item Name!', '⚠️ Duplicate Item Name (آئٹم پہلے سے موجود ہے)'),
+                text: ebT(`"${name}" already exists in inventory!`, `"${name}" already exists in inventory (پہلے سے اسٹاک میں موجود ہے)!`),
                 confirmButtonText: 'OK'
             });
             return;
@@ -3464,7 +4025,7 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
 
     const saveBtn = document.getElementById('saveItemBtn');
     saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving Item...';
+    saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${ebMix('Saving Item...', 'محفوظ ہو رہا ہے')}`;
 
     try {
         const hasScheme = document.getElementById('itemHasScheme')?.checked || false;
@@ -3495,18 +4056,19 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
             if (resolveMobileProductGroup() === 'handset' && (!industryFields.imei1 || !industryFields.imei2)) {
                 const confirmMissingImei = await Swal.fire({
                     icon: 'question',
-                    title: '📱 2 IMEI Numbers Check',
-                    html: `موبائل فون کے لیے عام طور پر <b>IMEI 1</b> اور <b>IMEI 2</b> دونوں درج کرنا بہتر ہوتا ہے۔<br>
-                           <small style="color:#475569;">(ابھی درج شدہ IMEI: <b>${allImeis.length}</b>)</small><br><br>
-                           کیا آپ اسی طرح محفوظ کرنا چاہتے ہیں یا پہلے دونوں IMEI درج کریں گے؟`,
+                    title: ebT('📱 2 IMEI Numbers Check', '📱 2 IMEI Numbers Check (دونوں IMEI چیک)'),
+                    html: `${ebCompact(
+                        `For mobile handsets, entering both <b>IMEI 1</b> and <b>IMEI 2</b> is recommended. Currently entered: <b>${allImeis.length}</b>. Save anyway or enter both IMEIs first?`,
+                        `موبائل فون کے لیے عام طور پر IMEI 1 اور IMEI 2 دونوں درج کرنا بہتر ہوتا ہے (ابھی درج شدہ: ${allImeis.length})۔ کیا آپ اسی طرح محفوظ کرنا چاہتے ہیں یا پہلے دونوں IMEI درج کریں گے؟`
+                    )}`,
                     showCancelButton: true,
-                    confirmButtonText: '✅ اسی طرح Save کریں',
-                    cancelButtonText: '✏️ پہلے IMEI درج کریں',
+                    confirmButtonText: ebT('✅ Save Anyway', '✅ Save Anyway (اسی طرح Save کریں)'),
+                    cancelButtonText: ebT('✏️ Enter IMEI First', '✏️ Enter IMEI First (پہلے IMEI درج کریں)'),
                     confirmButtonColor: '#0284c7'
                 });
                 if (!confirmMissingImei.isConfirmed) {
                     saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE ITEM TO INVENTORY';
+                    saveBtn.innerHTML = `<i class="fas fa-save"></i> ${ebMix('SAVE ITEM TO INVENTORY', 'آئٹم اسٹاک میں محفوظ کریں')}`;
                     const targetFocus = !industryFields.imei1 ? document.getElementById('customField_imei1') : document.getElementById('customField_imei2');
                     if (targetFocus) targetFocus.focus();
                     return;
@@ -3566,7 +4128,7 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
             await db.collection('stock').doc(editingItemId).update(itemData);
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
-                timer: 1800, icon: 'success', title: '✅ Product updated successfully!'
+                timer: 1800, icon: 'success', title: ebT('✅ Product updated successfully!', '✅ Product updated (آئٹم اپ ڈیٹ ہو گیا)')
             });
         } else {
             itemData.createdAt = new Date().toISOString();
@@ -3574,7 +4136,7 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
             await db.collection('stock').add(itemData);
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
-                timer: 1800, icon: 'success', title: '🎉 Product added to inventory!'
+                timer: 1800, icon: 'success', title: ebT('🎉 Product added to inventory!', '🎉 Product added (آئٹم اسٹاک میں شامل ہو گیا)')
             });
         }
 
@@ -3605,23 +4167,26 @@ document.getElementById('addItemForm').addEventListener('submit', async (e) => {
         setPhotoPreview('');
         if (schemeCheckbox) schemeCheckbox.checked = false;
         if (schemeContainer) schemeContainer.style.display = 'none';
+        const resetUiCfg = getCategoryStockUiConfig(currentCategoryDef ? currentCategoryDef.id : 'wholesaler');
+        const tradeSchemeRowReset = document.getElementById('tradeSchemeBoxRow');
+        if (tradeSchemeRowReset) tradeSchemeRowReset.style.display = resetUiCfg.showTradeScheme ? 'flex' : 'none';
         editingItemId = null;
         const headerH2 = document.querySelector('.add-item-header h2');
-        if (headerH2) headerH2.innerHTML = '<i class="fas fa-plus-circle"></i> Add New Product / Stock Item';
+        if (headerH2) headerH2.innerHTML = ebMix(resetUiCfg.addHeader, resetUiCfg.addHeaderUr);
         document.getElementById('addItemForm').style.display = 'none';
         const arrow = document.getElementById('toggleArrow');
         if (arrow) arrow.classList.remove('open');
 
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE ITEM TO INVENTORY';
+        saveBtn.innerHTML = `<i class="fas fa-save"></i> ${ebMix('SAVE ITEM TO INVENTORY', 'آئٹم اسٹاک میں محفوظ کریں')}`;
 
         await fetchFreshStock();
 
     } catch (error) {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE ITEM TO INVENTORY';
+        saveBtn.innerHTML = `<i class="fas fa-save"></i> ${ebMix('SAVE ITEM TO INVENTORY', 'آئٹم اسٹاک میں محفوظ کریں')}`;
         console.error('Save error:', error);
-        Swal.fire('❌ Error', 'Item save nahi hua: ' + (error.code || error.message), 'error');
+        Swal.fire(ebT('❌ Error', '❌ Error (خرابی)'), ebT('Failed to save item: ', 'آئٹم محفوظ نہیں ہوا: ') + (error.code || error.message), 'error');
     }
 });
 
@@ -3719,6 +4284,11 @@ function editItem(itemId) {
 
     // Populate scheme
     const hasScheme = !!item.hasScheme;
+    const editUiCfg = getCategoryStockUiConfig(currentCategoryDef ? currentCategoryDef.id : 'wholesaler');
+    const tradeSchemeRowEdit = document.getElementById('tradeSchemeBoxRow');
+    if (tradeSchemeRowEdit) {
+        tradeSchemeRowEdit.style.display = (editUiCfg.showTradeScheme || hasScheme) ? 'flex' : 'none';
+    }
     if (schemeCheckbox) schemeCheckbox.checked = hasScheme;
     if (schemeContainer) schemeContainer.style.display = hasScheme ? 'block' : 'none';
     if (document.getElementById('itemSchemeType')) document.getElementById('itemSchemeType').value = item.schemeType || 'buy_x_get_y';
@@ -3730,7 +4300,7 @@ function editItem(itemId) {
     const arrow = document.getElementById('toggleArrow');
     if (arrow) arrow.classList.add('open');
     const headerH2 = document.querySelector('.add-item-header h2');
-    if (headerH2) headerH2.innerHTML = '<i class="fas fa-edit"></i> Edit Product: ' + (item.name || '');
+    if (headerH2) headerH2.innerHTML = `<i class="fas fa-edit"></i> ${ebMix('Edit Product', 'آئٹم ترمیم کریں')}: ${item.name || ''}`;
     
     document.getElementById('addItemForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -3740,14 +4310,14 @@ function editItem(itemId) {
 // ============================================
 async function deleteItem(itemId, name) {
     const result = await Swal.fire({
-        title: '🗑️ Delete Product?',
-        html: `<b>${name}</b> ko inventory se delete karna hai?<br>
-               <small style="color:#e74c3c;">Yeh action wapas nahi ho sakta!</small>`,
+        title: ebT('🗑️ Delete Product?', '🗑️ Delete Product? (آئٹم ڈیلیٹ کریں؟)'),
+        html: `${ebCompact(`Delete <b>${name}</b> from inventory?`, `کیا آپ "${name}" کو اسٹاک سے ڈیلیٹ کرنا چاہتے ہیں؟`)}<br>
+               <small style="color:#e74c3c;">${ebMix('This action cannot be undone!', 'یہ عمل واپس نہیں ہو سکتا!')}</small>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#c0392b',
-        confirmButtonText: '🗑️ Delete Product',
-        cancelButtonText: 'Cancel'
+        confirmButtonText: ebT('🗑️ Delete Product', '🗑️ Delete Product (ڈیلیٹ کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)')
     });
     if (!result.isConfirmed) return;
 
@@ -3755,11 +4325,11 @@ async function deleteItem(itemId, name) {
         await db.collection('stock').doc(itemId).delete();
         Swal.fire({
             toast: true, position: 'top-end', showConfirmButton: false,
-            timer: 1800, icon: 'success', title: '🗑️ Product deleted!'
+            timer: 1800, icon: 'success', title: ebT('🗑️ Product deleted!', '🗑️ Product deleted (آئٹم ڈیلیٹ ہو گیا)')
         });
         await fetchFreshStock();
     } catch (e) {
-        Swal.fire('Error', 'Delete failed: ' + e.code, 'error');
+        Swal.fire(ebT('Error', 'Error (خرابی)'), ebT('Delete failed: ', 'ڈیلیٹ ناکام: ') + e.code, 'error');
     }
 }
 
@@ -3781,10 +4351,10 @@ function updateModalPurchaseSummary() {
     const whPerPcBadge = document.getElementById('modalPerPieceCostBadge');
     if (whPerPcBadge && packSz > 1) {
         const perPc = cost > 0 ? (Math.round((cost / packSz) * 100) / 100) : 0;
-        const totPcsTxt = qty > 0 ? ` • Incoming: +${Math.round(qty * packSz * 100) / 100} Pcs` : '';
+        const totPcsTxt = qty > 0 ? ` • ${ebT('Incoming', 'آنے والا مال')}: +${Math.round(qty * packSz * 100) / 100} Pcs` : '';
         whPerPcBadge.innerText = (perPc > 0
-            ? (isRest ? `Food Cost/Pc: Rs ${perPc}` : `Per-Piece Cost: Rs ${perPc}/pc`)
-            : (isRest ? 'Food Cost/Pc: Rs --' : 'Per-Piece Cost: Rs --')) + totPcsTxt;
+            ? (isRest ? `${ebT('Food Cost/Pc', 'فوڈ کاسٹ/پیس')}: Rs ${perPc}` : `${ebT('Per-Piece Cost', 'فی پیس لاگت')}: Rs ${perPc}/pc`)
+            : (isRest ? `${ebT('Food Cost/Pc', 'فوڈ کاسٹ/پیس')}: Rs --` : `${ebT('Per-Piece Cost', 'فی پیس لاگت')}: Rs --`)) + totPcsTxt;
     }
 
     if (!badge) return;
@@ -3796,12 +4366,12 @@ function updateModalPurchaseSummary() {
         const foodCostPct = totalMrp > 0 ? (Math.round((totalCost / totalMrp) * 1000) / 10) : 0;
         const marginTxt = marginAmt > 0
             ? (isRest
-                ? ` &nbsp;|&nbsp; 📊 Food Cost: <b>${foodCostPct}%</b> &nbsp;|&nbsp; 📈 Kitchen Margin: +Rs ${fmtPKR(marginAmt)}`
-                : ` &nbsp;|&nbsp; 📈 Margin: +Rs ${fmtPKR(marginAmt)}`)
+                ? ` &nbsp;|&nbsp; 📊 ${ebMix('Food Cost', 'فوڈ کاسٹ')}: <b>${foodCostPct}%</b> &nbsp;|&nbsp; 📈 ${ebMix('Kitchen Margin', 'کچن مارجن')}: +Rs ${fmtPKR(marginAmt)}`
+                : ` &nbsp;|&nbsp; 📈 ${ebMix('Margin', 'منافع')}: +Rs ${fmtPKR(marginAmt)}`)
             : '';
         const pcsTxt = packSz > 1 ? ` &nbsp;|&nbsp; 📦 +${Math.round(qty * packSz * 100) / 100} Pcs` : '';
         badge.style.display = 'block';
-        badge.innerHTML = `${isRest ? '🍳 Total Kitchen Batch Cost' : '💰 Total Purchase Bill'}: <b>Rs ${fmtPKR(totalCost)}</b>${marginTxt}${pcsTxt}`;
+        badge.innerHTML = `${isRest ? ebMix('🍳 Total Kitchen Batch Cost', 'کل کچن بیچ لاگت') : ebMix('💰 Total Purchase Bill', 'کل خریداری بل')}: <b>Rs ${fmtPKR(totalCost)}</b>${marginTxt}${pcsTxt}`;
     } else {
         badge.style.display = 'none';
     }
@@ -3844,6 +4414,84 @@ function bindStockModalCalculators() {
     }
 }
 
+function applyStockModalBilingualLabels(item, mode) {
+    if (!item) return;
+    const cid = currentCategoryDef ? currentCategoryDef.id : '';
+    const isRest = cid === 'restaurant';
+    const pCfg = (window.BusinessCategories && currentCategoryDef)
+        ? window.BusinessCategories.getPurchaseConfig(currentCategoryDef.id)
+        : { enableMrpDiscountCalc: false, allowEditionUpdateOnRestock: false };
+
+    const titleEl = document.getElementById('stockModalTitle');
+    if (titleEl) {
+        titleEl.innerHTML = mode === 'in'
+            ? (isRest ? ebMix('📥 Kitchen Supply / Batch Prep IN', 'کچن مال آیا') : ebMix('📥 Restock — Stock Inflow', 'مال آیا'))
+            : (isRest ? ebMix('📤 Kitchen Outflow / Wastage / Staff Meal', 'کچن آؤٹ فلو / ضائع') : ebMix('📤 Stock Outflow — Direct Sale / Reduction', 'اسٹاک آؤٹ فلو'));
+    }
+
+    const itemEl = document.getElementById('stockModalItem');
+    if (itemEl) {
+        itemEl.innerHTML = `${item.name} — ${ebMix('Available', 'موجود')}: <b>${item.qty || 0}</b> ${UNIT_LABELS[item.unit] || ''}`;
+    }
+
+    const mPurchLbl = document.getElementById('modalNewPurchaseLabel');
+    const mRetLbl = document.getElementById('modalNewRetailLabel');
+    if (mPurchLbl) mPurchLbl.innerHTML = isRest ? ebMix('🍳 Food Cost / Batch Rate', 'لاگت فی آرڈر') : ebMix('💵 Purchase Rate', 'لاگت ریٹ');
+    if (mRetLbl) mRetLbl.innerHTML = isRest ? ebMix('🏷️ Menu Selling Price', 'مینو ریٹ') : ebMix('🏷️ Retail / MRP', 'پرچون ریٹ');
+
+    if (mode === 'in') {
+        const mSupLbl = document.getElementById('modalSupplierLabel');
+        if (mSupLbl && pCfg.supplierLabel) mSupLbl.innerHTML = ebFormatBilingualHtml(pCfg.supplierLabel);
+        const mInvLbl = document.getElementById('modalInvoiceLabel');
+        if (mInvLbl && pCfg.invoiceLabel) mInvLbl.innerHTML = ebFormatBilingualHtml(pCfg.invoiceLabel);
+
+        const supInp = document.getElementById('modalSupplierName');
+        if (supInp) {
+            const sp = ebSplitBilingual(pCfg.supplierPlaceholder || 'e.g. Supplier / Distributor');
+            ebSetPh(supInp, sp.en, sp.mix);
+        }
+        const invInp = document.getElementById('modalInvoiceNo');
+        if (invInp) {
+            const ip = ebSplitBilingual(pCfg.invoicePlaceholder || 'e.g. Inv #412 / Bilty #88');
+            ebSetPh(invInp, ip.en, ip.mix);
+        }
+
+        const calcTitle = document.getElementById('modalCalcGroupTitle');
+        if (calcTitle) {
+            calcTitle.innerHTML = cid === 'mobile'
+                ? ebMix('📱 Official Box Price (MRP) & Dealer Margin % Calculator', 'ڈیلر مارجن کیلکولیٹر')
+                : (cid === 'distributor'
+                    ? ebMix('🚚 Principal Trade Price (TP) & Distributor Margin % Calculator', 'ڈسٹری بیوٹر مارجن کیلکولیٹر')
+                    : (cid === 'wholesaler'
+                        ? ebMix('📦 Master Carton / Trade Price (TP) & Company Discount % Calculator', 'کمپنی ڈسکاؤنٹ کیلکولیٹر')
+                        : (cid === 'medical'
+                            ? ebMix('💊 Pharma Printed MRP & Trade Margin % (15% TP) Calculator', 'فارما ٹریڈ مارجن کیلکولیٹر')
+                            : (cid === 'restaurant'
+                                ? ebMix('🍔 Menu Selling Price & Food Cost Margin % Calculator', 'فوڈ کاسٹ کیلکولیٹر')
+                                : ebMix('📚 Printed Price (MRP) & Publisher Discount % Calculator', 'پبلشر ڈسکاؤنٹ کیلکولیٹر')))));
+        }
+        const mMrpLbl = document.getElementById('modalMrpLabel');
+        if (mMrpLbl && pCfg.mrpLabel) mMrpLbl.innerHTML = ebFormatBilingualHtml(pCfg.mrpLabel);
+        const mDiscLbl = document.getElementById('modalDiscLabel');
+        if (mDiscLbl && pCfg.discountLabel) mDiscLbl.innerHTML = ebFormatBilingualHtml(pCfg.discountLabel);
+    }
+
+    const reasonSel = document.getElementById('modalReason');
+    if (reasonSel) ebBilingualizeSelectOptions(reasonSel);
+
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    if (confirmBtn) {
+        if (mode === 'in') {
+            confirmBtn.style.background = '#27ae60';
+            confirmBtn.innerHTML = ebMix('✅ ADD TO STOCK', 'اسٹاک میں شامل کریں');
+        } else {
+            confirmBtn.style.background = '#e67e22';
+            confirmBtn.innerHTML = ebMix('📤 RECORD OUTFLOW', 'آؤٹ فلو محفوظ کریں');
+        }
+    }
+    updateModalPurchaseSummary();
+}
+
 function openStockModal(itemId, mode) {
     const item = allItems.find(i => i.id === itemId);
     if (!item) return;
@@ -3860,13 +4508,6 @@ function openStockModal(itemId, mode) {
         ? window.BusinessCategories.getPurchaseConfig(currentCategoryDef.id)
         : { enableMrpDiscountCalc: false, allowEditionUpdateOnRestock: false };
 
-    document.getElementById('stockModalTitle').innerText = mode === 'in'
-        ? (isRest ? '📥 Kitchen Supply / Batch Prep IN (کچن مال آیا)' : '📥 Restock — Stock Inflow (مال آیا)')
-        : (isRest ? '📤 Kitchen Outflow / Wastage / Staff Meal' : '📤 Stock Outflow — Direct Sale / Reduction');
-    
-    document.getElementById('stockModalItem').innerText = 
-        `${item.name} — Available: ${item.qty || 0} ${UNIT_LABELS[item.unit] || ''}`;
-
     document.getElementById('modalQty').value = '';
     document.getElementById('modalNote').value = '';
 
@@ -3878,50 +4519,21 @@ function openStockModal(itemId, mode) {
     const whModalRow = document.getElementById('modalWholesaleCartonRow');
     const ind = item.industryFields || {};
 
-    const mPurchLbl = document.getElementById('modalNewPurchaseLabel');
-    const mRetLbl = document.getElementById('modalNewRetailLabel');
-    if (mPurchLbl) mPurchLbl.innerText = isRest ? '🍳 Food Cost / Batch Rate (لاگت فی آرڈر)' : '💵 Purchase Rate (لاگت ریٹ)';
-    if (mRetLbl) mRetLbl.innerText = isRest ? '🏷️ Menu Selling Price (مینو ریٹ)' : '🏷️ Retail / MRP (پرچون ریٹ)';
-
     if (mode === 'in') {
         purchaseGroup.style.display = 'block';
         document.getElementById('modalNewPurchase').value = item.purchaseRate || '';
         if (document.getElementById('modalNewRetail')) {
             document.getElementById('modalNewRetail').value = item.retailRate || item.rate || '';
         }
-        const mSupLbl = document.getElementById('modalSupplierLabel');
-        if (mSupLbl && pCfg.supplierLabel) mSupLbl.innerText = pCfg.supplierLabel;
-        const mInvLbl = document.getElementById('modalInvoiceLabel');
-        if (mInvLbl && pCfg.invoiceLabel) mInvLbl.innerText = pCfg.invoiceLabel;
 
         if (document.getElementById('modalSupplierName')) {
-            document.getElementById('modalSupplierName').placeholder = pCfg.supplierPlaceholder || 'e.g. Supplier / Distributor';
             document.getElementById('modalSupplierName').value = item.supplierName || item.lastSupplier || ind.publisherBoard || ind.brandCompany || '';
         }
         if (document.getElementById('modalInvoiceNo')) {
-            document.getElementById('modalInvoiceNo').placeholder = pCfg.invoicePlaceholder || 'e.g. Inv #412 / Bilty #88';
             document.getElementById('modalInvoiceNo').value = '';
         }
         if (bookCalcGroup) {
             bookCalcGroup.style.display = pCfg.enableMrpDiscountCalc ? 'block' : 'none';
-            const calcTitle = document.getElementById('modalCalcGroupTitle');
-            if (calcTitle) {
-                calcTitle.innerText = cid === 'mobile'
-                    ? '📱 Official Box Price (MRP) & Dealer Margin % Calculator (اختیاری)'
-                    : (cid === 'distributor'
-                        ? '🚚 Principal Trade Price (TP) & Distributor Margin % Calculator (اختیاری)'
-                        : (cid === 'wholesaler'
-                            ? '📦 Master Carton / Trade Price (TP) & Company Discount % Calculator (اختیاری)'
-                            : (cid === 'medical'
-                                ? '💊 Pharma Printed MRP & Trade Margin % (15% TP) Calculator (اختیاری)'
-                                : (cid === 'restaurant'
-                                    ? '🍔 Menu Selling Price & Food Cost Margin % Calculator (فوڈ کاسٹ کیلکولیٹر)'
-                                    : '📚 Printed Price (MRP) & Publisher Discount % Calculator (اختیاری)'))));
-            }
-            const mMrpLbl = document.getElementById('modalMrpLabel');
-            if (mMrpLbl && pCfg.mrpLabel) mMrpLbl.innerText = pCfg.mrpLabel;
-            const mDiscLbl = document.getElementById('modalDiscLabel');
-            if (mDiscLbl && pCfg.discountLabel) mDiscLbl.innerText = pCfg.discountLabel;
 
             if (document.getElementById('modalMrpRate')) {
                 document.getElementById('modalMrpRate').value = item.printedMrp || ind.tradePriceTP || item.retailRate || item.rate || '';
@@ -3935,7 +4547,6 @@ function openStockModal(itemId, mode) {
                     whModalRow.style.display = 'block';
                     const pkLbl = document.getElementById('modalCartonPackLabel');
                     if (pkLbl) pkLbl.innerText = `${pk} Pcs / ${UNIT_LABELS[item.unit] || item.unit || (isRest ? 'Deal' : 'Ctn')}${ind.cartonPacking ? ` (${ind.cartonPacking})` : ''}`;
-                    updateModalPurchaseSummary();
                 } else {
                     whModalRow.style.display = 'none';
                 }
@@ -3982,14 +4593,7 @@ function openStockModal(itemId, mode) {
         reasonSel.appendChild(opt);
     });
 
-    const confirmBtn = document.getElementById('modalConfirmBtn');
-    if (mode === 'in') {
-        confirmBtn.style.background = '#27ae60';
-        confirmBtn.innerText = '✅ ADD TO STOCK';
-    } else {
-        confirmBtn.style.background = '#e67e22';
-        confirmBtn.innerText = '📤 RECORD OUTFLOW';
-    }
+    applyStockModalBilingualLabels(item, mode);
 
     document.getElementById('stockModalOverlay').style.display = 'flex';
     document.getElementById('modalQty').focus();
@@ -4019,7 +4623,7 @@ document.getElementById('modalConfirmBtn').addEventListener('click', async () =>
     const sellerPhone = (document.getElementById('modalSellerPhone')?.value || '').trim();
 
     if (qty <= 0) {
-        Swal.fire('⚠️', 'Quantity 0 se zyada honi chahiye!', 'warning');
+        Swal.fire('⚠️', ebT('Quantity must be greater than 0!', 'Quantity must be > 0 (مقدار صفر سے زیادہ ہونی چاہیے)'), 'warning');
         return;
     }
 
@@ -4118,6 +4722,8 @@ document.getElementById('modalConfirmBtn').addEventListener('click', async () =>
         // 2. Add Movement Log Entry with Full Purchase & Supplier Metadata
         const movementDoc = {
             agencyId: myAgencyId,
+            businessCategory: getActiveStockCategoryId(),
+            categoryConfirmedByCreate: true,
             itemId: modalItemId,
             itemName: item.name,
             type: modalMode,
@@ -4157,8 +4763,8 @@ document.getElementById('modalConfirmBtn').addEventListener('click', async () =>
             toast: true, position: 'top-end', showConfirmButton: false,
             timer: 2000, icon: 'success',
             title: modalMode === 'in' 
-                ? `📥 +${qty} ${UNIT_LABELS[item.unit] || ''} added! Total: ${newQty}`
-                : `📤 -${qty} ${UNIT_LABELS[item.unit] || ''} recorded! Total: ${newQty}`
+                ? ebT(`📥 +${qty} ${UNIT_LABELS[item.unit] || ''} added! Total: ${newQty}`, `📥 +${qty} ${UNIT_LABELS[item.unit] || ''} added (شامل ہو گیا) — Total: ${newQty}`)
+                : ebT(`📤 -${qty} ${UNIT_LABELS[item.unit] || ''} recorded! Total: ${newQty}`, `📤 -${qty} ${UNIT_LABELS[item.unit] || ''} recorded (درج ہو گیا) — Total: ${newQty}`)
         });
 
         await fetchFreshStock();
@@ -4166,7 +4772,7 @@ document.getElementById('modalConfirmBtn').addEventListener('click', async () =>
     } catch (error) {
         confirmBtn.disabled = false;
         console.error(error);
-        Swal.fire('❌ Error', 'Stock update fail: ' + (error.code || error.message), 'error');
+        Swal.fire(ebT('❌ Error', '❌ Error (خرابی)'), ebT('Stock update failed: ', 'اسٹاک اپ ڈیٹ ناکام: ') + (error.code || error.message), 'error');
     }
 });
 
@@ -4184,8 +4790,8 @@ async function viewHistory(itemId) {
     const item = allItems.find(i => i.id === itemId);
     if (!item) return;
 
-    document.getElementById('historyTitle').innerHTML = `<i class="fas fa-history"></i> Movement: <b>${item.name}</b>`;
-    document.getElementById('historyContent').innerHTML = '<div class="loading-inline">Loading history logs...</div>';
+    document.getElementById('historyTitle').innerHTML = `<i class="fas fa-history"></i> ${ebMix('Movement', 'اسٹاک ہسٹری')}: <b>${item.name}</b>`;
+    document.getElementById('historyContent').innerHTML = `<div class="loading-inline">${ebMix('Loading history logs...', 'ہسٹری لوڈ ہو رہی ہے...')}</div>`;
     document.getElementById('historyModalOverlay').style.display = 'flex';
 
     try {
@@ -4200,7 +4806,7 @@ async function viewHistory(itemId) {
 
         if (movements.length === 0) {
             document.getElementById('historyContent').innerHTML = 
-                '<div class="empty-state">Abhi koi movement history record nahi hai!</div>';
+                `<div class="empty-state">${ebMix('No movement history recorded yet!', 'ابھی کوئی اسٹاک ہسٹری موجود نہیں!')}</div>`;
             return;
         }
 
@@ -4211,18 +4817,18 @@ async function viewHistory(itemId) {
             const isIn = mv.type === 'in';
             const qtyStr = isIn ? `+${mv.qty}` : `-${mv.qty}`;
             const color = isIn ? '#16a34a' : '#ea580c';
-            const reasonText = mv.reasonLabel || mv.reason || '';
+            const reasonText = ebFormatBilingualHtml(mv.reasonLabel || mv.reason || '');
 
             const purchaseMetaParts = [];
-            if (mv.supplierName) purchaseMetaParts.push(`🏛️ <b>Supplier/Seller:</b> ${mv.supplierName}`);
-            if (mv.invoiceNo) purchaseMetaParts.push(`🧾 <b>Inv/Bilty:</b> ${mv.invoiceNo}`);
-            if (mv.purchaseRate > 0) purchaseMetaParts.push(`💵 <b>Rate:</b> Rs ${fmtPKR(mv.purchaseRate)}`);
-            if (mv.discountPercent > 0) purchaseMetaParts.push(`📉 <b>Disc:</b> ${mv.discountPercent}%`);
-            if (mv.totalPurchaseCost > 0) purchaseMetaParts.push(`💰 <b>Bill:</b> Rs ${fmtPKR(mv.totalPurchaseCost)}`);
-            if (mv.editionYear) purchaseMetaParts.push(`📅 <b>Edition:</b> ${mv.editionYear}`);
+            if (mv.supplierName) purchaseMetaParts.push(ebTag('🏛️', 'Supplier/Seller', 'سپلائر', mv.supplierName));
+            if (mv.invoiceNo) purchaseMetaParts.push(ebTag('🧾', 'Inv/Bilty', 'بل/بلٹی', mv.invoiceNo));
+            if (mv.purchaseRate > 0) purchaseMetaParts.push(ebTag('💵', 'Rate', 'ریٹ', `Rs ${fmtPKR(mv.purchaseRate)}`));
+            if (mv.discountPercent > 0) purchaseMetaParts.push(ebTag('📉', 'Disc', 'ڈسکاؤنٹ', `${mv.discountPercent}%`));
+            if (mv.totalPurchaseCost > 0) purchaseMetaParts.push(ebTag('💰', 'Bill', 'کل بل', `Rs ${fmtPKR(mv.totalPurchaseCost)}`));
+            if (mv.editionYear) purchaseMetaParts.push(ebTag('📅', 'Edition', 'ایڈیشن', mv.editionYear));
             if (mv.restockImeis) purchaseMetaParts.push(`🔢 <b>IMEI:</b> ${mv.restockImeis}`);
             if (mv.sellerCnic) purchaseMetaParts.push(`🪪 <b>CNIC:</b> ${mv.sellerCnic}`);
-            if (mv.sellerPhone) purchaseMetaParts.push(`📞 <b>Phone:</b> ${mv.sellerPhone}`);
+            if (mv.sellerPhone) purchaseMetaParts.push(ebTag('📞', 'Phone', 'فون', mv.sellerPhone));
 
             const purchaseMetaHtml = purchaseMetaParts.length > 0
                 ? `<div style="margin-top:5px; padding:4px 8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; font-size:11px; color:#166534; display:flex; flex-wrap:wrap; gap:6px;">${purchaseMetaParts.join(' &nbsp;|&nbsp; ')}</div>`
@@ -4239,7 +4845,7 @@ async function viewHistory(itemId) {
                 </div>
                 ${purchaseMetaHtml}
                 <div style="font-size:11px; color:#64748b; margin-top:4px;">
-                    Stock Balance: <b>${mv.beforeQty}</b> → <b>${mv.afterQty}</b>
+                    ${ebMix('Stock Balance', 'اسٹاک بیلنس')}: <b>${mv.beforeQty}</b> → <b>${mv.afterQty}</b>
                 </div>
             </div>`;
         });
@@ -4248,7 +4854,7 @@ async function viewHistory(itemId) {
     } catch (error) {
         console.error('History error:', error);
         document.getElementById('historyContent').innerHTML = 
-            '<div class="error-inline">⚠️ History load fail: ' + (error.code || error.message) + '</div>';
+            `<div class="error-inline">⚠️ ${ebMix('History load failed', 'ہسٹری لوڈ ناکام')}: ${error.code || error.message}</div>`;
     }
 }
 
@@ -4267,7 +4873,7 @@ if (historyOverlay) {
 // ============================================
 document.getElementById('exportStockBtn').addEventListener('click', () => {
     if (allItems.length === 0) {
-        Swal.fire('⚠️', 'Export karne ke liye koi item nahi hai!', 'info');
+        Swal.fire('⚠️', ebT('No items available to export!', 'No items to export (ایکسپورٹ کے لیے کوئی آئٹم نہیں)'), 'info');
         return;
     }
 
@@ -4308,3 +4914,75 @@ document.getElementById('exportStockBtn').addEventListener('click', () => {
 document.getElementById('printStockBtn').addEventListener('click', () => {
     window.print();
 });
+
+// ============================================
+// 🌐 SIDEBAR LIVE LANGUAGE SWITCH SYNC (PHASE 6)
+// ============================================
+if (!window.__ebStockLangBound) {
+    window.__ebStockLangBound = true;
+    window.addEventListener('eb-lang-changed', () => {
+        try {
+            // 1. Static HTML data-eb-en/ur & placeholders
+            ebApplyBilingualDom(document);
+
+            // 2. Category static labels (preserves typed form values & #customFieldsGrid)
+            applyCategoryStaticLabels();
+            setupPurchaseAndSupplierHelper();
+            syncUnitPackSizeHelper();
+            updateWholesaleCartonBreakdown();
+            applyImageUrlPermission();
+            renderStockSyncBadges();
+
+            // 3. Re-apply bilingual text on dynamic custom field labels, placeholders & selects
+            if (currentCategoryDef && Array.isArray(currentCategoryDef.customFields)) {
+                currentCategoryDef.customFields.forEach(field => {
+                    const wrap = document.getElementById(`customFieldWrap_${field.id}`);
+                    if (wrap) {
+                        const lbl = wrap.querySelector('label');
+                        if (lbl && field.label) {
+                            lbl.innerHTML = ebFormatBilingualHtml(field.label);
+                        }
+                    }
+                    const inp = document.getElementById(`customField_${field.id}`);
+                    if (inp) {
+                        if (inp.tagName === 'SELECT') {
+                            ebBilingualizeSelectOptions(inp);
+                        } else if (field.placeholder) {
+                            const ph = ebSplitBilingual(field.placeholder);
+                            ebSetPh(inp, ph.en, ph.mix);
+                        }
+                    }
+                });
+            }
+
+            // 4. Refresh static/dynamic <select> elements
+            ['itemUnit', 'itemSellerBoxStatus', 'itemSchemeType', 'modalReason'].forEach(selId => {
+                ebBilingualizeSelectOptions(document.getElementById(selId));
+            });
+
+            // 5. Refresh quick filters, stats & inventory cards
+            populateCategoryFilter();
+            renderStats();
+            renderItems();
+
+            // 6. Preserve Edit Mode header if editing an item
+            if (editingItemId) {
+                const editItemObj = allItems.find(i => i.id === editingItemId);
+                const headerH2 = document.querySelector('.add-item-header h2');
+                if (headerH2 && editItemObj) {
+                    headerH2.innerHTML = `<i class="fas fa-edit"></i> ${ebMix('Edit Product', 'آئٹم ترمیم کریں')}: ${editItemObj.name || ''}`;
+                }
+            }
+
+            // 7. Refresh open Restock / Outflow Modal labels without clearing input values
+            if (modalItemId) {
+                const modalItemObj = allItems.find(i => i.id === modalItemId);
+                if (modalItemObj) {
+                    applyStockModalBilingualLabels(modalItemObj, modalMode);
+                }
+            }
+        } catch (err) {
+            console.warn('Stock language refresh error:', err);
+        }
+    });
+}

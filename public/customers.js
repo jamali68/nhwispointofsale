@@ -37,6 +37,93 @@ let activeModalCustomer = null;
 let activeModalBills = [];
 
 // ============================================
+// 🌐 UNIFIED BILINGUAL HELPERS (SYNCED WITH SIDEBAR & theme-sync.js)
+// ============================================
+function ebEscAttr(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function ebMix(en, ur, asBlock = false) {
+    if (!ur) return en;
+    return asBlock
+        ? `${en}<span class="eb-ur-block">${ur}</span>`
+        : `${en} <span class="eb-ur-sub">(${ur})</span>`;
+}
+
+function ebCompact(en, ur) {
+    if (!ur) return en;
+    return `${en}<span class="eb-ur-compact">${ur}</span>`;
+}
+
+function ebApplyBilingualDom(root) {
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(root || document);
+    }
+}
+
+function ebSetPh(el, en, ur) {
+    if (!el) return;
+    el.setAttribute('data-eb-ph-en', en || '');
+    el.setAttribute('data-eb-ph-ur', ur || en || '');
+    const isMix = window.ebLang && typeof window.ebLang.isMix === 'function' ? window.ebLang.isMix() : false;
+    el.placeholder = isMix ? (ur || en || '') : (en || '');
+}
+
+function ebSplitBilingual(raw) {
+    const str = String(raw || '').trim();
+    const hasUrdu = /[\u0600-\u06FF]/.test(str);
+    if (!hasUrdu) return { en: str, ur: '', mix: str };
+
+    const m = str.match(/^(.+?)\s*\(([^()]+)\)\s*$/);
+    if (m) {
+        const outer = m[1].trim();
+        const inner = m[2].trim();
+        const outerUr = /[\u0600-\u06FF]/.test(outer);
+        const innerUr = /[\u0600-\u06FF]/.test(inner);
+        if (innerUr && !outerUr) {
+            return { en: outer, ur: inner, mix: `${outer} (${inner})` };
+        }
+        if (outerUr && !innerUr) {
+            const prefMatch = outer.match(/^([^\u0600-\u06FFa-zA-Z0-9]*)/);
+            const prefix = prefMatch ? prefMatch[1] : '';
+            const urClean = outer.slice(prefix.length).trim();
+            const enFull = `${prefix}${inner}`.trim();
+            return { en: enFull, ur: urClean, mix: `${enFull} (${urClean})` };
+        }
+        if (outerUr && innerUr) {
+            const prefMatch = outer.match(/^([^\u0600-\u06FFa-zA-Z0-9]*)/);
+            const prefix = prefMatch ? prefMatch[1] : '';
+            const urOuter = outer.slice(prefix.length).trim();
+            const enPart = inner.replace(/[—\-–]?\s*[\u0600-\u06FF][\u0600-\u06FF\s/،۔()\-–—]*$/g, '').trim();
+            if (enPart) {
+                const enFull = `${prefix}${enPart}`.trim();
+                return { en: enFull, ur: urOuter, mix: `${enFull} (${urOuter})` };
+            }
+        }
+    }
+    const stripped = str.replace(/[\u0600-\u06FF]+[\u0600-\u06FF\s/،۔\-–—]*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    return { en: stripped || str, ur: str, mix: str };
+}
+
+function ebFormatBilingualHtml(raw) {
+    const parts = ebSplitBilingual(raw);
+    if (!parts.ur || parts.en === parts.ur) return parts.en;
+    return ebMix(parts.en, parts.ur);
+}
+
+function ebOptionHtml(value, rawLabel, extraAttrs = '', prefix = '') {
+    const parts = ebSplitBilingual(rawLabel);
+    const enLbl = `${prefix}${parts.en}`;
+    const urLbl = (parts.ur && parts.en !== parts.ur) ? `${prefix}${parts.mix}` : enLbl;
+    const isMixMode = window.ebLang && typeof window.ebLang.isMix === 'function' ? window.ebLang.isMix() : false;
+    return `<option value="${ebEscAttr(value)}" data-eb-en="${ebEscAttr(enLbl)}" data-eb-ur="${ebEscAttr(urLbl)}" ${extraAttrs}>${ebEscAttr(isMixMode ? urLbl : enLbl)}</option>`;
+}
+
+// ============================================
 // 🏷️ LABELS (display ke liye)
 // ============================================
 const CUST_TYPE_LABELS = {
@@ -93,6 +180,408 @@ function getActiveCategoryId() {
         || localStorage.getItem('eb_active_category')
         || 'books';
 }
+
+function matchesCustomerCategory(rec) {
+    if (!rec) return false;
+    const activeCatId = getActiveCategoryId();
+    if (window.BusinessCategories && typeof window.BusinessCategories.matchesActiveCategoryRecord === 'function') {
+        return window.BusinessCategories.matchesActiveCategoryRecord(rec, activeCatId, myAgency);
+    }
+    const rCat = rec.businessCategory || rec.category || '';
+    return !rCat || rCat === activeCatId;
+}
+
+function getCategoryCustomerUiMeta(catId) {
+    const id = catId || getActiveCategoryId();
+    const map = {
+        restaurant: {
+            statTotal: 'Total Guests &amp; Regulars',
+            statTotalUr: 'کل مہمان',
+            statBalance: 'Total Udhaar / Monthly Mess',
+            statBalanceUr: 'کل ادھار / میس',
+            statActive: 'Active Ordering Guests',
+            statActiveUr: 'فعال مہمان',
+            statDue: 'Pending Mess / Udhaar',
+            statDueUr: 'بقایا اکاؤنٹس',
+            searchPh: 'Search guest name, mobile #, delivery address, zone or office/mess...',
+            searchPhUr: 'Search guest, mobile, address, zone... (مہمان، موبائل یا زون تلاش کریں)',
+            routeAllEn: '🛵 All Delivery Zones / Sectors',
+            routeAllUr: '🛵 All Delivery Zones / Sectors (تمام ڈیلیوری زونز)',
+            routeAllText: '🛵 All Delivery Zones / Sectors (تمام ڈیلیوری زونز)',
+            routeAllLabel: 'All Delivery Zones / Sectors',
+            routeIcon: '🛵',
+            routePrintBtn: '🛵 Delivery Zone Sheet',
+            routePrintBtnUr: 'زون شیٹ',
+            tabWholesale: '🏢 Corporate / Mess',
+            tabWholesaleUr: 'میس',
+            tabRetail: '🍽️ Dine-In / Delivery',
+            tabRetailUr: 'ڈائن ان',
+            tabInstUr: 'مخصوص',
+            panelSubEn: 'For dine-in guests, home delivery address, corporate mess & loyalty discount',
+            addHeaderTitle: '<i class="fas fa-user-plus"></i> Add Guest / Regular Customer <span class="eb-ur-sub">(نیا مہمان شامل کریں)</span>',
+            editHeaderPrefix: '<i class="fas fa-edit"></i> Edit Guest / Customer <span class="eb-ur-sub">(ترمیم)</span>: ',
+            listHeaderTitle: '🍽️ Guests &amp; Regular Customers Khata <span class="eb-ur-sub">(مہمان کھاتہ)</span>',
+            staffBoxTitle: '🛵 Assigned Delivery Rider / Waiter <span class="eb-ur-sub">(ڈیلیوری رائیڈر / ویٹر)</span>',
+            staffBoxHint: '💡 Selecting a delivery rider auto-fills the customer delivery zone.<span class="eb-ur-compact">ڈیلیوری رائیڈر منتخب کرنے سے کسٹمر کا زون خودکار بھر جائے گا۔</span>',
+            staffEmptyOptionEn: '— No Assigned Rider (Walk-in / General Guest) —',
+            staffEmptyOptionUr: '— No Assigned Rider (کوئی رائیڈر نہیں / عام مہمان) —',
+            staffEmptyOption: '— No Assigned Rider (Walk-in / General Guest) —',
+            staffCardPrefix: 'Rider/Staff:',
+            lblName: '👤 Guest / Customer Name * <span class="eb-ur-sub">(مہمان کا نام)</span>',
+            phName: 'e.g. Ali Raza / Usman Corporate Mess',
+            lblShop: '🏢 Office / Mess / House Name <span class="eb-ur-sub">(آفس / میس / گھر)</span>',
+            phShop: 'e.g. TechPark Floor 3 / Model Town House #14',
+            lblType: '🏷️ Guest Account Type <span class="eb-ur-sub">(اکاؤنٹ قسم)</span>',
+            optRetail: '🍽️ Dine-In / Takeaway / Delivery (ڈائن ان / ڈلیوری)',
+            optWholesale: '🏢 Corporate Mess / Monthly Account (کارپوریٹ میس)',
+            optSpecial: '🎂 Catering / Event Party (کیٹرنگ / پارٹی)',
+            lblRoute: '🛵 Delivery Zone / Sector / Block <span class="eb-ur-sub">(ڈلیوری زون)</span>',
+            phRoute: 'e.g. Zone A - Johar Town / Gulberg Block C',
+            lblNtn: '🪪 CNIC / Reference ID <span class="eb-ur-sub">(شناختی کارڈ)</span>',
+            phNtn: 'e.g. 35202-1234567-1',
+            showFbrStatus: false,
+            showImeiBtn: false,
+            sheetBanner: '🛵 DELIVERY ZONE &amp; MONTHLY MESS RECOVERY SHEET',
+            sheetRouteLabel: 'Delivery Zone / Sector',
+            sheetColParty: 'Guest / Office / Mess',
+            sheetColBeat: 'Delivery Zone / Rider',
+            sheetSig1: 'Delivery Rider / Recovery Staff Sign: ______________________',
+            sheetSig2: 'Restaurant Cashier Verification Sign: ______________________',
+            typeBadges: {
+                retail: '🍽️ Dine-In / Delivery',
+                wholesale: '🏢 Corporate / Mess',
+                special: '🎂 Catering / VIP'
+            },
+            typeLabels: {
+                retail: '🍽️ Dine-In / Delivery',
+                wholesale: '🏢 Corporate / Mess',
+                special: '🎂 Catering / VIP'
+            }
+        },
+        medical: {
+            statTotal: 'Total Patients &amp; Panels',
+            statTotalUr: 'کل مریض و پینل',
+            statBalance: 'Total Receivable (Udhaar)',
+            statBalanceUr: 'کل بقایا',
+            statActive: 'Active Patients / Accounts',
+            statActiveUr: 'فعال اکاؤنٹس',
+            statDue: 'Pending Patient / Panel Dues',
+            statDueUr: 'واجب الادا',
+            searchPh: 'Search patient name, mobile #, doctor ref, clinic/panel or area...',
+            searchPhUr: 'Search patient, mobile, clinic, panel... (مریض، موبائل یا کلینک تلاش کریں)',
+            routeAllEn: '🏥 All Areas / Clinics / Wards',
+            routeAllUr: '🏥 All Areas / Clinics / Wards (تمام علاقے اور کلینکس)',
+            routeAllText: '🏥 All Areas / Clinics / Wards (تمام علاقے اور کلینکس)',
+            routeAllLabel: 'All Areas / Clinics / Wards',
+            routeIcon: '🏥',
+            routePrintBtn: '🏥 Area / Recovery Sheet',
+            routePrintBtnUr: 'ریکوری شیٹ',
+            tabWholesale: '🏥 Clinics / Doctors / Panels',
+            tabWholesaleUr: 'کلینکس',
+            tabRetail: '💊 Regular &amp; Walk-In Patients',
+            tabRetailUr: 'مریض',
+            tabInstUr: 'کلینکس و پینل',
+            panelSubEn: 'For clinic/doctor discounts, sub-pharmacy khata & monthly regular patient records',
+            addHeaderTitle: '<i class="fas fa-user-plus"></i> Add Patient / Clinic Account <span class="eb-ur-sub">(مریض / کلینک شامل کریں)</span>',
+            editHeaderPrefix: '<i class="fas fa-edit"></i> Edit Patient / Account <span class="eb-ur-sub">(ترمیم)</span>: ',
+            listHeaderTitle: '💊 Patients &amp; Clinic Khata Accounts <span class="eb-ur-sub">(مریض و کلینک کھاتہ)</span>',
+            staffBoxTitle: '🛵 Assigned Recovery / Delivery Staff <span class="eb-ur-sub">(ریکوری یا ڈیلیوری سٹاف)</span>',
+            staffBoxHint: '💡 Select staff for home medicine delivery or clinic supply.<span class="eb-ur-compact">ہوم ڈیلیوری میڈیسن یا کلینک سپلائی کے لیے سٹاف منتخب کریں۔</span>',
+            staffEmptyOptionEn: '— No Assigned Staff (Walk-in Patient / Direct) —',
+            staffEmptyOptionUr: '— No Assigned Staff (کوئی سٹاف نہیں / براہ راست مریض) —',
+            staffEmptyOption: '— No Assigned Staff (Walk-in Patient / Direct) —',
+            staffCardPrefix: 'Staff:',
+            lblName: '👤 Patient / Account Name * <span class="eb-ur-sub">(مریض / اکاؤنٹ نام)</span>',
+            phName: 'e.g. Haji Muhammad Akram / City Care Clinic',
+            lblShop: '🏥 Clinic / Hospital / Panel <span class="eb-ur-sub">(کلینک / ہسپتال / پینل)</span>',
+            phShop: 'e.g. Al-Shifa Clinic / WAPDA Panel',
+            lblType: '🏷️ Patient / Account Type <span class="eb-ur-sub">(اکاؤنٹ قسم)</span>',
+            optRetail: '💊 Walk-in / Regular Monthly Patient (عام / مستقل مریض)',
+            optWholesale: '🏥 Clinic / Hospital / Sub-Chemist (کلینک / ہسپتال)',
+            optSpecial: '🪪 Corporate Panel / Institutional (کارپوریٹ پینل)',
+            lblRoute: '📍 Area / Sector / Clinic Zone <span class="eb-ur-sub">(علاقہ / زون)</span>',
+            phRoute: 'e.g. Civil Hospital Road / Model Town',
+            lblNtn: '🪪 Patient CNIC / Panel Card # <span class="eb-ur-sub">(شناختی کارڈ / پینل کارڈ)</span>',
+            phNtn: 'e.g. 35202-1234567-1 or Panel ID',
+            showFbrStatus: false,
+            showImeiBtn: false,
+            sheetBanner: '🏥 PATIENT, CLINIC &amp; PANEL RECOVERY SHEET',
+            sheetRouteLabel: 'Area / Clinic Zone',
+            sheetColParty: 'Patient / Clinic / Panel',
+            sheetColBeat: 'Area / Assigned Staff',
+            sheetSig1: 'Recovery / Delivery Staff Sign: ______________________',
+            sheetSig2: 'Pharmacist / Cashier Verification Sign: ______________________',
+            typeBadges: {
+                retail: '💊 Patient Account',
+                wholesale: '🏥 Clinic / Chemist',
+                special: '🪪 Panel / VIP'
+            },
+            typeLabels: {
+                retail: '💊 Patient Account',
+                wholesale: '🏥 Clinic / Chemist',
+                special: '🪪 Panel / VIP'
+            }
+        },
+        mobile: {
+            statTotal: 'Total Buyers &amp; Dealers',
+            statTotalUr: 'کل خریدار و ڈیلر',
+            statBalance: 'Total Market / Qist Udhaar',
+            statBalanceUr: 'کل ادھار / قسط',
+            statActive: 'Active Buyers (With Bills)',
+            statActiveUr: 'فعال خریدار',
+            statDue: 'Due / Installment Accounts',
+            statDueUr: 'بقایا / قسط اکاؤنٹس',
+            searchPh: 'Search buyer name, mobile #, CNIC, sub-dealer shop or market...',
+            searchPhUr: 'Search buyer, mobile, CNIC, shop... (خریدار، موبائل یا شناختی کارڈ تلاش کریں)',
+            routeAllEn: '📍 All Markets / Plazas / Zones',
+            routeAllUr: '📍 All Markets / Plazas / Zones (تمام مارکیٹس)',
+            routeAllText: '📍 All Markets / Plazas / Zones (تمام مارکیٹس)',
+            routeAllLabel: 'All Mobile Markets / Plazas',
+            routeIcon: '📍',
+            routePrintBtn: '📋 Market / Recovery Sheet',
+            routePrintBtnUr: 'مارکیٹ شیٹ',
+            tabWholesale: '🏪 Sub-Dealers &amp; Labs',
+            tabWholesaleUr: 'سب ڈیلرز',
+            tabRetail: '📱 Retail &amp; Qist Buyers',
+            tabRetailUr: 'خریدار',
+            tabInstUr: 'ڈیلرز و قسط',
+            panelSubEn: 'For sub-dealer discounts, repairing labs & installment guarantor/CNIC records',
+            addHeaderTitle: '<i class="fas fa-user-plus"></i> Add Buyer / Sub-Dealer Account <span class="eb-ur-sub">(خریدار / سب ڈیلر شامل کریں)</span>',
+            editHeaderPrefix: '<i class="fas fa-edit"></i> Edit Buyer / Dealer <span class="eb-ur-sub">(ترمیم)</span>: ',
+            listHeaderTitle: '📱 Mobile Buyers &amp; Sub-Dealers Khata <span class="eb-ur-sub">(موبائل کھاتہ)</span>',
+            staffBoxTitle: '🛵 Assigned Sales / Recovery Officer <span class="eb-ur-sub">(سیلز / ریکوری آفیسر)</span>',
+            staffBoxHint: '💡 Assign an officer for installment (Qist) or sub-dealer recovery.<span class="eb-ur-compact">قسط یا سب ڈیلر ریکوری کے لیے سیلز/ریکوری آفیسر منتخب کریں۔</span>',
+            staffEmptyOptionEn: '— No Assigned Officer (Counter Buyer / Direct) —',
+            staffEmptyOptionUr: '— No Assigned Officer (کوئی آفیسر نہیں / کاؤنٹر خریدار) —',
+            staffEmptyOption: '— No Assigned Officer (Counter Buyer / Direct) —',
+            staffCardPrefix: 'Officer:',
+            lblName: '👤 Buyer / Dealer Name * <span class="eb-ur-sub">(خریدار / ڈیلر کا نام)</span>',
+            phName: 'e.g. Muhammad Bilal / Star Mobile Repairing',
+            lblShop: '🏪 Shop / Plaza Name <span class="eb-ur-sub">(دکان / پلازہ کا نام)</span>',
+            phShop: 'e.g. Hafeez Center Shop #42',
+            lblType: '🏷️ Buyer / Account Type <span class="eb-ur-sub">(اکاؤنٹ قسم)</span>',
+            optRetail: '📱 Walk-in / Retail Handset Buyer (ریٹیل خریدار)',
+            optWholesale: '🏪 Mobile Sub-Dealer / Repairing Lab (سب ڈیلر / لیب)',
+            optSpecial: '💳 Installment (Qist) / VIP Buyer (قسط / وی آئی پی)',
+            lblRoute: '📍 Market / Plaza / Area <span class="eb-ur-sub">(مارکیٹ / پلازہ)</span>',
+            phRoute: 'e.g. Hall Road / Saddar Mobile Market',
+            lblNtn: '🪪 Buyer CNIC # <span class="eb-ur-sub">(خریدار کا شناختی کارڈ)</span>',
+            phNtn: 'e.g. 35202-1234567-1',
+            showFbrStatus: false,
+            showImeiBtn: true,
+            sheetBanner: '📱 MOBILE MARKET &amp; INSTALLMENT RECOVERY SHEET',
+            sheetRouteLabel: 'Market / Plaza / Zone',
+            sheetColParty: 'Buyer / Sub-Dealer Shop',
+            sheetColBeat: 'Market / Officer',
+            sheetSig1: 'Sales / Recovery Officer Sign: ______________________',
+            sheetSig2: 'Shop Owner / Cashier Verification Sign: ______________________',
+            typeBadges: {
+                retail: '📱 Retail Buyer',
+                wholesale: '🏪 Sub-Dealer / Tech',
+                special: '💳 Installment / VIP'
+            },
+            typeLabels: {
+                retail: '📱 Retail Buyer',
+                wholesale: '🏪 Sub-Dealer / Tech',
+                special: '💳 Installment / VIP'
+            }
+        },
+        books: {
+            statTotal: 'Total Customers &amp; Schools',
+            statTotalUr: 'کل کسٹمرز و اسکول',
+            statBalance: 'Total Receivable (Udhaar)',
+            statBalanceUr: 'کل ادھار',
+            statActive: 'Active Buyers (With Bills)',
+            statActiveUr: 'فعال خریدار',
+            statDue: 'Udhaar (Due Accounts)',
+            statDueUr: 'بقایا اکاؤنٹس',
+            searchPh: 'Search customer, school/college, board/syllabus, mobile or market...',
+            searchPhUr: 'Search customer, school, board, mobile... (کسٹمر، اسکول یا موبائل تلاش کریں)',
+            routeAllEn: '🏫 All School Zones / Markets',
+            routeAllUr: '🏫 All School Zones / Markets (تمام علاقے اور مارکیٹس)',
+            routeAllText: '🏫 All School Zones / Markets (تمام علاقے اور مارکیٹس)',
+            routeAllLabel: 'All School Zones / Markets',
+            routeIcon: '🏫',
+            routePrintBtn: '🏫 School / Market Sheet',
+            routePrintBtnUr: 'اسکول شیٹ',
+            tabWholesale: '🏪 Sub-Dealers &amp; Academies',
+            tabWholesaleUr: 'سب ڈیلرز',
+            tabRetail: '🎒 Students &amp; Retail Buyers',
+            tabRetailUr: 'طلبہ و پرچون',
+            tabInstUr: 'اسکول و ادارے',
+            panelSubEn: 'For school/academy discounts, board/syllabus & institutional records',
+            addHeaderTitle: '<i class="fas fa-user-plus"></i> Add Customer / School Account <span class="eb-ur-sub">(کسٹمر / اسکول شامل کریں)</span>',
+            editHeaderPrefix: '<i class="fas fa-edit"></i> Edit Customer / School <span class="eb-ur-sub">(ترمیم)</span>: ',
+            listHeaderTitle: '📚 Customers, Schools &amp; Book Sellers Khata <span class="eb-ur-sub">(کسٹمرز و اسکول کھاتہ)</span>',
+            staffBoxTitle: '📕 Assigned Order Booker / Sales Rep <span class="eb-ur-sub">(آرڈر بکر / نمائندہ)</span>',
+            staffBoxHint: '💡 Select a booker for school visits or market supply.<span class="eb-ur-compact">اسکول وزٹ یا مارکیٹ سپلائی کے لیے آرڈر بکر منتخب کریں۔</span>',
+            staffEmptyOptionEn: '— No Order Booker (Direct Counter Customer) —',
+            staffEmptyOptionUr: '— No Order Booker (کوئی بکر نہیں / براہ راست گاہک) —',
+            staffEmptyOption: '— No Order Booker (Direct Counter Customer) —',
+            staffCardPrefix: 'Booker:',
+            lblName: '👤 Customer / Principal Name * <span class="eb-ur-sub">(کسٹمر / پرنسپل نام)</span>',
+            phName: 'e.g. Prof. Tariq Mehmood / Ali Book Center',
+            lblShop: '🏫 School / College / Bookshop <span class="eb-ur-sub">(اسکول / بک شاپ)</span>',
+            phShop: 'e.g. Allied School Campus 4 / Ilmi Book Depot',
+            lblType: '🏷️ Customer Type <span class="eb-ur-sub">(کسٹمر قسم)</span>',
+            optRetail: '🎒 Retail / Student / Parent (طالب علم / پرچون)',
+            optWholesale: '🏪 Wholesale Book Seller / Sub-Dealer (ہول سیل / سب ڈیلر)',
+            optSpecial: '🏫 Institutional / School / Library (اسکول / ادارہ)',
+            lblRoute: '🛣️ School Zone / Market Area <span class="eb-ur-sub">(اسکول زون / مارکیٹ)</span>',
+            phRoute: 'e.g. Urdu Bazar / Cantt Schools Zone',
+            lblNtn: '🪪 CNIC / School Reg / NTN <span class="eb-ur-sub">(شناختی کارڈ / رجسٹریشن)</span>',
+            phNtn: 'e.g. 35202-1234567-1',
+            showFbrStatus: false,
+            showImeiBtn: false,
+            sheetBanner: '📚 SCHOOL, COLLEGE &amp; BOOK MARKET RECOVERY SHEET',
+            sheetRouteLabel: 'School Zone / Market',
+            sheetColParty: 'School / Bookshop &amp; Principal',
+            sheetColBeat: 'Zone / Board / Booker',
+            sheetSig1: 'Sales Rep / Recovery Officer Sign: ______________________',
+            sheetSig2: 'Cashier / Depot Manager Sign: ______________________',
+            typeBadges: {
+                retail: '🎒 Retail / Student',
+                wholesale: '🏪 Book Sub-Dealer',
+                special: '🏫 School / Institution'
+            },
+            typeLabels: {
+                retail: '🎒 Retail / Student',
+                wholesale: '🏪 Book Sub-Dealer',
+                special: '🏫 School / Institution'
+            }
+        },
+        wholesaler: {
+            statTotal: 'Total Mandi &amp; Retail Parties',
+            statTotalUr: 'کل پارٹیاں',
+            statBalance: 'Total Market Udhaar',
+            statBalanceUr: 'کل مارکیٹ ادھار',
+            statActive: 'Active Parties (With Bills)',
+            statActiveUr: 'فعال پارٹیاں',
+            statDue: 'Pending Market Udhaar',
+            statDueUr: 'بقایا پارٹیاں',
+            searchPh: 'Search party name, shop, PJP route/beat, booker, mobile or CNIC/NTN...',
+            searchPhUr: 'Search party, shop, route, mobile... (پارٹی، دکان، روٹ یا موبائل تلاش کریں)',
+            routeAllEn: '🛣️ All Mandi Routes / PJP Beats',
+            routeAllUr: '🛣️ All Mandi Routes / PJP Beats (تمام روٹس)',
+            routeAllText: '🛣️ All Mandi Routes / PJP Beats (تمام روٹس)',
+            routeAllLabel: 'All Mandi Routes / PJP Beats',
+            routeIcon: '🛣️',
+            routePrintBtn: '🛣️ PJP Route Sheet',
+            routePrintBtnUr: 'روٹ شیٹ',
+            tabWholesale: '🏪 Wholesale / Mandi',
+            tabWholesaleUr: 'ہول سیل / منڈی',
+            tabRetail: '🛒 Kiryana &amp; Counter',
+            tabRetailUr: 'کریانہ',
+            tabInstUr: 'سب ڈیلرز',
+            panelSubEn: 'For sub-dealer trade discounts, route/mandi beat & credit recovery details',
+            addHeaderTitle: '<i class="fas fa-user-plus"></i> Add Wholesale Party / Customer <span class="eb-ur-sub">(نئی پارٹی شامل کریں)</span>',
+            editHeaderPrefix: '<i class="fas fa-edit"></i> Edit Party / Customer <span class="eb-ur-sub">(ترمیم)</span>: ',
+            listHeaderTitle: '🌾 Wholesale Parties &amp; Kiryana Khata <span class="eb-ur-sub">(پارٹی کھاتہ)</span>',
+            staffBoxTitle: '📕 Assigned Order Booker / Supplier <span class="eb-ur-sub">(آرڈر بکر / سپلائر)</span>',
+            staffBoxHint: '💡 Selecting a booker links this party to their route list.<span class="eb-ur-compact">بکر منتخب کرنے سے یہ پارٹی اس بکر کے روٹ میں نظر آئے گی۔</span>',
+            staffEmptyOptionEn: '— No Order Booker (Direct Mandi / Counter Party) —',
+            staffEmptyOptionUr: '— No Order Booker (کوئی بکر نہیں / براہ راست پارٹی) —',
+            staffEmptyOption: '— No Order Booker (Direct Mandi / Counter Party) —',
+            staffCardPrefix: 'Booker:',
+            lblName: '👤 Party / Shopkeeper Name * <span class="eb-ur-sub">(پارٹی / دکاندار کا نام)</span>',
+            phName: 'e.g. Haji Bashir Ahmed & Sons',
+            lblShop: '🏪 Kiryana / Supermart / Mandi Shop <span class="eb-ur-sub">(دکان کا نام)</span>',
+            phShop: 'e.g. Madina Cash & Carry / Bismillah Kiryana',
+            lblType: '🏷️ Party Account Type <span class="eb-ur-sub">(پارٹی قسم)</span>',
+            optRetail: '🛒 Retail / Kiryana Store (کریانہ / پرچون)',
+            optWholesale: '🏪 Wholesale Dealer / Sub-Wholesaler (ہول سیل ڈیلر)',
+            optSpecial: '⭐ Superstore / VIP Mandi Party (سپر اسٹور / وی آئی پی)',
+            lblRoute: '🛣️ Market Route / PJP Beat <span class="eb-ur-sub">(مارکیٹ روٹ)</span>',
+            phRoute: 'e.g. Grain Market / GT Road Beat',
+            lblNtn: '🪪 CNIC / NTN # <span class="eb-ur-sub">(شناختی کارڈ / این ٹی این)</span>',
+            phNtn: 'e.g. 35202-1234567-1 or NTN 1234567-8',
+            showFbrStatus: true,
+            showImeiBtn: false,
+            sheetBanner: '🛣️ WHOLESALE MANDI &amp; PJP ROUTE RECOVERY SHEET',
+            sheetRouteLabel: 'Mandi Route / PJP Beat',
+            sheetColParty: 'Shop / Party &amp; Owner',
+            sheetColBeat: 'Mandi Route / Booker',
+            sheetSig1: 'Order Booker / Recovery Officer Sign: ______________________',
+            sheetSig2: 'Mandi Munshi / Cashier Sign: ______________________',
+            typeBadges: {
+                retail: '🛒 Kiryana / Retail',
+                wholesale: '🏪 Wholesale Party',
+                special: '⭐ Superstore / VIP'
+            },
+            typeLabels: {
+                retail: '🛒 Kiryana / Retail',
+                wholesale: '🏪 Wholesale Party',
+                special: '⭐ Superstore / VIP'
+            }
+        },
+        distributor: {
+            statTotal: 'Total Retail Outlets &amp; Dealers',
+            statTotalUr: 'کل دکانیں و ڈیلرز',
+            statBalance: 'Total Market Credit (Udhaar)',
+            statBalanceUr: 'کل مارکیٹ ادھار',
+            statActive: 'Active Billed Outlets',
+            statActiveUr: 'فعال دکانیں',
+            statDue: 'Credit / Recovery Due Outlets',
+            statDueUr: 'بقایا دکانیں',
+            searchPh: 'Search outlet/shop name, owner, weekly PJP route, booker, mobile or NTN...',
+            searchPhUr: 'Search outlet, owner, route, booker... (دکان، مالک، روٹ یا موبائل تلاش کریں)',
+            routeAllEn: '🗓️ All Weekly PJP Routes / Beats',
+            routeAllUr: '🗓️ All Weekly PJP Routes / Beats (تمام ہفتہ وار روٹس)',
+            routeAllText: '🗓️ All Weekly PJP Routes / Beats (تمام روٹس)',
+            routeAllLabel: 'All Weekly PJP Routes / Markets',
+            routeIcon: '🗓️',
+            routePrintBtn: '🗓️ Weekly PJP Sheet',
+            routePrintBtnUr: 'ہفتہ وار روٹ شیٹ',
+            tabWholesale: '🏪 Sub-Distributors &amp; Bulk',
+            tabWholesaleUr: 'سب ڈسٹریبیوٹرز',
+            tabRetail: '🛒 Retail Outlets / Shops',
+            tabRetailUr: 'دکانیں',
+            tabInstUr: 'روٹ دکانیں',
+            panelSubEn: 'Set weekly route day (Mon–Sat), outlet type, trade offer discount % & credit limit',
+            addHeaderTitle: '<i class="fas fa-user-plus"></i> Add Retail Outlet / Agency Party <span class="eb-ur-sub">(نئی دکان / پارٹی شامل کریں)</span>',
+            editHeaderPrefix: '<i class="fas fa-edit"></i> Edit Outlet / Party <span class="eb-ur-sub">(ترمیم)</span>: ',
+            listHeaderTitle: '🚚 Retail Outlets &amp; Sub-Distributors Khata <span class="eb-ur-sub">(دکانوں کا کھاتہ)</span>',
+            staffBoxTitle: '📕 Assigned Order Booker / Van Salesman <span class="eb-ur-sub">(آرڈر بکر / وین سیلزمین)</span>',
+            staffBoxHint: '💡 Selecting a booker shows this outlet in their app & PJP route list.<span class="eb-ur-compact">بکر منتخب کرنے سے یہ دکان اس بکر کی موبائل ایپ اور روٹ لسٹ میں نظر آئے گی۔</span>',
+            staffEmptyOptionEn: '— No Order Booker (Direct Agency / Depot Sale) —',
+            staffEmptyOptionUr: '— No Order Booker (کوئی بکر نہیں / براہ راست ایجنسی سیل) —',
+            staffEmptyOption: '— No Order Booker (Direct Agency / Depot Sale) —',
+            staffCardPrefix: 'Booker:',
+            lblName: '👤 Shopkeeper / Proprietor Name * <span class="eb-ur-sub">(دکاندار کا نام)</span>',
+            phName: 'e.g. Muhammad Naveed / Tariq General Store',
+            lblShop: '🏪 Outlet / Mart / Agency Name <span class="eb-ur-sub">(دکان / مارٹ کا نام)</span>',
+            phShop: 'e.g. Al-Fatah Super Store / Rehman Traders',
+            lblType: '🏷️ Outlet Classification <span class="eb-ur-sub">(دکان کی قسم)</span>',
+            optRetail: '🛒 Retail Outlet / General Store (جنرل اسٹور / دکان)',
+            optWholesale: '🏪 Sub-Distributor / Wholesale Dealer (سب ڈسٹریبیوٹر)',
+            optSpecial: '🏢 Key Account / Modern Trade (بڑا مارٹ / سپر اسٹور)',
+            lblRoute: '🛣️ Town / Sector / Market Area <span class="eb-ur-sub">(شہر / مارکیٹ)</span>',
+            phRoute: 'e.g. Gulshan Market / Main Bazar',
+            lblNtn: '🪪 CNIC / NTN # <span class="eb-ur-sub">(شناختی کارڈ / این ٹی این)</span>',
+            phNtn: 'e.g. 35202-1234567-1 or NTN 1234567-8',
+            showFbrStatus: true,
+            showImeiBtn: false,
+            sheetBanner: '🚚 WEEKLY ROUTE (PJP) &amp; MARKET RECOVERY SHEET (ہفتہ وار روٹ اور ریکوری شیٹ)',
+            sheetRouteLabel: 'Weekly Route / Beat',
+            sheetColParty: 'Shop / Outlet &amp; Owner',
+            sheetColBeat: 'Weekly Route (PJP) / Booker',
+            sheetSig1: 'Order Booker / Recovery Officer Sign: ______________________',
+            sheetSig2: 'Van Driver / Cashier Verification Sign: ______________________',
+            typeBadges: {
+                retail: '🛒 Retail Outlet',
+                wholesale: '🏪 Sub-Distributor',
+                special: '🏢 Key Account / Mart'
+            },
+            typeLabels: {
+                retail: '🛒 Retail Outlet',
+                wholesale: '🏪 Sub-Distributor',
+                special: '🏢 Key Account / Mart'
+            }
+        }
+    };
+    return map[id] || map.books;
+}
+
 function getCustSubCategoryLabel(subCat) {
     if (!subCat) return '';
     if (window.BusinessCategories && typeof window.BusinessCategories.getCustomerSegmentLabel === 'function') {
@@ -120,45 +609,129 @@ function applyCategoryCustomerUI() {
     const cfg = (window.BusinessCategories && typeof window.BusinessCategories.getCustomerConfig === 'function')
         ? window.BusinessCategories.getCustomerConfig(catId)
         : null;
-    if (!cfg) return;
+    const uiMeta = getCategoryCustomerUiMeta(catId);
+
+    // 1. Update Top KPI Stat Card & Form Labels (Bilingual HTML)
+    const setHtml = (id, html) => {
+        const el = document.getElementById(id);
+        if (el && html) el.innerHTML = html;
+    };
+    const setOptBilingual = (id, rawLabel) => {
+        const el = document.getElementById(id);
+        if (!el || !rawLabel) return;
+        const parts = ebSplitBilingual(rawLabel);
+        el.setAttribute('data-eb-en', parts.en);
+        el.setAttribute('data-eb-ur', parts.ur ? parts.mix : parts.en);
+        const isMix = window.ebLang && typeof window.ebLang.isMix === 'function' ? window.ebLang.isMix() : false;
+        el.textContent = isMix ? (parts.ur ? parts.mix : parts.en) : parts.en;
+    };
+
+    setHtml('lblCustStatTotal', ebMix(uiMeta.statTotal, uiMeta.statTotalUr));
+    setHtml('lblCustStatBalance', ebMix(uiMeta.statBalance, uiMeta.statBalanceUr));
+    setHtml('lblCustStatActive', ebMix(uiMeta.statActive, uiMeta.statActiveUr));
+    setHtml('lblCustStatDue', ebMix(uiMeta.statDue, uiMeta.statDueUr));
+    setHtml('lblBtnPrintRouteList', ebMix(uiMeta.routePrintBtn, uiMeta.routePrintBtnUr));
+    setHtml('tabFilterWholesale', ebMix(uiMeta.tabWholesale, uiMeta.tabWholesaleUr));
+    setHtml('tabFilterRetail', ebMix(uiMeta.tabRetail, uiMeta.tabRetailUr));
+    setHtml('custListHeaderTitle', uiMeta.listHeaderTitle);
+    setHtml('lblAssignedBookerTitle', uiMeta.staffBoxTitle);
+    setHtml('lblAssignedBookerHint', uiMeta.staffBoxHint);
+    setHtml('lblCustName', uiMeta.lblName);
+    setHtml('lblCustShopName', uiMeta.lblShop);
+    setHtml('lblCustType', uiMeta.lblType);
+    setOptBilingual('optCustTypeRetail', uiMeta.optRetail);
+    setOptBilingual('optCustTypeWholesale', uiMeta.optWholesale);
+    setOptBilingual('optCustTypeSpecial', uiMeta.optSpecial);
+    setHtml('lblCustRoute', uiMeta.lblRoute);
+    setHtml('lblCustNtn', uiMeta.lblNtn);
+
+    const searchInp = document.getElementById('searchInput');
+    if (searchInp && uiMeta.searchPh) ebSetPh(searchInp, uiMeta.searchPh, uiMeta.searchPhUr || uiMeta.searchPh);
+
+    const nameInp = document.getElementById('custName');
+    if (nameInp && uiMeta.phName) ebSetPh(nameInp, uiMeta.phName, uiMeta.phName);
+
+    const shopInp = document.getElementById('custShopName');
+    if (shopInp && uiMeta.phShop) ebSetPh(shopInp, uiMeta.phShop, uiMeta.phShop);
+
+    const routeInp = document.getElementById('custRoute');
+    if (routeInp && uiMeta.phRoute) ebSetPh(routeInp, uiMeta.phRoute, uiMeta.phRoute);
+
+    const ntnInp = document.getElementById('custNTN');
+    if (ntnInp && uiMeta.phNtn) ebSetPh(ntnInp, uiMeta.phNtn, uiMeta.phNtn);
+
+    const addHdr = document.getElementById('addCustomerHeaderTitle');
+    if (addHdr && !editingCustomerId && uiMeta.addHeaderTitle) {
+        addHdr.innerHTML = uiMeta.addHeaderTitle;
+    }
+
+    // FBR Tax Status group only for Distributor & Wholesaler
+    const fbrGroup = document.getElementById('custFbrStatusGroup');
+    if (fbrGroup) {
+        fbrGroup.style.display = uiMeta.showFbrStatus ? 'block' : 'none';
+    }
+
+    // Mobile IMEI button in modal header only for Mobile Shop
+    const btnModalImei = document.getElementById('btnModalCustImeiDevices');
+    if (btnModalImei) {
+        btnModalImei.style.display = uiMeta.showImeiBtn ? 'inline-flex' : 'none';
+    }
+
+    if (!cfg) {
+        ebApplyBilingualDom(document);
+        return;
+    }
 
     const titleEl = document.getElementById('custProfilePanelTitle');
     if (titleEl && cfg.panelTitle) {
-        titleEl.innerHTML = `${cfg.panelIcon ? `<i class="${cfg.panelIcon}"></i> ` : ''}${cfg.panelTitle}`;
+        titleEl.innerHTML = `${cfg.panelIcon ? `<i class="${cfg.panelIcon}"></i> ` : ''}${ebFormatBilingualHtml(cfg.panelTitle)}`;
     }
     const subEl = document.getElementById('custProfilePanelSub');
-    if (subEl && cfg.panelSub) subEl.textContent = cfg.panelSub;
+    if (subEl && cfg.panelSub) {
+        const hasUrdu = /[\u0600-\u06FF]/.test(cfg.panelSub);
+        subEl.innerHTML = hasUrdu
+            ? ebCompact(uiMeta.panelSubEn || 'For auto-discount & customer profile records', cfg.panelSub)
+            : cfg.panelSub;
+    }
 
     const segLbl = document.getElementById('custSegmentLabel');
-    if (segLbl && cfg.segmentLabel) segLbl.textContent = cfg.segmentLabel;
+    if (segLbl && cfg.segmentLabel) segLbl.innerHTML = ebFormatBilingualHtml(cfg.segmentLabel);
 
     const boardLbl = document.getElementById('custBoardLabel');
-    if (boardLbl && cfg.boardLabel) boardLbl.textContent = cfg.boardLabel;
+    if (boardLbl && cfg.boardLabel) boardLbl.innerHTML = ebFormatBilingualHtml(cfg.boardLabel);
 
     const boardInp = document.getElementById('custBoardSyllabus');
-    if (boardInp && cfg.boardPlaceholder) boardInp.placeholder = cfg.boardPlaceholder;
+    if (boardInp && cfg.boardPlaceholder) {
+        const bParts = ebSplitBilingual(cfg.boardPlaceholder);
+        ebSetPh(boardInp, bParts.en, bParts.ur ? bParts.mix : bParts.en);
+    }
 
     const discLbl = document.getElementById('custDiscountLabel');
-    if (discLbl && cfg.discountLabel) discLbl.textContent = cfg.discountLabel;
+    if (discLbl && cfg.discountLabel) discLbl.innerHTML = ebFormatBilingualHtml(cfg.discountLabel);
 
     const focalLbl = document.getElementById('custFocalLabel');
-    if (focalLbl && cfg.focalLabel) focalLbl.textContent = cfg.focalLabel;
+    if (focalLbl && cfg.focalLabel) focalLbl.innerHTML = ebFormatBilingualHtml(cfg.focalLabel);
 
     const focalInp = document.getElementById('custFocalPerson');
-    if (focalInp && cfg.focalPlaceholder) focalInp.placeholder = cfg.focalPlaceholder;
+    if (focalInp && cfg.focalPlaceholder) {
+        const fParts = ebSplitBilingual(cfg.focalPlaceholder);
+        ebSetPh(focalInp, fParts.en, fParts.ur ? fParts.mix : fParts.en);
+    }
 
     const tabInst = document.getElementById('tabFilterInstitutional');
     if (tabInst && cfg.filterTabLabel) {
         const currentCount = document.getElementById('tabCountInstitutional')?.innerText || '0';
-        tabInst.innerHTML = `${cfg.filterTabLabel} (<span id="tabCountInstitutional">${currentCount}</span>)`;
+        const instLabel = ebMix(ebFormatBilingualHtml(cfg.filterTabLabel), uiMeta.tabInstUr || 'مخصوص');
+        tabInst.innerHTML = `${instLabel} (<span id="tabCountInstitutional">${currentCount}</span>)`;
     }
 
     const segSel = document.getElementById('custSubCategory');
     if (segSel && Array.isArray(cfg.segments) && cfg.segments.length > 0) {
         const curVal = segSel.value;
-        segSel.innerHTML = '<option value="">— Select Segment (Optional) —</option>' +
-            cfg.segments.map(s => `<option value="${s.value}">${s.label}</option>`).join('');
+        segSel.innerHTML = '<option value="" data-eb-en="— Select Segment (Optional) —" data-eb-ur="— Select Segment (کیٹیگری منتخب کریں) —">— Select Segment (Optional) —</option>' +
+            cfg.segments.filter(s => s && s.value !== '').map(s => ebOptionHtml(s.value, s.label)).join('');
         if (curVal) segSel.value = curVal;
+        ebApplyBilingualDom(segSel);
     }
 
     const dl = document.getElementById('custBoardDatalist');
@@ -168,6 +741,7 @@ function applyCategoryCustomerUI() {
         const merged = Array.from(new Set([...customList, ...baseList]));
         dl.innerHTML = merged.map(v => `<option value="${String(v).replace(/"/g, '&quot;')}"></option>`).join('');
     }
+    ebApplyBilingualDom(document);
 }
 const TERMS_LABELS = {
     'cash': '💵 Cash',
@@ -314,7 +888,7 @@ function saveToCache(customers) {
         if (badge) {
             badge.style.background = '#dcfce7';
             badge.style.color = '#15803d';
-            badge.innerHTML = '<i class="fas fa-check-circle"></i> Live Synced';
+            badge.innerHTML = '<i class="fas fa-check-circle"></i> Live Synced <span class="eb-ur-sub">(لائیو)</span>';
         }
     } catch (e) {
         console.warn('Cust cache save error:', e);
@@ -325,13 +899,13 @@ function saveToCache(customers) {
 const syncCustBtn = document.getElementById('syncCustBtn');
 if (syncCustBtn) {
     syncCustBtn.addEventListener('click', async () => {
-        syncCustBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+        syncCustBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing... <span class="eb-ur-sub">(سنک)</span>';
         syncCustBtn.disabled = true;
         await loadAgencyBookers();
         listenCustomers();
         listenBills();
         setTimeout(() => {
-            syncCustBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+            syncCustBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data <span class="eb-ur-sub">(ریفریش)</span>';
             syncCustBtn.disabled = false;
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
@@ -417,6 +991,7 @@ function populateCustomerRouteFilter() {
     const sel = document.getElementById('custRouteFilter');
     if (!sel) return;
     const activeCat = getActiveCategoryId();
+    const uiMeta = getCategoryCustomerUiMeta(activeCat);
     const isWholesale = activeCat === 'wholesaler';
     const isDistributor = activeCat === 'distributor';
     const isRestaurant = activeCat === 'restaurant';
@@ -434,12 +1009,17 @@ function populateCustomerRouteFilter() {
     const prev = currentRouteFilter || sel.value || 'all';
     const todayInfo = getTodayRouteDayInfo();
     const todayCount = allCustomers.filter(c => matchesTodayRouteBeat(c)).length;
+    const todayEn = `📅 Today's Route (${todayInfo.en.charAt(0).toUpperCase() + todayInfo.en.slice(1)} — ${todayCount} Shops)`;
+    const todayUr = `📅 Today's Route / آج کا روٹ (${todayInfo.label} — ${todayCount} دکانیں)`;
     const todayOptionHtml = (isDistributor || isWholesale)
-        ? `<option value="__today_route__">📅 Today's Route / آج کا ہفتہ وار روٹ (${todayInfo.label} — ${todayCount} Shops)</option>`
+        ? `<option value="__today_route__" data-eb-en="${ebEscAttr(todayEn)}" data-eb-ur="${ebEscAttr(todayUr)}">${ebEscAttr(todayEn)}</option>`
         : '';
-    sel.innerHTML = '<option value="all">🛣️ All Routes / Weekly PJP Beats (تمام روٹس)</option>' +
+    const itemIcon = isRestaurant ? '🛵' : (activeCat === 'medical' ? '🏥' : (activeCat === 'mobile' ? '📍' : (activeCat === 'books' ? '🏫' : '🛣️')));
+    const allEn = uiMeta.routeAllEn || ebSplitBilingual(uiMeta.routeAllText).en;
+    const allUr = uiMeta.routeAllUr || uiMeta.routeAllText;
+    sel.innerHTML = `<option value="all" data-eb-en="${ebEscAttr(allEn)}" data-eb-ur="${ebEscAttr(allUr)}">${ebEscAttr(allEn)}</option>` +
         todayOptionHtml +
-        sorted.map(r => `<option value="${r.replace(/"/g, '&quot;')}">🛣️ ${r}</option>`).join('');
+        sorted.map(r => ebOptionHtml(r, r, '', `${itemIcon} `)).join('');
     if (prev === '__today_route__' && (isDistributor || isWholesale)) {
         sel.value = '__today_route__';
         currentRouteFilter = '__today_route__';
@@ -450,21 +1030,30 @@ function populateCustomerRouteFilter() {
         sel.value = 'all';
         currentRouteFilter = 'all';
     }
+    ebApplyBilingualDom(sel);
 }
 
 function populateBookerDropdown(selectedId = '') {
     const sel = document.getElementById('custBookerSelect');
     if (!sel) return;
-    sel.innerHTML = '<option value="">— No Order Booker (Direct / General Customer) —</option>';
+    const activeCat = getActiveCategoryId();
+    const uiMeta = getCategoryCustomerUiMeta(activeCat);
+    const isRest = activeCat === 'restaurant';
+    const emptyEn = uiMeta.staffEmptyOptionEn || uiMeta.staffEmptyOption;
+    const emptyUr = uiMeta.staffEmptyOptionUr || uiMeta.staffEmptyOption;
+    sel.innerHTML = `<option value="" data-eb-en="${ebEscAttr(emptyEn)}" data-eb-ur="${ebEscAttr(emptyUr)}">${ebEscAttr(emptyEn)}</option>`;
     agencyBookers.forEach(b => {
-        const roleLabel = b.role === 'supplier' ? '🚚 Supplier' : '📕 Booker';
-        const routeLabel = b.route ? ` [Route: ${b.route}]` : '';
+        const roleLabel = isRest
+            ? '🛵 Rider/Staff'
+            : (b.role === 'supplier' || b.role === 'delivery' || b.role === 'driver' ? '🚚 Supplier/Driver' : '📕 Booker');
+        const routeLabel = b.route ? ` [${isRest ? 'Zone' : 'Route'}: ${b.route}]` : '';
         const opt = document.createElement('option');
         opt.value = b.id;
         opt.textContent = `${roleLabel}: ${b.name}${routeLabel}`;
         sel.appendChild(opt);
     });
     if (selectedId) sel.value = selectedId;
+    ebApplyBilingualDom(sel);
 }
 
 // Auto-fill route and city when Booker is chosen
@@ -692,8 +1281,8 @@ function renderCustomers() {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="big-icon">👥</div>
-                <strong>Koi customer nahi hai!</strong><br>
-                Upar se pehla CUSTOMER ADD karein!
+                <strong>No customers added yet! <span class="eb-ur-sub">(کوئی کسٹمر موجود نہیں)</span></strong><br>
+                Add your first customer using the form above.<span class="eb-ur-compact">اوپر دیے گئے فارم سے اپنا پہلا کسٹمر شامل کریں۔</span>
             </div>`;
         return;
     }
@@ -701,8 +1290,8 @@ function renderCustomers() {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="big-icon">🔍</div>
-                Koi match nahi mila!<br>
-                <small>Filter ya search change karein</small>
+                No matching customers found! <span class="eb-ur-sub">(کوئی ریکارڈ نہیں ملا)</span><br>
+                <small>Try changing your search or filter.<span class="eb-ur-compact">تلاش یا فلٹر تبدیل کر کے دوبارہ چیک کریں۔</span></small>
             </div>`;
         return;
     }
@@ -729,67 +1318,71 @@ function renderCustomers() {
 
         let balHtml = '';
         if (bal > 0) {
-            balHtml = `<span class="customer-balance bal-due">💰 Udhaar (Due): Rs ${Math.round(bal).toLocaleString()}</span>`;
+            balHtml = `<span class="customer-balance bal-due">💰 Udhaar / Due <span class="eb-ur-sub">(بقایا)</span>: Rs ${Math.round(bal).toLocaleString()}</span>`;
         } else if (bal < 0) {
-            balHtml = `<span class="customer-balance" style="background:#dbeafe; color:#1d4ed8;">🔵 Advance: Rs ${Math.round(Math.abs(bal)).toLocaleString()}</span>`;
+            balHtml = `<span class="customer-balance" style="background:#dbeafe; color:#1d4ed8;">🔵 Advance <span class="eb-ur-sub">(ایڈوانس)</span>: Rs ${Math.round(Math.abs(bal)).toLocaleString()}</span>`;
         } else {
-            balHtml = `<span class="customer-balance bal-zero">✅ Clear Account (Rs 0)</span>`;
+            balHtml = `<span class="customer-balance bal-zero">✅ Clear Account <span class="eb-ur-sub">(کلیئر)</span> (Rs 0)</span>`;
         }
 
+        const meta = getCategoryCustomerUiMeta(activeCatId);
         const typeHtml = c.customerType 
-            ? `<span class="cust-type-tag">${CUST_TYPE_LABELS[c.customerType] || c.customerType}</span>`
+            ? `<span class="cust-type-tag">${(meta.typeBadges && meta.typeBadges[c.customerType]) || CUST_TYPE_LABELS[c.customerType] || c.customerType}</span>`
             : '';
 
         const subCatLabel = getCustSubCategoryLabel(c.subCategory);
         const subCatHtml = subCatLabel
-            ? `<span style="background:#ede9fe; color:#5b21b6; border:1px solid #ddd6fe; padding:1px 8px; border-radius:10px; font-size:11px; font-weight:800;">${subCatLabel}</span>`
+            ? `<span style="background:#ede9fe; color:#5b21b6; border:1px solid #ddd6fe; padding:1px 8px; border-radius:10px; font-size:11px; font-weight:800;">${ebFormatBilingualHtml(subCatLabel)}</span>`
             : '';
 
         const discHtml = (parseFloat(c.agreedDiscountPercent) > 0)
-            ? `<span style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; padding:1px 8px; border-radius:10px; font-size:11px; font-weight:800;">🏷️ Agreed Disc: ${c.agreedDiscountPercent}%</span>`
+            ? `<span style="background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; padding:1px 8px; border-radius:10px; font-size:11px; font-weight:800;">🏷️ Agreed Disc <span class="eb-ur-sub">(ڈسکاؤنٹ)</span>: ${c.agreedDiscountPercent}%</span>`
             : '';
 
+        const staffPrefix = isRest ? 'Rider/Staff' : ((isDistributor || isWholesale) ? 'Booker' : 'Assigned');
         const bookerTag = c.assignedBookerName ? `
             <span style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:1px 8px; border-radius:10px; font-size:11px; font-weight:bold; display:inline-flex; align-items:center; gap:4px;">
-                <i class="fas fa-user-tag"></i> Booker: ${c.assignedBookerName}
+                <i class="fas fa-user-tag"></i> ${staffPrefix}: ${c.assignedBookerName}
             </span>` : '';
+
+        const showFbrBadge = (meta.showFbrStatus && c.fbrStatus) || c.fbrStatus === 'filer';
 
         html += `
         <div class="customer-card ${bal > 0 ? 'has-balance' : ''}">
             <div class="customer-info">
                 <div class="customer-name">
                     👤 <b>${c.name || 'Unnamed'}</b> ${typeHtml} ${subCatHtml} ${discHtml} ${bookerTag}
-                    ${c.shopName ? `<span style="font-size:13px; font-weight:normal; color:#475569;">— 🏪 ${c.shopName}</span>` : ''}
+                    ${c.shopName ? `<span style="font-size:13px; font-weight:normal; color:#475569;">— ${isRest ? '🏢' : (isMedical ? '🏥' : '🏪')} ${c.shopName}</span>` : ''}
                 </div>
                 <div class="customer-details">
                     ${c.mobile ? `<span>📱 ${c.mobile}</span>` : ''}
                     ${c.focalPerson ? `<span style="color:#4f46e5; font-weight:600;">${activeCatId === 'mobile' ? '🤝 Guarantor/Ref:' : (isDistributor ? '👤 Shop Owner/Buyer:' : (isWholesale ? '🤝 Owner/Munshi:' : (isRest ? '🛵 Rider/Contact:' : (isMedical ? '👨‍⚕️ Doctor/Ref:' : '👔 Focal:'))))} ${c.focalPerson}</span>` : ''}
                     ${c.affiliatedBoard ? `<span style="background:#e0f2fe; color:#0369a1; padding:1px 6px; border-radius:6px; font-weight:700;">${activeCatId === 'mobile' ? '📱 Specialty:' : (isDistributor ? '🗓️ Weekly Route (PJP):' : (isWholesale ? '🛣️ PJP Beat:' : (isRest ? '📍 Delivery Zone:' : (isMedical ? '🩺 Specialty/Rx:' : '🏛️ Board:'))))} ${c.affiliatedBoard}</span>` : ''}
                     ${c.address ? `<span>📍 ${c.address}</span>` : ''}
-                    ${c.route ? `<span>🛣️ ${c.route}</span>` : ''}
+                    ${c.route ? `<span>${meta.routeIcon} ${c.route}</span>` : ''}
                     ${c.city ? `<span>🏙️ ${c.city}</span>` : ''}
-                    <span style="color:#2563eb; font-weight:600;">🧾 Bills: ${billCount} (Rs ${Math.round(totalPurchased).toLocaleString()})</span>
-                    <span style="color:#16a34a; font-weight:600;">💵 Payments: ${paymentsCount} (Rs ${Math.round(totalRecovered).toLocaleString()})</span>
+                    <span style="color:#2563eb; font-weight:600;">🧾 Bills <span class="eb-ur-sub">(بل)</span>: ${billCount} (Rs ${Math.round(totalPurchased).toLocaleString()})</span>
+                    <span style="color:#16a34a; font-weight:600;">💵 Payments <span class="eb-ur-sub">(وصولی)</span>: ${paymentsCount} (Rs ${Math.round(totalRecovered).toLocaleString()})</span>
                 </div>
                 <div class="customer-details" style="margin-top:2px;">
                     ${c.paymentTerms ? `<span>📅 Terms: ${TERMS_LABELS[c.paymentTerms] || c.paymentTerms}</span>` : ''}
-                    ${c.creditLimit ? `<span>💳 Limit: Rs ${Number(c.creditLimit).toLocaleString()}</span>` : ''}
-                    ${(parseFloat(c.creditLimit) > 0 && bal > parseFloat(c.creditLimit)) ? `<span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:1px 7px; border-radius:8px; font-size:11px; font-weight:800;">🚨 Over Credit Limit (+Rs ${Math.round(bal - parseFloat(c.creditLimit)).toLocaleString()})</span>` : ''}
-                    ${c.previousBalance ? `<span>⏳ Opening: Rs ${Number(c.previousBalance).toLocaleString()}</span>` : ''}
+                    ${c.creditLimit ? `<span>💳 Limit <span class="eb-ur-sub">(حد)</span>: Rs ${Number(c.creditLimit).toLocaleString()}</span>` : ''}
+                    ${(parseFloat(c.creditLimit) > 0 && bal > parseFloat(c.creditLimit)) ? `<span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:1px 7px; border-radius:8px; font-size:11px; font-weight:800;">🚨 Over Limit <span class="eb-ur-sub">(حد سے زائد)</span> (+Rs ${Math.round(bal - parseFloat(c.creditLimit)).toLocaleString()})</span>` : ''}
+                    ${c.previousBalance ? `<span>⏳ Opening <span class="eb-ur-sub">(سابقہ)</span>: Rs ${Number(c.previousBalance).toLocaleString()}</span>` : ''}
                     ${c.ntn ? `<span style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; padding:1px 6px; border-radius:6px; font-weight:700;">🪪 CNIC/NTN: ${c.ntn}</span>` : ''}
-                    ${c.fbrStatus ? `<span style="font-size:11px; font-weight:800; padding:1px 8px; border-radius:10px; ${c.fbrStatus === 'filer' ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'}">${c.fbrStatus === 'filer' ? '🟢 Filer (فائلر)' : '🔴 Non-Filer (نان فائلر)'}</span>` : ''}
+                    ${showFbrBadge ? `<span style="font-size:11px; font-weight:800; padding:1px 8px; border-radius:10px; ${c.fbrStatus === 'filer' ? 'background:#dcfce7; color:#15803d; border:1px solid #86efac;' : 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;'}">${c.fbrStatus === 'filer' ? '🟢 Filer <span class="eb-ur-sub">(فائلر)</span>' : '🔴 Non-Filer <span class="eb-ur-sub">(نان فائلر)</span>'}</span>` : ''}
                 </div>
                 <div style="margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     ${balHtml}
-                    ${c.lastBillNo ? `<span style="font-size:11px; color:#64748b;">(Last Bill: <b>${c.lastBillNo}</b>)</span>` : ''}
+                    ${c.lastBillNo ? `<span style="font-size:11px; color:#64748b;">(Last Bill <span class="eb-ur-sub">/ آخری بل</span>: <b>${c.lastBillNo}</b>)</span>` : ''}
                 </div>
             </div>
             <div class="customer-actions">
                 <button class="btn-history" onclick="openCustomerHistory('${c.id}', 'ledger')" title="View Khata Ledger Statement">
-                    <i class="fas fa-book"></i> 📜 Khata Ledger
+                    <i class="fas fa-book"></i> 📜 Khata Ledger <span class="eb-ur-sub">(کھاتہ)</span>
                 </button>
                 <button class="btn-card-pay" onclick="recordQuickPayment('${c.id}')" title="Receive Money / Payment Recovery">
-                    <i class="fas fa-hand-holding-usd"></i> 💵 Pay
+                    <i class="fas fa-hand-holding-usd"></i> 💵 Pay <span class="eb-ur-sub">(وصولی)</span>
                 </button>
                 ${activeCatId === 'mobile' ? `<button class="btn-icon" style="background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; font-size:12px; padding:4px 8px; border-radius:8px; font-weight:800; cursor:pointer;" onclick="openCustomerDeviceImeiModal('${c.id}')" title="View Sold / Repaired Phones, IMEIs &amp; Warranties">📱 IMEIs</button>` : ''}
                 <button class="btn-icon btn-edit" onclick="editCustomer('${c.id}')" title="Edit Customer Details">✏️</button>
@@ -876,18 +1469,18 @@ function markFormChanged() {
         if (hasChanges) {
             saveBtn.style.background = '#16a34a';
             saveBtn.style.color = '#ffffff';
-            saveBtn.innerHTML = '<i class="fas fa-check-circle"></i> SAVE CHANGES (تبدیلی محفوظ کریں)';
+            saveBtn.innerHTML = '<i class="fas fa-check-circle"></i> SAVE CHANGES <span class="eb-ur-sub">(تبدیلی محفوظ کریں)</span>';
             saveBtn.classList.add('pulse-green');
         } else {
             saveBtn.style.background = '#64748b';
             saveBtn.style.color = '#ffffff';
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Customer (کوئی تبدیلی نہیں)';
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Customer <span class="eb-ur-sub">(کوئی تبدیلی نہیں)</span>';
             saveBtn.classList.remove('pulse-green');
         }
     } else {
         saveBtn.style.background = '#16a34a';
         saveBtn.style.color = '#ffffff';
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE CUSTOMER';
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE CUSTOMER <span class="eb-ur-sub">(کسٹمر محفوظ کریں)</span>';
         saveBtn.classList.remove('pulse-green');
     }
 }
@@ -930,7 +1523,7 @@ document.getElementById('addCustomerToggle').addEventListener('click', function(
             saveBtn.disabled = false;
             saveBtn.style.background = '#16a34a';
             saveBtn.style.color = '#ffffff';
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE CUSTOMER';
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE CUSTOMER <span class="eb-ur-sub">(کسٹمر محفوظ کریں)</span>';
             saveBtn.classList.remove('pulse-green');
         }
         form.style.display = 'block';
@@ -941,8 +1534,8 @@ document.getElementById('addCustomerToggle').addEventListener('click', function(
         if (editingCustomerId) {
             form.reset();
             editingCustomerId = null;
-            const headerH2 = document.querySelector('.add-item-header h2');
-            if (headerH2) headerH2.innerHTML = '<i class="fas fa-user-plus"></i> Add New Customer';
+            const headerH2 = document.getElementById('addCustomerHeaderTitle') || document.querySelector('.add-item-header h2');
+            if (headerH2) headerH2.innerHTML = getCategoryCustomerUiMeta(getActiveCategoryId()).addHeaderTitle;
         }
     }
 });
@@ -951,6 +1544,8 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
     e.preventDefault();
 
     // 🆕 SAARI FIELDS collect
+    const activeCatId = getActiveCategoryId();
+    const meta = getCategoryCustomerUiMeta(activeCatId);
     const name = document.getElementById('custName').value.trim();
     const shopName = document.getElementById('custShopName').value.trim();
     const customerType = document.getElementById('custType').value;
@@ -967,7 +1562,9 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
     const creditLimit = parseFloat(document.getElementById('custCreditLimit').value) || 0;
     const notes = document.getElementById('custNotes').value.trim();
     const ntn = document.getElementById('custNTN')?.value.trim() || '';
-    const fbrStatus = document.getElementById('custFbrStatus')?.value || (ntn ? 'filer' : 'non-filer');
+    const fbrStatus = meta.showFbrStatus
+        ? (document.getElementById('custFbrStatus')?.value || (ntn ? 'filer' : 'non-filer'))
+        : '';
 
     // Booker assignment
     const bookerId = document.getElementById('custBookerSelect')?.value || '';
@@ -1009,7 +1606,7 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
 
     const saveBtn = document.getElementById('saveCustomerBtn');
     saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving... <span class="eb-ur-sub">(محفوظ ہو رہا ہے)</span>';
 
     try {
         const custData = {
@@ -1069,13 +1666,13 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
 
         saveBtn.disabled = false;
         saveBtn.style.background = '#16a34a';
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE CUSTOMER';
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE CUSTOMER <span class="eb-ur-sub">(کسٹمر محفوظ کریں)</span>';
         saveBtn.classList.remove('pulse-green');
 
         document.getElementById('addCustomerForm').reset();
         editingCustomerId = null;
-        const headerH2 = document.querySelector('.add-item-header h2');
-        if (headerH2) headerH2.innerHTML = '<i class="fas fa-user-plus"></i> Add New Customer';
+        const headerH2 = document.getElementById('addCustomerHeaderTitle') || document.querySelector('.add-item-header h2');
+        if (headerH2) headerH2.innerHTML = getCategoryCustomerUiMeta(getActiveCategoryId()).addHeaderTitle;
         document.getElementById('addCustomerForm').style.display = 'none';
         const arrow = document.getElementById('toggleArrow');
         if (arrow) arrow.classList.remove('open');
@@ -1083,7 +1680,7 @@ document.getElementById('addCustomerForm').addEventListener('submit', async (e) 
     } catch (error) {
         saveBtn.disabled = false;
         saveBtn.style.background = '#16a34a';
-        saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE CUSTOMER';
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> SAVE CUSTOMER <span class="eb-ur-sub">(کسٹمر محفوظ کریں)</span>';
         console.error('Save error:', error);
         Swal.fire('❌ Error', 'Customer save nahi hua: ' + (error.code || error.message), 'error');
     }
@@ -1122,14 +1719,15 @@ function editCustomer(custId) {
     document.getElementById('addCustomerForm').style.display = 'block';
     const arrow = document.getElementById('toggleArrow');
     if (arrow) arrow.classList.add('open');
-    const headerH2 = document.querySelector('.add-item-header h2');
-    if (headerH2) headerH2.innerHTML = '<i class="fas fa-edit"></i> Edit Customer: ' + (c.name || '');
+    const headerH2 = document.getElementById('addCustomerHeaderTitle') || document.querySelector('.add-item-header h2');
+    const uiMeta = getCategoryCustomerUiMeta(getActiveCategoryId());
+    if (headerH2) headerH2.innerHTML = (uiMeta.editHeaderPrefix || '<i class="fas fa-edit"></i> Edit Customer: ') + (c.name || '');
 
     const saveBtn = document.getElementById('saveCustomerBtn');
     saveBtn.disabled = false;
     saveBtn.style.background = '#64748b';
     saveBtn.style.color = '#ffffff';
-    saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Customer (کوئی تبدیلی نہیں)';
+    saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Customer <span class="eb-ur-sub">(کوئی تبدیلی نہیں)</span>';
     saveBtn.classList.remove('pulse-green');
 
     captureOriginalFormData();
@@ -1178,7 +1776,7 @@ function openCustomerHistory(custId, targetTab = 'ledger') {
     activeLedgerTab = targetTab || 'ledger';
 
     // Header info
-    document.getElementById('modalCustName').innerHTML = `📜 Khata Ledger: <b>${c.name}</b>`;
+    document.getElementById('modalCustName').innerHTML = `📜 Khata Ledger <span class="eb-ur-sub">(کھاتہ)</span>: <b>${c.name}</b>`;
     const activeCat = getActiveCategoryId();
     const isWholesale = activeCat === 'wholesaler';
     const isDistributor = activeCat === 'distributor';
@@ -1189,7 +1787,7 @@ function openCustomerHistory(custId, targetTab = 'ledger') {
     if (btnModalImei) btnModalImei.style.display = isMobile ? 'inline-flex' : 'none';
     const subParts = [
         c.shopName ? `🏪 <b>${c.shopName}</b>` : '',
-        c.subCategory ? `<span style="color:#5b21b6; font-weight:700;">${getCustSubCategoryLabel(c.subCategory)}</span>` : '',
+        c.subCategory ? `<span style="color:#5b21b6; font-weight:700;">${ebFormatBilingualHtml(getCustSubCategoryLabel(c.subCategory))}</span>` : '',
         c.affiliatedBoard ? `${isMobile ? '📱' : (isDistributor ? '🗓️ Weekly Route:' : (isWholesale ? '🛣️ PJP Beat:' : (isRest ? '📍 Zone:' : (isMedical ? '🩺' : '🏛️'))))} ${c.affiliatedBoard}` : '',
         (parseFloat(c.agreedDiscountPercent) > 0) ? `🏷️ Disc: <b>${c.agreedDiscountPercent}%</b>` : '',
         c.focalPerson ? `${isRest ? '🛵' : (isMedical ? '👨‍⚕️' : (isDistributor ? '👤' : (isMobile || isWholesale ? '🤝' : '👔')))} ${c.focalPerson}` : '',
@@ -1199,7 +1797,7 @@ function openCustomerHistory(custId, targetTab = 'ledger') {
         c.paymentTerms ? `📅 Terms: ${TERMS_LABELS[c.paymentTerms] || c.paymentTerms}` : '',
         c.creditLimit ? `💳 Limit: Rs ${Number(c.creditLimit).toLocaleString()}` : ''
     ].filter(Boolean);
-    document.getElementById('modalCustSub').innerHTML = subParts.join('  •  ') || 'Customer Account Statement';
+    document.getElementById('modalCustSub').innerHTML = subParts.join('  •  ') || 'Customer Account Statement <span class="eb-ur-sub">(کسٹمر اکاؤنٹ تفصیل)</span>';
 
     // Show modal
     document.getElementById('historyModal').style.display = 'flex';
@@ -1334,19 +1932,19 @@ function renderModalContent() {
     const curBalCard = document.getElementById('modalCurrentBalanceCard');
     if (curBalEl) {
         if (currentBal > 0) {
-            curBalEl.innerText = 'Rs ' + Math.round(currentBal).toLocaleString() + ' (Due)';
+            curBalEl.innerHTML = 'Rs ' + Math.round(currentBal).toLocaleString() + ' (Due <span class="eb-ur-sub">/ بقایا</span>)';
             curBalEl.className = 'kpi-val text-danger';
             if (curBalCard) {
                 curBalCard.className = 'modal-kpi-box kpi-highlight';
             }
         } else if (currentBal < 0) {
-            curBalEl.innerText = 'Rs ' + Math.round(Math.abs(currentBal)).toLocaleString() + ' (Advance)';
+            curBalEl.innerHTML = 'Rs ' + Math.round(Math.abs(currentBal)).toLocaleString() + ' (Advance <span class="eb-ur-sub">/ ایڈوانس</span>)';
             curBalEl.className = 'kpi-val text-primary';
             if (curBalCard) {
                 curBalCard.className = 'modal-kpi-box kpi-highlight is-advance';
             }
         } else {
-            curBalEl.innerText = 'Rs 0 (Clear)';
+            curBalEl.innerHTML = 'Rs 0 (Clear <span class="eb-ur-sub">/ کلیئر</span>)';
             curBalEl.className = 'kpi-val text-success';
             if (curBalCard) {
                 curBalCard.className = 'modal-kpi-box kpi-highlight is-clear';
@@ -1463,7 +2061,7 @@ function renderModalLedgerTable(openingBal, salesBills, paymentVouchers, term, d
         <td>${activeModalCustomer.createdAt ? activeModalCustomer.createdAt.slice(0, 10) : 'Start'}</td>
         <td><span class="badge-voucher" style="background:#e2e8f0; color:#334155;">OPENING</span></td>
         <td><b style="color:#475569;">INITIAL</b></td>
-        <td>Initial Khata Balance (سابقہ بقایا)</td>
+        <td>Initial Khata Balance <span class="eb-ur-sub">(سابقہ بقایا)</span></td>
         <td style="text-align:right;" class="dr-amount">${openingBal > 0 ? 'Rs ' + Math.round(openingBal).toLocaleString() : '-'}</td>
         <td style="text-align:right;" class="cr-amount">${openingBal < 0 ? 'Rs ' + Math.round(Math.abs(openingBal)).toLocaleString() : '-'}</td>
         <td style="text-align:right;" class="bal-amount ${openingBal > 0 ? 'bal-positive' : (openingBal < 0 ? 'bal-negative' : 'bal-zero-col')}">
@@ -1481,8 +2079,8 @@ function renderModalLedgerTable(openingBal, salesBills, paymentVouchers, term, d
             <tr>
                 <td colspan="9" style="text-align:center; padding:35px 20px; color:#94a3b8;">
                     <div style="font-size:30px; margin-bottom:6px;">📜</div>
-                    <b>Is filter ya search ke mutabiq koi entry nahi mili!</b><br>
-                    <small>Filter tab ya date range tabdeel karein ya "Receive Payment" / "New Bill" par click karein.</small>
+                    <b>No entries found for this filter or search! <span class="eb-ur-sub">(کوئی اندراج نہیں ملا)</span></b><br>
+                    <small>Try changing the date range or click Receive Payment / New Bill.<span class="eb-ur-compact">تاریخ کا فلٹر تبدیل کریں یا نیا بل / وصولی درج کریں۔</span></small>
                 </td>
             </tr>`;
         return;
@@ -1498,8 +2096,8 @@ function renderModalLedgerTable(openingBal, salesBills, paymentVouchers, term, d
 
         const isBill = e.type === 'bill';
         const typeBadge = isBill
-            ? `<span class="badge-status" style="background:#e0f2fe; color:#0369a1;"><i class="fas fa-file-invoice"></i> Bill</span>`
-            : `<span class="badge-status" style="background:#dcfce7; color:#15803d;"><i class="fas fa-hand-holding-usd"></i> Payment</span>`;
+            ? `<span class="badge-status" style="background:#e0f2fe; color:#0369a1;"><i class="fas fa-file-invoice"></i> Bill <span class="eb-ur-sub">(بل)</span></span>`
+            : `<span class="badge-status" style="background:#dcfce7; color:#15803d;"><i class="fas fa-hand-holding-usd"></i> Payment <span class="eb-ur-sub">(وصولی)</span></span>`;
 
         const actionBtns = isBill
             ? `<button class="btn-action-sm" style="background:#2563eb; color:#fff; padding:3px 7px; font-size:11px;" onclick="viewSingleBillPreview('${e.id}')" title="View &amp; Print A4 Bill">
@@ -1559,7 +2157,7 @@ function renderModalLedgerTable(openingBal, salesBills, paymentVouchers, term, d
 
     rowsHtml += `
     <tr style="background:#f1f5f9; font-weight:bold; border-top:2px solid #94a3b8; border-bottom:2px solid #94a3b8;">
-        <td colspan="5" style="text-align:right; text-transform:uppercase;">Period Totals:</td>
+        <td colspan="5" style="text-align:right; text-transform:uppercase;">Period Totals <span class="eb-ur-sub">(مجموعی میزان)</span>:</td>
         <td style="text-align:right; color:#dc2626; font-size:13px;">Rs ${Math.round(sumDr).toLocaleString()}</td>
         <td style="text-align:right; color:#16a34a; font-size:13px;">Rs ${Math.round(sumCr).toLocaleString()}</td>
         <td style="text-align:right; font-size:14px;" class="bal-amount ${finalBalClass}">
@@ -1593,8 +2191,8 @@ function renderModalBillsTable(salesBills, term, dateFilter) {
             <tr>
                 <td colspan="8" style="text-align:center; padding:35px 20px; color:#94a3b8;">
                     <div style="font-size:32px; margin-bottom:6px;">🧾</div>
-                    <b>Is customer ka koi bill record nahi mila!</b><br>
-                    <small>"Create New Bill" par click kar ke is customer ka pehla bill banayein.</small>
+                    <b>No bill records found for this customer! <span class="eb-ur-sub">(کوئی بل ریکارڈ نہیں ملا)</span></b><br>
+                    <small>Click "New Bill" above to create the first bill.<span class="eb-ur-compact">پہلا بل بنانے کے لیے اوپر New Bill پر کلک کریں۔</span></small>
                 </td>
             </tr>`;
         return;
@@ -1609,11 +2207,11 @@ function renderModalBillsTable(salesBills, term, dateFilter) {
 
         let statusBadge = '';
         if (bal <= 0) {
-            statusBadge = `<span class="badge-status badge-paid">✅ Paid (مکمل ادا)</span>`;
+            statusBadge = `<span class="badge-status badge-paid">✅ Paid <span class="eb-ur-sub">(مکمل ادا)</span></span>`;
         } else if (rcv > 0) {
-            statusBadge = `<span class="badge-status badge-partial">⏳ Partial (جزوی)</span>`;
+            statusBadge = `<span class="badge-status badge-partial">⏳ Partial <span class="eb-ur-sub">(جزوی)</span></span>`;
         } else {
-            statusBadge = `<span class="badge-status badge-due">💰 Due (بقایا)</span>`;
+            statusBadge = `<span class="badge-status badge-due">💰 Due <span class="eb-ur-sub">(بقایا)</span></span>`;
         }
 
         rowsHtml += `
@@ -1628,7 +2226,7 @@ function renderModalBillsTable(salesBills, term, dateFilter) {
             </td>
             <td>
                 <span style="background:#f1f5f9; padding:2px 8px; border-radius:10px; font-weight:600;">
-                    ${itemsCount} items
+                    ${itemsCount} items <span class="eb-ur-sub">(آئٹمز)</span>
                 </span>
             </td>
             <td><b>Rs ${Math.round(grand).toLocaleString()}</b></td>
@@ -1638,10 +2236,10 @@ function renderModalBillsTable(salesBills, term, dateFilter) {
             <td style="text-align:center;">
                 <div style="display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
                     <button class="btn-action-sm" style="background:#2563eb; color:#fff; padding:4px 8px; font-size:11px;" onclick="viewSingleBillPreview('${b.id}')" title="Print/View Bill">
-                        <i class="fas fa-eye"></i> View
+                        <i class="fas fa-eye"></i> View <span class="eb-ur-sub">(دیکھیں)</span>
                     </button>
-                    <button class="btn-action-sm" style="background:#7c3aed; color:#fff; padding:4px 8px; font-size:11px;" onclick="printCustomerBillThermal('${b.id}')" title="Print 80mm / 58mm Thermal POS Slip (تھرمل پرچی)">
-                        <i class="fas fa-receipt"></i> 🧾 Thermal
+                    <button class="btn-action-sm" style="background:#7c3aed; color:#fff; padding:4px 8px; font-size:11px;" onclick="printCustomerBillThermal('${b.id}')" title="Print 80mm / 58mm Thermal POS Slip">
+                        <i class="fas fa-receipt"></i> 🧾 Thermal <span class="eb-ur-sub">(پرچی)</span>
                     </button>
                     <button class="btn-action-sm" style="background:#25d366; color:#fff; padding:4px 8px; font-size:11px;" onclick="shareBillWhatsapp('${b.id}')" title="WhatsApp Bill">
                         <i class="fab fa-whatsapp"></i>
@@ -1681,8 +2279,8 @@ function renderModalPaymentsTable(paymentVouchers, term, dateFilter) {
             <tr>
                 <td colspan="7" style="text-align:center; padding:35px 20px; color:#94a3b8;">
                     <div style="font-size:32px; margin-bottom:6px;">💵</div>
-                    <b>Koi payment recovery record nahi mili!</b><br>
-                    <small>Upar "Receive Payment" button par click kar ke baqaya وصولی درج karein.</small>
+                    <b>No payment recovery records found! <span class="eb-ur-sub">(کوئی وصولی ریکارڈ نہیں ملا)</span></b><br>
+                    <small>Click "Receive Payment" above to record a payment.<span class="eb-ur-compact">وصولی درج کرنے کے لیے اوپر Receive Payment بٹن پر کلک کریں۔</span></small>
                 </td>
             </tr>`;
         return;
@@ -1719,10 +2317,10 @@ function renderModalPaymentsTable(paymentVouchers, term, dateFilter) {
             <td style="text-align:center;">
                 <div style="display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
                     <button class="btn-action-sm" style="background:#2563eb; color:#fff; padding:4px 8px; font-size:11px;" onclick="printPaymentReceipt('${p.id}')" title="Print Payment Voucher">
-                        <i class="fas fa-print"></i> Slip
+                        <i class="fas fa-print"></i> Slip <span class="eb-ur-sub">(رسید)</span>
                     </button>
                     <button class="btn-action-sm" style="background:#7c3aed; color:#fff; padding:4px 8px; font-size:11px;" onclick="printPaymentReceiptThermal('${p.id}')" title="Print 80mm / 58mm Thermal Receipt">
-                        <i class="fas fa-receipt"></i> 🧾 Thermal
+                        <i class="fas fa-receipt"></i> 🧾 Thermal <span class="eb-ur-sub">(پرچی)</span>
                     </button>
                     <button class="btn-action-sm" style="background:#25d366; color:#fff; padding:4px 8px; font-size:11px;" onclick="sharePaymentWhatsapp('${p.id}')" title="WhatsApp Receipt">
                         <i class="fab fa-whatsapp"></i>
@@ -1817,6 +2415,8 @@ async function recordQuickPayment(prefillCustId, prefillBillNo, suggestedAmount)
             billNo: pBillNo,
             type: 'payment',
             agencyId: myAgencyId,
+            businessCategory: getActiveCategoryId(),
+            categoryConfirmedByCreate: true,
             createdBy: myUid,
             customerId: c.id,
             customerName: c.name,
@@ -2816,23 +3416,23 @@ window.printWholesalePjpRouteSheet = function() {
         return;
     }
 
-    const agencyName = (myAgency && (myAgency.businessName || myAgency.name)) || 'NH POS Distribution';
+    const agencyName = (myAgency && (myAgency.businessName || myAgency.name)) || 'NH POS';
     const agencyPhone = (myAgency && (myAgency.phone || myAgency.mobile)) || '';
     const agencyAddress = (myAgency && myAgency.address) || '';
+    const meta = getCategoryCustomerUiMeta(activeCat);
     const todayInfo = getTodayRouteDayInfo();
     const routeTitle = currentRouteFilter === '__today_route__'
         ? `📅 Today's Weekly Route (${todayInfo.label})`
-        : ((currentRouteFilter && currentRouteFilter !== 'all') ? currentRouteFilter : 'All Weekly PJP Routes / Markets');
-    const sheetBannerTitle = isDistributor
-        ? '🚚 WEEKLY ROUTE (PJP) &amp; MARKET RECOVERY SHEET (ہفتہ وار روٹ اور ریکوری شیٹ)'
-        : '🛣️ PJP ROUTE &amp; RECOVERY SHEET';
+        : ((currentRouteFilter && currentRouteFilter !== 'all') ? currentRouteFilter : meta.routeAllLabel);
+    const sheetBannerTitle = meta.sheetBanner;
+    const staffLabel = isRest ? 'Rider' : ((isDistributor || isWholesale) ? 'Booker' : 'Staff');
 
     let totalDue = 0;
     const rowsHtml = filtered.map((c, idx) => {
         const bal = parseFloat(c.balance || 0);
         const credLim = parseFloat(c.creditLimit || 0);
         if (bal > 0) totalDue += bal;
-        const seg = getCustSubCategoryLabel(c.subCategory) || CUST_TYPE_LABELS[c.customerType] || '—';
+        const seg = getCustSubCategoryLabel(c.subCategory) || (meta.typeBadges && meta.typeBadges[c.customerType]) || CUST_TYPE_LABELS[c.customerType] || '—';
         const terms = TERMS_LABELS[c.paymentTerms] || c.paymentTerms || 'Cash';
         const beat = [c.route, c.affiliatedBoard].filter(Boolean).join(' / ') || '—';
         const limitStr = credLim > 0
@@ -2845,9 +3445,9 @@ window.printWholesalePjpRouteSheet = function() {
                     <b>${c.shopName || c.name || 'Customer'}</b><br>
                     <small style="color:#475569;">${c.name || ''}${c.focalPerson ? ' • ' + c.focalPerson : ''}</small>
                 </td>
-                <td><small>${seg}<br>Terms: <b>${terms}</b>${c.agreedDiscountPercent > 0 ? ` (T.O: ${c.agreedDiscountPercent}%)` : ''}${limitStr}</small></td>
+                <td><small>${seg}<br>Terms: <b>${terms}</b>${c.agreedDiscountPercent > 0 ? ` (Disc: ${c.agreedDiscountPercent}%)` : ''}${limitStr}</small></td>
                 <td>${c.mobile || '—'}</td>
-                <td>${beat}${c.assignedBookerName ? `<br><small style="color:#0369a1;">Booker: ${c.assignedBookerName}</small>` : ''}</td>
+                <td>${beat}${c.assignedBookerName ? `<br><small style="color:#0369a1;">${staffLabel}: ${c.assignedBookerName}</small>` : ''}</td>
                 <td style="text-align:right; font-weight:800; color:${bal > 0 ? '#dc2626' : '#16a34a'};">Rs ${Math.round(bal).toLocaleString()}</td>
                 <td style="width:90px;"></td>
                 <td style="width:75px;"></td>
@@ -2859,7 +3459,7 @@ window.printWholesalePjpRouteSheet = function() {
     <html>
     <head>
         <meta charset="UTF-8">
-        <title>Weekly Route (PJP) &amp; Market Recovery Sheet — ${routeTitle}</title>
+        <title>Recovery Sheet — ${routeTitle}</title>
         <style>
             @media print { @page { size: A4 portrait; margin: 8mm; } body { margin: 0; } }
             body { font-family: Arial, sans-serif; color: #0f172a; font-size: 11px; margin: 14px; }
@@ -2883,18 +3483,18 @@ window.printWholesalePjpRouteSheet = function() {
             </div>
         </div>
         <div class="kpi">
-            <div>Weekly Route / Beat: <b>${routeTitle}</b></div>
-            <div>Total Shops: <b>${filtered.length}</b></div>
-            <div>Total Market Udhaar: <b style="color:#dc2626;">Rs ${Math.round(totalDue).toLocaleString()}</b></div>
+            <div>${meta.sheetRouteLabel}: <b>${routeTitle}</b></div>
+            <div>Total Accounts: <b>${filtered.length}</b></div>
+            <div>Total Receivable (Udhaar): <b style="color:#dc2626;">Rs ${Math.round(totalDue).toLocaleString()}</b></div>
         </div>
         <table>
             <thead>
                 <tr>
                     <th style="width:28px; text-align:center;">#</th>
-                    <th>Shop / Party &amp; Owner</th>
+                    <th>${meta.sheetColParty}</th>
                     <th>Segment, Terms &amp; Limit</th>
                     <th>Mobile #</th>
-                    <th>Weekly Route (PJP) / Booker</th>
+                    <th>${meta.sheetColBeat}</th>
                     <th style="text-align:right;">Current Udhaar</th>
                     <th style="text-align:center;">Cash Recovered</th>
                     <th style="text-align:center;">Signature</th>
@@ -2903,8 +3503,8 @@ window.printWholesalePjpRouteSheet = function() {
             <tbody>${rowsHtml}</tbody>
         </table>
         <div class="sig">
-            <div>Order Booker / Recovery Officer Sign: ______________________</div>
-            <div>Van Driver / Cashier Verification Sign: ______________________</div>
+            <div>${meta.sheetSig1}</div>
+            <div>${meta.sheetSig2}</div>
         </div>
     </body>
     </html>`;
@@ -2920,6 +3520,7 @@ window.printWholesalePjpRouteSheet = function() {
 
 // 🎯 AUTO-EXPAND ADD CUSTOMER FORM IF ACCESSED FROM SIDEBAR ?action=new
 window.addEventListener('DOMContentLoaded', () => {
+    ebApplyBilingualDom(document);
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('action') === 'new') {
         setTimeout(() => {
@@ -2933,3 +3534,31 @@ window.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 });
+
+// ============================================
+// 🌐 LIVE LANGUAGE SYNC LISTENER (SIDEBAR CONTROLLED — OFFLINE READY)
+// ============================================
+if (!window.__ebCustomersLangBound) {
+    window.__ebCustomersLangBound = true;
+    window.addEventListener('eb-lang-changed', () => {
+        try {
+            ebApplyBilingualDom(document);
+            if (typeof applyCategoryCustomerUI === 'function') applyCategoryCustomerUI();
+            if (typeof populateCustomerRouteFilter === 'function') populateCustomerRouteFilter();
+            if (typeof populateBookerDropdown === 'function') {
+                const curBooker = document.getElementById('custBookerSelect')?.value || '';
+                populateBookerDropdown(curBooker);
+            }
+            if (typeof renderCustomers === 'function') renderCustomers();
+            if (typeof markFormChanged === 'function' && editingCustomerId) markFormChanged();
+            if (activeModalCustomer && typeof renderModalContent === 'function') renderModalContent();
+        } catch (langErr) {
+            console.warn('Customers language sync warning:', langErr);
+        }
+    });
+
+    if (document.readyState !== 'loading') {
+        ebApplyBilingualDom(document);
+    }
+}
+

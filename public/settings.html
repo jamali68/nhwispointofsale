@@ -104,22 +104,40 @@
 
 <div class="panel-container" style="margin-top: 8px;">
 
+    <!-- ===== 🏢 SETTINGS HERO HEADER ===== -->
+    <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#fff; border-radius:14px; padding:16px 20px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; border:1px solid #334155;">
+        <div>
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:18px; font-weight:900;"><i class="fas fa-sliders" style="color:#38bdf8;"></i> <span data-eb-en="Business, POS, Cloud Sync &amp; Shift Settings" data-eb-ur="بزنس، پی او ایس، کلاؤڈ سنک اور شفٹ سیٹنگز">Business, POS, Cloud Sync &amp; Shift Settings</span></span>
+                <span id="agencyNameHeader" style="font-size:12px; background:rgba(255,255,255,0.12); padding:4px 10px; border-radius:8px; font-weight:700;">🏢 <span data-eb-en="Loading Agency..." data-eb-ur="ایجنسی لوڈ ہو رہی ہے...">Loading Agency...</span></span>
+            </div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:4px;" id="settingsHeroSubtitle" data-eb-en="Configure agency profile, billing templates, inventory rules, and cloud shift sync tailored to your active business category" data-eb-ur="اپنی منتخب کردہ بزنس کیٹیگری کے مطابق پروفائل، بلنگ ٹیمپلیٹس، انوینٹری رولز اور کلاؤڈ شفٹ سنک کو کنٹرول کریں">
+                Configure agency profile, billing templates, inventory rules, and cloud shift sync tailored to your active business category
+            </div>
+        </div>
+        <div>
+            <span id="settingsActiveCategoryBadge" style="display:inline-flex; align-items:center; gap:6px; background:rgba(59,130,246,0.2); color:#93c5fd; border:1px solid rgba(59,130,246,0.4); padding:6px 12px; border-radius:20px; font-size:12px; font-weight:800;">
+                <i class="fas fa-layer-group"></i> <span data-eb-en="Category Workspace" data-eb-ur="کیٹیگری ورک اسپیس">Category Workspace</span>
+            </span>
+        </div>
+    </div>
+
     <!-- ===== 📑 SETTINGS TABS ===== -->
     <div class="settings-nav">
         <button class="settings-tab-btn active" data-target="secProfile">
-            <i class="fas fa-building"></i> Agency Profile &amp; Branding
+            <i class="fas fa-building"></i> <span data-eb-en="Agency Profile &amp; Branding" data-eb-ur="ایجنسی پروفائل" data-eb-compact="1">Agency Profile &amp; Branding</span>
         </button>
         <button class="settings-tab-btn" data-target="secInvoice">
-            <i class="fas fa-receipt"></i> Invoice &amp; POS Setup
+            <i class="fas fa-receipt"></i> <span data-eb-en="Invoice &amp; POS Setup" data-eb-ur="انوائس اور پی او ایس" data-eb-compact="1">Invoice &amp; POS Setup</span>
         </button>
         <button class="settings-tab-btn" data-target="secInventory">
-            <i class="fas fa-boxes-stacked"></i> Stock &amp; Alerts Rules
+            <i class="fas fa-boxes-stacked"></i> <span data-eb-en="Stock &amp; Industry Rules" data-eb-ur="اسٹاک اور کیٹیگری رولز" data-eb-compact="1">Stock &amp; Industry Rules</span>
         </button>
         <button class="settings-tab-btn" data-target="secSyncSchedule">
-            <i class="fas fa-cloud-arrow-down"></i> Cloud Sync &amp; Shift Schedule
+            <i class="fas fa-cloud-arrow-down"></i> <span data-eb-en="Cloud Sync &amp; Shift Schedule" data-eb-ur="کلاؤڈ سنک اور شفٹ" data-eb-compact="1">Cloud Sync &amp; Shift Schedule</span>
         </button>
         <button class="settings-tab-btn" data-target="secSecurity">
-            <i class="fas fa-shield-halved"></i> Security &amp; Cache
+            <i class="fas fa-shield-halved"></i> <span data-eb-en="Security &amp; Cache" data-eb-ur="سیکیورٹی اور کیشے" data-eb-compact="1">Security &amp; Cache</span>
         </button>
     </div>
 
@@ -127,75 +145,65 @@
     <div class="settings-section active" id="secProfile">
         <div class="panel-card" style="border-top-color:#3b82f6;">
             <div class="card-header">
-                <h2><i class="fas fa-building"></i> Agency Identity &amp; Contact Details</h2>
-                <small class="header-note">یہ معلومات تمام بلز، انوائسز اور واٹس ایپ پیغامات کے ہیڈر میں پرنٹ ہوں گی</small>
+                <h2><i class="fas fa-building"></i> <span data-eb-en="Agency Identity &amp; Contact Details" data-eb-ur="ایجنسی کی شناخت اور رابطہ کی تفصیلات">Agency Identity &amp; Contact Details</span></h2>
+                <small class="header-note" data-eb-en="This information appears in the header of all printed bills, invoices, and WhatsApp messages" data-eb-ur="یہ معلومات تمام بلز، انوائسز اور واٹس ایپ پیغامات کے ہیڈر میں پرنٹ ہوں گی">This information appears in the header of all printed bills, invoices, and WhatsApp messages</small>
             </div>
 
             <form id="profileForm" class="panel-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>🏢 Business / Agency Name *</label>
+                        <label>🏢 <span data-eb-en="Business / Agency Name *" data-eb-ur="کاروبار / ایجنسی کا نام *">Business / Agency Name *</span></label>
                         <input type="text" id="setAgencyName" required placeholder="e.g. GS Bag House">
                     </div>
                     <div class="form-group">
-                        <label>🏷️ Slogan / Subtitle</label>
+                        <label>🏷️ <span data-eb-en="Slogan / Subtitle" data-eb-ur="سلوگن / ذیلی عنوان">Slogan / Subtitle</span></label>
                         <input type="text" id="setAgencyTagline" placeholder="e.g. Authorized Whole &amp; Retail Distributor">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>🏪 Business Category</label>
+                        <label>🏪 <span data-eb-en="Business Category" data-eb-ur="بزنس کیٹیگری">Business Category</span></label>
                         <select id="setBizType">
-                            <option value="books">📚 Book Depot &amp; Stationery — ✅ Complete</option>
-                            <option value="mobile">📱 Mobile Shop, Repairing &amp; Accessories — ✅ Complete</option>
-                            <option value="medical">💊 Medical Store &amp; Pharmacy — ✅ Complete</option>
-                            <option value="shoes">👟 Footwear &amp; Shoes Store — 🚧 Under Development • Coming Soon</option>
-                            <option value="garments">👔 Garments &amp; Fabrics — 🚧 Under Development • Coming Soon</option>
-                            <option value="general">🏪 General &amp; Karyana Store — 🚧 Under Development • Coming Soon</option>
-                            <option value="wholesaler">📦 Wholesale Distributor / Agency — ✅ Complete</option>
-                            <option value="confectionery">🍬 Confectionery &amp; Sweets — 🚧 Under Development • Coming Soon</option>
-                            <option value="hardware">🔧 Hardware &amp; Electrical — 🚧 Under Development • Coming Soon</option>
-                            <option value="electronics">📺 Electronics &amp; Appliances — 🚧 Under Development • Coming Soon</option>
-                            <option value="cosmetics">💄 Cosmetics &amp; Beauty — 🚧 Under Development • Coming Soon</option>
-                            <option value="auto_parts">🏍️ Auto &amp; Bike Spare Parts — 🚧 Under Development • Coming Soon</option>
-                            <option value="bakery">🥐 Bakery &amp; Mart — 🚧 Under Development • Coming Soon</option>
-                            <option value="restaurant">🍔 Restaurant, Fast Food &amp; Cafe — 🛠️ Working / Under Development • Coming Soon</option>
-                            <option value="furniture">🪑 Furniture &amp; Home — 🚧 Under Development • Coming Soon</option>
-                            <option value="other">💼 Other Business — 🚧 Under Development • Coming Soon</option>
+                            <option value="distributor">🚚 Distributor &amp; FMCG Agency</option>
+                            <option value="restaurant">🍔 Restaurant, Fast Food &amp; Cafe</option>
+                            <option value="books">📚 Book Depot &amp; Stationery</option>
+                            <option value="medical">💊 Medical Store &amp; Pharmacy</option>
+                            <option value="mobile">📱 Mobile Shop &amp; Accessories</option>
+                            <option value="wholesaler">📦 Wholesaler &amp; Bulk Distribution</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>🏙️ City / Depot</label>
+                        <label>🏙️ <span data-eb-en="City / Depot" data-eb-ur="شہر / ڈپو">City / Depot</span></label>
                         <input type="text" id="setCity" placeholder="e.g. Lahore / Sadiqabad">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>📱 Primary Mobile (WhatsApp for Bills)</label>
+                        <label>📱 <span data-eb-en="Primary Mobile (WhatsApp for Bills)" data-eb-ur="بنیادی موبائل (بلز کے لیے واٹس ایپ)">Primary Mobile (WhatsApp for Bills)</span></label>
                         <input type="tel" id="setMobile" placeholder="03001234567">
                     </div>
                     <div class="form-group">
-                        <label>📞 Secondary Phone / Landline</label>
+                        <label>📞 <span data-eb-en="Secondary Phone / Landline" data-eb-ur="ثانوی فون / لینڈ لائن">Secondary Phone / Landline</span></label>
                         <input type="tel" id="setPhone" placeholder="042-3123456">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>📍 Complete Market / Shop Address</label>
+                    <label>📍 <span data-eb-en="Complete Market / Shop Address" data-eb-ur="مکمل مارکیٹ / دکان کا پتہ">Complete Market / Shop Address</span></label>
                     <textarea id="setAddress" rows="2" placeholder="e.g. Shop # 14, Main Market, Hall Road, Lahore" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></textarea>
                 </div>
 
                 <div class="form-row" style="margin-top:10px;">
                     <div class="form-group">
-                        <label>🔢 Tax / NTN / STRN Number</label>
+                        <label>🔢 <span data-eb-en="Tax / NTN / STRN Number" data-eb-ur="ٹیکس / این ٹی این / ایس ٹی آر این نمبر">Tax / NTN / STRN Number</span></label>
                         <input type="text" id="setNTN" placeholder="e.g. 1234567-8">
                     </div>
                     <div class="form-group" style="display:flex; align-items:flex-end;">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:13px; margin-bottom:10px;">
                             <input type="checkbox" id="setShowNTN" style="width:18px; height:18px; accent-color:#10b981;">
-                            <span>Show NTN on Printed Invoices</span>
+                            <span data-eb-en="Show NTN on Printed Invoices" data-eb-ur="پرنٹ شدہ انوائسز پر این ٹی این دکھائیں">Show NTN on Printed Invoices</span>
                         </label>
                     </div>
                 </div>
@@ -203,25 +211,25 @@
                 <!-- 🌐 SOFTWARE LANGUAGE MODE (RADIO BUTTONS) -->
                 <div class="form-group" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin: 14px 0;">
                     <label style="font-size:13px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                        <i class="fas fa-language" style="color:#0284c7; font-size:16px;"></i> Software Language Mode (زبان کا انتخاب)
+                        <i class="fas fa-language" style="color:#0284c7; font-size:16px;"></i> <span data-eb-en="Software Language Mode" data-eb-ur="زبان کا انتخاب">Software Language Mode</span>
                     </label>
-                    <p style="font-size:11.5px; color:#64748b; margin-bottom:10px;">
+                    <p style="font-size:11.5px; color:#64748b; margin-bottom:10px;" data-eb-en="Choose your preferred interface language: Clean English (Default) or English + Urdu Mixed." data-eb-ur="اپنی پسندیدہ انٹرفیس زبان منتخب کریں: صاف انگلش (ڈفالٹ) یا انگلش + اردو مکس۔">
                         Choose your preferred interface language: Clean English (Default) or English + Urdu Mixed.
                     </p>
                     <div style="display:flex; gap:22px; flex-wrap:wrap;">
                         <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:13px; color:#0f172a; margin:0; user-select:none;">
                             <input type="radio" name="appLanguageMode" id="langEnglish" value="en" checked style="accent-color:#0284c7; width:16px; height:16px;">
-                            <span>English Only (Default)</span>
+                            <span data-eb-en="English Only (Default)" data-eb-ur="صرف انگلش (ڈفالٹ)">English Only (Default)</span>
                         </label>
                         <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:13px; color:#0f172a; margin:0; user-select:none;">
                             <input type="radio" name="appLanguageMode" id="langUrduMix" value="en-ur" style="accent-color:#0284c7; width:16px; height:16px;">
-                            <span>English + Urdu Mix (اردو اور انگلش مکس)</span>
+                            <span data-eb-en="English + Urdu Mix" data-eb-ur="اردو اور انگلش مکس">English + Urdu Mix</span>
                         </label>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="background:#3b82f6; margin-top:10px;">
-                    <i class="fas fa-save"></i> SAVE AGENCY PROFILE
+                    <i class="fas fa-save"></i> <span data-eb-en="SAVE AGENCY PROFILE" data-eb-ur="ایجنسی پروفائل محفوظ کریں">SAVE AGENCY PROFILE</span>
                 </button>
             </form>
         </div>
@@ -231,14 +239,14 @@
     <div class="settings-section" id="secInvoice">
         <div class="panel-card" style="border-top-color:#10b981;">
             <div class="card-header">
-                <h2><i class="fas fa-receipt"></i> Invoice &amp; Thermal POS Printing Setup</h2>
-                <small class="header-note">ڈفالٹ بل ٹیمپلیٹ، تھرمل پرنٹر سائز اور بلنگ نمبر پریفکس منتخب کریں</small>
+                <h2><i class="fas fa-receipt"></i> <span data-eb-en="Invoice &amp; Thermal POS Printing Setup" data-eb-ur="انوائس اور تھرمل پی او ایس پرنٹنگ سیٹ اپ">Invoice &amp; Thermal POS Printing Setup</span></h2>
+                <small class="header-note" data-eb-en="Select default bill template, thermal printer paper width, and invoice number prefix" data-eb-ur="ڈفالٹ بل ٹیمپلیٹ، تھرمل پرنٹر سائز اور بلنگ نمبر پریفکس منتخب کریں">Select default bill template, thermal printer paper width, and invoice number prefix</small>
             </div>
 
             <form id="invoiceForm" class="panel-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>🎨 Default Bill Print Template</label>
+                        <label>🎨 <span data-eb-en="Default Bill Print Template" data-eb-ur="ڈفالٹ بل پرنٹ ٹیمپلیٹ">Default Bill Print Template</span></label>
                         <select id="setDefaultTemplate">
                             <option value="template4" selected>⚡ Modern Minimal / Table Invoice (Default)</option>
                             <option value="template1">🇵🇰 Urdu Classic (Nastaliq)</option>
@@ -250,60 +258,60 @@
                             <option value="template9">🇵🇰 Abid Traders Sales Invoice (Manthar Road Sadiqabad)</option>
                             <option value="template7">📦 FMCG Corporate Cash Memo (Al-Raheem / Cookania)</option>
                             <option value="template11">📦 Al-Raheem Agencies FMCG Distribution (Corporate Cash Memo)</option>
-                            <option value="template10">🏢 Hassan Distributor Corporate FMCG & Tax Invoice [101067]</option>
+                            <option value="template10">🏢 Hassan Distributor Corporate FMCG &amp; Tax Invoice [101067]</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>🖨️ Thermal POS Paper Width</label>
+                        <label>🖨️ <span data-eb-en="Thermal POS Paper Width" data-eb-ur="تھرمل پی او ایس پیپر چوڑائی">Thermal POS Paper Width</span></label>
                         <select id="setThermalWidth">
                             <option value="80" selected>80mm (Standard Desktop Thermal POS — 76-80mm Default)</option>
                             <option value="58">58mm (Small Portable / Bluetooth POS — 48-58mm)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>🌐 Default Bill Language (بل کی زبان اور رخ)</label>
+                        <label>🌐 <span data-eb-en="Default Bill Language" data-eb-ur="بل کی زبان اور رخ">Default Bill Language</span></label>
                         <select id="setDefaultBillLanguage">
                             <option value="en" selected>English (Left-to-Right ➡️ LTR)</option>
-                            <option value="ur">اردو (Right-to-Left ⬅️ RTL)</option>
+                            <option value="ur">Urdu (Right-to-Left ⬅️ RTL)</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>🏷️ Default Price Mode</label>
+                        <label>🏷️ <span data-eb-en="Default Price Mode" data-eb-ur="ڈفالٹ ریٹ موڈ">Default Price Mode</span></label>
                         <select id="setDefaultPriceMode">
-                            <option value="wholesale">📦 Wholesale Rate (ہول سیل ریٹ)</option>
-                            <option value="retail">🏪 Retail Rate (پرچون ریٹ)</option>
+                            <option value="wholesale">📦 Wholesale Rate</option>
+                            <option value="retail">🏪 Retail Rate</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>🔢 Stock Invoice Prefix</label>
+                        <label>🔢 <span data-eb-en="Stock Invoice Prefix" data-eb-ur="اسٹاک انوائس پریفکس">Stock Invoice Prefix</span></label>
                         <input type="text" id="setBillPrefix" placeholder="STK-" style="text-transform:uppercase;">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>📝 Terms &amp; Conditions Footer Note (Printed on Bills)</label>
-                    <textarea id="setInvoiceFooter" rows="2" placeholder="e.g. مال واپس یا تبدیل 3 دن میں ہو سکتا ہے۔ کیش واپس نہیں ہوگا۔" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></textarea>
+                    <label>📝 <span data-eb-en="Terms &amp; Conditions Footer Note (Printed on Bills)" data-eb-ur="شرائط و ضوابط فٹر نوٹ (بلز پر پرنٹ ہوگا)">Terms &amp; Conditions Footer Note (Printed on Bills)</span></label>
+                    <textarea id="setInvoiceFooter" rows="2" placeholder="e.g. Goods can be returned or exchanged within 3 days. No cash refund." data-eb-ph-en="e.g. Goods can be returned or exchanged within 3 days. No cash refund." data-eb-ph-ur="مثلاً مال واپس یا تبدیل 3 دن میں ہو سکتا ہے۔ کیش واپس نہیں ہوگا۔" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></textarea>
                 </div>
 
                 <!-- 💬 SELECT CUSTOMER TYPE POP-UP (HIDE / SHOW) -->
                 <div class="form-group" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; margin: 14px 0;">
                     <label style="font-size:13px; font-weight:800; color:#1e293b; display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                        <i class="fas fa-comment-dots" style="color:#0284c7; font-size:16px;"></i> Select Customer Type Pop-up
+                        <i class="fas fa-comment-dots" style="color:#0284c7; font-size:16px;"></i> <span data-eb-en="Select Customer Type Pop-up" data-eb-ur="کسٹمر ٹائپ پاپ اپ الرٹ">Select Customer Type Pop-up</span>
                     </label>
-                    <p style="font-size:11.5px; color:#64748b; margin-bottom:10px;">
+                    <p style="font-size:11.5px; color:#64748b; margin-bottom:10px;" data-eb-en="When selecting a Retail or Wholesale customer in billing, choose whether to show or hide the auto-applied rate notification pop-up." data-eb-ur="بلنگ میں پرچون یا ہول سیل کسٹمر منتخب کرتے وقت خودکار ریٹ نوٹیفکیشن پاپ اپ دکھائیں یا چھپائیں۔">
                         When selecting a Retail or Wholesale customer in billing, choose whether to show or hide the auto-applied rate notification pop-up.
                     </p>
                     <div style="display:flex; gap:24px; flex-wrap:wrap;">
                         <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:13px; color:#0f172a; margin:0; user-select:none;">
                             <input type="radio" name="custTypePopupMode" id="custTypePopupHide" value="hide" checked style="accent-color:#0284c7; width:16px; height:16px;">
-                            <span>🙈 Hide Pop-up (Default)</span>
+                            <span>🙈 <span data-eb-en="Hide Pop-up (Default)" data-eb-ur="پاپ اپ چھپائیں (ڈفالٹ)">Hide Pop-up (Default)</span></span>
                         </label>
                         <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:13px; color:#0f172a; margin:0; user-select:none;">
                             <input type="radio" name="custTypePopupMode" id="custTypePopupShow" value="show" style="accent-color:#0284c7; width:16px; height:16px;">
-                            <span>👁️ Show Pop-up</span>
+                            <span>👁️ <span data-eb-en="Show Pop-up" data-eb-ur="پاپ اپ دکھائیں">Show Pop-up</span></span>
                         </label>
                     </div>
                 </div>
@@ -314,15 +322,15 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:8px; border-bottom:1px solid rgba(0,0,0,0.08); padding-bottom:12px;">
                         <div>
                             <label id="fbrTaxBoxTitle" style="font-size:14px; font-weight:800; color:#475569; display:flex; align-items:center; gap:8px; margin:0;">
-                                <i class="fas fa-file-invoice-dollar" style="color:#64748b; font-size:17px;"></i> 🇵🇰 FBR Advance Tax (236G / 236H) System
+                                <i class="fas fa-file-invoice-dollar" style="color:#64748b; font-size:17px;"></i> 🇵🇰 <span data-eb-en="FBR Advance Tax (236G / 236H) System" data-eb-ur="ایف بی آر ایڈوانس ٹیکس (236G / 236H) سسٹم">FBR Advance Tax (236G / 236H) System</span>
                             </label>
-                            <div id="fbrTaxBoxSub" style="font-size:11.5px; color:#64748b; margin-top:2px;">
-                                رجسٹرڈ فائلر اور نان فائلر کسٹمرز کے لیے خودکار ایڈوانس سیلز ٹیکس شیڈول
+                            <div id="fbrTaxBoxSub" style="font-size:11.5px; color:#64748b; margin-top:2px;" data-eb-en="Automated advance sales tax schedule for registered Filer and Non-Filer customers" data-eb-ur="رجسٹرڈ فائلر اور نان فائلر کسٹمرز کے لیے خودکار ایڈوانس سیلز ٹیکس شیڈول">
+                                Automated advance sales tax schedule for registered Filer and Non-Filer customers
                             </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:10px;">
                             <span id="fbrTaxStatusBadge" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1;">
-                                🔴 OFF (غیر فعال — سادہ بلنگ بغیر ٹیکس)
+                                🔴 OFF (Simple Billing — No Tax)
                             </span>
                             <label class="switch-toggle" style="margin:0;" title="Toggle FBR Advance Tax System">
                                 <input type="checkbox" id="setEnableFbrTax">
@@ -331,27 +339,27 @@
                         </div>
                     </div>
 
-                    <p id="fbrTaxDesc" style="font-size:11.5px; color:#64748b; margin-bottom:12px; line-height:1.6;">
-                        💡 اگر آپ <b>ڈیجی کھاتہ</b> یا عام دکاندار کی طرح بغیر ٹیکس کے صرف سادہ انوینٹری مینجمنٹ اور بلنگ چلانا چاہتے ہیں تو اس سوئچ کو <b>OFF</b> رکھیں (کوئی ٹیکس لاگو نہیں ہوگا)۔ اگر آپ پاکستانی ایف بی آر کے تحت ٹیکس کاٹتے ہیں تو اسے <b>ON</b> کریں، سسٹم فائلر اور نان فائلر کے فیصد کے مطابق ہر بل پر خودکار ٹیکس کیلکولیٹ کرے گا۔
+                    <p id="fbrTaxDesc" style="font-size:11.5px; color:#64748b; margin-bottom:12px; line-height:1.6;" data-eb-en="Keep this switch OFF if you want simple inventory management and billing without tax. Turn it ON if you deduct FBR advance tax — the system will automatically calculate tax per Filer and Non-Filer rates on every bill." data-eb-ur="اگر آپ عام دکاندار کی طرح بغیر ٹیکس کے صرف سادہ انوینٹری مینجمنٹ اور بلنگ چلانا چاہتے ہیں تو اس سوئچ کو OFF رکھیں (کوئی ٹیکس لاگو نہیں ہوگا)۔ اگر آپ پاکستانی ایف بی آر کے تحت ٹیکس کاٹتے ہیں تو اسے ON کریں، سسٹم فائلر اور نان فائلر کے فیصد کے مطابق ہر بل پر خودکار ٹیکس کیلکولیٹ کرے گا۔">
+                        Keep this switch OFF if you want simple inventory management and billing without tax. Turn it ON if you deduct FBR advance tax — the system will automatically calculate tax per Filer and Non-Filer rates on every bill.
                     </p>
 
                     <!-- Rate Input Boxes -->
                     <div id="fbrTaxInputsContainer" class="form-row" style="margin-bottom:6px; opacity:0.6; pointer-events:none; transition: all 0.3s ease;">
                         <div class="form-group">
-                            <label id="lblFilerRate" style="font-size:12px; font-weight:700; color:#64748b;">🟢 Filer Tax Rate (%)</label>
+                            <label id="lblFilerRate" style="font-size:12px; font-weight:700; color:#64748b;">🟢 <span data-eb-en="Filer Tax Rate (%)" data-eb-ur="فائلر ٹیکس ریٹ (%)">Filer Tax Rate (%)</span></label>
                             <div style="position:relative; display:flex; align-items:center;">
                                 <input type="number" id="setFilerTaxRate" min="0" max="100" step="0.05" value="1.5" placeholder="1.5" disabled style="width:100%; padding:8px 32px 8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-weight:800; color:#64748b; background:#f1f5f9; font-size:14px;">
                                 <span style="position:absolute; right:12px; font-weight:900; color:#64748b; font-size:14px;">%</span>
                             </div>
-                            <small id="subFilerRate" style="color:#64748b; font-size:11px;">Default: 1.5% for registered tax filers</small>
+                            <small id="subFilerRate" style="color:#64748b; font-size:11px;" data-eb-en="Default: 1.5% for registered tax filers" data-eb-ur="ڈفالٹ: رجسٹرڈ ٹیکس فائلرز کے لیے 1.5%">Default: 1.5% for registered tax filers</small>
                         </div>
                         <div class="form-group">
-                            <label id="lblNonFilerRate" style="font-size:12px; font-weight:700; color:#64748b;">🔴 Non-Filer Tax Rate (%)</label>
+                            <label id="lblNonFilerRate" style="font-size:12px; font-weight:700; color:#64748b;">🔴 <span data-eb-en="Non-Filer Tax Rate (%)" data-eb-ur="نان فائلر ٹیکس ریٹ (%)">Non-Filer Tax Rate (%)</span></label>
                             <div style="position:relative; display:flex; align-items:center;">
                                 <input type="number" id="setNonFilerTaxRate" min="0" max="100" step="0.05" value="3.0" placeholder="3.0" disabled style="width:100%; padding:8px 32px 8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-weight:800; color:#64748b; background:#f1f5f9; font-size:14px;">
                                 <span style="position:absolute; right:12px; font-weight:900; color:#64748b; font-size:14px;">%</span>
                             </div>
-                            <small id="subNonFilerRate" style="color:#64748b; font-size:11px;">Default: 3.0% for non-registered customers</small>
+                            <small id="subNonFilerRate" style="color:#64748b; font-size:11px;" data-eb-en="Default: 3.0% for non-registered customers" data-eb-ur="ڈفالٹ: غیر رجسٹرڈ کسٹمرز کے لیے 3.0%">Default: 3.0% for non-registered customers</small>
                         </div>
                     </div>
                 </div>
@@ -360,53 +368,53 @@
                 <div class="form-group" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:16px; margin: 16px 0;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
                         <label style="font-size:14px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px; margin:0;">
-                            <i class="fas fa-print" style="color:#2563eb; font-size:16px;"></i> 🖨️ Bill Print Customization (معلومات چیک باکسز)
+                            <i class="fas fa-print" style="color:#2563eb; font-size:16px;"></i> 🖨️ <span data-eb-en="Bill Print Customization" data-eb-ur="بل پرنٹ معلومات چیک باکسز">Bill Print Customization</span>
                         </label>
-                        <span style="font-size:11px; font-weight:bold; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px;">
+                        <span style="font-size:11px; font-weight:bold; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px;" data-eb-en="Bulk Printing Fields Control" data-eb-ur="پرنٹنگ فیلڈز کنٹرول" data-eb-compact="1">
                             Bulk Printing Fields Control
                         </span>
                     </div>
-                    <p style="font-size:11.5px; color:#64748b; margin-bottom:14px;">
-                        جو معلومات آپ بل پر پرنٹ کرنا چاہتے ہیں ان پر چیک لگائیں۔ اگر معلومات کسٹمر یا ایجنسی اکاؤنٹ میں موجود ہو گی تو پرنٹ پر آئے گی، ورنہ وہ جگہ خالی رہے گی۔
+                    <p style="font-size:11.5px; color:#64748b; margin-bottom:14px;" data-eb-en="Check the fields you want printed on invoices. Checked fields print whenever data exists in the agency or customer profile; otherwise they stay blank." data-eb-ur="جو معلومات آپ بل پر پرنٹ کرنا چاہتے ہیں ان پر چیک لگائیں۔ اگر معلومات کسٹمر یا ایجنسی اکاؤنٹ میں موجود ہو گی تو پرنٹ پر آئے گی، ورنہ وہ جگہ خالی رہے گی۔">
+                        Check the fields you want printed on invoices. Checked fields print whenever data exists in the agency or customer profile; otherwise they stay blank.
                     </p>
 
                     <!-- Group 1: Agency & Header Info -->
                     <div style="margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
                         <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:8px;">
-                            🏢 Header &amp; Agency Details (ایجنسی ہیڈر)
+                            🏢 <span data-eb-en="Header &amp; Agency Details" data-eb-ur="ایجنسی ہیڈر">Header &amp; Agency Details</span>
                         </div>
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowLogo" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Show Agency Logo (لوگو)</span>
+                                <span data-eb-en="Show Agency Logo" data-eb-ur="لوگو">Show Agency Logo</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowAgencyName" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Show Agency Name (نام)</span>
+                                <span data-eb-en="Show Agency Name" data-eb-ur="ایجنسی کا نام">Show Agency Name</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowOwnerName" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Show Owner Name (پروپرائٹر)</span>
+                                <span data-eb-en="Show Owner Name" data-eb-ur="پروپرائٹر">Show Owner Name</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowMobiles" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Show Phone / Mobiles (رابطہ)</span>
+                                <span data-eb-en="Show Phone / Mobiles" data-eb-ur="رابطہ نمبر">Show Phone / Mobiles</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowAddress" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Show Agency Address (پتہ)</span>
+                                <span data-eb-en="Show Agency Address" data-eb-ur="پتہ">Show Agency Address</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowNTN" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Show Agency NTN (ٹیکس نمبر)</span>
+                                <span data-eb-en="Show Agency NTN" data-eb-ur="ٹیکس نمبر">Show Agency NTN</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowLicence" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Show Licence No (لائسنس نمبر)</span>
+                                <span data-eb-en="Show Licence No" data-eb-ur="لائسنس نمبر">Show Licence No</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowPayType" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Show Cash/Credit Type (کیش/ادھار)</span>
+                                <span data-eb-en="Show Cash/Credit Type" data-eb-ur="کیش/ادھار">Show Cash/Credit Type</span>
                             </label>
                         </div>
                     </div>
@@ -414,57 +422,57 @@
                     <!-- Group 2: Customer Info -->
                     <div style="margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
                         <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:8px;">
-                            👤 Customer Section (گاہک کی معلومات)
+                            👤 <span data-eb-en="Customer Section" data-eb-ur="گاہک کی معلومات">Customer Section</span>
                         </div>
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowCustomerName" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Customer Name (بل بنام)</span>
+                                <span data-eb-en="Customer Name" data-eb-ur="بل بنام">Customer Name</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowCustomerPhone" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Customer Mobile (موبائل نمبر)</span>
+                                <span data-eb-en="Customer Mobile" data-eb-ur="موبائل نمبر">Customer Mobile</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowCustomerAddress" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Customer Address / Area (پتہ/علاقہ)</span>
+                                <span data-eb-en="Customer Address / Area" data-eb-ur="پتہ/علاقہ">Customer Address / Area</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowCustomerRoute" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Route Name (روٹ کا نام)</span>
+                                <span id="lblChkCustomerRoute" data-eb-en="Route Name" data-eb-ur="روٹ کا نام">Route Name</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowCustomerNTN" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Customer NTN / Filer Status (ٹیکس شناختی کارڈ)</span>
+                                <span data-eb-en="Customer NTN / Filer Status" data-eb-ur="ٹیکس شناختی کارڈ">Customer NTN / Filer Status</span>
                             </label>
                         </div>
                     </div>
 
                     <!-- Group 3: Order Booker & Dispatch -->
                     <div style="margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-                        <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:8px;">
-                            🚴 Booker, Salesman &amp; Bill Meta (آرڈر بکر و تاریخ)
+                        <div id="lblChkBookerHeader" style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:8px;">
+                            🚴 <span data-eb-en="Staff, Booker &amp; Bill Meta" data-eb-ur="اسٹاف و تاریخ">Staff, Booker &amp; Bill Meta</span>
                         </div>
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowBillNo" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Invoice / Bill No (بل نمبر)</span>
+                                <span data-eb-en="Invoice / Bill No" data-eb-ur="بل نمبر">Invoice / Bill No</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowDate" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Invoice Date (تاریخ)</span>
+                                <span data-eb-en="Invoice Date" data-eb-ur="تاریخ">Invoice Date</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowTime" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Time Stamp (وقت)</span>
+                                <span data-eb-en="Time Stamp" data-eb-ur="وقت">Time Stamp</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowBookerName" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Order Booker / Salesman (آرڈر بکر)</span>
+                                <span id="lblChkBookerName" data-eb-en="Order Booker / Salesman" data-eb-ur="آرڈر بکر">Order Booker / Salesman</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowSupplierName" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Delivery Man / Supplier (سپلائر)</span>
+                                <span id="lblChkSupplierName" data-eb-en="Delivery Man / Supplier" data-eb-ur="سپلائر">Delivery Man / Supplier</span>
                             </label>
                         </div>
                     </div>
@@ -472,24 +480,24 @@
                     <!-- Group 4: Calculations & Totals -->
                     <div style="margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
                         <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:8px;">
-                            📊 Totals &amp; Balances (حساب کتاب)
+                            📊 <span data-eb-en="Totals &amp; Balances" data-eb-ur="حساب کتاب">Totals &amp; Balances</span>
                         </div>
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowTax" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>FBR Advance Tax Line (ایڈوانس ٹیکس)</span>
+                                <span data-eb-en="FBR Advance Tax Line" data-eb-ur="ایڈوانس ٹیکس">FBR Advance Tax Line</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowPreviousBalance" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Previous Khata Balance (سابقہ بقایا)</span>
+                                <span data-eb-en="Previous Khata Balance" data-eb-ur="سابقہ بقایا">Previous Khata Balance</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowReceivedAmount" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Received Cash (وصول شدہ رقم)</span>
+                                <span data-eb-en="Received Cash" data-eb-ur="وصول شدہ رقم">Received Cash</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowBalance" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Total Net Due / Balance (ٹوٹل بقایا)</span>
+                                <span data-eb-en="Total Net Due / Balance" data-eb-ur="ٹوٹل بقایا">Total Net Due / Balance</span>
                             </label>
                         </div>
                     </div>
@@ -497,31 +505,31 @@
                     <!-- Group 5: Terms & Signatures -->
                     <div>
                         <div style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:8px;">
-                            ✍️ Terms &amp; Signatures (شرائط و دستخط)
+                            ✍️ <span data-eb-en="Terms &amp; Signatures" data-eb-ur="شرائط و دستخط">Terms &amp; Signatures</span>
                         </div>
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowTermsAndConditions" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Terms &amp; Claims Notice (شرائط نوٹس)</span>
+                                <span data-eb-en="Terms &amp; Claims Notice" data-eb-ur="شرائط نوٹس">Terms &amp; Claims Notice</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowSignatureCustomer" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Customer Signature Box (دستخط گاہک)</span>
+                                <span data-eb-en="Customer Signature Box" data-eb-ur="دستخط گاہک">Customer Signature Box</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowSignatureBooker" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Booker / Delivery Signature Box</span>
+                                <span data-eb-en="Booker / Delivery Signature Box" data-eb-ur="بکر / ڈلیوری دستخط">Booker / Delivery Signature Box</span>
                             </label>
                             <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; cursor:pointer; margin:0;">
                                 <input type="checkbox" id="chkShowSignatureAuthorized" checked style="width:16px; height:16px; accent-color:#2563eb;">
-                                <span>Authorized Stamp Box (مہر و دستخط)</span>
+                                <span data-eb-en="Authorized Stamp Box" data-eb-ur="مہر و دستخط">Authorized Stamp Box</span>
                             </label>
                         </div>
                     </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="background:#10b981; margin-top:10px;">
-                    <i class="fas fa-save"></i> SAVE BILLING SETTINGS
+                    <i class="fas fa-save"></i> <span data-eb-en="SAVE BILLING SETTINGS" data-eb-ur="بلنگ سیٹنگز محفوظ کریں">SAVE BILLING SETTINGS</span>
                 </button>
             </form>
         </div>
@@ -531,21 +539,21 @@
     <div class="settings-section" id="secInventory">
         <div class="panel-card" style="border-top-color:#f59e0b;">
             <div class="card-header">
-                <h2><i class="fas fa-boxes-stacked"></i> Inventory &amp; Reorder Rules</h2>
-                <small class="header-note">کم اسٹاک کی وارننگ اور خودکار کٹوتی کے اصول</small>
+                <h2 id="invRulesHeaderTitle"><i class="fas fa-boxes-stacked"></i> <span data-eb-en="Inventory, Reorder &amp; Category Operational Rules" data-eb-ur="انوینٹری، ری آرڈر اور کیٹیگری آپریشنل رولز">Inventory, Reorder &amp; Category Operational Rules</span></h2>
+                <small class="header-note" id="invRulesHeaderSub" data-eb-en="Low stock alerts, automatic inventory deduction, and rules specific to your active business category" data-eb-ur="کم اسٹاک کی وارننگ، خودکار کٹوتی اور آپ کی بزنس کیٹیگری کے مخصوص اصول">Low stock alerts, automatic inventory deduction, and rules specific to your active business category</small>
             </div>
 
             <form id="inventoryForm" class="panel-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>🔔 Default Low Stock Alert Threshold</label>
+                        <label id="lblDefaultLowStock">🔔 <span data-eb-en="Default Low Stock Alert Threshold" data-eb-ur="کم اسٹاک الرٹ کی حد">Default Low Stock Alert Threshold</span></label>
                         <input type="number" id="setDefaultLowStock" min="1" max="500" value="10" placeholder="e.g. 10">
-                        <small style="color:#64748b; font-size:11px;">جب کسی پروڈکٹ کی مقدار اس سے کم ہو جائے گی تو الرٹ بیل متحرک ہو جائے گی۔</small>
+                        <small style="color:#64748b; font-size:11px;" data-eb-en="The alert bell triggers whenever a product's stock falls below this quantity." data-eb-ur="جب کسی پروڈکٹ کی مقدار اس سے کم ہو جائے گی تو الرٹ بیل متحرک ہو جائے گی۔">The alert bell triggers whenever a product's stock falls below this quantity.</small>
                     </div>
                     <div class="form-group">
-                        <label>⚡ Auto-Deduct Inventory on Bill Confirmation</label>
+                        <label>⚡ <span data-eb-en="Auto-Deduct Inventory on Bill Confirmation" data-eb-ur="بل کنفرم ہونے پر خودکار اسٹاک کٹوتی">Auto-Deduct Inventory on Bill Confirmation</span></label>
                         <div class="form-toggle-row">
-                            <span style="font-size:13px; font-weight:700;">Deduct Stock in Real-Time</span>
+                            <span style="font-size:13px; font-weight:700;" data-eb-en="Deduct Stock in Real-Time" data-eb-ur="ریئل ٹائم اسٹاک کٹوتی">Deduct Stock in Real-Time</span>
                             <label class="switch-toggle">
                                 <input type="checkbox" id="setAutoDeductStock" checked>
                                 <span class="switch-slider"></span>
@@ -554,8 +562,48 @@
                     </div>
                 </div>
 
+                <!-- 🏢 DYNAMIC CATEGORY-SPECIFIC OPERATIONAL RULES -->
+                <div id="categoryOperationalRulesBox" style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:12px; padding:16px; margin:16px 0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+                        <div style="font-size:14px; font-weight:800; color:#0f172a;" id="catOpsBoxTitle">
+                            ⚙️ <span data-eb-en="Category-Specific Industry Rules" data-eb-ur="کیٹیگری کے مخصوص اصول">Category-Specific Industry Rules</span>
+                        </div>
+                        <span style="font-size:11px; font-weight:800; background:#fef3c7; color:#b45309; padding:3px 10px; border-radius:12px;" id="catOpsBoxBadge">
+                            Isolated Per Category
+                        </span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label id="lblCatRule1">📌 Operational Parameter 1</label>
+                            <input type="text" id="setCatRule1" placeholder="Value">
+                        </div>
+                        <div class="form-group">
+                            <label id="lblCatRule2">📌 Operational Parameter 2</label>
+                            <input type="text" id="setCatRule2" placeholder="Value">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label id="lblCatRule3">📌 Operational Parameter 3</label>
+                            <input type="text" id="setCatRule3" placeholder="Value">
+                        </div>
+                        <div class="form-group">
+                            <label id="lblCatToggle1">🛡️ Enforce Category Rule</label>
+                            <div class="form-toggle-row">
+                                <span style="font-size:12.5px; font-weight:700;" id="subCatToggle1">Enable Strict Industry Guard</span>
+                                <label class="switch-toggle">
+                                    <input type="checkbox" id="setCatToggle1" checked>
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn btn-primary" style="background:#f59e0b; margin-top:10px;">
-                    <i class="fas fa-save"></i> SAVE INVENTORY RULES
+                    <i class="fas fa-save"></i> <span data-eb-en="SAVE INVENTORY &amp; CATEGORY RULES" data-eb-ur="انوینٹری اور کیٹیگری رولز محفوظ کریں">SAVE INVENTORY &amp; CATEGORY RULES</span>
                 </button>
             </form>
         </div>
@@ -565,16 +613,16 @@
     <div class="settings-section" id="secSyncSchedule">
         <div class="panel-card" style="border-top-color:#0284c7;">
             <div class="card-header">
-                <h2><i class="fas fa-cloud" style="color:#0284c7;"></i> Cloud Sync &amp; Shift Schedule</h2>
-                <small class="header-note">2-Shift Schedule (12:00 AM - 12:00 PM &amp; 12:00 PM - 12:00 AM PKT) — 1 Manual Refresh Allowed Per Shift</small>
+                <h2><i class="fas fa-cloud" style="color:#0284c7;"></i> <span data-eb-en="Cloud Sync & Shift Schedule" data-eb-ur="کلاؤڈ سنک اور شفٹ شیڈول">Cloud Sync &amp; Shift Schedule</span></h2>
+                <small class="header-note" data-eb-en="2-Shift Schedule (12:00 AM - 12:00 PM & 12:00 PM - 12:00 AM PKT) — 1 Manual Refresh Allowed Per Shift" data-eb-ur="روزانہ 2 شفٹس (رات 12 سے دوپہر 12 اور دوپہر 12 سے رات 12) — ہر شفٹ میں 1 مینول ریفریش کی اجازت">2-Shift Schedule (12:00 AM - 12:00 PM &amp; 12:00 PM - 12:00 AM PKT) — 1 Manual Refresh Allowed Per Shift</small>
             </div>
 
             <!-- 🇵🇰 Live PKT & Shift Status Dashboard -->
-            <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#fff; border-radius:12px; padding:18px; margin-bottom:20px; box-shadow:0 4px 15px rgba(15,23,42,0.25); border:1px solid #334155;">
+            <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#fff; border-radius:12px; padding:18px; margin-bottom:18px; box-shadow:0 4px 15px rgba(15,23,42,0.25); border:1px solid #334155;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <div>
                         <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; font-weight:700;">
-                            🇵🇰 Pakistan Standard Time (PKT, UTC+5)
+                            🇵🇰 <span data-eb-en="Pakistan Standard Time (PKT, UTC+5)" data-eb-ur="پاکستان اسٹینڈرڈ ٹائم (PKT)">Pakistan Standard Time (PKT, UTC+5)</span>
                         </div>
                         <div style="font-size:26px; font-weight:900; font-family:monospace; margin:4px 0; color:#38bdf8;" id="secSyncClockDisplay">
                             --:--:-- PKT
@@ -589,7 +637,7 @@
                             ⚡ 1 Refresh Available
                         </span>
                         <div style="font-size:11px; color:#94a3b8;">
-                            Next Shift Unlocks In: <b id="secSyncCountdown" style="color:#e2e8f0;">--</b>
+                            <span data-eb-en="Next Shift Unlocks In:" data-eb-ur="اگلی شفٹ کھلنے میں باقی وقت:">Next Shift Unlocks In:</span> <b id="secSyncCountdown" style="color:#e2e8f0;">--</b>
                         </div>
                         <div style="font-size:11px;" id="secSyncNetStatusDisplay">
                             <span style="color:#34d399; font-weight:800;">🟢 Online</span>
@@ -601,39 +649,60 @@
 
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div style="font-size:12px; color:#94a3b8;">
-                        <span>Last Synced: <b id="secSyncLastTimeDisplay" style="color:#fff;">Never</b></span>
+                        <span><span data-eb-en="Last Synced:" data-eb-ur="آخری سنک:">Last Synced:</span> <b id="secSyncLastTimeDisplay" style="color:#fff;">Never</b></span>
                         &nbsp;|&nbsp;
-                        <span>Saved Cloud Reads: <b id="secSyncReadsSavedDisplay" style="color:#34d399; font-weight:800;">0 reads</b></span>
+                        <span><span data-eb-en="Saved Cloud Reads:" data-eb-ur="بچائی گئی کلاؤڈ ریڈز:">Saved Cloud Reads:</span> <b id="secSyncReadsSavedDisplay" style="color:#34d399; font-weight:800;">0 reads</b></span>
                     </div>
 
-                    <button type="button" class="btn btn-sm" id="btnSecSyncNow" style="background:#0284c7; color:#fff; font-weight:800; border:none; padding:8px 16px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.2); cursor:pointer;">
-                        <i class="fas fa-rotate"></i> Refresh Cloud Data Now
-                    </button>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-sm" id="btnSecSyncNow" style="background:#0284c7; color:#fff; font-weight:800; border:none; padding:8px 16px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.2); cursor:pointer;">
+                            <i class="fas fa-rotate"></i> <span data-eb-en="Refresh Cloud Data Now" data-eb-ur="کلاؤڈ ڈیٹا ریفریش کریں" data-eb-compact="1">Refresh Cloud Data Now</span>
+                        </button>
+                        <button type="button" class="btn btn-sm" id="btnAdminForceSync" style="background:rgba(255,255,255,0.12); color:#e2e8f0; font-weight:700; border:1px solid rgba(255,255,255,0.25); padding:8px 12px; border-radius:8px; cursor:pointer;" title="Owner/Admin Emergency Force Re-Sync">
+                            <i class="fas fa-bolt" style="color:#fbbf24;"></i> <span data-eb-en="Admin Force Sync" data-eb-ur="ایڈمن فورس سنک" data-eb-compact="1">Admin Force Sync</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Clear & Concise English Shift Guidelines Card -->
+            <!-- 📦 LIVE LOCAL CACHE INSPECTOR -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px; margin-bottom:18px;">
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px;">
+                    <div style="font-size:11px; color:#64748b; font-weight:700;">📦 <span data-eb-en="Cached Stock Items (Active Category)" data-eb-ur="کیشے اسٹاک آئٹمز (فعال کیٹیگری)">Cached Stock Items (Active Category)</span></div>
+                    <div style="font-size:18px; font-weight:900; color:#0f172a; margin-top:4px;" id="syncCachedStockCount">0 Items</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px;">
+                    <div style="font-size:11px; color:#64748b; font-weight:700;">👥 <span data-eb-en="Cached Customer Accounts" data-eb-ur="کیشے کسٹمر کھاتے">Cached Customer Accounts</span></div>
+                    <div style="font-size:18px; font-weight:900; color:#0f172a; margin-top:4px;" id="syncCachedCustCount">0 Customers</div>
+                </div>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px;">
+                    <div style="font-size:11px; color:#64748b; font-weight:700;">⚡ <span data-eb-en="Local Cache Engine Mode" data-eb-ur="لوکل کیشے انجن موڈ">Local Cache Engine Mode</span></div>
+                    <div style="font-size:14px; font-weight:800; color:#10b981; margin-top:6px;" id="syncCacheModeStatus" data-eb-en="Zero-Lag Active" data-eb-ur="زیرو-لیگ فعال">Zero-Lag Active</div>
+                </div>
+            </div>
+
+            <!-- Clear & Concise Shift Guidelines Card -->
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px;">
                 <h4 style="margin:0 0 12px 0; color:#0f172a; font-size:14px; display:flex; align-items:center; gap:8px;">
-                    <i class="fas fa-circle-info" style="color:#0284c7;"></i> Shift Timetable &amp; Usage Rules
+                    <i class="fas fa-circle-info" style="color:#0284c7;"></i> <span data-eb-en="Shift Timetable & Usage Rules" data-eb-ur="شفٹ ٹائم ٹیبل اور استعمال کے اصول">Shift Timetable &amp; Usage Rules</span>
                 </h4>
 
                 <div style="display:flex; flex-direction:column; gap:10px; font-size:13px; color:#334155; line-height:1.5;">
                     <div style="display:flex; align-items:flex-start; gap:8px;">
                         <span style="color:#0284c7; font-weight:bold;">1.</span>
-                        <div><b>Two Fixed Shifts Daily:</b> Shift 1 operates from 12:00 AM to 12:00 PM PKT. Shift 2 operates from 12:00 PM to 12:00 AM PKT.</div>
+                        <div data-eb-en="Two Fixed Shifts Daily: Shift 1 operates from 12:00 AM to 12:00 PM PKT. Shift 2 operates from 12:00 PM to 12:00 AM PKT." data-eb-ur="روزانہ 2 مقررہ شفٹس: شفٹ 1 رات 12 سے دوپہر 12 بجے تک اور شفٹ 2 دوپہر 12 سے رات 12 بجے تک۔"><b>Two Fixed Shifts Daily:</b> Shift 1 operates from 12:00 AM to 12:00 PM PKT. Shift 2 operates from 12:00 PM to 12:00 AM PKT.</div>
                     </div>
                     <div style="display:flex; align-items:flex-start; gap:8px;">
                         <span style="color:#0284c7; font-weight:bold;">2.</span>
-                        <div><b>1 Manual Refresh Allowed Per Shift:</b> You can fetch updated stock and customer lists once per shift. If already refreshed, the system informs you that the shift limit is reached.</div>
+                        <div data-eb-en="1 Manual Refresh Allowed Per Shift: You can fetch updated stock and customer lists once per shift. If already refreshed, the system informs you that the shift limit is reached." data-eb-ur="ہر شفٹ میں 1 مینول ریفریش: آپ ہر شفٹ میں ایک بار تازہ اسٹاک اور کسٹمر لسٹ حاصل کر سکتے ہیں۔"><b>1 Manual Refresh Allowed Per Shift:</b> You can fetch updated stock and customer lists once per shift. If already refreshed, the system informs you that the shift limit is reached.</div>
                     </div>
                     <div style="display:flex; align-items:flex-start; gap:8px;">
                         <span style="color:#0284c7; font-weight:bold;">3.</span>
-                        <div><b>Offline Safety Guard:</b> If the device is offline, the refresh button will ask you to connect to the internet first. Offline billing and stock lookups continue uninterrupted from local storage.</div>
+                        <div data-eb-en="Offline Safety Guard: If the device is offline, the refresh button will ask you to connect to the internet first. Offline billing and stock lookups continue uninterrupted from local storage." data-eb-ur="آف لائن سیفٹی گارڈ: آف لائن ہونے پر بلنگ اور اسٹاک سرچ لوکل اسٹوریج سے بلا تعطل جاری رہتے ہیں۔"><b>Offline Safety Guard:</b> If the device is offline, the refresh button will ask you to connect to the internet first. Offline billing and stock lookups continue uninterrupted from local storage.</div>
                     </div>
                     <div style="display:flex; align-items:flex-start; gap:8px;">
                         <span style="color:#0284c7; font-weight:bold;">4.</span>
-                        <div><b>Order Booker Synchronization:</b> Orders placed in the field are kept locally on the booker's device until connected online, ensuring safe transmission to the cloud.</div>
+                        <div data-eb-en="Order Booker Synchronization: Orders placed in the field are kept locally on the booker's device until connected online, ensuring safe transmission to the cloud." data-eb-ur="آرڈر بکر سنک: فیلڈ میں بک کیے گئے آرڈرز ڈیوائس پر محفوظ رہتے ہیں اور آن لائن ہوتے ہی کلاؤڈ پر منتقل ہو جاتے ہیں۔"><b>Order Booker Synchronization:</b> Orders placed in the field are kept locally on the booker's device until connected online, ensuring safe transmission to the cloud.</div>
                     </div>
                 </div>
             </div>
@@ -644,21 +713,69 @@
     <div class="settings-section" id="secSecurity">
         <div class="panel-card" style="border-top-color:#ef4444;">
             <div class="card-header">
-                <h2><i class="fas fa-shield-halved"></i> Security &amp; Local Storage Cache</h2>
-                <small class="header-note">پاس ورڈ تبدیل کریں اور ڈیوائس کیشے کو ریفریش کریں</small>
+                <h2><i class="fas fa-shield-halved"></i> <span data-eb-en="10-Layer Enterprise Cyber Defense & System Cache" data-eb-ur="10-لیئر سائبر سیکیورٹی اور سسٹم کیشے">10-Layer Enterprise Cyber Defense &amp; System Cache</span></h2>
+                <small class="header-note" data-eb-en="10 active security guards (anti-attack firewall), session timeout, password, and local cache controls" data-eb-ur="10 فعال سیکیورٹی گارڈز (اینٹی اٹیک فائروال)، سیشن ٹائم آؤٹ، پاس ورڈ اور لوکل کیشے کنٹرول">10 active security guards (anti-attack firewall), session timeout, password, and local cache controls</small>
             </div>
 
             <div style="display:flex; flex-direction:column; gap:16px;">
+                <!-- 🛡️ 10-LAYER ENTERPRISE CYBER DEFENSE SHIELD & INTRUSION RADAR -->
+                <div id="tenGuardsCyberShieldBox" style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#fff; padding:18px; border-radius:14px; border:1px solid #334155; box-shadow:0 8px 20px rgba(15,23,42,0.18);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                        <div>
+                            <div style="display:flex; align-items:center; gap:8px; font-size:15.5px; font-weight:900; color:#f8fafc; flex-wrap:wrap;">
+                                <span style="background:rgba(16,185,129,0.2); border:1px solid #10b981; color:#34d399; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:900;">🛡️ <span data-eb-en="10 / 10 GUARDS ACTIVE" data-eb-ur="10/10 گارڈز فعال" data-eb-compact="1">10 / 10 GUARDS ACTIVE</span></span>
+                                <span data-eb-en="Enterprise Anti-Hack & AI-Bot Cyber Defense Shield (v3.0)" data-eb-ur="انٹرپرائز اینٹی ہیک اور اے آئی بوٹ سائبر شیلڈ">Enterprise Anti-Hack &amp; AI-Bot Cyber Defense Shield (v3.0)</span>
+                            </div>
+                            <div style="font-size:12px; color:#94a3b8; margin-top:4px; line-height:1.5;" data-eb-en="10-layer real-time security system blocking automated Brute-Force Bots, Dictionary Attacks, SQL Injection, XSS, Privilege Escalation, and Tampering" data-eb-ur="خودکار حملوں (Brute-Force، SQL Injection، XSS، اور چھیڑ چھاڑ) کو ریئل ٹائم میں بلاک کرنے والا 10-لیئر سیکیورٹی سسٹم">
+                                10-layer real-time security system blocking automated Brute-Force Bots, Dictionary Attacks, SQL Injection, XSS, Privilege Escalation, and Tampering
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-sm" id="btnRunSecuritySelfTest" style="background:#10b981; color:#fff; font-weight:800; border:none; padding:8px 14px; border-radius:8px; cursor:pointer; box-shadow:0 2px 8px rgba(16,185,129,0.3);">
+                                <i class="fas fa-vial-circle-check"></i> <span data-eb-en="Run 10-Guard Self-Test" data-eb-ur="10-گارڈ سیلف ٹیسٹ چلائیں" data-eb-compact="1">Run 10-Guard Self-Test</span>
+                            </button>
+                            <button type="button" class="btn btn-sm" id="btnViewSecurityAuditLogs" style="background:rgba(255,255,255,0.12); color:#e2e8f0; font-weight:700; border:1px solid rgba(255,255,255,0.22); padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                <i class="fas fa-list-check"></i> <span data-eb-en="Attack Audit Log" data-eb-ur="اٹیک آڈٹ لاگ" data-eb-compact="1">Attack Audit Log</span> (<span id="secAuditLogCountBadge">0</span>)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 📊 Live Blocked Threat Counters -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(155px, 1fr)); gap:10px; margin-bottom:14px;">
+                        <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 12px;">
+                            <div style="font-size:11px; color:#94a3b8; font-weight:700;">🚫 <span data-eb-en="Brute-Force & Dict Bots Blocked" data-eb-ur="بروٹ فورس اور بوٹس بلاک">Brute-Force &amp; Dict Bots Blocked</span></div>
+                            <div style="font-size:18px; font-weight:900; color:#f87171; margin-top:3px;" id="secStatBruteForce">0 Blocked</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 12px;">
+                            <div style="font-size:11px; color:#94a3b8; font-weight:700;">⚡ <span data-eb-en="AI Bot & Flood Bursts Stopped" data-eb-ur="اے آئی بوٹ اور فلڈ حملے روکے">AI Bot &amp; Flood Bursts Stopped</span></div>
+                            <div style="font-size:18px; font-weight:900; color:#fbbf24; margin-top:3px;" id="secStatBotFlood">0 Stopped</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 12px;">
+                            <div style="font-size:11px; color:#94a3b8; font-weight:700;">💉 <span data-eb-en="XSS & SQLi Payloads Sanitized" data-eb-ur="XSS اور SQLi حملے ناکام">XSS &amp; SQLi Payloads Sanitized</span></div>
+                            <div style="font-size:18px; font-weight:900; color:#38bdf8; margin-top:3px;" id="secStatXssSqli">0 Neutralized</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 12px;">
+                            <div style="font-size:11px; color:#94a3b8; font-weight:700;">🔐 <span data-eb-en="Session & Ledger Integrity" data-eb-ur="سیشن اور کھاتہ سیکیورٹی">Session &amp; Ledger Integrity</span></div>
+                            <div style="font-size:15px; font-weight:900; color:#34d399; margin-top:5px;" id="secStatIntegrityStatus">Sealed &amp; Verified</div>
+                        </div>
+                    </div>
+
+                    <!-- 🔟 10 Active Security Guards Grid -->
+                    <div id="tenGuardsListContainer" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:9px;">
+                        <!-- Populated dynamically by renderTenGuardsCyberShieldUI() in settings.js -->
+                    </div>
+                </div>
+
                 <!-- ⏱️ SESSION AUTO-TIMEOUT & SECURITY CONTROL (Agency Admin Editable) -->
                 <div id="sessionSecurityBox" style="background:#f8fafc; padding:16px; border-radius:12px; border:1.5px solid #cbd5e1;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
                         <div>
                             <div style="font-weight:800; font-size:14.5px; color:#0f172a; display:flex; align-items:center; gap:8px;">
                                 <i class="fas fa-user-clock" style="color:#0284c7;"></i>
-                                <span>Inactivity Session Auto-Timeout (سیکیورٹی ٹائم آؤٹ)</span>
+                                <span data-eb-en="Inactivity Session Auto-Timeout" data-eb-ur="سیکیورٹی آٹو ٹائم آؤٹ">Inactivity Session Auto-Timeout</span>
                             </div>
-                            <div style="font-size:12px; color:#64748b; margin-top:2px;">
-                                اگر سافٹ ویئر پر کوئی کام نہ ہو رہا ہو تو کتنے منٹ بعد خودکار طور پر دوبارہ لاگ ان (Re-Authenticate) مانگے
+                            <div style="font-size:12px; color:#64748b; margin-top:2px;" data-eb-en="Choose after how many inactive minutes the software automatically requests re-authentication" data-eb-ur="اگر سافٹ ویئر پر کوئی کام نہ ہو رہا ہو تو کتنے منٹ بعد خودکار طور پر دوبارہ لاگ ان مانگے">
+                                Choose after how many inactive minutes the software automatically requests re-authentication
                             </div>
                         </div>
                         <span id="sessionSecLockBadge" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; background:#dcfce7; color:#15803d; border:1px solid #86efac;">
@@ -668,7 +785,7 @@
 
                     <div id="sessionSecControlsWrap">
                         <div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
-                            <span style="font-size:13px; font-weight:700; color:#1e293b;">Enable Auto-Logout on Inactivity</span>
+                            <span style="font-size:13px; font-weight:700; color:#1e293b;" data-eb-en="Enable Auto-Logout on Inactivity" data-eb-ur="غیر فعال ہونے پر خودکار لاگ آؤٹ آن کریں">Enable Auto-Logout on Inactivity</span>
                             <label class="switch-toggle">
                                 <input type="checkbox" id="setSessionAutoLockEnabled" checked>
                                 <span class="switch-slider"></span>
@@ -678,12 +795,12 @@
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:12px; align-items:end; margin-bottom:10px;">
                             <div>
                                 <label style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px;">
-                                    ⏱️ Timeout Duration (Minutes — منٹ کم یا زیادہ کریں)
+                                    ⏱️ <span data-eb-en="Timeout Duration (Minutes)" data-eb-ur="ٹائم آؤٹ دورانیہ (منٹ کم یا زیادہ کریں)">Timeout Duration (Minutes)</span>
                                 </label>
                                 <input type="number" id="setSessionTimeoutMins" min="1" max="480" value="30" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:800; color:#0f172a;">
                             </div>
                             <div>
-                                <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Quick Presets (تیز انتخاب):</label>
+                                <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px;" data-eb-en="Quick Presets:" data-eb-ur="تیز انتخاب:">Quick Presets:</label>
                                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                                     <button type="button" class="btn btn-sm sec-timeout-preset" data-mins="10" style="background:#e2e8f0; color:#0f172a; font-weight:700; border:none;">10m</button>
                                     <button type="button" class="btn btn-sm sec-timeout-preset" data-mins="15" style="background:#e2e8f0; color:#0f172a; font-weight:700; border:none;">15m</button>
@@ -695,7 +812,7 @@
                         </div>
 
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                            <small style="font-size:11px; color:#64748b;">Recommended: 30 minutes (Range: 1 – 480 mins). Turn toggle OFF to keep session always active.</small>
+                            <small style="font-size:11px; color:#64748b;" data-eb-en="Recommended: 30 minutes (Range: 1 – 480 mins). Turn toggle OFF to keep session always active." data-eb-ur="تجویز کردہ: 30 منٹ (حد: 1 تا 480 منٹ)۔ سیشن ہمیشہ فعال رکھنے کے لیے ٹوگل آف کریں۔">Recommended: 30 minutes (Range: 1 – 480 mins). Turn toggle OFF to keep session always active.</small>
                             <button type="button" class="btn btn-sm" id="btnSaveSessionSecurity" style="background:#0284c7; color:#fff; font-weight:800;">
                                 <i class="fas fa-save"></i> Save Timeout Settings
                             </button>
@@ -703,15 +820,58 @@
                     </div>
                 </div>
 
+                <!-- 📍 OPTIONAL ORDER BOOKER GPS LIVE TRACKING CONTROL (Super Admin Paid Unlock + Agency Optional) -->
+                <div id="gpsSecurityBox" style="background:#f0fdf4; padding:16px; border-radius:12px; border:1.5px solid #86efac;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                        <div>
+                            <div style="font-weight:800; font-size:14.5px; color:#14532d; display:flex; align-items:center; gap:8px;">
+                                <i class="fas fa-location-dot" style="color:#10b981;"></i>
+                                <span data-eb-en="Order Booker GPS Live Location & Check-In" data-eb-ur="آرڈر بکر اختیاری GPS ٹریکنگ">Order Booker GPS Live Location &amp; Check-In</span>
+                            </div>
+                            <div style="font-size:12px; color:#166534; margin-top:2px; line-height:1.5;" data-eb-en="This feature is optional. Single admins or standard users can keep it OFF. When enabled, GPS applies only to bookers toggled ON in Staff & Bookers." data-eb-ur="یہ فیچر لازمی نہیں ہے۔ سنگل ایڈمن یا عام یوزر اسے OFF رکھ سکتے ہیں۔ آن کرنے پر صرف انہی بکرز کے لیے GPS لاگو ہوگا جن پر اسٹاف مینیجر میں آن ہو۔">
+                                This feature is optional. Single admins or standard users can keep it OFF. When enabled, GPS applies only to bookers toggled ON in Staff &amp; Bookers.
+                            </div>
+                        </div>
+                        <span id="gpsSecLockBadge" style="font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px; background:#fee2e2; color:#b91c1c; border:1px solid #fecaca;">
+                            🔒 Locked (Paid Add-On)
+                        </span>
+                    </div>
+
+                    <div id="gpsSecControlsWrap">
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #bbf7d0; border-radius:8px; padding:10px 12px; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <div style="font-size:13px; font-weight:800; color:#0f172a;" data-eb-en="Enable Optional GPS Tracking for Field Staff" data-eb-ur="فیلڈ اسٹاف کے لیے اختیاری GPS ٹریکنگ آن کریں">Enable Optional GPS Tracking for Field Staff</div>
+                                <div style="font-size:11px; color:#64748b;" data-eb-en="OFF = Zero GPS prompts anywhere (Single Admin Mode). ON = Enables per-booker GPS in Staff Manager." data-eb-ur="OFF = کوئی GPS الرٹ نہیں (سنگل ایڈمن موڈ)۔ ON = اسٹاف مینیجر میں فی بکر GPS فعال ہوگا۔">OFF = Zero GPS prompts anywhere (Single Admin Mode). ON = Enables per-booker GPS in Staff Manager.</div>
+                            </div>
+                            <label class="switch-toggle">
+                                <input type="checkbox" id="setAgencyGpsEnabled">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-sm" id="btnSaveGpsSecurity" style="background:#10b981; color:#fff; font-weight:800;">
+                                    <i class="fas fa-save"></i> Save GPS Settings
+                                </button>
+                                <button type="button" class="btn btn-sm" id="btnOpenGpsMapFromSettings" style="background:#0f172a; color:#fff; font-weight:800; display:none;">
+                                    <i class="fas fa-map-location-dot" style="color:#34d399;"></i> <span data-eb-en="Open Live Booker GPS Map" data-eb-ur="لائیو بکر GPS نقشہ کھولیں" data-eb-compact="1">Open Live Booker GPS Map</span>
+                                </button>
+                            </div>
+                            <small style="font-size:11px; color:#475569;" data-eb-en="Powered by Google Maps • Explicit staff consent • 30-day history" data-eb-ur="گوگل میپس • اسٹاف کی اجازت کے ساتھ • 30 دن کا ریکارڈ">Powered by Google Maps • Explicit staff consent • 30-day history</small>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 💾 BACKUP & RESTORE ACCESS STATUS -->
                 <div id="backupSecurityBox" style="background:#f0fdf4; padding:16px; border-radius:12px; border:1.5px solid #bbf7d0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <div>
-                        <div style="font-weight:800; font-size:14px; color:#14532d; display:flex; align-items:center; gap:8px;">
+                        <div style="font-weight:800; font-size:14px; color:#14532d; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                             <i class="fas fa-cloud-arrow-up" style="color:#10b981;"></i>
-                            <span>Agency Backup &amp; JSON Restore (ڈیٹا بیک اپ و بحالی)</span>
+                            <span data-eb-en="Agency Backup & JSON Restore" data-eb-ur="ایجنسی ڈیٹا بیک اپ و بحالی">Agency Backup &amp; JSON Restore</span>
                             <span id="backupSecStatusBadge" style="font-size:11px; font-weight:800; padding:2px 8px; border-radius:12px; background:#dcfce7; color:#15803d; border:1px solid #86efac;">🔓 Unlocked</span>
                         </div>
-                        <div style="font-size:12px; color:#166534; margin-top:2px;">Tamam 10 collections ka complete JSON backup download ya clean/merge restore karein</div>
+                        <div style="font-size:12px; color:#166534; margin-top:2px;" data-eb-en="Download a complete JSON backup of all 10 collections or perform clean/merge restore" data-eb-ur="تمام 10 کلیکشنز کا مکمل JSON بیک اپ ڈاؤن لوڈ یا کلین/مرج ری اسٹور کریں">Download a complete JSON backup of all 10 collections or perform clean/merge restore</div>
                     </div>
                     <button type="button" class="btn btn-sm" id="btnOpenBackupFromSettings" style="background:#10b981; color:#fff; font-weight:800;">
                         <i class="fas fa-external-link-alt"></i> Open Backup &amp; Restore
@@ -720,21 +880,21 @@
 
                 <div style="background:#f8fafc; padding:16px; border-radius:10px; border:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div>
-                        <div style="font-weight:700; font-size:14px; color:#1e293b;">🔑 Change Account Password</div>
-                        <div style="font-size:12px; color:#64748b;">اپنے لاگ ان کا پاس ورڈ تبدیل کریں</div>
+                        <div style="font-weight:700; font-size:14px; color:#1e293b;">🔑 <span data-eb-en="Change Account Password" data-eb-ur="اکاؤنٹ پاس ورڈ تبدیل کریں">Change Account Password</span></div>
+                        <div style="font-size:12px; color:#64748b;" data-eb-en="Update your account login password securely" data-eb-ur="اپنے لاگ ان کا پاس ورڈ تبدیل کریں">Update your account login password securely</div>
                     </div>
                     <button class="btn btn-sm" id="btnChangePassword" style="background:#3b82f6; color:#fff;">
-                        <i class="fas fa-key"></i> Change Password
+                        <i class="fas fa-key"></i> <span data-eb-en="Change Password" data-eb-ur="پاس ورڈ بدلیں" data-eb-compact="1">Change Password</span>
                     </button>
                 </div>
 
                 <div style="background:#fef2f2; padding:16px; border-radius:10px; border:1px solid #fecaca; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div>
-                        <div style="font-weight:700; font-size:14px; color:#b91c1c;">🧹 Clear Offline Device Cache</div>
-                        <div style="font-size:12px; color:#991b1b;">اگر کوئی آئٹم یا کسٹمر سکرین پر فوری اپڈیٹ نہ ہو رہا ہو تو کیشے ری سیٹ کریں</div>
+                        <div style="font-weight:700; font-size:14px; color:#b91c1c;">🧹 <span data-eb-en="Clear Offline Device Cache" data-eb-ur="آف لائن ڈیوائس کیشے صاف کریں">Clear Offline Device Cache</span></div>
+                        <div style="font-size:12px; color:#991b1b;" data-eb-en="Reset local cache if any item or customer does not immediately update on screen" data-eb-ur="اگر کوئی آئٹم یا کسٹمر سکرین پر فوری اپڈیٹ نہ ہو رہا ہو تو کیشے ری سیٹ کریں">Reset local cache if any item or customer does not immediately update on screen</div>
                     </div>
                     <button class="btn btn-sm" id="btnClearCache" style="background:#ef4444; color:#fff;">
-                        <i class="fas fa-rotate"></i> Reset Offline Cache
+                        <i class="fas fa-rotate"></i> <span data-eb-en="Reset Offline Cache" data-eb-ur="کیشے ری سیٹ کریں" data-eb-compact="1">Reset Offline Cache</span>
                     </button>
                 </div>
             </div>

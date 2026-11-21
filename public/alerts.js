@@ -32,6 +32,46 @@ let allStock = [];
 let lowStockItems = [];
 let expiryAlertItems = [];
 
+// ============================================
+// 🌐 UNIFIED SIDEBAR-CONTROLLED BILINGUAL HELPERS
+// ============================================
+function ebIsMix() {
+    return !!(window.ebLang && typeof window.ebLang.isMix === 'function' && window.ebLang.isMix());
+}
+function ebT(en, urMix) {
+    return ebIsMix() ? (urMix || en) : en;
+}
+function ebMix(en, ur, asBlock = false) {
+    if (!ur) return en;
+    const cls = asBlock ? 'eb-ur-block' : 'eb-ur-sub';
+    return `${en} <span class="${cls}">(${ur})</span>`;
+}
+function ebCompact(en, ur) {
+    if (!ur) return en;
+    return `${en}<span class="eb-ur-compact">${ur}</span>`;
+}
+function ebApplyBilingualDom(root) {
+    if (window.ebLang && typeof window.ebLang.applyBilingualDom === 'function') {
+        window.ebLang.applyBilingualDom(root || document);
+    }
+}
+function ebBilingualizeSelectOptions(selectEl) {
+    if (!selectEl) return;
+    const isMix = ebIsMix();
+    Array.from(selectEl.options || []).forEach(opt => {
+        const en = opt.getAttribute('data-eb-en');
+        const ur = opt.getAttribute('data-eb-ur');
+        if (en) {
+            opt.textContent = isMix && ur ? ur : en;
+        }
+    });
+}
+function ebRefreshStaticSelects() {
+    ebBilingualizeSelectOptions(document.getElementById('severityFilter'));
+    ebBilingualizeSelectOptions(document.getElementById('categoryFilter'));
+    ebBilingualizeSelectOptions(document.getElementById('supplierFilter'));
+}
+
 function classifyAlertStockItem(item, refDate = new Date()) {
     const qty = Number(item.qty || 0);
     const limit = item.lowStockLimit !== undefined ? Number(item.lowStockLimit) : 10;
@@ -165,16 +205,303 @@ function getActiveAlertsCategoryMeta() {
     return { id: catId, icon: '🏢', nameEn: catId };
 }
 
+function getCategoryAlertsUiMeta(catId) {
+    const c = String(catId || getActiveAlertsCategory() || 'general').toLowerCase();
+    const map = {
+        restaurant: {
+            pageTitle: ebMix('🍔 Kitchen &amp; Menu Low-Stock Alerts', 'کچن اور مینو کم اسٹاک الرٹس'),
+            pageSub: ebCompact('Real-time monitoring for sold-out menu items, daily kitchen prep shortages &amp; food vendor restock orders', 'ختم ہونے والی ڈشز، روزانہ کچن تیاری کی کمی اور فوڈ سپلائر آرڈرز کی ریئل ٹائم نگرانی'),
+            kpiOutLbl: ebMix('Sold Out Menu / Zero Stock', 'ختم مینو / صفر اسٹاک'),
+            kpiLowLbl: ebMix('Low Kitchen / Counter Stock', 'کم کچن / کاؤنٹر اسٹاک'),
+            kpiTotalLbl: ebMix('Items Needing Kitchen Restock', 'کچن ری اسٹاک آئٹمز'),
+            kpiCostLbl: ebMix('Est. Kitchen Purchase Cost', 'متوقع کچن خریداری لاگت'),
+            hasBatchExpiry: false,
+            kpiExpiryLbl: ebMix('Expired / ≤30d Batches', 'ایکسپائرڈ / ≤30 دن بیچز'),
+            searchPhEn: 'Search menu item, beverage, deal or code...',
+            searchPhUr: 'Search menu item, beverage, deal or code... (ڈش، ڈرنک یا ڈیل تلاش کریں)',
+            allCategoriesEn: 'All Menu Sections',
+            allCategoriesUr: 'All Menu Sections (تمام مینو سیکشنز)',
+            allSuppliersEn: 'All Kitchen Vendors / Suppliers',
+            allSuppliersUr: 'All Kitchen Vendors (تمام کچن سپلائرز)',
+            supplierIcon: '🥩',
+            btnWaHtml: `<i class="fab fa-whatsapp"></i> ${ebMix('WhatsApp Kitchen Vendor', 'کچن سپلائر واٹس ایپ')}`,
+            btnPrintHtml: `<i class="fas fa-print"></i> ${ebMix('Print Kitchen Restock List', 'کچن لسٹ پرنٹ')}`,
+            thItem: ebMix('Menu Item / Ingredient', 'ڈش / اجزاء'),
+            thSupplier: ebMix('Kitchen Vendor / Menu Section', 'کچن سپلائر / سیکشن'),
+            thQty: ebMix('Current Kitchen Stock', 'موجودہ کچن اسٹاک'),
+            thLimit: ebMix('Min Alert Limit', 'کم از کم حد'),
+            thReorder: ebMix('Suggested Kitchen Restock', 'تجویز کردہ کچن آرڈر'),
+            thCost: ebMix('Est. Purchase Cost', 'متوقع لاگت'),
+            restockRateLabel: ebMix('Purchase / Prep Cost Rate (Rs per unit)', 'خرید / تیاری لاگت فی یونٹ'),
+            restockNotePlaceholder: ebT('e.g. Fresh Supply from Kitchen Vendor / Butcher / Bakery', 'e.g. Fresh Supply from Kitchen Vendor (تازہ سپلائی نوٹ)'),
+            waBizLabelEn: '🍔 Restaurant',
+            waBizLabelUr: '🍔 ریسٹورنٹ',
+            waSupplierLabel: '🥩 *Kitchen Vendor / Supplier:*',
+            waOrderTitle: '🍔 *KITCHEN & MENU RESTOCK ORDER*'
+        },
+        medical: {
+            pageTitle: ebMix('💊 Pharmacy Low-Stock &amp; FEFO Batch Expiry Radar', 'میڈیکل کم اسٹاک و ایکسپائری الرٹس'),
+            pageSub: ebCompact('Real-time monitoring for out-of-stock medicines, cold-chain shortages, near-expiry batches (≤30d / ≤90d) &amp; pharma purchase orders', 'ختم ہونے والی ادویات، کولڈ چین کی کمی، قریب المیعاد بیچز اور فارما خریداری آرڈرز کی ریئل ٹائم نگرانی'),
+            kpiOutLbl: ebMix('Out of Stock Medicines (0)', 'ختم ادویات (صفر)'),
+            kpiLowLbl: ebMix('Low Stock Medicine Warnings', 'کم اسٹاک ادویات الرٹس'),
+            kpiTotalLbl: ebMix('Medicines Needing Reorder', 'ری آرڈر ادویات'),
+            kpiCostLbl: ebMix('Est. Pharma PO Cost', 'متوقع فارما آرڈر لاگت'),
+            hasBatchExpiry: true,
+            kpiExpiryLbl: ebMix('Expired / ≤30d Medicine Batches', 'ایکسپائرڈ / ≤30 دن ادویات بیچز'),
+            optExpCriticalEn: '🚨 Expired & ≤30d Critical Medicine Batches',
+            optExpCriticalUr: '🚨 Expired & ≤30d Critical Medicine Batches (ایکسپائرڈ ادویات)',
+            optExpWarningEn: '⏳ Near-Expiry Medicine Watchlist (≤90d)',
+            optExpWarningUr: '⏳ Near-Expiry Medicine Watchlist (قریب المیعاد ≤90 دن)',
+            searchPhEn: 'Search medicine name, generic salt, batch no or barcode...',
+            searchPhUr: 'Search medicine, salt, batch no... (دوائی، سالٹ یا بیچ تلاش کریں)',
+            allCategoriesEn: 'All Medicine Forms / Racks',
+            allCategoriesUr: 'All Medicine Forms (تمام ادویات اقسام)',
+            allSuppliersEn: 'All Pharma Companies / Distributors',
+            allSuppliersUr: 'All Pharma Companies (تمام فارما کمپنیاں)',
+            supplierIcon: '💊',
+            btnWaHtml: `<i class="fab fa-whatsapp"></i> ${ebMix('WhatsApp Pharma Order', 'فارما آرڈر واٹس ایپ')}`,
+            btnPrintHtml: `<i class="fas fa-print"></i> ${ebMix('Print Medicine Demand List', 'ادویات ڈیمانڈ پرنٹ')}`,
+            thItem: ebMix('Medicine Name &amp; Salt / Rack', 'دوائی کا نام و سالٹ'),
+            thSupplier: ebMix('Pharma Company / Form', 'فارما کمپنی / قسم'),
+            thQty: ebMix('Current Stock &amp; Batch / Exp', 'موجودہ اسٹاک و بیچ'),
+            thLimit: ebMix('Min Stock Limit', 'کم از کم حد'),
+            thReorder: ebMix('Suggested Reorder Qty', 'تجویز کردہ ری آرڈر'),
+            thCost: ebMix('Est. PO Cost / Expiry Risk', 'متوقع لاگت / رسک'),
+            restockRateLabel: ebMix('Trade / Purchase Rate (Rs per pack/strip)', 'ٹریڈ / خرید قیمت فی پیک'),
+            restockNotePlaceholder: ebT('e.g. Invoice # 498 from Pharma Distributor', 'e.g. Invoice # 498 from Pharma Distributor (انوائس حوالہ)'),
+            waBizLabelEn: '💊 Pharmacy',
+            waBizLabelUr: '💊 میڈیکل اسٹور',
+            waSupplierLabel: '💊 *Pharma Company / Distributor:*',
+            waOrderTitle: '💊 *PHARMACY MEDICINE PURCHASE ORDER*'
+        },
+        mobile: {
+            pageTitle: ebMix('📱 Handset, Spare Parts &amp; Accessory Stock Alerts', 'موبائل، پارٹس اور ایکسیسریز الرٹس'),
+            pageSub: ebCompact('Real-time monitoring for out-of-stock handsets, LCD/touch repair parts, fast-moving accessories &amp; brand dealer restock orders', 'ختم ہونے والے موبائلز، ریپئر پارٹس، ایکسیسریز اور برانڈ ڈیلر آرڈرز کی ریئل ٹائم نگرانی'),
+            kpiOutLbl: ebMix('Out of Stock Models / Parts (0)', 'ختم ماڈلز / پارٹس'),
+            kpiLowLbl: ebMix('Low Stock Handsets &amp; Parts', 'کم اسٹاک موبائل و پارٹس'),
+            kpiTotalLbl: ebMix('Models / Parts to Reorder', 'ری آرڈر ماڈلز / پارٹس'),
+            kpiCostLbl: ebMix('Est. Dealer Restock Cost', 'متوقع ڈیلر خرید لاگت'),
+            hasBatchExpiry: false,
+            kpiExpiryLbl: ebMix('Expired / ≤30d Batches', 'ایکسپائرڈ / ≤30 دن بیچز'),
+            searchPhEn: 'Search handset model, IMEI, spare part or barcode...',
+            searchPhUr: 'Search model, IMEI, spare part... (ماڈل، آئی ایم ای آئی یا پارٹ تلاش کریں)',
+            allCategoriesEn: 'All Device / Part Categories',
+            allCategoriesUr: 'All Device Categories (تمام ڈیوائس/پارٹس اقسام)',
+            allSuppliersEn: 'All Brands / Parts Dealers',
+            allSuppliersUr: 'All Brands / Dealers (تمام برانڈز/ڈیلرز)',
+            supplierIcon: '📱',
+            btnWaHtml: `<i class="fab fa-whatsapp"></i> ${ebMix('WhatsApp Dealer Order', 'ڈیلر آرڈر واٹس ایپ')}`,
+            btnPrintHtml: `<i class="fas fa-print"></i> ${ebMix('Print Dealer Demand List', 'ڈیلر ڈیمانڈ پرنٹ')}`,
+            thItem: ebMix('Model / Spare Part &amp; Specs', 'ماڈل / اسپیئر پارٹ'),
+            thSupplier: ebMix('Brand / Dealer &amp; Category', 'برانڈ / ڈیلر'),
+            thQty: ebMix('Current Counter / Lab Qty', 'موجودہ اسٹاک'),
+            thLimit: ebMix('Min Stock Limit', 'کم از کم حد'),
+            thReorder: ebMix('Suggested Dealer Order', 'تجویز کردہ ڈیلر آرڈر'),
+            thCost: ebMix('Est. Restock Cost', 'متوقع لاگت'),
+            restockRateLabel: ebMix('Dealer Purchase Cost (Rs per unit)', 'ڈیلر خرید قیمت فی یونٹ'),
+            restockNotePlaceholder: ebT('e.g. Dealer Invoice # 204 from Brand Distributor', 'e.g. Dealer Invoice # 204 (ڈیلر انوائس حوالہ)'),
+            waBizLabelEn: '📱 Mobile Shop',
+            waBizLabelUr: '📱 موبائل شاپ',
+            waSupplierLabel: '📱 *Brand / Parts Dealer:*',
+            waOrderTitle: '📱 *MOBILE & PARTS DEALER ORDER*'
+        },
+        books: {
+            pageTitle: ebMix('📚 Book Shop &amp; Stationery Reorder Alerts', 'کتب اور اسٹیشنری ری آرڈر الرٹس'),
+            pageSub: ebCompact('Real-time monitoring for out-of-stock textbooks, board guides, stationery items &amp; publisher/depot purchase orders', 'ختم ہونے والی نصابی کتب، گائیڈز، اسٹیشنری اور پبلشر ڈپو آرڈرز کی ریئل ٹائم نگرانی'),
+            kpiOutLbl: ebMix('Out of Stock Titles / Items (0)', 'ختم کتب / آئٹمز'),
+            kpiLowLbl: ebMix('Low Stock Books &amp; Stationery', 'کم اسٹاک کتب و اسٹیشنری'),
+            kpiTotalLbl: ebMix('Titles / Items to Reorder', 'ری آرڈر کتب / آئٹمز'),
+            kpiCostLbl: ebMix('Est. Publisher PO Cost', 'متوقع پبلشر آرڈر لاگت'),
+            hasBatchExpiry: false,
+            kpiExpiryLbl: ebMix('Expired / ≤30d Batches', 'ایکسپائرڈ / ≤30 دن بیچز'),
+            searchPhEn: 'Search book title, author, class/board or ISBN...',
+            searchPhUr: 'Search book, author, class, ISBN... (کتاب، مصنف یا کلاس تلاش کریں)',
+            allCategoriesEn: 'All Subjects / Stationery Categories',
+            allCategoriesUr: 'All Subjects / Stationery (تمام مضامین/اسٹیشنری)',
+            allSuppliersEn: 'All Publishers / Boards',
+            allSuppliersUr: 'All Publishers / Boards (تمام پبلشرز/بورڈز)',
+            supplierIcon: '📚',
+            btnWaHtml: `<i class="fab fa-whatsapp"></i> ${ebMix('WhatsApp Publisher PO', 'پبلشر آرڈر واٹس ایپ')}`,
+            btnPrintHtml: `<i class="fas fa-print"></i> ${ebMix('Print Publisher Demand List', 'پبلشر ڈیمانڈ پرنٹ')}`,
+            thItem: ebMix('Book Title / Item &amp; Class', 'کتاب / آئٹم اور کلاس'),
+            thSupplier: ebMix('Publisher / Board &amp; Category', 'پبلشر / بورڈ'),
+            thQty: ebMix('Current Shelf Qty', 'موجودہ شیلف تعداد'),
+            thLimit: ebMix('Min Stock Limit', 'کم از کم حد'),
+            thReorder: ebMix('Suggested Publisher Order', 'تجویز کردہ پبلشر آرڈر'),
+            thCost: ebMix('Est. Order Cost', 'متوقع لاگت'),
+            restockRateLabel: ebMix('Publisher Net Rate (Rs per copy/unit)', 'پبلشر نیٹ ریٹ فی کاپی'),
+            restockNotePlaceholder: ebT('e.g. Chalan # 112 from Urdu Bazar Publisher / Depot', 'e.g. Chalan # 112 from Publisher (پبلشر چالان حوالہ)'),
+            waBizLabelEn: '📚 Book Shop',
+            waBizLabelUr: '📚 بک شاپ',
+            waSupplierLabel: '📚 *Publisher / Depot:*',
+            waOrderTitle: '📚 *PUBLISHER & STATIONERY PURCHASE ORDER*'
+        },
+        wholesaler: {
+            pageTitle: ebMix('🌾 Mandi &amp; Bulk Lot Low-Stock Alerts', 'منڈی اور بلک لاٹ کم اسٹاک الرٹس'),
+            pageSub: ebCompact('Real-time monitoring for out-of-stock bags/katta, bulk commodity shortages, shelf-life lots &amp; mandi supplier purchase orders', 'ختم ہونے والی بوری/کٹا، بلک اجناس کی کمی، شیلف لائف لاٹس اور منڈی سپلائر آرڈرز کی ریئل ٹائم نگرانی'),
+            kpiOutLbl: ebMix('Out of Stock Lots / Bags (0)', 'ختم لاٹس / بوریاں'),
+            kpiLowLbl: ebMix('Low Stock Bulk Lots', 'کم اسٹاک بلک لاٹس'),
+            kpiTotalLbl: ebMix('Bulk Lots to Reorder', 'ری آرڈر بلک لاٹس'),
+            kpiCostLbl: ebMix('Est. Mandi Replenishment Cost', 'متوقع منڈی خریداری لاگت'),
+            hasBatchExpiry: true,
+            kpiExpiryLbl: ebMix('Expired / ≤30d Stock Lots', 'ایکسپائرڈ / ≤30 دن لاٹس'),
+            optExpCriticalEn: '🚨 Expired & ≤30d Critical Stock Lots',
+            optExpCriticalUr: '🚨 Expired & ≤30d Critical Stock Lots (ایکسپائرڈ لاٹس)',
+            optExpWarningEn: '⏳ Near-Expiry Lot Watchlist (≤90d)',
+            optExpWarningUr: '⏳ Near-Expiry Lot Watchlist (قریب المیعاد لاٹس ≤90 دن)',
+            searchPhEn: 'Search commodity, lot/marka, brand or barcode...',
+            searchPhUr: 'Search commodity, lot/marka... (جنس، لاٹ یا مارکہ تلاش کریں)',
+            allCategoriesEn: 'All Commodity Categories',
+            allCategoriesUr: 'All Commodity Categories (تمام اجناس اقسام)',
+            allSuppliersEn: 'All Mandi Suppliers / Mills',
+            allSuppliersUr: 'All Mandi Suppliers (تمام منڈی سپلائرز/ملز)',
+            supplierIcon: '🌾',
+            btnWaHtml: `<i class="fab fa-whatsapp"></i> ${ebMix('WhatsApp Mandi Supplier', 'منڈی سپلائر واٹس ایپ')}`,
+            btnPrintHtml: `<i class="fas fa-print"></i> ${ebMix('Print Mandi Purchase List', 'منڈی خرید لسٹ پرنٹ')}`,
+            thItem: ebMix('Commodity / Lot &amp; Packing', 'جنس / لاٹ اور پیکنگ'),
+            thSupplier: ebMix('Mandi Supplier / Category', 'منڈی سپلائر / قسم'),
+            thQty: ebMix('Current Godown Qty &amp; Lot', 'موجودہ گودام اسٹاک'),
+            thLimit: ebMix('Min Lot Limit', 'کم از کم حد'),
+            thReorder: ebMix('Suggested Bulk Order', 'تجویز کردہ بلک آرڈر'),
+            thCost: ebMix('Est. Cost / Lot Risk', 'متوقع لاگت / رسک'),
+            restockRateLabel: ebMix('Mandi Purchase Rate (Rs per bag/unit)', 'منڈی خرید ریٹ فی بوری'),
+            restockNotePlaceholder: ebT('e.g. Bilty # 809 from Mandi Supplier / Mill', 'e.g. Bilty # 809 from Mandi Supplier (بلٹی حوالہ)'),
+            waBizLabelEn: '🌾 Wholesale Trader',
+            waBizLabelUr: '🌾 ہول سیل ٹریڈر',
+            waSupplierLabel: '🌾 *Mandi Supplier / Mill:*',
+            waOrderTitle: '🌾 *MANDI BULK PURCHASE ORDER*'
+        },
+        distributor: {
+            pageTitle: ebMix('🚚 Agency SKU Low-Stock &amp; Batch Expiry Radar', 'ایجنسی کم اسٹاک و بیچ ایکسپائری الرٹس'),
+            pageSub: ebCompact('Real-time monitoring for out-of-stock Master Cartons, territory dispatch shortages, near-expiry batches &amp; Principal Company POs', 'ختم ہونے والے ماسٹر کارٹنز، روٹ سپلائی کمی، قریب المیعاد بیچز اور پرنسپل کمپنی آرڈرز کی ریئل ٹائم نگرانی'),
+            kpiOutLbl: ebMix('Out of Stock SKUs (Zero)', 'ختم آئٹمز (صفر)'),
+            kpiLowLbl: ebMix('Low Stock SKU Warnings', 'کم اسٹاک آئٹم الرٹس'),
+            kpiTotalLbl: ebMix('Total SKUs Needing Reorder', 'ری آرڈر آئٹمز'),
+            kpiCostLbl: ebMix('Est. Principal PO Cost', 'متوقع پرنسپل آرڈر لاگت'),
+            hasBatchExpiry: true,
+            kpiExpiryLbl: ebMix('Expired / ≤30d Batches', 'ایکسپائرڈ / ≤30 دن بیچز'),
+            optExpCriticalEn: '🚨 Expired & ≤30d Critical Batches',
+            optExpCriticalUr: '🚨 Expired & ≤30d Critical Batches (ایکسپائرڈ بیچز)',
+            optExpWarningEn: '⏳ Near-Expiry Watchlist (≤90d)',
+            optExpWarningUr: '⏳ Near-Expiry Watchlist (قریب المیعاد ≤90 دن)',
+            searchPhEn: 'Search SKU name, batch code, principal or barcode...',
+            searchPhUr: 'Search SKU, batch, principal... (آئٹم، بیچ یا کمپنی تلاش کریں)',
+            allCategoriesEn: 'All SKU Categories',
+            allCategoriesUr: 'All SKU Categories (تمام کیٹیگریز)',
+            allSuppliersEn: 'All Principals / Suppliers',
+            allSuppliersUr: 'All Principals / Suppliers (تمام کمپنیاں/سپلائرز)',
+            supplierIcon: '🏭',
+            btnWaHtml: `<i class="fab fa-whatsapp"></i> ${ebMix('Reorder Principal', 'کمپنی کو ری آرڈر')}`,
+            btnPrintHtml: `<i class="fas fa-print"></i> ${ebMix('Print Principal PO Checklist', 'خریداری چیک لسٹ پرنٹ')}`,
+            thItem: ebMix('SKU Name &amp; Carton Packing', 'آئٹم کا نام و کارٹن پیکنگ'),
+            thSupplier: ebMix('Principal / Category', 'کمپنی / کیٹیگری'),
+            thQty: ebMix('Current Qty &amp; Batch', 'موجودہ تعداد و بیچ'),
+            thLimit: ebMix('Alert Limit', 'الرٹ حد'),
+            thReorder: ebMix('Suggested Reorder', 'تجویز کردہ ری آرڈر'),
+            thCost: ebMix('Est. Cost / Risk', 'متوقع لاگت / رسک'),
+            restockRateLabel: ebMix('Trade Price / Purchase Rate (Rs per carton/unit)', 'ٹریڈ / خرید قیمت فی کارٹن'),
+            restockNotePlaceholder: ebT('e.g. Principal Invoice # 902 / Stock Inward', 'e.g. Principal Invoice # 902 (انوائس حوالہ)'),
+            waBizLabelEn: '🏢 Agency',
+            waBizLabelUr: '🏢 ایجنسی',
+            waSupplierLabel: '🏭 *Principal / Supplier:*',
+            waOrderTitle: '🛒 *PURCHASE REORDER LIST (PO)*'
+        }
+    };
+    return map[c] || map.distributor;
+}
+
+function applyCategoryAlertsUI() {
+    const activeCat = getActiveAlertsCategory();
+    const catMeta = getActiveAlertsCategoryMeta();
+    const ui = getCategoryAlertsUiMeta(activeCat);
+
+    const setHtml = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val) el.innerHTML = val;
+    };
+
+    setHtml('alertsPageMainTitle', ui.pageTitle);
+    setHtml('alertsPageMainSub', ui.pageSub);
+    setHtml('kpiOutLbl', ui.kpiOutLbl);
+    setHtml('kpiLowLbl', ui.kpiLowLbl);
+    setHtml('kpiTotalLbl', ui.kpiTotalLbl);
+    setHtml('kpiCostLbl', ui.kpiCostLbl);
+    setHtml('kpiExpiryLbl', ui.kpiExpiryLbl);
+
+    const catBadge = document.getElementById('alertsActiveCategoryBadge');
+    if (catBadge) {
+        const catLabel = catMeta.nameUr ? ebMix(catMeta.nameEn || activeCat, catMeta.nameUr) : (catMeta.nameEn || activeCat);
+        catBadge.innerHTML = `${catMeta.icon || '🏢'} ${catLabel} • ${(myAgency && myAgency.name) || ebMix('Workspace', 'ورک اسپیس')}`;
+    }
+
+    const expCard = document.getElementById('kpiExpiryCard');
+    if (expCard) {
+        expCard.style.display = ui.hasBatchExpiry ? '' : 'none';
+    }
+
+    const optCrit = document.getElementById('optSeverityExpCritical');
+    const optWarn = document.getElementById('optSeverityExpWarning');
+    const sevSel = document.getElementById('severityFilter');
+    if (ui.hasBatchExpiry) {
+        if (optCrit) {
+            optCrit.style.display = '';
+            optCrit.hidden = false;
+            const enCrit = ui.optExpCriticalEn || '🚨 Expired & ≤30d Critical Batches';
+            const urCrit = ui.optExpCriticalUr || '🚨 Expired & ≤30d Critical Batches (ایکسپائرڈ بیچز)';
+            optCrit.setAttribute('data-eb-en', enCrit);
+            optCrit.setAttribute('data-eb-ur', urCrit);
+            optCrit.textContent = ebT(enCrit, urCrit);
+        }
+        if (optWarn) {
+            optWarn.style.display = '';
+            optWarn.hidden = false;
+            const enWarn = ui.optExpWarningEn || '⏳ Near-Expiry Watchlist (≤90d)';
+            const urWarn = ui.optExpWarningUr || '⏳ Near-Expiry Watchlist (قریب المیعاد ≤90 دن)';
+            optWarn.setAttribute('data-eb-en', enWarn);
+            optWarn.setAttribute('data-eb-ur', urWarn);
+            optWarn.textContent = ebT(enWarn, urWarn);
+        }
+    } else {
+        if (optCrit) {
+            optCrit.style.display = 'none';
+            optCrit.hidden = true;
+        }
+        if (optWarn) {
+            optWarn.style.display = 'none';
+            optWarn.hidden = true;
+        }
+        if (sevSel && (sevSel.value === 'expiry_critical' || sevSel.value === 'expiry_warning')) {
+            sevSel.value = 'all';
+        }
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput && ui.searchPhEn) {
+        searchInput.setAttribute('data-eb-ph-en', ui.searchPhEn);
+        searchInput.setAttribute('data-eb-ph-ur', ui.searchPhUr || ui.searchPhEn);
+        searchInput.placeholder = ebT(ui.searchPhEn, ui.searchPhUr);
+    }
+
+    setHtml('btnSupplierWhatsApp', ui.btnWaHtml);
+    setHtml('btnPrintChecklist', ui.btnPrintHtml);
+
+    setHtml('thAlertItem', ui.thItem);
+    setHtml('thAlertSupplier', ui.thSupplier);
+    setHtml('thAlertQty', ui.thQty);
+    setHtml('thAlertLimit', ui.thLimit);
+    setHtml('thAlertReorder', ui.thReorder);
+    setHtml('thAlertCost', ui.thCost);
+
+    ebApplyBilingualDom(document);
+    ebRefreshStaticSelects();
+}
+
 // ============================================
 // 📦 LOAD STOCK & COMPUTE ALERTS (LIVE LISTENER)
 // ============================================
 function loadStockAndAlerts() {
     const activeCat = getActiveAlertsCategory();
-    const catMeta = getActiveAlertsCategoryMeta();
-    const catBadge = document.getElementById('alertsActiveCategoryBadge');
-    if (catBadge) {
-        catBadge.innerHTML = `${catMeta.icon || '🏢'} ${catMeta.nameEn || activeCat} • ${(myAgency && myAgency.name) || 'Workspace'}`;
-    }
+    applyCategoryAlertsUI();
 
     db.collection('stock')
         .where('agencyId', '==', myAgencyId)
@@ -266,10 +593,12 @@ function computeAlerts() {
     const expEl = document.getElementById('kpiExpiryCritical');
     if (expEl) expEl.innerText = criticalExpiryCount;
     const expRiskEl = document.getElementById('kpiExpiryRiskVal');
-    if (expRiskEl) expRiskEl.innerText = `At-Risk: Rs ${Math.round(atRiskExpiryVal).toLocaleString()}`;
+    if (expRiskEl) expRiskEl.innerHTML = `${ebMix('At-Risk:', 'خطرے میں:')} Rs ${Math.round(atRiskExpiryVal).toLocaleString()}`;
 }
 
 function populateCategoryFilter() {
+    const activeCat = getActiveAlertsCategory();
+    const ui = getCategoryAlertsUiMeta(activeCat);
     const sel = document.getElementById('categoryFilter');
     const curVal = sel.value;
     const cats = new Set();
@@ -277,11 +606,10 @@ function populateCategoryFilter() {
     allStock.forEach(s => {
         if (s.category) cats.add(s.category);
         const ind = s.industryFields || {};
-        const sup = String(s.supplierName || ind.supplierName || s.brandCompany || ind.brandCompany || '').trim();
+        const sup = String(s.supplierName || ind.supplierName || s.brandCompany || ind.brandCompany || s.publisherBoard || ind.publisherBoard || '').trim();
         if (sup) suppliers.add(sup);
     });
     try {
-        const activeCat = getActiveAlertsCategory();
         const savedBrandsRaw = localStorage.getItem(`eb_custom_brands_${myAgencyId}_${activeCat}`);
         if (savedBrandsRaw) {
             const parsedBrands = JSON.parse(savedBrandsRaw);
@@ -294,7 +622,9 @@ function populateCategoryFilter() {
         }
     } catch (_) {}
 
-    let html = '<option value="">All Categories</option>';
+    const allCatEn = ui.allCategoriesEn || 'All Categories';
+    const allCatUr = ui.allCategoriesUr || 'All Categories (تمام کیٹیگریز)';
+    let html = `<option value="" data-eb-en="${allCatEn}" data-eb-ur="${allCatUr}">${ebT(allCatEn, allCatUr)}</option>`;
     Array.from(cats).sort().forEach(c => {
         html += `<option value="${c}" ${c === curVal ? 'selected' : ''}>${c}</option>`;
     });
@@ -303,9 +633,11 @@ function populateCategoryFilter() {
     const supSel = document.getElementById('supplierFilter');
     if (supSel) {
         const curSup = supSel.value;
-        let sHtml = '<option value="">All Principals / Suppliers</option>';
+        const allSupEn = ui.allSuppliersEn || 'All Suppliers';
+        const allSupUr = ui.allSuppliersUr || 'All Suppliers (تمام سپلائرز)';
+        let sHtml = `<option value="" data-eb-en="${allSupEn}" data-eb-ur="${allSupUr}">${ebT(allSupEn, allSupUr)}</option>`;
         Array.from(suppliers).sort().forEach(sup => {
-            sHtml += `<option value="${sup}" ${sup === curSup ? 'selected' : ''}>🏭 ${sup}</option>`;
+            sHtml += `<option value="${sup}" ${sup === curSup ? 'selected' : ''}>${ui.supplierIcon || '🏭'} ${sup}</option>`;
         });
         supSel.innerHTML = sHtml;
     }
@@ -315,13 +647,15 @@ function populateCategoryFilter() {
 // 🎨 RENDER ALERTS TABLE
 // ============================================
 function renderTable() {
+    const activeCat = getActiveAlertsCategory();
+    const ui = getCategoryAlertsUiMeta(activeCat);
     const tbody = document.getElementById('alertsTbody');
     const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
     const catVal = document.getElementById('categoryFilter').value;
     const supVal = document.getElementById('supplierFilter')?.value || '';
     const sevVal = document.getElementById('severityFilter').value;
 
-    const isExpiryMode = (sevVal === 'expiry_critical' || sevVal === 'expiry_warning');
+    const isExpiryMode = ui.hasBatchExpiry && (sevVal === 'expiry_critical' || sevVal === 'expiry_warning');
     const baseList = isExpiryMode ? expiryAlertItems : lowStockItems;
 
     const filtered = baseList.filter(item => {
@@ -345,13 +679,14 @@ function renderTable() {
 
     if (filtered.length === 0) {
         const catMeta = getActiveAlertsCategoryMeta();
+        const catName = catMeta.nameEn || activeCat;
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" style="text-align:center; padding:35px; color:#15803d; font-weight:bold;">
                     <i class="fas fa-check-circle" style="font-size:26px; color:#10b981; display:block; margin-bottom:8px;"></i>
                     ${isExpiryMode
-                        ? `All clear in ${catMeta.nameEn}! No expired or near-expiry batches found.`
-                        : `All clear in ${catMeta.nameEn}! No items are out of stock or below their low-stock limit.`}
+                        ? ebCompact(`All clear in ${catName}! No expired or near-expiry batches found.`, `${catMeta.nameUr || catName} میں کوئی ایکسپائرڈ یا قریب المیعاد بیچ موجود نہیں۔`)
+                        : ebCompact(`All clear in ${catName}! No items are out of stock or below their low-stock limit.`, `${catMeta.nameUr || catName} میں کوئی آئٹم ختم یا کم اسٹاک حد سے نیچے نہیں ہے۔`)}
                 </td>
             </tr>`;
         return;
@@ -360,34 +695,42 @@ function renderTable() {
     let html = '';
     filtered.forEach(it => {
         const badge = it.isOut
-            ? `<span class="badge-out"><i class="fas fa-ban"></i> OUT OF STOCK (0)</span>`
+            ? `<span class="badge-out"><i class="fas fa-ban"></i> ${activeCat === 'restaurant' ? ebMix('SOLD OUT (0)', 'ختم') : ebMix('OUT OF STOCK (0)', 'اسٹاک ختم')}</span>`
             : (it.isLow
-                ? `<span class="badge-low"><i class="fas fa-triangle-exclamation"></i> LOW (${it.qty} left)</span>`
-                : `<span style="background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:800;">OK (${it.qty} ${UNIT_LBL(it.unit)})</span>`);
+                ? `<span class="badge-low"><i class="fas fa-triangle-exclamation"></i> ${ebMix(`LOW (${it.qty} left)`, `کم (${it.qty} باقی)`)}</span>`
+                : `<span style="background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:800;">${ebMix(`OK (${it.qty} ${UNIT_LBL(it.unit)})`, 'مناسب')}</span>`);
 
         let expBadgeHtml = '';
-        if (it.expiryStatus === 'expired') {
-            expBadgeHtml = `<div style="margin-top:4px;"><span style="background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; padding:2px 7px; border-radius:8px; font-size:10.5px; font-weight:800;">🚨 EXPIRED (${it.expStr})</span></div>`;
-        } else if (it.expiryStatus === 'critical') {
-            expBadgeHtml = `<div style="margin-top:4px;"><span style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; padding:2px 7px; border-radius:8px; font-size:10.5px; font-weight:800;">⏳ Expiry in ${it.daysLeft}d (${it.expStr})</span></div>`;
-        } else if (it.expiryStatus === 'warning') {
-            expBadgeHtml = `<div style="margin-top:4px;"><span style="background:#fef9c3; color:#854d0e; border:1px solid #fde047; padding:2px 7px; border-radius:8px; font-size:10.5px; font-weight:700;">⚠️ Exp in ${it.daysLeft}d (${it.expStr})</span></div>`;
+        if (ui.hasBatchExpiry) {
+            if (it.expiryStatus === 'expired') {
+                expBadgeHtml = `<div style="margin-top:4px;"><span style="background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; padding:2px 7px; border-radius:8px; font-size:10.5px; font-weight:800;">${ebMix(`🚨 EXPIRED (${it.expStr})`, 'ایکسپائرڈ')}</span></div>`;
+            } else if (it.expiryStatus === 'critical') {
+                expBadgeHtml = `<div style="margin-top:4px;"><span style="background:#ffedd5; color:#c2410c; border:1px solid #fdba74; padding:2px 7px; border-radius:8px; font-size:10.5px; font-weight:800;">${ebMix(`⏳ Expiry in ${it.daysLeft}d (${it.expStr})`, `${it.daysLeft} دن باقی`)}</span></div>`;
+            } else if (it.expiryStatus === 'warning') {
+                expBadgeHtml = `<div style="margin-top:4px;"><span style="background:#fef9c3; color:#854d0e; border:1px solid #fde047; padding:2px 7px; border-radius:8px; font-size:10.5px; font-weight:700;">${ebMix(`⚠️ Exp in ${it.daysLeft}d (${it.expStr})`, `${it.daysLeft} دن باقی`)}</span></div>`;
+            }
         }
 
         const subText = it.itemSubtitle
             || (window.BusinessCategories && typeof window.BusinessCategories.formatItemSubtitle === 'function' ? window.BusinessCategories.formatItemSubtitle(it) : '');
         const safeName = (it.name || '').replace(/'/g, "\\'");
 
+        let extraMetaHtml = '';
+        if (ui.hasBatchExpiry && it.batchNo) {
+            const batchLbl = activeCat === 'wholesaler' ? ebMix('Lot / Marka', 'لاٹ') : ebMix('Batch', 'بیچ');
+            extraMetaHtml = `<div style="font-size:10.5px; color:#7c3aed; font-weight:700;">${batchLbl}: ${it.batchNo}</div>`;
+        }
+
         html += `
         <tr>
             <td>
                 <b>${it.name}</b>
                 ${subText ? `<div style="font-size:11px; color:#0284c7; font-weight:600; margin-top:2px;">${subText}</div>` : ''}
-                ${it.barcode ? `<div style="font-size:11px; color:#64748b;">Code: ${it.barcode}</div>` : ''}
-                ${it.batchNo ? `<div style="font-size:10.5px; color:#7c3aed; font-weight:700;">Batch: ${it.batchNo}</div>` : ''}
+                ${it.barcode ? `<div style="font-size:11px; color:#64748b;">${ebMix('Code:', 'کوڈ:')} ${it.barcode}</div>` : ''}
+                ${extraMetaHtml}
             </td>
             <td>
-                <div style="font-size:12px; font-weight:700; color:#c2410c;">🏭 ${it.supplier || 'General'}</div>
+                <div style="font-size:12px; font-weight:700; color:#c2410c;">${ui.supplierIcon || '🏭'} ${it.supplier || 'General'}</div>
                 <span style="font-size:11px; color:#64748b;">${it.category || 'General'}</span>
             </td>
             <td>
@@ -396,19 +739,19 @@ function renderTable() {
             </td>
             <td><b>${it.limit}</b> ${UNIT_LBL(it.unit)}</td>
             <td style="color:#0284c7; font-weight:800;">
-                ${it.suggestedReorder > 0 ? `+ ${it.suggestedReorder} ${UNIT_LBL(it.unit)}` : `<span style="color:#94a3b8; font-size:11px;">Claim / Clear</span>`}
+                ${it.suggestedReorder > 0 ? `+ ${it.suggestedReorder} ${UNIT_LBL(it.unit)}` : `<span style="color:#94a3b8; font-size:11px;">${ebMix('Claim / Clear', 'کلیم / کلیئر')}</span>`}
             </td>
             <td>
                 ${isExpiryMode
-                    ? `<b style="color:#b91c1c;">Risk: Rs ${Math.round(it.stockValueCost).toLocaleString()}</b>`
+                    ? `<b style="color:#b91c1c;">${ebMix('Risk:', 'رسک:')} Rs ${Math.round(it.stockValueCost).toLocaleString()}</b>`
                     : `Rs ${Math.round(it.estCost).toLocaleString()}`}
             </td>
             <td class="btn-action-cell">
                 <button class="btn btn-sm" style="background:#10b981; color:#fff;" onclick="quickRestockModal('${it.id}', '${safeName}', '${it.unit}', ${it.cost})">
-                    <i class="fas fa-plus"></i> Restock
+                    <i class="fas fa-plus"></i> ${ebMix('Restock', 'اسٹاک شامل')}
                 </button>
                 <button class="btn btn-sm" style="background:#0284c7; color:#fff;" onclick="singleItemWhatsAppReorder('${safeName}', ${it.suggestedReorder || it.qty}, '${UNIT_LBL(it.unit)}')">
-                    <i class="fab fa-whatsapp"></i> ${isExpiryMode ? 'Claim Notice' : 'Reorder'}
+                    <i class="fab fa-whatsapp"></i> ${isExpiryMode ? ebMix('Claim Notice', 'کلیم نوٹس') : ebMix('Reorder', 'ری آرڈر')}
                 </button>
             </td>
         </tr>`;
@@ -423,32 +766,39 @@ document.getElementById('categoryFilter').addEventListener('change', renderTable
 document.getElementById('supplierFilter')?.addEventListener('change', renderTable);
 document.getElementById('severityFilter').addEventListener('change', renderTable);
 
+window.addEventListener('ebCategoryChanged', () => {
+    applyCategoryAlertsUI();
+    loadStockAndAlerts();
+});
+
 // ============================================
 // ➕ QUICK RESTOCK MODAL (Incoming Stock)
 // ============================================
 window.quickRestockModal = async function(stockId, itemName, unit, curCost) {
+    const ui = getCategoryAlertsUiMeta(getActiveAlertsCategory());
     const { value: formValues } = await Swal.fire({
-        title: `➕ Quick Restock: ${itemName}`,
+        title: ebT(`➕ Quick Restock: ${itemName}`, `➕ Quick Restock (فوری اسٹاک): ${itemName}`),
         html: `
             <div style="text-align:left; font-size:13px;">
-                <label><b>Incoming Quantity to Add (${UNIT_LBL(unit)}) *</b></label>
-                <input id="swalAddQty" type="number" class="swal2-input" placeholder="e.g. 50" min="0.1" step="0.1" style="margin-top:4px; margin-bottom:10px;">
+                <label><b>${ebMix(`Incoming Quantity to Add (${UNIT_LBL(unit)}) *`, 'شامل کی جانے والی تعداد')}</b></label>
+                <input id="swalAddQty" type="number" class="swal2-input" placeholder="${ebT('e.g. 50', 'e.g. 50 (مثلاً 50)')}" min="0.1" step="0.1" style="margin-top:4px; margin-bottom:10px;">
                 
-                <label><b>Purchase Cost Rate (Rs per unit)</b></label>
+                <label><b>${ui.restockRateLabel || ebMix('Purchase Cost Rate (Rs per unit)', 'خرید قیمت فی یونٹ')}</b></label>
                 <input id="swalAddCost" type="number" class="swal2-input" value="${curCost}" style="margin-top:4px; margin-bottom:10px;">
 
-                <label><b>Supplier / Note (Optional)</b></label>
-                <input id="swalAddNote" class="swal2-input" placeholder="e.g. Bill # 498 from Lahore Wholesaler" style="margin-top:4px;">
+                <label><b>${ebMix('Note / Reference (Optional)', 'نوٹ / حوالہ (اختیاری)')}</b></label>
+                <input id="swalAddNote" class="swal2-input" placeholder="${ui.restockNotePlaceholder || ebT('e.g. Purchase Invoice #', 'e.g. Purchase Invoice # (انوائس حوالہ)')}" style="margin-top:4px;">
             </div>
         `,
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: '✅ Confirm & Add Stock',
+        confirmButtonText: ebT('✅ Confirm & Add Stock', '✅ Confirm & Add Stock (اسٹاک شامل کریں)'),
+        cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)'),
         confirmButtonColor: '#10b981',
         preConfirm: () => {
             const qty = parseFloat(document.getElementById('swalAddQty').value);
             if (!qty || qty <= 0) {
-                Swal.showValidationMessage('Valid quantity likhein!');
+                Swal.showValidationMessage(ebT('Please enter a valid quantity!', 'Please enter a valid quantity! (درست تعداد درج کریں)'));
                 return false;
             }
             return {
@@ -493,11 +843,12 @@ window.quickRestockModal = async function(stockId, itemName, unit, curCost) {
 
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
-                timer: 2000, icon: 'success', title: `✅ +${formValues.qty} ${itemName} added to stock!`
+                timer: 2000, icon: 'success',
+                title: ebT(`✅ +${formValues.qty} ${itemName} added to stock!`, `✅ +${formValues.qty} ${itemName} added to stock! (اسٹاک میں شامل ہو گیا)`)
             });
 
         } catch (e) {
-            Swal.fire('Error', 'Restock failed: ' + e.message, 'error');
+            Swal.fire(ebT('Error', 'Error (خرابی)'), ebT('Restock failed: ', 'Restock failed (اسٹاک شامل کرنے میں خرابی): ') + e.message, 'error');
         }
     }
 };
@@ -506,50 +857,68 @@ window.quickRestockModal = async function(stockId, itemName, unit, curCost) {
 // 📲 WHATSAPP SUPPLIER PURCHASE ORDER
 // ============================================
 window.singleItemWhatsAppReorder = function(name, qty, unit) {
-    const text = `السلام علیکم!
-برائے مہربانی درج ذیل مال فوری بھیجیں:
-📦 *${name}* — ${qty} ${unit}
-
-🏢 ایجنسی: *${(myAgency && myAgency.name) || 'My Agency'}*
-📱 رابطہ: ${(myUser && myUser.mobile) || ''}`;
+    const ui = getCategoryAlertsUiMeta(getActiveAlertsCategory());
+    const bizName = (myAgency && myAgency.name) || 'My Business';
+    const mobile = (myUser && myUser.mobile) || '';
+    const text = ebIsMix()
+        ? `السلام علیکم!\nبرائے مہربانی درج ذیل مال فوری بھیجیں:\n📦 *${name}* — ${qty} ${unit}\n\n${ui.waBizLabelUr || '🏢 کاروبار'}: *${bizName}*\n📱 رابطہ: ${mobile}`
+        : `Hello!\nPlease supply the following item urgently:\n📦 *${name}* — ${qty} ${unit}\n\n${ui.waBizLabelEn || '🏢 Business'}: *${bizName}*\n📱 Contact: ${mobile}`;
 
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 };
 
 document.getElementById('btnSupplierWhatsApp').addEventListener('click', () => {
+    const ui = getCategoryAlertsUiMeta(getActiveAlertsCategory());
     const supVal = document.getElementById('supplierFilter')?.value || '';
     const sevVal = document.getElementById('severityFilter')?.value || 'all';
-    const isExpiryMode = (sevVal === 'expiry_critical' || sevVal === 'expiry_warning');
+    const isExpiryMode = ui.hasBatchExpiry && (sevVal === 'expiry_critical' || sevVal === 'expiry_warning');
     const sourceList = (isExpiryMode ? expiryAlertItems : lowStockItems).filter(it => !supVal || it.supplier === supVal);
 
     if (sourceList.length === 0) {
-        Swal.fire('ℹ️', isExpiryMode ? 'Koi expired ya near-expiry batch nahi hai!' : 'Koi low stock item nahi hai reorder ke liye!', 'info');
+        Swal.fire(
+            'ℹ️',
+            isExpiryMode
+                ? ebT('No expired or near-expiry batches found!', 'No expired or near-expiry batches found! (کوئی ایکسپائرڈ یا قریب المیعاد بیچ نہیں ہے)')
+                : ebT('No low stock items available to reorder!', 'No low stock items available to reorder! (ری آرڈر کے لیے کوئی کم اسٹاک آئٹم نہیں ہے)'),
+            'info'
+        );
         return;
     }
 
-    let text = isExpiryMode ? `⚠️ *EXPIRY / CLAIM RETURN NOTICE*\n` : `🛒 *PURCHASE REORDER LIST (PO)*\n`;
-    text += `🏢 *${(myAgency && myAgency.name) || 'Agency'}*\n`;
-    if (supVal) text += `🏭 *Principal / Supplier:* ${supVal}\n`;
+    const mix = ebIsMix();
+    let text = isExpiryMode ? `⚠️ *EXPIRY / CLAIM RETURN NOTICE*\n` : `${ui.waOrderTitle || '🛒 *PURCHASE REORDER LIST (PO)*'}\n`;
+    text += `${mix ? (ui.waBizLabelUr || '🏢') : (ui.waBizLabelEn || '🏢')} *${(myAgency && myAgency.name) || 'Workspace'}*\n`;
+    if (supVal) text += `${ui.waSupplierLabel || '🏭 *Supplier:*'} ${supVal}\n`;
     text += `📅 Date: ${new Date().toLocaleDateString('en-PK')}\n`;
     text += `------------------------------------\n`;
-    text += isExpiryMode
-        ? `برائے مہربانی درج ذیل زائد المیعاد / قریب المیعاد بیچز کا کلیم یا تبدیلی کریں:\n\n`
-        : `برائے مہربانی درج ذیل مال جلد از جلد سپلائی فرمائیں:\n\n`;
+    if (mix) {
+        text += isExpiryMode
+            ? `برائے مہربانی درج ذیل زائد المیعاد / قریب المیعاد بیچز کا کلیم یا تبدیلی کریں:\n\n`
+            : `برائے مہربانی درج ذیل مال جلد از جلد سپلائی فرمائیں:\n\n`;
+    } else {
+        text += isExpiryMode
+            ? `Please process claim/replacement for the following expired / near-expiry batches:\n\n`
+            : `Please supply the following items at your earliest convenience:\n\n`;
+    }
 
     sourceList.slice(0, 30).forEach((it, idx) => {
         const packInfo = it.cartonPacking ? ` [${it.cartonPacking}]` : (it.packSize > 1 ? ` [1x${it.packSize}]` : '');
         if (isExpiryMode) {
             text += `${idx + 1}. *${it.name}*${packInfo} — Qty: *${it.qty} ${UNIT_LBL(it.unit)}* (Exp: ${it.expStr || 'N/A'})\n`;
-        } else {
+        } else if (mix) {
             text += `${idx + 1}. *${it.name}*${packInfo} — ضرورت: *${it.suggestedReorder} ${UNIT_LBL(it.unit)}* (موجودہ: ${it.qty})\n`;
+        } else {
+            text += `${idx + 1}. *${it.name}*${packInfo} — Needed: *${it.suggestedReorder} ${UNIT_LBL(it.unit)}* (Current: ${it.qty})\n`;
         }
     });
 
     text += `\n------------------------------------\n`;
     if (!isExpiryMode) {
-        text += `کل متوقع لاگت: ${document.getElementById('kpiReorderCost').innerText}\n`;
+        text += mix
+            ? `کل متوقع لاگت: ${document.getElementById('kpiReorderCost').innerText}\n`
+            : `Est. Total Cost: ${document.getElementById('kpiReorderCost').innerText}\n`;
     }
-    text += `شکریہ!`;
+    text += mix ? `شکریہ!` : `Thank you!`;
 
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
 });
@@ -585,17 +954,23 @@ function updatePushUIState() {
 
     if (enabled) {
         const modeLabel = browserGranted ? 'Browser + In-App Push Active' : 'Smart In-App Push Active';
-        txt.innerHTML = `✅ <b>${modeLabel} (${catMeta.nameEn}):</b> You will be notified automatically whenever items in <b>${catMeta.nameEn}</b> reach low stock (${lowStockItems.length} low-stock items right now).`;
-        btn.innerHTML = '<i class="fas fa-check-circle"></i> Push Alerts Enabled';
+        txt.innerHTML = ebCompact(
+            `✅ <b>${modeLabel} (${catMeta.nameEn}):</b> You will be notified automatically whenever items in <b>${catMeta.nameEn}</b> reach low stock (${lowStockItems.length} low-stock items right now).`,
+            `${catMeta.nameUr || catMeta.nameEn} میں پش الرٹس فعال ہیں — کم اسٹاک ہوتے ہی خودکار اطلاع ملے گی (موجودہ کم اسٹاک: ${lowStockItems.length})`
+        );
+        btn.innerHTML = `<i class="fas fa-check-circle"></i> ${ebMix('Push Alerts Enabled', 'پش الرٹس فعال ہیں')}`;
         btn.style.background = '#0284c7';
         btn.disabled = false;
-        btn.title = 'Click to manage or turn off push alerts for this category';
+        btn.title = ebT('Click to manage or turn off push alerts for this category', 'Click to manage or turn off push alerts (پش الرٹس مینیج کریں)');
     } else {
-        txt.innerHTML = `Enable push alerts for <b>${catMeta.nameEn}</b> to get notified whenever stock runs low during sales!`;
-        btn.innerHTML = '<i class="fas fa-bell"></i> Enable Push Alerts';
+        txt.innerHTML = ebCompact(
+            `Enable push alerts for <b>${catMeta.nameEn}</b> to get notified whenever stock runs low during sales!`,
+            `${catMeta.nameUr || catMeta.nameEn} میں فروخت کے دوران اسٹاک کم ہونے پر فوری اطلاع پانے کے لیے پش الرٹس فعال کریں!`
+        );
+        btn.innerHTML = `<i class="fas fa-bell"></i> ${ebMix('Enable Push Alerts', 'پش الرٹس فعال کریں')}`;
         btn.style.background = '#15803d';
         btn.disabled = false;
-        btn.title = 'Click to enable low-stock push alerts for this category';
+        btn.title = ebT('Click to enable low-stock push alerts for this category', 'Click to enable push alerts (پش الرٹس فعال کریں)');
     }
 }
 
@@ -615,18 +990,18 @@ function setupPushNotificationUI() {
         if (currentlyEnabled) {
             const res = await Swal.fire({
                 icon: 'info',
-                title: `🔔 Push Alerts (${catMeta.nameEn})`,
+                title: ebT(`🔔 Push Alerts (${catMeta.nameEn})`, `🔔 Push Alerts (${catMeta.nameEn} — پش الرٹس)`),
                 html: `
                     <div style="text-align:left; font-size:13px; line-height:1.55; color:#334155;">
-                        <p style="margin:0 0 8px 0;">Low-stock push notifications are currently <b>ENABLED</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>.</p>
-                        <p style="margin:0;">• <b>Active Low-Stock Items in this Category:</b> ${lowStockItems.length}</p>
+                        <p style="margin:0 0 8px 0;">${ebCompact(`Low-stock push notifications are currently <b>ENABLED</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>.`, `${catMeta.nameUr || catMeta.nameEn} کے لیے کم اسٹاک پش نوٹیفکیشنز اس وقت فعال ہیں۔`)}</p>
+                        <p style="margin:0;">• <b>${ebMix('Active Low-Stock Items in this Category:', 'اس کیٹیگری میں موجودہ کم اسٹاک آئٹمز:')}</b> ${lowStockItems.length}</p>
                     </div>
                 `,
                 showCancelButton: true,
                 showDenyButton: true,
-                confirmButtonText: '🔔 Send Test Alert',
-                denyButtonText: '🔕 Turn Off for this Category',
-                cancelButtonText: 'Close',
+                confirmButtonText: ebT('🔔 Send Test Alert', '🔔 Send Test Alert (ٹیسٹ الرٹ)'),
+                denyButtonText: ebT('🔕 Turn Off for this Category', '🔕 Turn Off (بند کریں)'),
+                cancelButtonText: ebT('Close', 'Close (بند)'),
                 confirmButtonColor: '#10b981',
                 denyButtonColor: '#ef4444'
             });
@@ -636,8 +1011,8 @@ function setupPushNotificationUI() {
                     try {
                         new Notification(`🔔 NH POS — ${catMeta.nameEn}`, {
                             body: lowStockItems.length > 0
-                                ? `${lowStockItems.length} item(s) require restocking in ${catMeta.nameEn}!`
-                                : `Push alerts are working! All stock is healthy in ${catMeta.nameEn}.`,
+                                ? ebT(`${lowStockItems.length} item(s) require restocking in ${catMeta.nameEn}!`, `${lowStockItems.length} item(s) require restocking in ${catMeta.nameEn}! (ری اسٹاک ضروری ہے)`)
+                                : ebT(`Push alerts are working! All stock is healthy in ${catMeta.nameEn}.`, `Push alerts are working! All stock is healthy in ${catMeta.nameEn}. (اسٹاک مکمل ہے)`),
                             icon: 'icon-192.png'
                         });
                     } catch (_) {}
@@ -649,8 +1024,8 @@ function setupPushNotificationUI() {
                     showConfirmButton: false,
                     icon: 'success',
                     title: lowStockItems.length > 0
-                        ? `⚠️ ${lowStockItems.length} low-stock item(s) in ${catMeta.nameEn}!`
-                        : `✅ Test Alert Sent! 0 low-stock items in ${catMeta.nameEn}.`
+                        ? ebT(`⚠️ ${lowStockItems.length} low-stock item(s) in ${catMeta.nameEn}!`, `⚠️ ${lowStockItems.length} low-stock item(s) in ${catMeta.nameEn}! (کم اسٹاک الرٹ)`)
+                        : ebT(`✅ Test Alert Sent! 0 low-stock items in ${catMeta.nameEn}.`, `✅ Test Alert Sent! (ٹیسٹ الرٹ بھیج دیا گیا)`)
                 });
             } else if (res.isDenied) {
                 localStorage.setItem(prefKey, 'disabled');
@@ -661,7 +1036,7 @@ function setupPushNotificationUI() {
                     timer: 2000,
                     showConfirmButton: false,
                     icon: 'info',
-                    title: `Push alerts turned off for ${catMeta.nameEn}.`
+                    title: ebT(`Push alerts turned off for ${catMeta.nameEn}.`, `Push alerts turned off for ${catMeta.nameEn}. (پش الرٹس بند کر دیے گئے)`)
                 });
             }
             return;
@@ -685,56 +1060,113 @@ function setupPushNotificationUI() {
             if (lowStockItems.length > 0) {
                 try {
                     new Notification(`⚠️ NH POS — ${catMeta.nameEn} Low Stock`, {
-                        body: `${lowStockItems.length} item(s) require immediate restocking in ${catMeta.nameEn}!`,
+                        body: ebT(`${lowStockItems.length} item(s) require immediate restocking in ${catMeta.nameEn}!`, `${lowStockItems.length} item(s) require immediate restocking in ${catMeta.nameEn}! (فوری ری اسٹاک ضروری ہے)`),
                         icon: 'icon-192.png'
                     });
                 } catch (_) {}
             }
             await Swal.fire({
                 icon: 'success',
-                title: '✅ Push Alerts Enabled!',
+                title: ebT('✅ Push Alerts Enabled!', '✅ Push Alerts Enabled! (پش الرٹس فعال ہو گئے)'),
                 html: `
                     <div style="text-align:left; font-size:13px; line-height:1.55; color:#334155;">
-                        <p style="margin:0 0 8px 0;">Browser &amp; In-App Push Notifications are now <b>ACTIVE</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>.</p>
-                        <p style="margin:0;">Whenever any item in this category falls below its low-stock limit during sales, you will receive an instant alert.</p>
+                        <p style="margin:0 0 8px 0;">${ebCompact(`Browser &amp; In-App Push Notifications are now <b>ACTIVE</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>.`, `${catMeta.nameUr || catMeta.nameEn} کے لیے براؤزر اور ان ایپ پش نوٹیفکیشنز اب فعال ہیں۔`)}</p>
+                        <p style="margin:0;">${ebCompact('Whenever any item in this category falls below its low-stock limit during sales, you will receive an instant alert.', 'فروخت کے دوران جیسے ہی کوئی آئٹم کم اسٹاک حد سے نیچے آئے گا، آپ کو فوری اطلاع ملے گی۔')}</p>
                     </div>
                 `,
-                confirmButtonText: 'OK',
+                confirmButtonText: ebT('OK', 'OK (ٹھیک ہے)'),
                 confirmButtonColor: '#10b981'
             });
         } else {
             await Swal.fire({
                 icon: 'success',
-                title: '✅ Smart Push Alerts Enabled!',
+                title: ebT('✅ Smart Push Alerts Enabled!', '✅ Smart Push Alerts Enabled! (اسمارٹ پش الرٹس فعال)'),
                 html: `
                     <div style="text-align:left; font-size:13px; line-height:1.55; color:#334155;">
                         <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px; margin-bottom:10px; color:#166534;">
-                            <b>✅ In-App Smart Push Alerts are now ACTIVE</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>! You will receive instant on-screen &amp; bell alerts whenever stock runs low in this category.
+                            ${ebCompact(`<b>✅ In-App Smart Push Alerts are now ACTIVE</b> for <b>${catMeta.icon || '🏢'} ${catMeta.nameEn}</b>! You will receive instant on-screen &amp; bell alerts whenever stock runs low in this category.`, `${catMeta.nameUr || catMeta.nameEn} کے لیے ان ایپ اسمارٹ پش الرٹس اب فعال ہیں — کم اسٹاک پر فوری اسکرین اور بیل الرٹ ملے گا۔`)}
                         </div>
                         <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font-size:12px; color:#475569;">
-                            <b>📲 Optional — How to also allow Browser / Mobile Lock-Screen Notifications:</b>
+                            <b>${ebMix('📲 Optional — How to also allow Browser / Mobile Lock-Screen Notifications:', 'براؤزر / موبائل لاک اسکرین نوٹیفکیشن کی اجازت کیسے دیں:')}</b>
                             <ol style="margin:6px 0 0 18px; padding:0;">
-                                <li>Tap the <b>Lock / Tune icon (🔒)</b> on the left side of your browser's address bar.</li>
-                                <li>Tap <b>Permissions</b> (or <b>Site settings</b>) &rarr; <b>Notifications</b>.</li>
-                                <li>Select <b>Allow</b> (or open the installed <b>NH POS App</b> from your home screen).</li>
+                                <li>${ebMix('Tap the <b>Lock / Tune icon (🔒)</b> on the left side of your browser\'s address bar.', 'براؤزر ایڈریس بار کے بائیں جانب لاک آئیکن (🔒) دبائیں۔')}</li>
+                                <li>${ebMix('Tap <b>Permissions</b> (or <b>Site settings</b>) &rarr; <b>Notifications</b>.', 'پرمیشنز یا سائٹ سیٹنگز &larr; نوٹیفکیشنز کھولیں۔')}</li>
+                                <li>${ebMix('Select <b>Allow</b> (or open the installed <b>NH POS App</b> from your home screen).', 'Allow منتخب کریں یا انسٹال شدہ NH POS ایپ ہوم اسکرین سے کھولیں۔')}</li>
                             </ol>
                         </div>
                     </div>
                 `,
-                confirmButtonText: 'Got It',
+                confirmButtonText: ebT('Got It', 'Got It (سمجھ گیا)'),
                 confirmButtonColor: '#10b981'
             });
         }
     });
 }
 
-    const alLogout = document.getElementById('logoutBtn');
-    if (alLogout) {
-        alLogout.addEventListener('click', async () => {
-            const res = await Swal.fire({ title: 'Logout?', icon: 'question', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Yes', cancelButtonText: 'Cancel' });
-            if (res.isConfirmed) {
-                await auth.signOut();
-                window.location.href = 'auth.html';
-            }
+const alLogout = document.getElementById('logoutBtn');
+if (alLogout) {
+    alLogout.addEventListener('click', async () => {
+        const res = await Swal.fire({
+            title: ebT('Logout?', 'Logout? (لاگ آؤٹ کریں؟)'),
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: ebT('Yes', 'Yes (ہاں)'),
+            cancelButtonText: ebT('Cancel', 'Cancel (منسوخ)')
         });
+        if (res.isConfirmed) {
+            await auth.signOut();
+            window.location.href = 'auth.html';
+        }
+    });
+}
+
+// ============================================
+// 🌐 LIVE SIDEBAR LANGUAGE SWITCH SYNC (PHASE 10)
+// ============================================
+if (!window.__ebAlertsLangBound) {
+    window.__ebAlertsLangBound = true;
+
+    const syncAlertsBilingualUI = () => {
+        const catSel = document.getElementById('categoryFilter');
+        const supSel = document.getElementById('supplierFilter');
+        const sevSel = document.getElementById('severityFilter');
+        const savedCat = catSel ? catSel.value : '';
+        const savedSup = supSel ? supSel.value : '';
+        const savedSev = sevSel ? sevSel.value : 'all';
+
+        if (typeof applyCategoryAlertsUI === 'function') {
+            applyCategoryAlertsUI();
+        }
+        if (typeof populateCategoryFilter === 'function') {
+            populateCategoryFilter();
+        }
+        if (catSel && savedCat) catSel.value = savedCat;
+        if (supSel && savedSup) supSel.value = savedSup;
+        if (sevSel && savedSev) sevSel.value = savedSev;
+
+        ebRefreshStaticSelects();
+
+        if (typeof computeAlerts === 'function' && Array.isArray(allStock) && allStock.length > 0) {
+            computeAlerts();
+        }
+        if (typeof renderTable === 'function') {
+            renderTable();
+        }
+        if (typeof updatePushUIState === 'function') {
+            updatePushUIState();
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            ebApplyBilingualDom(document);
+            ebRefreshStaticSelects();
+        });
+    } else {
+        ebApplyBilingualDom(document);
+        ebRefreshStaticSelects();
     }
+
+    window.addEventListener('eb-lang-changed', syncAlertsBilingualUI);
+}
