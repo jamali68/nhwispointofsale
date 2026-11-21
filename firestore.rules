@@ -13,9 +13,12 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       return isAuthenticated() && (
-        getUserData().role == 'super-admin' ||
         request.auth.token.email == 'aliimtiaz1126@gmail.com' ||
-        request.auth.token.email == 'admin@easybill.com'
+        request.auth.token.email == 'admin@easybill.com' ||
+        request.auth.token.email == 'imtiazali11242026@gmail.com' ||
+        request.auth.token.email == 'helpgoodforyouofficial@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super-admin')
       );
     }
 
@@ -27,7 +30,8 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && (
         request.auth.uid == userId ||
         isSuperAdmin() ||
-        getUserData().role == 'owner'
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner')
       );
     }
     
@@ -40,13 +44,10 @@ service cloud.firestore {
     }
     
     // 💳 PACKAGES (Subscription Plans & Feature Limits)
-    // All authenticated users can view package plans; only Super Admin can edit limits and prices!
+    // Public read-only so landing.html displays live packages & modules; only Super Admin can edit limits and prices!
     match /packages/{pkgId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && (
-        isSuperAdmin() ||
-        !exists(/databases/$(database)/documents/packages/$(pkgId))
-      );
+      allow read: if true;
+      allow write: if isSuperAdmin();
     }
     
     // 🔢 COUNTERS (Sequential Bill & Invoice numbers)
@@ -95,6 +96,19 @@ service cloud.firestore {
     }
     match /expense_categories/{catId} {
       allow read, write: if isAuthenticated();
+    }
+
+    // 📊 CLOUD QUOTA TELEMETRY (Daily & Monthly Per-Shop Firebase/Netlify Usage Counters)
+    // Authenticated shops can write/increment telemetry counters; Super Admin reads & manages all analytics.
+    match /usage_telemetry/{docId} {
+      allow read: if isSuperAdmin();
+      allow create, update: if isAuthenticated();
+      allow delete: if isSuperAdmin();
+    }
+    match /usage_telemetry_monthly/{docId} {
+      allow read: if isSuperAdmin();
+      allow create, update: if isAuthenticated();
+      allow delete: if isSuperAdmin();
     }
 
     // 🛡️ DEFAULT ACCESS RULE: Strict Authentication Required Everywhere

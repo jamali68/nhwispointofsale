@@ -30,6 +30,7 @@
     <!-- Global Dark Theme & Theme Sync -->
     <link rel="stylesheet" href="dark-theme.css">
     <script src="theme-sync.js"></script>
+    <script src="quota-tracker.js"></script>
 
     <!-- 🏢 Business Categories Registry -->
     <script src="business-categories.js"></script>
@@ -242,6 +243,152 @@
         .rank-1 { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
         .rank-2 { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
         .rank-3 { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+
+        /* ⚡ Cloud Quota & Telemetry Pro Analytics */
+        .quota-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+        }
+        .quota-period-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .quota-period-btn {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            color: #334155;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quota-period-btn:hover {
+            border-color: #0284c7;
+            color: #0284c7;
+        }
+        .quota-period-btn.active {
+            background: #0284c7;
+            border-color: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 3px 10px rgba(2, 132, 199, 0.28);
+        }
+        .quota-dual-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .quota-provider-card {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+        }
+        .quota-meter-row {
+            margin-bottom: 13px;
+        }
+        .quota-meter-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        .quota-bar-track {
+            width: 100%;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .quota-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.35s ease;
+        }
+        .quota-meter-sub {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 3px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .quota-chart-wrap {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .quota-bars-canvas {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 180px;
+            padding: 14px 6px 4px;
+            overflow-x: auto;
+            border-bottom: 1.5px solid #e2e8f0;
+        }
+        .quota-bar-col {
+            flex: 1 0 38px;
+            max-width: 64px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+        }
+        .quota-bar-val {
+            font-size: 10px;
+            font-weight: 800;
+            color: #334155;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+        .quota-bar-stick {
+            width: 100%;
+            max-width: 34px;
+            min-height: 4px;
+            border-radius: 6px 6px 2px 2px;
+            transition: height 0.3s ease;
+        }
+        .quota-bar-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+            margin-top: 6px;
+            white-space: nowrap;
+        }
+        .quota-risk-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10.5px;
+            font-weight: 800;
+        }
+        .risk-healthy { background: #dcfce7; color: #15803d; }
+        .risk-moderate { background: #e0f2fe; color: #0369a1; }
+        .risk-warning { background: #fef3c7; color: #b45309; }
+        .risk-critical { background: #fee2e2; color: #b91c1c; }
     </style>
 </head>
 <body>
@@ -253,6 +400,9 @@
     <div class="admin-nav" id="adminTabsNav">
         <button type="button" class="admin-nav-btn active" data-tab="tabOverview">
             <i class="fas fa-chart-pie"></i> <span data-eb-en="Executive Overview" data-eb-ur="پلیٹ فارم خلاصہ">Executive Overview</span>
+        </button>
+        <button type="button" class="admin-nav-btn" data-tab="tabCloudQuota">
+            <i class="fas fa-server"></i> <span data-eb-en="Cloud Quota &amp; Usage" data-eb-ur="فائر بیس و نیٹلی فائی کوٹہ">Cloud Quota &amp; Usage</span>
         </button>
         <button type="button" class="admin-nav-btn" data-tab="tabLeaderboard">
             <i class="fas fa-trophy"></i> <span data-eb-en="Rankings &amp; Store Intelligence" data-eb-ur="رینکنگ و کارکردگی">Rankings &amp; Store Intelligence</span>
@@ -341,13 +491,134 @@
                         </div>
                     </div>
                 </div>
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <a href="https://wa.me/923346800959?text=Assalam-o-Alaikum%20Developer!%20Super%20Admin%20Support" target="_blank" class="btn btn-sm" style="background:#25D366; color:#fff; text-decoration:none; font-weight:800; display:inline-flex; align-items:center; gap:6px;">
                         <i class="fab fa-whatsapp"></i> <span data-eb-en="WhatsApp Dev" data-eb-ur="ڈویلپر واٹس ایپ">WhatsApp Dev</span>
                     </a>
+                    <button type="button" class="btn btn-sm" style="background:#0284c7; color:#fff; font-weight:800;" onclick="switchAdminTab('tabCloudQuota')">
+                        <i class="fas fa-server"></i> <span data-eb-en="Cloud Quota Monitor" data-eb-ur="کلاؤڈ کوٹہ مانیٹر">Cloud Quota Monitor</span>
+                    </button>
                     <button type="button" class="btn btn-sm" style="background:#8b5cf6; color:#fff; font-weight:800;" onclick="switchAdminTab('tabLeaderboard')">
                         <i class="fas fa-trophy"></i> <span data-eb-en="View Rankings" data-eb-ur="رینکنگ دیکھیں">View Rankings</span>
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         ⚡ TAB 1B: PRO CLOUD QUOTA & TELEMETRY ANALYTICS (FIREBASE + NETLIFY)
+         ============================================ -->
+    <div class="admin-tab-pane" id="tabCloudQuota">
+        <div class="panel-card" style="border-top-color:#0284c7;">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h2><i class="fas fa-server" style="color:#0284c7;"></i> <span data-eb-en="Cloud Quota &amp; Usage Intelligence (Firebase + Netlify)" data-eb-ur="فائر بیس اور نیٹلی فائی کوٹہ و استعمال رپورٹ">Cloud Quota &amp; Usage Intelligence (Firebase + Netlify)</span></h2>
+                    <small class="header-note" data-eb-en="Self-hosted 95–99% accurate tracking of Firebase Reads/Writes/Deletes and Netlify Requests/Functions/Bandwidth — per shop &amp; combined (Daily, Weekly, Monthly, Yearly)" data-eb-ur="تمام دکانوں اور ہر دکان کے الگ الگ فائر بیس ریڈ/رائٹ اور نیٹلی فائی ریکویسٹ کی روزانہ، ہفتہ وار، ماہانہ اور سالانہ رپورٹ">Self-hosted 95–99% accurate tracking of Firebase Reads/Writes/Deletes and Netlify Requests/Functions/Bandwidth — per shop &amp; combined (Daily, Weekly, Monthly, Yearly)</small>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-sm" id="btnQuotaFlushRefresh" onclick="loadCloudQuotaAnalytics(true)" style="background:#0284c7; color:#fff; font-weight:800; padding:8px 14px; border-radius:8px;">
+                        <i class="fas fa-sync-alt"></i> <span data-eb-en="Flush &amp; Refresh Live" data-eb-ur="لائیو ریفریش کریں">Flush &amp; Refresh Live</span>
+                    </button>
+                    <button type="button" class="btn btn-sm" onclick="exportCloudQuotaCsv()" style="background:#10b981; color:#fff; font-weight:800; padding:8px 14px; border-radius:8px;">
+                        <i class="fas fa-file-csv"></i> <span data-eb-en="Export CSV" data-eb-ur="CSV ایکسپورٹ">Export CSV</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Period & Shop Filter Toolbar -->
+            <div class="quota-toolbar">
+                <div class="quota-period-group" id="quotaPeriodBtns">
+                    <button type="button" class="quota-period-btn active" data-period="today" onclick="setQuotaPeriod('today')">📅 <span data-eb-en="Today (Daily)" data-eb-ur="آج (روزانہ)">Today (Daily)</span></button>
+                    <button type="button" class="quota-period-btn" data-period="weekly" onclick="setQuotaPeriod('weekly')">📆 <span data-eb-en="7 Days (Weekly)" data-eb-ur="7 دن (ہفتہ وار)">7 Days (Weekly)</span></button>
+                    <button type="button" class="quota-period-btn" data-period="monthly" onclick="setQuotaPeriod('monthly')">🗓️ <span data-eb-en="This Month" data-eb-ur="اس ماہ">This Month</span></button>
+                    <button type="button" class="quota-period-btn" data-period="yearly" onclick="setQuotaPeriod('yearly')">📊 <span data-eb-en="This Year" data-eb-ur="اس سال">This Year</span></button>
+                    <button type="button" class="quota-period-btn" data-period="custom" onclick="setQuotaPeriod('custom')">🎯 <span data-eb-en="Custom Range" data-eb-ur="کسٹم تاریخ">Custom Range</span></button>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <div id="quotaCustomDateWrap" style="display:none; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <input type="date" id="quotaStartDate" style="padding:5px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px; font-weight:700;">
+                        <span style="font-size:12px; color:#64748b;">→</span>
+                        <input type="date" id="quotaEndDate" style="padding:5px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px; font-weight:700;">
+                        <button type="button" class="btn btn-sm" onclick="loadCloudQuotaAnalytics(false)" style="background:#0f172a; color:#fff; font-weight:700; padding:6px 10px; border-radius:7px;">Apply</button>
+                    </div>
+                    <select id="quotaShopFilter" onchange="onQuotaShopFilterChange()" style="padding:7px 12px; border:1.5px solid #94a3b8; border-radius:8px; font-size:12.5px; font-weight:800; background:#fff; color:#0f172a; min-width:210px;">
+                        <option value="all">🏢 All Shops Combined (Master Total)</option>
+                    </select>
+                    <button type="button" id="btnQuotaBackAll" onclick="inspectQuotaShop('all')" style="display:none; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:6px 10px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer;">
+                        ← All Shops
+                    </button>
+                </div>
+            </div>
+
+            <!-- Free-Tier Safety Shield Banner -->
+            <div id="quotaSafetyBanner" style="margin-bottom:16px;"></div>
+
+            <!-- Smart Alerts Strip -->
+            <div id="quotaAlertsBox" style="margin-bottom:14px;"></div>
+
+            <!-- Dual Provider Quota Gauges (Firebase Spark + Netlify Starter) -->
+            <div class="quota-dual-grid" id="quotaDualGauges">
+                <div class="loading-inline">Loading live Firebase &amp; Netlify telemetry...</div>
+            </div>
+
+            <!-- Interactive Daily / Monthly Usage Trend Chart -->
+            <div class="quota-chart-wrap">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:8px;">
+                    <div>
+                        <strong style="font-size:14px; color:#0f172a;">📈 <span data-eb-en="Usage Trend Timeline" data-eb-ur="استعمال کا گراف (ٹائم لائن)">Usage Trend Timeline</span></strong>
+                        <span id="quotaChartSubtitle" style="font-size:11.5px; color:#64748b; margin-left:8px;"></span>
+                    </div>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;" id="quotaChartMetricBtns">
+                        <button type="button" class="quota-period-btn active" data-metric="fbReads" onclick="setQuotaChartMetric('fbReads')">🔥 FB Reads</button>
+                        <button type="button" class="quota-period-btn" data-metric="fbWrites" onclick="setQuotaChartMetric('fbWrites')">✍️ FB Writes</button>
+                        <button type="button" class="quota-period-btn" data-metric="netlifyTotalReqs" onclick="setQuotaChartMetric('netlifyTotalReqs')">🌐 Netlify Reqs</button>
+                        <button type="button" class="quota-period-btn" data-metric="pwaCacheHits" onclick="setQuotaChartMetric('pwaCacheHits')">🛡️ PWA Saved</button>
+                    </div>
+                </div>
+                <div class="quota-bars-canvas" id="quotaTrendBars"></div>
+            </div>
+
+            <!-- Per-Shop Usage Intelligence Table -->
+            <div class="leaderboard-card" style="margin-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                    <div>
+                        <strong style="font-size:14.5px; color:#0f172a;">🏪 <span data-eb-en="Shop-by-Shop Cloud Consumption Breakdown" data-eb-ur="ہر دکان کا الگ الگ فائر بیس اور نیٹلی فائی استعمال">Shop-by-Shop Cloud Consumption Breakdown</span></strong>
+                        <div style="font-size:11.5px; color:#64748b;" data-eb-en="Click Inspect on any shop to view its dedicated Firebase &amp; Netlify report." data-eb-ur="کسی بھی دکان کی تفصیلی رپورٹ دیکھنے کے لیے Inspect پر کلک کریں۔">Click Inspect on any shop to view its dedicated Firebase &amp; Netlify report.</div>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <input type="text" id="quotaShopSearch" oninput="renderQuotaShopsTableOnly()" placeholder="🔍 Search shop..." style="padding:7px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:600; min-width:170px;">
+                        <select id="quotaShopSort" onchange="renderQuotaShopsTableOnly()" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:700; background:#fff;">
+                            <option value="total">Sort: Highest Overall</option>
+                            <option value="fbReads">Sort: Highest FB Reads</option>
+                            <option value="fbWrites">Sort: Highest FB Writes</option>
+                            <option value="netlifyTotalReqs">Sort: Highest Netlify Reqs</option>
+                            <option value="netlifyBytes">Sort: Highest Bandwidth</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Shop / Agency</th>
+                                <th>FB Reads</th>
+                                <th>FB Writes</th>
+                                <th>FB Deletes</th>
+                                <th>Netlify Reqs (Fn)</th>
+                                <th>Bandwidth</th>
+                                <th>PWA Saved</th>
+                                <th>Share %</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quotaShopsTableBody">
+                            <tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">Select this tab to load telemetry...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -508,9 +779,17 @@
                     <h2><i class="fas fa-cubes"></i> <span data-eb-en="Customizable SaaS Package Tiers &amp; Pricing Controls" data-eb-ur="ساس پیکیج ٹائرز اور قیمت کنٹرول">Customizable SaaS Package Tiers &amp; Pricing Controls</span></h2>
                     <small class="header-note" data-eb-en="100% customize package names, fees, bills, items, and booker limits or create a new package" data-eb-ur="تمام پیکیجز کے نام، قیمت، بلز، آئٹمز اور بکرز کی لمٹس 100% کسٹمائز کریں یا نیا پیکیج بنائیں">100% customize package names, fees, bills, items, and booker limits or create a new package</small>
                 </div>
-                <button type="button" class="btn btn-sm" id="btnAddNewPackage" style="background:#10b981; color:#fff; font-weight:800; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
-                    <i class="fas fa-plus"></i> <span data-eb-en="➕ Create New Custom Package" data-eb-ur="نیا کسٹم پیکیج بنائیں">➕ Create New Custom Package</span>
-                </button>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-sm" id="btnSaveAllPackages" onclick="saveAllPackages()" style="background:#8b5cf6; color:#fff; font-weight:800; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
+                        <i class="fas fa-cloud-upload-alt"></i> <span data-eb-en="💾 Save All & Sync Website" data-eb-ur="سب محفوظ کریں اور ویب سائٹ سنک کریں">💾 Save All &amp; Sync Website</span>
+                    </button>
+                    <a href="landing.html#pricing" target="_blank" rel="noopener" class="btn btn-sm" style="background:#0ea5e9; color:#fff; font-weight:800; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
+                        <i class="fas fa-external-link-alt"></i> <span data-eb-en="🌐 View Website" data-eb-ur="ویب سائٹ دیکھیں">🌐 View Website</span>
+                    </a>
+                    <button type="button" class="btn btn-sm" id="btnAddNewPackage" style="background:#10b981; color:#fff; font-weight:800; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
+                        <i class="fas fa-plus"></i> <span data-eb-en="➕ Create New Custom Package" data-eb-ur="نیا کسٹم پیکیج بنائیں">➕ Create New Custom Package</span>
+                    </button>
+                </div>
             </div>
 
             <div id="packagesEditor">
@@ -778,9 +1057,14 @@
         free: {
             id: 'free',
             name: '🆓 Free Starter',
+            tagline: 'Ideal for small single-counter shops and new retail outlets.',
+            taglineUr: 'چھوٹی دکانوں اور شروعاتی کاروبار کے لیے لائف ٹائم مفت۔',
+            showOnWebsite: true,
+            displayOrder: 1,
+            featured: false,
             type: 'single',
             fee: 0,
-            limits: { maxBranches: 1, maxItems: 50, monthlyBills: 150, maxBookers: 1 },
+            limits: { maxBranches: 1, maxItems: 50, monthlyBills: 150, maxBookers: 0 },
             allowedTemplates: ['template4', 'template1'],
             allowedModules: {
                 ...CORE_ALWAYS_MODULES,
@@ -793,6 +1077,11 @@
         starter_single: {
             id: 'starter_single',
             name: '🏪 Single Agency Pro',
+            tagline: 'Best for busy general stores, marts, and growing agencies.',
+            taglineUr: 'کامیاب دکانوں، مارٹس اور بڑھتی ہوئی ایجنسیوں کے لیے مکمل پیکیج۔',
+            showOnWebsite: true,
+            displayOrder: 2,
+            featured: true,
             type: 'single',
             fee: 2000,
             limits: { maxBranches: 1, maxItems: 500, monthlyBills: 99999, maxBookers: 3 },
@@ -808,6 +1097,11 @@
         wholesale_dist: {
             id: 'wholesale_dist',
             name: '📦 Wholesale Distribution Pro',
+            tagline: 'Built for wholesale distributors and active field sales teams.',
+            taglineUr: 'ہول سیل ڈسٹری بیوٹرز اور فیلڈ سیلز ٹیموں کے لیے بہترین۔',
+            showOnWebsite: true,
+            displayOrder: 3,
+            featured: false,
             type: 'single',
             fee: 3500,
             limits: { maxBranches: 1, maxItems: 1500, monthlyBills: 99999, maxBookers: 6 },
@@ -823,6 +1117,11 @@
         multi_pro: {
             id: 'multi_pro',
             name: '🏢 Multi-Agency Pro',
+            tagline: 'Connect multiple branches, depots, and inter-branch stock.',
+            taglineUr: 'متعدد برانچز، گوداموں اور انٹر برانچ اسٹاک کنٹرول کے لیے۔',
+            showOnWebsite: true,
+            displayOrder: 4,
+            featured: false,
             type: 'multi',
             fee: 5000,
             limits: { maxBranches: 3, maxItems: 3000, monthlyBills: 99999, maxBookers: 12 },
@@ -838,6 +1137,11 @@
         enterprise_multi: {
             id: 'enterprise_multi',
             name: '👑 Enterprise Unlimited',
+            tagline: 'Unlimited scale for mega distributors and multi-city networks.',
+            taglineUr: 'بڑے ڈسٹری بیوٹرز اور ملٹی سٹی نیٹ ورکس کے لیے لامحدود سہولیات۔',
+            showOnWebsite: true,
+            displayOrder: 5,
+            featured: false,
             type: 'multi',
             fee: 10000,
             limits: { maxBranches: 10, maxItems: 99999, monthlyBills: 99999, maxBookers: 50 },
@@ -870,6 +1174,9 @@
         if (window.ebSidebar && typeof window.ebSidebar.setActive === 'function') {
             window.ebSidebar.setActive(targetTabId === 'tabOverview' ? 'admin.html#tabOverview' : ('admin.html#' + targetTabId));
         }
+        if (targetTabId === 'tabCloudQuota' && typeof loadCloudQuotaAnalytics === 'function') {
+            loadCloudQuotaAnalytics(false);
+        }
     }
     window.switchAdminTab = switchAdminTab;
 
@@ -882,7 +1189,7 @@
     // Check URL hash on load
     function checkInitialHash() {
         const hash = (window.location.hash || '').replace('#', '');
-        const validTabs = ['tabOverview', 'tabLeaderboard', 'tabAgencies', 'tabPackages', 'tabRequests', 'tabCreateAgency'];
+        const validTabs = ['tabOverview', 'tabCloudQuota', 'tabLeaderboard', 'tabAgencies', 'tabPackages', 'tabRequests', 'tabCreateAgency'];
         if (validTabs.includes(hash)) {
             switchAdminTab(hash);
         }
@@ -928,8 +1235,119 @@
     });
 
     // ============================================
-    // 📦 LOAD & EDIT CUSTOMIZABLE PACKAGES
+    // 📦 LOAD & EDIT CUSTOMIZABLE PACKAGES (LIVE WEBSITE SYNC)
     // ============================================
+    const LIVE_WEBSITE_PACKAGES_CACHE_KEY = 'eb_live_packages_v1';
+    const PUBLIC_CATALOG_FIRESTORE_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_catalog';
+
+    function escapePkgHtml(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function mirrorPackagesToWebsiteCache(pkgsObj) {
+        try {
+            localStorage.setItem(LIVE_WEBSITE_PACKAGES_CACHE_KEY, JSON.stringify({
+                updatedAt: new Date().toISOString(),
+                packages: pkgsObj || {}
+            }));
+        } catch (_) {}
+    }
+
+    async function publishPublicPackagesCatalog(pkgsObj) {
+        try {
+            if (!auth || !auth.currentUser) return false;
+            const idToken = await auth.currentUser.getIdToken();
+            const nowIso = new Date().toISOString();
+            const res = await fetch(PUBLIC_CATALOG_FIRESTORE_URL, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fields: {
+                        packagesJson: { stringValue: JSON.stringify(pkgsObj || {}) },
+                        updatedAt: { stringValue: nowIso },
+                        updatedBy: { stringValue: String(auth.currentUser.email || 'super-admin') }
+                    }
+                })
+            });
+            return res.ok;
+        } catch (err) {
+            console.warn('Public packages catalog mirror skipped:', err && err.message ? err.message : err);
+            return false;
+        }
+    }
+
+    function normalizePackageOrders(pkgsObj) {
+        const entries = Object.entries(pkgsObj || {});
+        const used = new Set();
+
+        // First preserve valid unique positive displayOrders
+        entries.forEach(([id, pkg]) => {
+            const def = DEFAULT_SAAS_PACKAGES[id] || {};
+            if (pkg.showOnWebsite === undefined) {
+                pkg.showOnWebsite = def.showOnWebsite !== false;
+            }
+            if (pkg.featured === undefined) {
+                pkg.featured = def.featured === true;
+            }
+            if (!pkg.tagline && def.tagline) pkg.tagline = def.tagline;
+            if (!pkg.taglineUr && def.taglineUr) pkg.taglineUr = def.taglineUr;
+
+            const rawOrder = Number(pkg.displayOrder);
+            if (Number.isInteger(rawOrder) && rawOrder >= 1 && !used.has(rawOrder)) {
+                pkg.displayOrder = rawOrder;
+                used.add(rawOrder);
+            } else {
+                pkg._needsOrder = true;
+            }
+        });
+
+        // Fill missing/conflicting displayOrders cleanly using defaults first, then next free slot
+        entries.forEach(([id, pkg]) => {
+            if (!pkg._needsOrder) return;
+            delete pkg._needsOrder;
+            const defOrder = Number(DEFAULT_SAAS_PACKAGES[id] && DEFAULT_SAAS_PACKAGES[id].displayOrder);
+            if (Number.isInteger(defOrder) && defOrder >= 1 && !used.has(defOrder)) {
+                pkg.displayOrder = defOrder;
+                used.add(defOrder);
+                return;
+            }
+            let nextSlot = 1;
+            while (used.has(nextSlot)) nextSlot++;
+            pkg.displayOrder = nextSlot;
+            used.add(nextSlot);
+        });
+
+        return pkgsObj;
+    }
+
+    function getSortedPackageEntries(pkgsObj) {
+        return Object.entries(pkgsObj || {}).sort((a, b) => {
+            const ordA = Number(a[1].displayOrder) || 9999;
+            const ordB = Number(b[1].displayOrder) || 9999;
+            if (ordA !== ordB) return ordA - ordB;
+            return (Number(a[1].fee) || 0) - (Number(b[1].fee) || 0);
+        });
+    }
+
+    function getNextFreePackageOrder(pkgsObj) {
+        const used = new Set();
+        Object.values(pkgsObj || {}).forEach(p => {
+            const n = Number(p && p.displayOrder);
+            if (Number.isInteger(n) && n >= 1) used.add(n);
+        });
+        let slot = 1;
+        while (used.has(slot)) slot++;
+        return slot;
+    }
+
     async function loadPackages() {
         const container = document.getElementById('packagesEditor');
         try {
@@ -940,7 +1358,7 @@
                 // Seed Firestore with defaults
                 for (const [id, pkg] of Object.entries(DEFAULT_SAAS_PACKAGES)) {
                     await db.collection('packages').doc(id).set(pkg);
-                    allLoadedPackages[id] = pkg;
+                    allLoadedPackages[id] = { ...pkg };
                 }
             } else {
                 snap.forEach(d => {
@@ -948,13 +1366,16 @@
                 });
             }
 
+            normalizePackageOrders(allLoadedPackages);
+            mirrorPackagesToWebsiteCache(allLoadedPackages);
+            publishPublicPackagesCatalog(allLoadedPackages);
             renderPackages(allLoadedPackages);
             populateCreateAgencyPackageSelect();
 
         } catch (e) {
             console.error('Load packages error:', e);
             if (container) {
-                container.innerHTML = `<div class="error-inline">⚠️ ${ebMix('Packages load failed:', 'پیکیجز لوڈ کرنے میں خرابی:')} ${e.message}</div>`;
+                container.innerHTML = `<div class="error-inline">⚠️ ${ebMix('Packages load failed:', 'پیکیجز لوڈ کرنے میں خرابی:')} ${escapePkgHtml(e.message)}</div>`;
             }
         }
     }
@@ -965,11 +1386,11 @@
         const prevVal = sel.value;
 
         let html = '';
-        for (const [id, pkg] of Object.entries(allLoadedPackages)) {
+        for (const [id, pkg] of getSortedPackageEntries(allLoadedPackages)) {
             const isSelected = (prevVal ? id === prevVal : id === 'free') ? 'selected' : '';
             const moLbl = ebT('mo', 'ماہ');
             const feeText = pkg.fee ? `Rs. ${Number(pkg.fee).toLocaleString()} / ${moLbl}` : `Rs. 0 / ${moLbl}`;
-            html += `<option value="${id}" ${isSelected}>${pkg.name || id} (${feeText})</option>`;
+            html += `<option value="${escapePkgHtml(id)}" ${isSelected}>${escapePkgHtml(pkg.name || id)} (${feeText})</option>`;
         }
         sel.innerHTML = html;
 
@@ -980,26 +1401,200 @@
         };
     }
 
+    function syncPackageOrderDropdowns() {
+        const cards = Array.from(document.querySelectorAll('.package-editor'));
+        const totalSlots = Math.max(cards.length, 6);
+        const selectedByPkg = {};
+        const usedSlots = {};
+
+        cards.forEach(card => {
+            const pkgId = card.getAttribute('data-pkg');
+            const sel = card.querySelector('.lim-display-order');
+            const nameInput = card.querySelector('.lim-name');
+            const pkgName = (nameInput && nameInput.value.trim()) || pkgId;
+            const val = sel ? parseInt(sel.value, 10) : NaN;
+            if (Number.isInteger(val) && val >= 1) {
+                selectedByPkg[pkgId] = val;
+                if (!usedSlots[val]) {
+                    usedSlots[val] = { pkgId, pkgName };
+                }
+            } else {
+                selectedByPkg[pkgId] = null;
+            }
+        });
+
+        const unassignedLabel = ebMix('— Select Position —', '— پوزیشن منتخب کریں —');
+        const usedByWord = ebT('Used by', 'استعمال میں:');
+
+        cards.forEach(card => {
+            const pkgId = card.getAttribute('data-pkg');
+            const sel = card.querySelector('.lim-display-order');
+            if (!sel) return;
+            const currentVal = selectedByPkg[pkgId];
+
+            let optsHtml = `<option value="" ${!currentVal ? 'selected' : ''}>${escapePkgHtml(unassignedLabel)}</option>`;
+            for (let pos = 1; pos <= totalSlots; pos++) {
+                const owner = usedSlots[pos];
+                const isTakenByOther = Boolean(owner && owner.pkgId !== pkgId);
+                const isSelected = currentVal === pos;
+                const shortOwner = owner ? String(owner.pkgName).slice(0, 22) : '';
+                const label = isTakenByOther
+                    ? `#${pos} (${usedByWord} ${shortOwner})`
+                    : `#${pos}`;
+                optsHtml += `<option value="${pos}" ${isSelected ? 'selected' : ''} ${isTakenByOther ? 'disabled' : ''}>${escapePkgHtml(label)}</option>`;
+            }
+            sel.innerHTML = optsHtml;
+
+            // Update card position pill
+            const posPill = card.querySelector('.pkg-pos-pill');
+            if (posPill) {
+                posPill.textContent = currentVal ? `#${currentVal}` : '#—';
+                posPill.style.background = currentVal ? '#dbeafe' : '#f1f5f9';
+                posPill.style.color = currentVal ? '#1d4ed8' : '#64748b';
+            }
+        });
+    }
+    window.syncPackageOrderDropdowns = syncPackageOrderDropdowns;
+
+    function syncPackageVisibilityBanner(card) {
+        if (!card) return;
+        const showChk = card.querySelector('.lim-show-web');
+        const wrap = card.querySelector('.pkg-website-bar');
+        const statusTxt = card.querySelector('.pkg-web-status-txt');
+        const isVisible = showChk ? showChk.checked : true;
+        if (wrap) {
+            wrap.style.background = isVisible ? '#ecfdf5' : '#fef2f2';
+            wrap.style.borderColor = isVisible ? '#86efac' : '#fecaca';
+        }
+        if (statusTxt) {
+            statusTxt.textContent = isVisible
+                ? ebMix('Visible on Website', 'ویب سائٹ پر شو ہو گا')
+                : ebMix('Hidden from Website', 'ویب سائٹ سے چھپا ہوا');
+            statusTxt.style.color = isVisible ? '#047857' : '#b91c1c';
+        }
+    }
+
+    function syncPackageModuleLimitInputs(card, source) {
+        if (!card) return;
+
+        // 1. Order Bookers (booker_orders <-> lim-bookers + quick toggle)
+        const bookerModChk = card.querySelector('.pkg-mod-chk[data-mod="booker_orders"]');
+        const bookerQuickChk = card.querySelector('.lim-bookers-toggle');
+        const bookerInput = card.querySelector('.lim-bookers');
+        const bookerStatus = card.querySelector('.bookers-status-badge');
+
+        let bookerOn = bookerModChk ? bookerModChk.checked : true;
+        if (source === 'bookerQuick' && bookerQuickChk) {
+            bookerOn = bookerQuickChk.checked;
+            if (bookerModChk) bookerModChk.checked = bookerOn;
+        } else if (bookerQuickChk) {
+            bookerQuickChk.checked = bookerOn;
+        }
+
+        if (bookerInput) {
+            if (bookerOn) {
+                const cur = parseInt(bookerInput.value, 10);
+                if (!Number.isFinite(cur) || cur < 1) bookerInput.value = 1;
+                bookerInput.disabled = false;
+                bookerInput.min = '1';
+                bookerInput.style.opacity = '1';
+                bookerInput.style.background = '#fff';
+            } else {
+                bookerInput.value = 0;
+                bookerInput.disabled = true;
+                bookerInput.min = '0';
+                bookerInput.style.opacity = '0.55';
+                bookerInput.style.background = '#f1f5f9';
+            }
+        }
+        if (bookerStatus) {
+            bookerStatus.innerHTML = bookerOn
+                ? `<span style="color:#059669; font-weight:800;">✅ ${ebMix('ON (Min 1)', 'آن (کم از کم 1)')}</span>`
+                : `<span style="color:#dc2626; font-weight:800;">❌ ${ebMix('OFF (Website ❌)', 'بند (ویب سائٹ ❌)')}</span>`;
+        }
+
+        // 2. Multi-Agency / Branches (multi_agency <-> lim-branches + quick toggle)
+        const multiModChk = card.querySelector('.pkg-mod-chk[data-mod="multi_agency"]');
+        const multiQuickChk = card.querySelector('.lim-multi-toggle');
+        const branchInput = card.querySelector('.lim-branches');
+        const branchStatus = card.querySelector('.branches-status-badge');
+        const topBadge = card.querySelector('.pkg-type-badge');
+
+        let multiOn = multiModChk ? multiModChk.checked : false;
+        if (source === 'multiQuick' && multiQuickChk) {
+            multiOn = multiQuickChk.checked;
+            if (multiModChk) multiModChk.checked = multiOn;
+        } else if (multiQuickChk) {
+            multiQuickChk.checked = multiOn;
+        }
+
+        if (branchInput) {
+            if (multiOn) {
+                const curBr = parseInt(branchInput.value, 10);
+                if (!Number.isFinite(curBr) || curBr < 1) branchInput.value = 1;
+                branchInput.disabled = false;
+                branchInput.min = '1';
+                branchInput.style.opacity = '1';
+                branchInput.style.background = '#fff';
+            } else {
+                branchInput.value = 0;
+                branchInput.disabled = true;
+                branchInput.min = '0';
+                branchInput.style.opacity = '0.55';
+                branchInput.style.background = '#f1f5f9';
+            }
+        }
+        if (branchStatus) {
+            branchStatus.innerHTML = multiOn
+                ? `<span style="color:#059669; font-weight:800;">✅ ${ebMix('ON (Min 1)', 'آن (کم از کم 1)')}</span>`
+                : `<span style="color:#dc2626; font-weight:800;">❌ ${ebMix('OFF (Website ❌)', 'بند (ویب سائٹ ❌)')}</span>`;
+        }
+        if (topBadge) {
+            topBadge.className = `branch-badge pkg-type-badge ${multiOn ? 'badge-pkg-multi' : 'badge-pkg-single'}`;
+            topBadge.innerHTML = multiOn
+                ? `🏢 ${ebMix('Multi-Agency', 'ملٹی ایجنسی')}`
+                : `🏪 ${ebMix('Single Agency', 'سنگل ایجنسی')}`;
+        }
+    }
+
     function renderPackages(pkgs) {
         const container = document.getElementById('packagesEditor');
         if (!container) return;
 
         const mix = ebIsMix();
         const urHint = (ur) => mix ? `<span style="color:#64748b; font-weight:normal;">${ur}</span>` : '';
+        const sortedEntries = getSortedPackageEntries(pkgs);
 
-        let html = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">';
+        let html = '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(305px, 1fr)); gap:16px;">';
 
-        for (const [id, pkg] of Object.entries(pkgs)) {
+        for (const [id, pkg] of sortedEntries) {
+            const defPkg = DEFAULT_SAAS_PACKAGES[id] || {};
             const lim = pkg.limits || {};
-            const isMulti = pkg.type === 'multi' || (lim.maxBranches && lim.maxBranches > 1);
+            const defaultMods = defPkg.allowedModules || {};
+            const pkgMods = pkg.allowedModules || defaultMods;
+            const isMultiModOn = pkgMods.multi_agency !== undefined
+                ? pkgMods.multi_agency === true
+                : (pkg.type === 'multi' || (lim.maxBranches && lim.maxBranches > 1));
+            const isBookerModOn = pkgMods.booker_orders !== undefined
+                ? pkgMods.booker_orders === true
+                : (id !== 'free' && Number(lim.maxBookers || 0) > 0);
             const isCustom = !DEFAULT_SAAS_PACKAGES[id];
+            const showOnWebsite = pkg.showOnWebsite !== false;
+            const displayOrder = Number(pkg.displayOrder) || '';
+            const isFeatured = pkg.featured === true;
+            const bookersVal = isBookerModOn ? Math.max(1, parseInt(lim.maxBookers, 10) || 1) : 0;
+            const branchesVal = isMultiModOn ? Math.max(1, parseInt(lim.maxBranches, 10) || 1) : 0;
+            const taglineVal = pkg.tagline !== undefined ? pkg.tagline : (defPkg.tagline || '');
 
             html += `
-            <div class="package-editor" data-pkg="${id}" style="border:1.5px solid #cbd5e1; border-radius:14px; padding:18px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.04); position:relative;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-size:10.5px; font-weight:800; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:10px;">ID: ${id}</span>
-                    <span class="branch-badge ${isMulti ? 'badge-pkg-multi' : 'badge-pkg-single'}">
-                        ${isMulti ? `🏢 ${ebMix('Multi-Agency', 'ملٹی ایجنسی')}` : `🏪 ${ebMix('Single Agency', 'سنگل ایجنسی')}`}
+            <div class="package-editor" data-pkg="${escapePkgHtml(id)}" style="border:1.5px solid #cbd5e1; border-radius:14px; padding:18px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,0.04); position:relative;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span class="pkg-pos-pill" style="font-size:11px; font-weight:900; background:#dbeafe; color:#1d4ed8; padding:2px 8px; border-radius:10px;">#${displayOrder || '—'}</span>
+                        <span style="font-size:10.5px; font-weight:800; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:10px;">ID: ${escapePkgHtml(id)}</span>
+                    </div>
+                    <span class="branch-badge pkg-type-badge ${isMultiModOn ? 'badge-pkg-multi' : 'badge-pkg-single'}">
+                        ${isMultiModOn ? `🏢 ${ebMix('Multi-Agency', 'ملٹی ایجنسی')}` : `🏪 ${ebMix('Single Agency', 'سنگل ایجنسی')}`}
                     </span>
                 </div>
 
@@ -1008,7 +1603,42 @@
                         <span>✏️ Package Display Name</span>
                         ${urHint('پیکیج کا نام')}
                     </label>
-                    <input type="text" class="lim-name" value="${(pkg.name || id).replace(/"/g, '&quot;')}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
+                    <input type="text" class="lim-name" value="${escapePkgHtml(pkg.name || id)}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
+                </div>
+
+                <!-- 🌐 Website Visibility & Unique Slider Position Controls (Under Title) -->
+                <div class="pkg-website-bar" style="background:${showOnWebsite ? '#ecfdf5' : '#fef2f2'}; border:1px solid ${showOnWebsite ? '#86efac' : '#fecaca'}; border-radius:10px; padding:10px; margin-bottom:10px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; font-weight:800; color:#0f172a;">
+                            <input type="checkbox" class="lim-show-web" ${showOnWebsite ? 'checked' : ''} style="width:16px; height:16px; accent-color:#059669; cursor:pointer;">
+                            <span>🌐 ${ebMix('Show on Website', 'ویب سائٹ پر دکھائیں')}</span>
+                        </label>
+                        <span class="pkg-web-status-txt" style="font-size:10.5px; font-weight:800; color:${showOnWebsite ? '#047857' : '#b91c1c'};">
+                            ${showOnWebsite ? ebMix('Visible on Website', 'ویب سائٹ پر شو ہو گا') : ebMix('Hidden from Website', 'ویب سائٹ سے چھپا ہوا')}
+                        </span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center;">
+                        <div>
+                            <label style="font-size:10.5px; font-weight:800; color:#334155; display:block; margin-bottom:3px;">
+                                🔢 ${ebMix('Slider Position # (Unique — No Conflict)', 'سلائیڈر پوزیشن نمبر (کوئی تکرار نہیں)')}
+                            </label>
+                            <select class="lim-display-order" data-initial-order="${displayOrder}" style="width:100%; padding:6px 8px; border:1px solid #94a3b8; border-radius:7px; font-size:12px; font-weight:800; background:#fff; color:#0f172a; cursor:pointer;">
+                                <option value="${displayOrder}" selected>${displayOrder ? '#' + displayOrder : '—'}</option>
+                            </select>
+                        </div>
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:11px; font-weight:800; color:#b45309; background:#fef3c7; border:1px solid #fde68a; padding:6px 9px; border-radius:7px; margin-top:16px;" title="Highlight as Most Popular on Website">
+                            <input type="checkbox" class="lim-featured" ${isFeatured ? 'checked' : ''} style="accent-color:#d97706; cursor:pointer;">
+                            <span>⭐ ${ebT('Popular', 'مقبول')}</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:8px;">
+                    <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
+                        <span>📝 Website Subtitle / Tagline</span>
+                        ${urHint('ویب سائٹ تفصیل')}
+                    </label>
+                    <input type="text" class="lim-tagline" value="${escapePkgHtml(taglineVal)}" placeholder="Short description shown under package title" style="width:100%; box-sizing:border-box; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; color:#334155;">
                 </div>
 
                 <div class="form-group" style="margin-bottom:8px;">
@@ -1016,55 +1646,63 @@
                         <span>💵 Monthly Fee / Price (PKR)</span>
                         ${urHint('ماہانہ فیس')}
                     </label>
-                    <input type="number" class="lim-fee" value="${pkg.fee !== undefined ? pkg.fee : 0}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0284c7;">
+                    <input type="number" class="lim-fee" min="0" value="${pkg.fee !== undefined ? pkg.fee : 0}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0284c7;">
                 </div>
 
-                <div class="form-group" style="margin-bottom:8px;">
-                    <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
-                        <span>📄 Monthly Bills Limit</span>
-                        ${urHint('ماہانہ بلز کی لمٹ')}
-                    </label>
-                    <input type="number" class="lim-bills" value="${lim.monthlyBills !== undefined ? lim.monthlyBills : 150}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
-                    <small style="font-size:10px; color:#64748b;">${ebMix('(99999 = Unlimited Bills)', '99999 = لامحدود بلز')}</small>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:11px; font-weight:bold; color:#0f172a; display:block;">
+                            📄 ${ebT('Monthly Bills', 'ماہانہ بلز')}
+                        </label>
+                        <input type="number" class="lim-bills" min="1" value="${lim.monthlyBills !== undefined ? lim.monthlyBills : 150}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
+                        <small style="font-size:10px; color:#64748b;">99999 = ${ebT('Unlimited', 'لامحدود')}</small>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:11px; font-weight:bold; color:#0f172a; display:block;">
+                            📦 ${ebT('Max Stock Items', 'زیادہ سے زیادہ آئٹمز')}
+                        </label>
+                        <input type="number" class="lim-items" min="1" value="${lim.maxItems !== undefined ? lim.maxItems : 50}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
+                        <small style="font-size:10px; color:#64748b;">99999 = ${ebT('Unlimited', 'لامحدود')}</small>
+                    </div>
                 </div>
 
-                <div class="form-group" style="margin-bottom:8px;">
-                    <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
-                        <span>📦 Max Stock Items</span>
-                        ${urHint('آئٹمز کی زیادہ سے زیادہ تعداد')}
-                    </label>
-                    <input type="number" class="lim-items" value="${lim.maxItems !== undefined ? lim.maxItems : 50}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
-                    <small style="font-size:10px; color:#64748b;">${ebMix('(99999 = Unlimited Items)', '99999 = لامحدود آئٹمز')}</small>
+                <div class="form-group" style="margin-bottom:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:5px;">
+                        <label style="font-size:11px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                            <input type="checkbox" class="lim-bookers-toggle" ${isBookerModOn ? 'checked' : ''} style="accent-color:#059669; cursor:pointer;">
+                            <span>👥 ${ebMix('Order Bookers Limit', 'آرڈر بکرز لمٹ')}</span>
+                        </label>
+                        <span class="bookers-status-badge" style="font-size:10.5px;"></span>
+                    </div>
+                    <input type="number" class="lim-bookers" min="${isBookerModOn ? 1 : 0}" value="${bookersVal}" ${isBookerModOn ? '' : 'disabled'} style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
                 </div>
 
-                <div class="form-group" style="margin-bottom:8px;">
-                    <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
-                        <span>👥 Max Order Bookers / Staff</span>
-                        ${urHint('آرڈر بکرز لمٹ')}
-                    </label>
-                    <input type="number" class="lim-bookers" value="${lim.maxBookers !== undefined ? lim.maxBookers : 1}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
-                </div>
-
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label style="font-size:11px; font-weight:bold; color:#0f172a; display:flex; justify-content:space-between;">
-                        <span>🏢 Max Branches Allowed</span>
-                        ${urHint('برانچز لمٹ')}
-                    </label>
-                    <input type="number" class="lim-branches" value="${lim.maxBranches || 1}" min="1" max="25" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
+                <div class="form-group" style="margin-bottom:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:5px;">
+                        <label style="font-size:11px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                            <input type="checkbox" class="lim-multi-toggle" ${isMultiModOn ? 'checked' : ''} style="accent-color:#059669; cursor:pointer;">
+                            <span>🏢 ${ebMix('Multi-Agency / Branches', 'ملٹی ایجنسی / برانچز')}</span>
+                        </label>
+                        <span class="branches-status-badge" style="font-size:10.5px;"></span>
+                    </div>
+                    <input type="number" class="lim-branches" min="${isMultiModOn ? 1 : 0}" max="50" value="${branchesVal}" ${isMultiModOn ? '' : 'disabled'} style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; font-weight:800; color:#0f172a;">
                 </div>
 
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:12px;">
                     <div style="font-size:11px; font-weight:800; color:#0f172a; margin-bottom:6px; display:flex; justify-content:space-between;">
-                        <span>🧩 Package Modules (Lock / Unlock):</span>
-                        ${urHint('اس پیکیج میں اجازت شدہ ماڈیولز')}
+                        <span>🧩 Package Modules (Live on Website ✅/❌):</span>
+                        ${urHint('ماڈیولز')}
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:11px;">
                         ${ADMIN_PACKAGE_MODULE_DEFS.map(m => {
-                            const defaultMods = (DEFAULT_SAAS_PACKAGES[id] && DEFAULT_SAAS_PACKAGES[id].allowedModules) || {};
-                            const pkgMods = pkg.allowedModules || defaultMods;
                             const isChecked = m.id === 'gps_tracking'
                                 ? pkgMods[m.id] === true
-                                : (pkgMods[m.id] !== undefined ? pkgMods[m.id] === true : (id !== 'free' && (m.id !== 'multi_agency' || isMulti)));
+                                : (m.id === 'booker_orders'
+                                    ? isBookerModOn
+                                    : (m.id === 'multi_agency'
+                                        ? isMultiModOn
+                                        : (pkgMods[m.id] !== undefined ? pkgMods[m.id] === true : id !== 'free')));
                             return `<label style="display:flex; align-items:center; gap:5px; cursor:pointer; color:#334155;">
                                 <input type="checkbox" class="pkg-mod-chk" data-mod="${m.id}" ${isChecked ? 'checked' : ''}> <span>${ebMix(m.label, m.labelUr)}</span>
                             </label>`;
@@ -1073,11 +1711,11 @@
                 </div>
 
                 <div style="display:flex; gap:8px;">
-                    <button class="btn btn-sm btn-save-pkg" style="flex:1; background:#8b5cf6; color:#fff; font-weight:800; padding:8px; border-radius:8px; border:none; cursor:pointer;" onclick="savePackageLimits('${id}')">
+                    <button class="btn btn-sm btn-save-pkg" style="flex:1; background:#8b5cf6; color:#fff; font-weight:800; padding:8px; border-radius:8px; border:none; cursor:pointer;" onclick="savePackageLimits('${escapePkgHtml(id)}')">
                         💾 ${ebMix('Save Changes', 'تبدیلیاں محفوظ کریں')}
                     </button>
                     ${isCustom ? `
-                    <button class="btn btn-sm" style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:8px 12px; border-radius:8px; font-weight:bold;" onclick="deletePackageTier('${id}')" title="Delete Custom Package">
+                    <button class="btn btn-sm" style="background:#fee2e2; color:#ef4444; border:1px solid #fca5a5; padding:8px 12px; border-radius:8px; font-weight:bold;" onclick="deletePackageTier('${escapePkgHtml(id)}')" title="Delete Custom Package">
                         <i class="fas fa-trash"></i>
                     </button>
                     ` : ''}
@@ -1086,18 +1724,81 @@
         }
         html += '</div>';
         container.innerHTML = html;
+
+        // Bind live interactive listeners for every card
+        container.querySelectorAll('.package-editor').forEach(card => {
+            syncPackageModuleLimitInputs(card);
+            syncPackageVisibilityBanner(card);
+
+            const showChk = card.querySelector('.lim-show-web');
+            if (showChk) {
+                showChk.addEventListener('change', () => syncPackageVisibilityBanner(card));
+            }
+
+            const orderSel = card.querySelector('.lim-display-order');
+            if (orderSel) {
+                orderSel.addEventListener('change', () => syncPackageOrderDropdowns());
+            }
+
+            const nameInput = card.querySelector('.lim-name');
+            if (nameInput) {
+                nameInput.addEventListener('input', () => syncPackageOrderDropdowns());
+            }
+
+            const bookerQuick = card.querySelector('.lim-bookers-toggle');
+            if (bookerQuick) {
+                bookerQuick.addEventListener('change', () => syncPackageModuleLimitInputs(card, 'bookerQuick'));
+            }
+            const bookerMod = card.querySelector('.pkg-mod-chk[data-mod="booker_orders"]');
+            if (bookerMod) {
+                bookerMod.addEventListener('change', () => syncPackageModuleLimitInputs(card, 'bookerMod'));
+            }
+            const bookerInp = card.querySelector('.lim-bookers');
+            if (bookerInp) {
+                bookerInp.addEventListener('change', () => {
+                    if (bookerMod && bookerMod.checked) {
+                        const v = parseInt(bookerInp.value, 10);
+                        if (!Number.isFinite(v) || v < 1) bookerInp.value = 1;
+                    }
+                });
+            }
+
+            const multiQuick = card.querySelector('.lim-multi-toggle');
+            if (multiQuick) {
+                multiQuick.addEventListener('change', () => syncPackageModuleLimitInputs(card, 'multiQuick'));
+            }
+            const multiMod = card.querySelector('.pkg-mod-chk[data-mod="multi_agency"]');
+            if (multiMod) {
+                multiMod.addEventListener('change', () => syncPackageModuleLimitInputs(card, 'multiMod'));
+            }
+            const branchInp = card.querySelector('.lim-branches');
+            if (branchInp) {
+                branchInp.addEventListener('change', () => {
+                    if (multiMod && multiMod.checked) {
+                        const v = parseInt(branchInp.value, 10);
+                        if (!Number.isFinite(v) || v < 1) branchInp.value = 1;
+                    }
+                });
+            }
+        });
+
+        // Populate conflict-free position dropdowns across all cards
+        syncPackageOrderDropdowns();
     }
 
-    async function savePackageLimits(pkgId) {
-        const box = document.querySelector(`.package-editor[data-pkg="${pkgId}"]`);
-        if (!box) return;
-
+    function extractPackagePayloadFromCard(box) {
+        const pkgId = box.getAttribute('data-pkg');
+        const existing = allLoadedPackages[pkgId] || DEFAULT_SAAS_PACKAGES[pkgId] || {};
         const name = box.querySelector('.lim-name').value.trim() || pkgId;
-        const fee = parseInt(box.querySelector('.lim-fee').value) || 0;
-        const bills = parseInt(box.querySelector('.lim-bills').value) || 150;
-        const branches = parseInt(box.querySelector('.lim-branches').value) || 1;
-        const items = parseInt(box.querySelector('.lim-items').value) || 50;
-        const bookers = parseInt(box.querySelector('.lim-bookers').value) || 1;
+        const tagline = (box.querySelector('.lim-tagline') ? box.querySelector('.lim-tagline').value.trim() : '') || existing.tagline || '';
+        const showOnWebsite = box.querySelector('.lim-show-web') ? box.querySelector('.lim-show-web').checked : true;
+        const featured = box.querySelector('.lim-featured') ? box.querySelector('.lim-featured').checked : false;
+        const rawOrder = box.querySelector('.lim-display-order') ? parseInt(box.querySelector('.lim-display-order').value, 10) : NaN;
+        const displayOrder = Number.isInteger(rawOrder) && rawOrder >= 1 ? rawOrder : null;
+
+        const fee = Math.max(0, parseInt(box.querySelector('.lim-fee').value, 10) || 0);
+        const bills = Math.max(1, parseInt(box.querySelector('.lim-bills').value, 10) || 150);
+        const items = Math.max(1, parseInt(box.querySelector('.lim-items').value, 10) || 50);
 
         const allowedModules = { ...CORE_ALWAYS_MODULES };
         box.querySelectorAll('.pkg-mod-chk').forEach(chk => {
@@ -1105,21 +1806,96 @@
             if (modKey) allowedModules[modKey] = chk.checked;
         });
 
+        const rawBookers = parseInt(box.querySelector('.lim-bookers').value, 10);
+        const rawBranches = parseInt(box.querySelector('.lim-branches').value, 10);
+        const bookers = allowedModules.booker_orders ? Math.max(1, Number.isFinite(rawBookers) ? rawBookers : 1) : 0;
+        const branches = allowedModules.multi_agency ? Math.max(1, Number.isFinite(rawBranches) ? rawBranches : 1) : 1;
+
+        return {
+            id: pkgId,
+            name: name,
+            tagline: tagline,
+            taglineUr: existing.taglineUr || '',
+            showOnWebsite: showOnWebsite,
+            displayOrder: displayOrder,
+            featured: featured,
+            fee: fee,
+            type: allowedModules.multi_agency ? 'multi' : 'single',
+            limits: {
+                maxBranches: branches,
+                monthlyBills: bills,
+                maxItems: items,
+                maxBookers: bookers
+            },
+            allowedModules: allowedModules,
+            updatedAt: new Date().toISOString()
+        };
+    }
+
+    function checkDomPositionConflicts(targetPkgId, targetOrder) {
+        if (!targetOrder) return null;
+        const cards = Array.from(document.querySelectorAll('.package-editor'));
+        for (const c of cards) {
+            const cId = c.getAttribute('data-pkg');
+            if (cId === targetPkgId) continue;
+            const cSel = c.querySelector('.lim-display-order');
+            const cOrd = cSel ? parseInt(cSel.value, 10) : NaN;
+            if (cOrd === targetOrder) {
+                const cName = (c.querySelector('.lim-name') && c.querySelector('.lim-name').value.trim()) || cId;
+                return cName;
+            }
+        }
+        return null;
+    }
+
+    async function savePackageLimits(pkgId) {
+        const box = document.querySelector(`.package-editor[data-pkg="${pkgId}"]`);
+        if (!box) return;
+
+        const payload = extractPackagePayloadFromCard(box);
+        if (payload.showOnWebsite && !payload.displayOrder) {
+            Swal.fire(
+                ebT('Select Position #', 'پوزیشن نمبر منتخب کریں'),
+                ebT('Please choose a unique Slider Position # for this website package (or uncheck Show on Website).', 'ویب سائٹ پر دکھانے کے لیے اس پیکیج کا منفرد پوزیشن نمبر منتخب کریں۔'),
+                'warning'
+            );
+            return;
+        }
+
+        const conflictName = checkDomPositionConflicts(pkgId, payload.displayOrder);
+        if (conflictName) {
+            Swal.fire(
+                ebT('Position Conflict', 'پوزیشن نمبر پہلے سے استعمال میں ہے'),
+                ebT(`Position #${payload.displayOrder} is already assigned to ${conflictName}. Please choose a different number.`, `پوزیشن #${payload.displayOrder} پہلے سے ${conflictName} کے پاس ہے۔ برائے کرم کوئی اور نمبر منتخب کریں۔`),
+                'warning'
+            );
+            return;
+        }
+
         try {
             Swal.showLoading();
-            await db.collection('packages').doc(pkgId).set({
-                name: name,
-                fee: fee,
-                type: branches > 1 ? 'multi' : 'single',
-                limits: {
-                    maxBranches: branches,
-                    monthlyBills: bills,
-                    maxItems: items,
-                    maxBookers: bookers
-                },
-                allowedModules: allowedModules,
-                updatedAt: new Date().toISOString()
-            }, { merge: true });
+            const writes = [
+                db.collection('packages').doc(pkgId).set(payload, { merge: true })
+            ];
+
+            // If any other card's displayOrder was rearranged in DOM to free up this slot, sync its displayOrder too so Firestore stays conflict-free
+            document.querySelectorAll('.package-editor').forEach(otherCard => {
+                const otherId = otherCard.getAttribute('data-pkg');
+                if (otherId === pkgId) return;
+                const prevOrder = Number(allLoadedPackages[otherId] && allLoadedPackages[otherId].displayOrder) || null;
+                const domSel = otherCard.querySelector('.lim-display-order');
+                const domOrder = domSel ? (parseInt(domSel.value, 10) || null) : prevOrder;
+                if (domOrder !== prevOrder) {
+                    writes.push(
+                        db.collection('packages').doc(otherId).set({
+                            displayOrder: domOrder,
+                            updatedAt: new Date().toISOString()
+                        }, { merge: true })
+                    );
+                }
+            });
+
+            await Promise.all(writes);
 
             if (window.SaaSModules && typeof window.SaaSModules.syncPackagesFromCloud === 'function') {
                 await window.SaaSModules.syncPackagesFromCloud(db);
@@ -1127,7 +1903,7 @@
 
             Swal.fire({
                 toast: true, position: 'top-end', showConfirmButton: false,
-                timer: 1800, icon: 'success', title: `✅ ${ebT(`${name} saved with module rules!`, `${name} ماڈیول قواعد کے ساتھ محفوظ ہو گیا!`)}`
+                timer: 2000, icon: 'success', title: `✅ ${ebT(`${payload.name} synced live to website!`, `${payload.name} ویب سائٹ پر لائیو اپڈیٹ ہو گیا!`)}`
             });
             await loadPackages();
         } catch (e) {
@@ -1135,10 +1911,62 @@
         }
     }
 
+    async function saveAllPackages() {
+        const cards = Array.from(document.querySelectorAll('.package-editor'));
+        if (!cards.length) return;
+
+        const payloads = [];
+        const seenOrders = new Map();
+
+        for (const card of cards) {
+            const p = extractPackagePayloadFromCard(card);
+            if (p.showOnWebsite && !p.displayOrder) {
+                Swal.fire(
+                    ebT('Select Position #', 'پوزیشن نمبر منتخب کریں'),
+                    ebT(`Please select a Position # for "${p.name}" or uncheck Show on Website.`, `"${p.name}" کے لیے پوزیشن نمبر منتخب کریں یا Show on Website ہٹائیں۔`),
+                    'warning'
+                );
+                return;
+            }
+            if (p.displayOrder) {
+                if (seenOrders.has(p.displayOrder)) {
+                    Swal.fire(
+                        ebT('Position Conflict', 'پوزیشن تکرار'),
+                        ebT(`Position #${p.displayOrder} is selected on both "${seenOrders.get(p.displayOrder)}" and "${p.name}".`, `پوزیشن #${p.displayOrder} دو پیکیجز میں منتخب ہے۔`),
+                        'warning'
+                    );
+                    return;
+                }
+                seenOrders.set(p.displayOrder, p.name);
+            }
+            payloads.push(p);
+        }
+
+        try {
+            Swal.showLoading();
+            await Promise.all(
+                payloads.map(p => db.collection('packages').doc(p.id).set(p, { merge: true }))
+            );
+            if (window.SaaSModules && typeof window.SaaSModules.syncPackagesFromCloud === 'function') {
+                await window.SaaSModules.syncPackagesFromCloud(db);
+            }
+            Swal.fire({
+                toast: true, position: 'top-end', showConfirmButton: false,
+                timer: 2200, icon: 'success',
+                title: `✅ ${ebT('All packages saved & synced live to website!', 'تمام پیکیجز محفوظ ہو کر ویب سائٹ پر لائیو اپڈیٹ ہو گئے!')}`
+            });
+            await loadPackages();
+        } catch (e) {
+            Swal.fire(ebT('Error', 'خرابی'), `${ebT('Bulk save failed:', 'محفوظ کرنے میں خرابی:')} ${e.message}`, 'error');
+        }
+    }
+    window.saveAllPackages = saveAllPackages;
+
     // ➕ Add New Custom Package Tier Action
     const btnNewPkg = document.getElementById('btnAddNewPackage');
     if (btnNewPkg) {
         btnNewPkg.onclick = async () => {
+            const suggestedOrder = getNextFreePackageOrder(allLoadedPackages);
             const { value: formValues } = await Swal.fire({
                 title: `➕ ${ebT('Create New Package Plan', 'نیا پیکیج پلان بنائیں')}`,
                 html: `
@@ -1157,8 +1985,18 @@
                                 <input type="number" id="newPkgFee" class="swal2-input" placeholder="7000" value="7000" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                             </div>
                             <div>
+                                <label><b>${ebMix('Slider Position #:', 'سلائیڈر پوزیشن نمبر:')}</b></label>
+                                <input type="number" id="newPkgOrder" class="swal2-input" min="1" value="${suggestedOrder}" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <div>
+                                <label><b>${ebMix('Max Bookers:', 'آرڈر بکرز لمٹ:')}</b></label>
+                                <input type="number" id="newPkgBookers" class="swal2-input" min="1" value="5" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
+                            </div>
+                            <div>
                                 <label><b>${ebMix('Max Branches:', 'زیادہ سے زیادہ برانچز:')}</b></label>
-                                <input type="number" id="newPkgBranches" class="swal2-input" value="5" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
+                                <input type="number" id="newPkgBranches" class="swal2-input" min="1" value="3" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                             </div>
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
@@ -1171,6 +2009,10 @@
                                 <input type="number" id="newPkgBills" class="swal2-input" value="99999" style="width:100%; margin:4px 0 0; padding:8px; font-size:13px;">
                             </div>
                         </div>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; color:#047857;">
+                            <input type="checkbox" id="newPkgShowWeb" checked style="width:16px; height:16px; accent-color:#059669;">
+                            <span>🌐 ${ebMix('Show on Website Pricing Slider', 'ویب سائٹ پیکیج سلائیڈر پر دکھائیں')}</span>
+                        </label>
                     </div>
                 `,
                 focusConfirm: false,
@@ -1181,37 +2023,60 @@
                 preConfirm: () => {
                     const rawId = document.getElementById('newPkgId').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
                     const name = document.getElementById('newPkgName').value.trim();
-                    const fee = parseInt(document.getElementById('newPkgFee').value) || 0;
-                    const branches = parseInt(document.getElementById('newPkgBranches').value) || 1;
-                    const items = parseInt(document.getElementById('newPkgItems').value) || 500;
-                    const bills = parseInt(document.getElementById('newPkgBills').value) || 99999;
+                    const fee = Math.max(0, parseInt(document.getElementById('newPkgFee').value, 10) || 0);
+                    const displayOrder = parseInt(document.getElementById('newPkgOrder').value, 10) || suggestedOrder;
+                    const bookers = Math.max(1, parseInt(document.getElementById('newPkgBookers').value, 10) || 1);
+                    const branches = Math.max(1, parseInt(document.getElementById('newPkgBranches').value, 10) || 1);
+                    const items = Math.max(1, parseInt(document.getElementById('newPkgItems').value, 10) || 500);
+                    const bills = Math.max(1, parseInt(document.getElementById('newPkgBills').value, 10) || 99999);
+                    const showOnWebsite = document.getElementById('newPkgShowWeb').checked;
                     if (!rawId || !name) {
                         Swal.showValidationMessage(ebT('Please enter both Package ID and Display Name!', 'پیکیج آئی ڈی اور نام دونوں درج کریں!'));
                         return false;
                     }
-                    return { id: rawId, name, fee, branches, items, bills };
+                    const conflict = Object.values(allLoadedPackages).find(p => Number(p.displayOrder) === displayOrder && p.id !== rawId);
+                    if (conflict) {
+                        Swal.showValidationMessage(ebT(`Position #${displayOrder} is already used by ${conflict.name || conflict.id}! Use #${suggestedOrder}.`, `پوزیشن #${displayOrder} پہلے سے استعمال میں ہے! #${suggestedOrder} استعمال کریں۔`));
+                        return false;
+                    }
+                    return { id: rawId, name, fee, displayOrder, bookers, branches, items, bills, showOnWebsite };
                 }
             });
 
             if (formValues) {
                 try {
                     Swal.showLoading();
-                    const defaultAllowed = { ...CORE_ALWAYS_MODULES, backup: true, session_security: true, expenses: true, customers_ledger: true, profit_analysis: true, suppliers: true, cashbook: true, csv_tools: true };
-                    ADMIN_PACKAGE_MODULE_DEFS.forEach(m => {
-                        if (typeof defaultAllowed[m.id] === 'undefined') {
-                            defaultAllowed[m.id] = formValues.branches > 1;
-                        }
-                    });
+                    const isMulti = formValues.branches > 1;
+                    const defaultAllowed = {
+                        ...CORE_ALWAYS_MODULES,
+                        booker_orders: true,
+                        delivery_returns: true,
+                        claims: true,
+                        expenses: true,
+                        alerts: true,
+                        reports: true,
+                        profit: true,
+                        owner: true,
+                        backup: true,
+                        session_security: true,
+                        multi_agency: isMulti,
+                        gps_tracking: false
+                    };
                     await db.collection('packages').doc(formValues.id).set({
                         id: formValues.id,
                         name: formValues.name,
+                        tagline: 'Custom tailored SaaS business plan.',
+                        taglineUr: 'آپ کے کاروبار کے لیے خصوصی کسٹم پیکیج۔',
+                        showOnWebsite: formValues.showOnWebsite,
+                        displayOrder: formValues.displayOrder,
+                        featured: false,
                         fee: formValues.fee,
-                        type: formValues.branches > 1 ? 'multi' : 'single',
+                        type: isMulti ? 'multi' : 'single',
                         limits: {
                             maxBranches: formValues.branches,
                             monthlyBills: formValues.bills,
                             maxItems: formValues.items,
-                            maxBookers: 10
+                            maxBookers: formValues.bookers
                         },
                         allowedModules: defaultAllowed,
                         createdAt: new Date().toISOString()
@@ -2482,6 +3347,536 @@
     });
 
     // ============================================
+    // ⚡ PRO CLOUD QUOTA & TELEMETRY ANALYTICS ENGINE (FIREBASE + NETLIFY)
+    // ============================================
+    let currentQuotaPeriod = 'today';
+    let currentQuotaShopId = 'all';
+    let currentQuotaChartMetric = 'fbReads';
+    let latestQuotaReport = null;
+    let latestQuotaRawRecords = [];
+
+    function initQuotaDateInputs() {
+        const startEl = document.getElementById('quotaStartDate');
+        const endEl = document.getElementById('quotaEndDate');
+        if (!startEl || !endEl) return;
+        const today = (window.EBQuotaEngine && window.EBQuotaEngine.toIsoDate)
+            ? window.EBQuotaEngine.toIsoDate(new Date())
+            : new Date().toISOString().slice(0, 10);
+        if (!startEl.value) {
+            const d = new Date();
+            d.setDate(d.getDate() - 6);
+            startEl.value = (window.EBQuotaEngine && window.EBQuotaEngine.toIsoDate)
+                ? window.EBQuotaEngine.toIsoDate(d)
+                : d.toISOString().slice(0, 10);
+        }
+        if (!endEl.value) endEl.value = today;
+    }
+
+    function setQuotaPeriod(period) {
+        currentQuotaPeriod = period;
+        document.querySelectorAll('#quotaPeriodBtns .quota-period-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-period') === period);
+        });
+        const customWrap = document.getElementById('quotaCustomDateWrap');
+        if (customWrap) {
+            customWrap.style.display = period === 'custom' ? 'flex' : 'none';
+        }
+        initQuotaDateInputs();
+        loadCloudQuotaAnalytics(false);
+    }
+    window.setQuotaPeriod = setQuotaPeriod;
+
+    function setQuotaChartMetric(metric) {
+        currentQuotaChartMetric = metric;
+        document.querySelectorAll('#quotaChartMetricBtns .quota-period-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-metric') === metric);
+        });
+        if (latestQuotaReport) renderQuotaTrendChart(latestQuotaReport);
+    }
+    window.setQuotaChartMetric = setQuotaChartMetric;
+
+    function populateQuotaShopSelector(shopsList) {
+        const sel = document.getElementById('quotaShopFilter');
+        if (!sel) return;
+        const known = new Map();
+        (allAgencies || []).forEach(ag => {
+            known.set(ag.id, ag.name || ag.id);
+        });
+        (shopsList || []).forEach(s => {
+            if (!known.has(s.agencyId)) known.set(s.agencyId, s.shopName || s.agencyId);
+        });
+        if (!known.has('super-admin-hq')) known.set('super-admin-hq', 'Super Admin HQ');
+        if (!known.has('public-website')) known.set('public-website', 'Public Website (Landing)');
+
+        let html = `<option value="all">🏢 ${ebMix('All Shops Combined (Master Total)', 'تمام دکانیں یکجا (مجموعی رپورٹ)')}</option>`;
+        for (const [id, name] of known.entries()) {
+            const selected = currentQuotaShopId === id ? 'selected' : '';
+            html += `<option value="${escapePkgHtml(id)}" ${selected}>🏪 ${escapePkgHtml(name)}</option>`;
+        }
+        sel.innerHTML = html;
+        const backBtn = document.getElementById('btnQuotaBackAll');
+        if (backBtn) backBtn.style.display = currentQuotaShopId !== 'all' ? 'inline-flex' : 'none';
+    }
+
+    function onQuotaShopFilterChange() {
+        const sel = document.getElementById('quotaShopFilter');
+        currentQuotaShopId = sel ? sel.value : 'all';
+        const backBtn = document.getElementById('btnQuotaBackAll');
+        if (backBtn) backBtn.style.display = currentQuotaShopId !== 'all' ? 'inline-flex' : 'none';
+        recomputeAndRenderQuota();
+    }
+    window.onQuotaShopFilterChange = onQuotaShopFilterChange;
+
+    function inspectQuotaShop(agencyId) {
+        currentQuotaShopId = agencyId || 'all';
+        const sel = document.getElementById('quotaShopFilter');
+        if (sel) sel.value = currentQuotaShopId;
+        const backBtn = document.getElementById('btnQuotaBackAll');
+        if (backBtn) backBtn.style.display = currentQuotaShopId !== 'all' ? 'inline-flex' : 'none';
+        recomputeAndRenderQuota();
+        const tabEl = document.getElementById('tabCloudQuota');
+        if (tabEl) tabEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    window.inspectQuotaShop = inspectQuotaShop;
+
+    async function loadCloudQuotaAnalytics(forceFlush) {
+        const gaugesEl = document.getElementById('quotaDualGauges');
+        if (!window.EBQuotaEngine) {
+            if (gaugesEl) gaugesEl.innerHTML = '<div class="error-inline">Telemetry engine not loaded yet. Please refresh.</div>';
+            return;
+        }
+        initQuotaDateInputs();
+
+        if (forceFlush && window.EBQuotaTracker && typeof window.EBQuotaTracker.flushNow === 'function') {
+            try { await window.EBQuotaTracker.flushNow(); } catch (_) {}
+        }
+
+        const startInput = document.getElementById('quotaStartDate');
+        const endInput = document.getElementById('quotaEndDate');
+        const range = window.EBQuotaEngine.getPeriodDateRange(
+            currentQuotaPeriod,
+            startInput ? startInput.value : null,
+            endInput ? endInput.value : null
+        );
+
+        if (gaugesEl) {
+            gaugesEl.innerHTML = `<div class="loading-inline" style="grid-column:1/-1;">⏳ ${ebMix('Fetching live Firebase & Netlify telemetry...', 'لائیو فائر بیس اور نیٹلی فائی ڈیٹا لوڈ ہو رہا ہے...')}</div>`;
+        }
+
+        const cloudRecords = [];
+        try {
+            if (range.useMonthlyRollup) {
+                const snap = await db.collection('usage_telemetry_monthly')
+                    .where('month', '>=', range.startMonth)
+                    .where('month', '<=', range.endMonth)
+                    .get();
+                snap.forEach(d => cloudRecords.push({ id: d.id, ...d.data() }));
+            } else {
+                const snap = await db.collection('usage_telemetry')
+                    .where('date', '>=', range.startDate)
+                    .where('date', '<=', range.endDate)
+                    .get();
+                snap.forEach(d => cloudRecords.push({ id: d.id, ...d.data() }));
+            }
+        } catch (err) {
+            console.warn('Cloud telemetry query fallback:', err && err.message ? err.message : err);
+        }
+
+        // Merge any local pending unsynced deltas so the latest live session ops appear immediately!
+        const mergedMap = {};
+        cloudRecords.forEach(r => {
+            const key = range.useMonthlyRollup
+                ? `${r.month || String(r.date || '').slice(0, 7)}__${r.agencyId || 'unknown'}`
+                : `${r.date || ''}__${r.agencyId || 'unknown'}`;
+            mergedMap[key] = { ...r };
+        });
+
+        if (window.EBQuotaTracker && typeof window.EBQuotaTracker.getPendingRecords === 'function') {
+            const pendingList = window.EBQuotaTracker.getPendingRecords();
+            pendingList.forEach(p => {
+                if (!p || !p.date) return;
+                if (p.date < range.startDate || p.date > range.endDate) return;
+                const key = range.useMonthlyRollup
+                    ? `${p.month || p.date.slice(0, 7)}__${p.agencyId}`
+                    : `${p.date}__${p.agencyId}`;
+                if (!mergedMap[key]) {
+                    mergedMap[key] = { ...p, month: p.month || p.date.slice(0, 7) };
+                } else {
+                    const m = mergedMap[key];
+                    m.fbReads = (Number(m.fbReads) || 0) + (Number(p.fbReads) || 0);
+                    m.fbWrites = (Number(m.fbWrites) || 0) + (Number(p.fbWrites) || 0);
+                    m.fbDeletes = (Number(m.fbDeletes) || 0) + (Number(p.fbDeletes) || 0);
+                    m.fbListeners = (Number(m.fbListeners) || 0) + (Number(p.fbListeners) || 0);
+                    m.netlifyPageReqs = (Number(m.netlifyPageReqs) || 0) + (Number(p.netlifyPageReqs) || 0);
+                    m.netlifyAssetReqs = (Number(m.netlifyAssetReqs) || 0) + (Number(p.netlifyAssetReqs) || 0);
+                    m.netlifyFuncReqs = (Number(m.netlifyFuncReqs) || 0) + (Number(p.netlifyFuncReqs) || 0);
+                    m.netlifyTotalReqs = (Number(m.netlifyTotalReqs) || 0) + (Number(p.netlifyTotalReqs) || 0);
+                    m.netlifyBytes = (Number(m.netlifyBytes) || 0) + (Number(p.netlifyBytes) || 0);
+                    m.pwaCacheHits = (Number(m.pwaCacheHits) || 0) + (Number(p.pwaCacheHits) || 0);
+                }
+            });
+        }
+
+        latestQuotaRawRecords = Object.values(mergedMap);
+        recomputeAndRenderQuota();
+    }
+    window.loadCloudQuotaAnalytics = loadCloudQuotaAnalytics;
+
+    function recomputeAndRenderQuota() {
+        if (!window.EBQuotaEngine) return;
+        const agenciesMap = {};
+        (allAgencies || []).forEach(ag => { agenciesMap[ag.id] = ag; });
+
+        const startInput = document.getElementById('quotaStartDate');
+        const endInput = document.getElementById('quotaEndDate');
+        const range = window.EBQuotaEngine.getPeriodDateRange(
+            currentQuotaPeriod,
+            startInput ? startInput.value : null,
+            endInput ? endInput.value : null
+        );
+
+        // Full platform report (for populating shop dropdown cleanly)
+        const allReport = window.EBQuotaEngine.aggregateTelemetry(latestQuotaRawRecords, {
+            agenciesMap,
+            period: currentQuotaPeriod,
+            range,
+            agencyId: 'all'
+        });
+        populateQuotaShopSelector(allReport.shops);
+
+        // Scoped report (either all shops OR selected single shop)
+        const scopedReport = currentQuotaShopId === 'all'
+            ? allReport
+            : window.EBQuotaEngine.aggregateTelemetry(latestQuotaRawRecords, {
+                agenciesMap,
+                period: currentQuotaPeriod,
+                range,
+                agencyId: currentQuotaShopId
+            });
+
+        latestQuotaReport = scopedReport;
+        renderQuotaSafetyBanner(scopedReport);
+        renderQuotaAlerts(scopedReport);
+        renderQuotaDualGauges(scopedReport);
+        renderQuotaTrendChart(scopedReport);
+        renderQuotaShopsTableOnly(allReport);
+    }
+
+    function getBarColorForPct(pct) {
+        if (pct >= 90) return '#ef4444';
+        if (pct >= 75) return '#f59e0b';
+        if (pct >= 45) return '#0284c7';
+        return '#10b981';
+    }
+
+    function renderQuotaSafetyBanner(report) {
+        const el = document.getElementById('quotaSafetyBanner');
+        if (!el) return;
+        const q = report.quotas;
+        const t = report.totals;
+        const p = report.projections;
+        const risk = q.overallRisk;
+        const bgMap = {
+            healthy: 'linear-gradient(135deg, #065f46 0%, #059669 100%)',
+            moderate: 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)',
+            warning: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)',
+            critical: 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)'
+        };
+        const statusTitle = risk === 'healthy'
+            ? ebMix('🟢 FREE TIER SAFE — Rs 0 / $0 Extra Cloud Cost!', 'مفت کوٹہ محفوظ ہے — کوئی اضافی بل نہیں!')
+            : (risk === 'moderate'
+                ? ebMix('🔵 HEALTHY GROWTH — Comfortably Inside Free Limits', 'متوازن استعمال — مفت حد کے اندر')
+                : (risk === 'warning'
+                    ? ebMix('🟠 WARNING (75%+) — Monitor Heavy Shops Closely', 'انتباہ (75%+) — بھاری دکانوں پر نظر رکھیں')
+                    : ebMix('🔴 CRITICAL (90%+) — Approaching Free Quota Limit!', 'خطرہ (90%+) — مفت کوٹہ حد کے قریب!')));
+
+        const scopeLabel = currentQuotaShopId === 'all'
+            ? ebMix(`All Shops Combined (${report.shops.length} active)`, `تمام دکانیں (${report.shops.length} فعال)`)
+            : `🏪 ${escapePkgHtml((report.shops[0] && report.shops[0].shopName) || currentQuotaShopId)}`;
+
+        el.innerHTML = `
+        <div style="background:${bgMap[risk]}; color:#fff; border-radius:14px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; box-shadow:0 8px 24px rgba(15,23,42,0.12);">
+            <div>
+                <div style="font-size:11px; font-weight:800; opacity:0.9; text-transform:uppercase; letter-spacing:0.6px;">
+                    ${scopeLabel} &bull; ${escapePkgHtml(ebMix(report.range.labelEn, report.range.labelUr))}
+                </div>
+                <div style="font-size:17px; font-weight:900; margin-top:4px;">${statusTitle}</div>
+                <div style="font-size:12px; opacity:0.92; margin-top:4px;">
+                    ${ebMix(`Projected 30-Day Burn: ${p.projectedMonthlyReads.toLocaleString()} FB Reads | ${p.projectedMonthlyWrites.toLocaleString()} FB Writes | ${window.EBQuotaEngine.formatBytesHuman(p.projectedMonthlyBytes)} Netlify BW`,
+                    `متوقع ماہانہ استعمال: ${p.projectedMonthlyReads.toLocaleString()} ریڈز | ${p.projectedMonthlyWrites.toLocaleString()} رائٹس | ${window.EBQuotaEngine.formatBytesHuman(p.projectedMonthlyBytes)} بینڈوتھ`)}
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.25); border-radius:10px; padding:8px 14px; text-align:center;">
+                    <div style="font-size:10px; font-weight:700; opacity:0.9;">🛡️ PWA CACHE SAVED</div>
+                    <div style="font-size:18px; font-weight:900;">${q.pwaCacheSavingsPct}%</div>
+                    <div style="font-size:10px; opacity:0.85;">${t.pwaCacheHits.toLocaleString()} reqs free</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.25); border-radius:10px; padding:8px 14px; text-align:center;">
+                    <div style="font-size:10px; font-weight:700; opacity:0.9;">PEAK QUOTA USED</div>
+                    <div style="font-size:18px; font-weight:900;">${q.maxRiskPct}%</div>
+                    <div style="font-size:10px; opacity:0.85;">of Spark / Starter</div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function renderQuotaAlerts(report) {
+        const el = document.getElementById('quotaAlertsBox');
+        if (!el) return;
+        if (!report.alerts || !report.alerts.length) {
+            el.innerHTML = '';
+            return;
+        }
+        el.innerHTML = report.alerts.map(a => {
+            const st = a.level === 'critical'
+                ? 'background:#fef2f2; border:1px solid #fca5a5; color:#991b1b;'
+                : (a.level === 'warning'
+                    ? 'background:#fffbeb; border:1px solid #fcd34d; color:#92400e;'
+                    : 'background:#eff6ff; border:1px solid #93c5fd; color:#1e40af;');
+            return `<div style="${st} border-radius:10px; padding:10px 14px; margin-bottom:8px; font-size:12.5px;">
+                <strong>⚡ ${escapePkgHtml(ebMix(a.titleEn, a.titleUr))}</strong> — ${escapePkgHtml(ebMix(a.detailEn, a.detailUr))}
+            </div>`;
+        }).join('');
+    }
+
+    function renderQuotaDualGauges(report) {
+        const el = document.getElementById('quotaDualGauges');
+        if (!el) return;
+        const t = report.totals;
+        const q = report.quotas;
+        const p = report.projections;
+        const fmtB = window.EBQuotaEngine.formatBytesHuman;
+
+        el.innerHTML = `
+        <!-- 🔥 FIREBASE SPARK QUOTA CARD -->
+        <div class="quota-provider-card" style="border-top:4px solid #f59e0b;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="font-size:15px; font-weight:900; color:#0f172a;">🔥 ${ebMix('Firebase Firestore (Spark Free Tier)', 'فائر بیس فائر اسٹور کوٹہ')}</div>
+                <span class="quota-risk-pill risk-${window.EBQuotaEngine.getRiskLevel(Math.max(q.fbReadsPct, q.fbWritesPct, q.fbDeletesPct))}">
+                    ${Math.max(q.fbReadsPct, q.fbWritesPct, q.fbDeletesPct).toFixed(1)}% Peak
+                </span>
+            </div>
+
+            <div class="quota-meter-row">
+                <div class="quota-meter-head">
+                    <span>📖 ${ebMix('Document Reads', 'فائر بیس ریڈز')}</span>
+                    <span style="color:${getBarColorForPct(q.fbReadsPct)};">${t.fbReads.toLocaleString()} / ${q.fbReadQuota.toLocaleString()} (${q.fbReadsPct}%)</span>
+                </div>
+                <div class="quota-bar-track"><div class="quota-bar-fill" style="width:${Math.min(100, q.fbReadsPct)}%; background:${getBarColorForPct(q.fbReadsPct)};"></div></div>
+                <div class="quota-meter-sub">
+                    <span>Daily Avg: <b>${p.avgDailyReads.toLocaleString()}/day</b> (Free limit: 50,000/day)</span>
+                    <span>30-Day Est: <b>${p.projectedMonthlyReads.toLocaleString()}</b></span>
+                </div>
+            </div>
+
+            <div class="quota-meter-row">
+                <div class="quota-meter-head">
+                    <span>✍️ ${ebMix('Document Writes', 'فائر بیس رائٹس')}</span>
+                    <span style="color:${getBarColorForPct(q.fbWritesPct)};">${t.fbWrites.toLocaleString()} / ${q.fbWriteQuota.toLocaleString()} (${q.fbWritesPct}%)</span>
+                </div>
+                <div class="quota-bar-track"><div class="quota-bar-fill" style="width:${Math.min(100, q.fbWritesPct)}%; background:${getBarColorForPct(q.fbWritesPct)};"></div></div>
+                <div class="quota-meter-sub">
+                    <span>Daily Avg: <b>${p.avgDailyWrites.toLocaleString()}/day</b> (Free limit: 20,000/day)</span>
+                    <span>30-Day Est: <b>${p.projectedMonthlyWrites.toLocaleString()}</b></span>
+                </div>
+            </div>
+
+            <div class="quota-meter-row" style="margin-bottom:10px;">
+                <div class="quota-meter-head">
+                    <span>🗑️ ${ebMix('Document Deletes', 'فائر بیس ڈیلیٹس')}</span>
+                    <span style="color:${getBarColorForPct(q.fbDeletesPct)};">${t.fbDeletes.toLocaleString()} / ${q.fbDeleteQuota.toLocaleString()} (${q.fbDeletesPct}%)</span>
+                </div>
+                <div class="quota-bar-track"><div class="quota-bar-fill" style="width:${Math.min(100, q.fbDeletesPct)}%; background:${getBarColorForPct(q.fbDeletesPct)};"></div></div>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; padding-top:8px; border-top:1px solid #f1f5f9; font-size:11.5px; color:#475569;">
+                <span style="background:#f8fafc; border:1px solid #e2e8f0; padding:3px 9px; border-radius:999px;">📡 Realtime Snapshots: <b>${t.fbListeners.toLocaleString()}</b></span>
+                <span style="background:#f8fafc; border:1px solid #e2e8f0; padding:3px 9px; border-radius:999px;">⚡ Total FB Ops: <b>${t.fbTotalOps.toLocaleString()}</b></span>
+            </div>
+        </div>
+
+        <!-- 🌐 NETLIFY STARTER QUOTA CARD -->
+        <div class="quota-provider-card" style="border-top:4px solid #0ea5e9;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="font-size:15px; font-weight:900; color:#0f172a;">🌐 ${ebMix('Netlify Hosting & Functions (Free Tier)', 'نیٹلی فائی ریکویسٹ اور بینڈوتھ کوٹہ')}</div>
+                <span class="quota-risk-pill risk-${window.EBQuotaEngine.getRiskLevel(Math.max(q.netlifyFuncPct, q.netlifyBwPct))}">
+                    ${Math.max(q.netlifyFuncPct, q.netlifyBwPct).toFixed(2)}% Peak
+                </span>
+            </div>
+
+            <div class="quota-meter-row">
+                <div class="quota-meter-head">
+                    <span>🌍 ${ebMix('Total Network Requests', 'کل نیٹلی فائی ریکویسٹس')}</span>
+                    <span style="color:${getBarColorForPct(q.netlifyReqPct)};">${t.netlifyTotalReqs.toLocaleString()} (${q.netlifyReqPct}%)</span>
+                </div>
+                <div class="quota-bar-track"><div class="quota-bar-fill" style="width:${Math.min(100, q.netlifyReqPct)}%; background:${getBarColorForPct(q.netlifyReqPct)};"></div></div>
+                <div class="quota-meter-sub">
+                    <span>Pages: <b>${t.netlifyPageReqs.toLocaleString()}</b> &bull; Assets: <b>${t.netlifyAssetReqs.toLocaleString()}</b> &bull; Fn: <b>${t.netlifyFuncReqs.toLocaleString()}</b></span>
+                    <span>Avg: <b>${p.avgDailyNetlifyReqs.toLocaleString()}/day</b></span>
+                </div>
+            </div>
+
+            <div class="quota-meter-row">
+                <div class="quota-meter-head">
+                    <span>⚙️ ${ebMix('Serverless Function Calls', 'سرورلیس فنکشن کالز')}</span>
+                    <span style="color:${getBarColorForPct(q.netlifyFuncPct)};">${t.netlifyFuncReqs.toLocaleString()} / ${q.netlifyFuncQuota.toLocaleString()} (${q.netlifyFuncPct}%)</span>
+                </div>
+                <div class="quota-bar-track"><div class="quota-bar-fill" style="width:${Math.min(100, q.netlifyFuncPct)}%; background:${getBarColorForPct(q.netlifyFuncPct)};"></div></div>
+                <div class="quota-meter-sub">
+                    <span>Free Tier: <b>125,000 / month</b></span>
+                    <span>30-Day Est: <b>${p.projectedMonthlyFuncs.toLocaleString()}</b></span>
+                </div>
+            </div>
+
+            <div class="quota-meter-row" style="margin-bottom:10px;">
+                <div class="quota-meter-head">
+                    <span>📦 ${ebMix('Estimated Bandwidth Used', 'اندازاً بینڈوتھ استعمال')}</span>
+                    <span style="color:${getBarColorForPct(q.netlifyBwPct)};">${fmtB(t.netlifyBytes)} / ${currentQuotaPeriod === 'yearly' ? '1.2 TB' : '100 GB'} (${q.netlifyBwPct}%)</span>
+                </div>
+                <div class="quota-bar-track"><div class="quota-bar-fill" style="width:${Math.min(100, q.netlifyBwPct)}%; background:${getBarColorForPct(q.netlifyBwPct)};"></div></div>
+                <div class="quota-meter-sub">
+                    <span>30-Day Est: <b>${fmtB(p.projectedMonthlyBytes)}</b></span>
+                    <span>🛡️ PWA Cache Saved: <b style="color:#059669;">${t.pwaCacheHits.toLocaleString()} reqs (${q.pwaCacheSavingsPct}%)</b></span>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; padding-top:8px; border-top:1px solid #f1f5f9; font-size:11.5px; color:#475569;">
+                <span style="background:#ecfdf5; border:1px solid #a7f3d0; color:#047857; padding:3px 9px; border-radius:999px; font-weight:700;">✅ 30-Day &amp; Yearly History Kept Locally + Cloud (Beats Netlify 24h Limit!)</span>
+            </div>
+        </div>`;
+    }
+
+    function renderQuotaTrendChart(report) {
+        const wrap = document.getElementById('quotaTrendBars');
+        const sub = document.getElementById('quotaChartSubtitle');
+        if (!wrap) return;
+        const series = report.series || [];
+        if (sub) {
+            sub.textContent = `(${report.range.startDate} → ${report.range.endDate})`;
+        }
+        if (!series.length) {
+            wrap.innerHTML = `<div style="width:100%; text-align:center; padding:55px 10px; color:#64748b; font-size:13px; font-weight:700;">${ebMix('No usage records captured yet in this date range. Click "Flush & Refresh Live" or use the app to populate live bars.', 'اس تاریخ میں ابھی کوئی ریکارڈ نہیں۔ لائیو ڈیٹا کے لیے Flush & Refresh دبائیں۔')}</div>`;
+            return;
+        }
+        const metricColors = {
+            fbReads: '#f59e0b',
+            fbWrites: '#8b5cf6',
+            netlifyTotalReqs: '#0284c7',
+            pwaCacheHits: '#10b981'
+        };
+        const barColor = metricColors[currentQuotaChartMetric] || '#0284c7';
+        const maxVal = Math.max(1, ...series.map(pt => Number(pt[currentQuotaChartMetric]) || 0));
+
+        wrap.innerHTML = series.map(pt => {
+            const val = Number(pt[currentQuotaChartMetric]) || 0;
+            const hPct = Math.max(4, Math.round((val / maxVal) * 100));
+            const shortLbl = pt.key.length === 10 ? pt.key.slice(5) : pt.key;
+            const titleTip = `${pt.key} | FB Reads: ${pt.fbReads.toLocaleString()} | FB Writes: ${pt.fbWrites.toLocaleString()} | Netlify Reqs: ${pt.netlifyTotalReqs.toLocaleString()} | PWA Saved: ${pt.pwaCacheHits.toLocaleString()}`;
+            return `
+            <div class="quota-bar-col" title="${escapePkgHtml(titleTip)}">
+                <span class="quota-bar-val">${val >= 1000 ? (val / 1000).toFixed(1) + 'k' : val}</span>
+                <div class="quota-bar-stick" style="height:${hPct}%; background:${barColor};"></div>
+                <span class="quota-bar-lbl">${escapePkgHtml(shortLbl)}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function renderQuotaShopsTableOnly(explicitAllReport) {
+        const tbody = document.getElementById('quotaShopsTableBody');
+        if (!tbody || !window.EBQuotaEngine) return;
+
+        let reportToUse = explicitAllReport;
+        if (!reportToUse) {
+            const agenciesMap = {};
+            (allAgencies || []).forEach(ag => { agenciesMap[ag.id] = ag; });
+            const startInput = document.getElementById('quotaStartDate');
+            const endInput = document.getElementById('quotaEndDate');
+            const range = window.EBQuotaEngine.getPeriodDateRange(
+                currentQuotaPeriod,
+                startInput ? startInput.value : null,
+                endInput ? endInput.value : null
+            );
+            reportToUse = window.EBQuotaEngine.aggregateTelemetry(latestQuotaRawRecords, {
+                agenciesMap,
+                period: currentQuotaPeriod,
+                range,
+                agencyId: 'all'
+            });
+        }
+
+        const q = (document.getElementById('quotaShopSearch') ? document.getElementById('quotaShopSearch').value.trim().toLowerCase() : '');
+        const sortBy = document.getElementById('quotaShopSort') ? document.getElementById('quotaShopSort').value : 'total';
+        const fmtB = window.EBQuotaEngine.formatBytesHuman;
+
+        let rows = (reportToUse.shops || []).slice();
+        if (q) {
+            rows = rows.filter(s =>
+                String(s.shopName || '').toLowerCase().includes(q) ||
+                String(s.agencyId || '').toLowerCase().includes(q) ||
+                String(s.ownerEmail || '').toLowerCase().includes(q)
+            );
+        }
+
+        rows.sort((a, b) => {
+            if (sortBy === 'fbReads') return b.fbReads - a.fbReads;
+            if (sortBy === 'fbWrites') return b.fbWrites - a.fbWrites;
+            if (sortBy === 'netlifyTotalReqs') return b.netlifyTotalReqs - a.netlifyTotalReqs;
+            if (sortBy === 'netlifyBytes') return b.netlifyBytes - a.netlifyBytes;
+            return (b.fbTotalOps + b.netlifyTotalReqs) - (a.fbTotalOps + a.netlifyTotalReqs);
+        });
+
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:24px; color:#64748b; font-weight:700;">${ebMix('No shop telemetry records found for this filter yet.', 'اس فلٹر میں ابھی کسی دکان کا ڈیٹا موجود نہیں۔')}</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rows.map((s, idx) => {
+            const isSelected = currentQuotaShopId === s.agencyId;
+            return `
+            <tr style="${isSelected ? 'background:#eff6ff;' : ''}">
+                <td><strong>#${idx + 1}</strong></td>
+                <td>
+                    <div style="font-weight:800; color:#0f172a;">${escapePkgHtml(s.shopName)}</div>
+                    <div style="font-size:11px; color:#64748b;">${escapePkgHtml(s.packageId.toUpperCase())} ${s.ownerEmail ? '&bull; ' + escapePkgHtml(s.ownerEmail) : ''}</div>
+                </td>
+                <td><strong style="color:#d97706;">${s.fbReads.toLocaleString()}</strong><div style="font-size:10px; color:#64748b;">~${s.avgDailyReads}/d</div></td>
+                <td><strong style="color:#7c3aed;">${s.fbWrites.toLocaleString()}</strong><div style="font-size:10px; color:#64748b;">~${s.avgDailyWrites}/d</div></td>
+                <td>${s.fbDeletes.toLocaleString()}</td>
+                <td><strong style="color:#0284c7;">${s.netlifyTotalReqs.toLocaleString()}</strong> <span style="font-size:10.5px; color:#64748b;">(Fn: ${s.netlifyFuncReqs})</span></td>
+                <td><strong>${fmtB(s.netlifyBytes)}</strong></td>
+                <td><span style="color:#059669; font-weight:800;">${s.pwaCacheHits.toLocaleString()}</span> <span style="font-size:10px; color:#64748b;">(${s.pwaCacheSavingsPct}%)</span></td>
+                <td><strong>${s.sharePct}%</strong></td>
+                <td><span class="quota-risk-pill risk-${s.riskLevel}">${s.riskLevel.toUpperCase()}</span></td>
+                <td>
+                    <button type="button" class="btn btn-sm" onclick="inspectQuotaShop('${escapePkgHtml(s.agencyId)}')" style="background:${isSelected ? '#0284c7' : '#f1f5f9'}; color:${isSelected ? '#fff' : '#0f172a'}; border:1px solid #cbd5e1; padding:5px 10px; border-radius:7px; font-size:11.5px; font-weight:800; cursor:pointer;">
+                        🔍 ${isSelected ? ebT('Viewing', 'زیرِ مشاہدہ') : ebT('Inspect', 'تفصیل')}
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+    window.renderQuotaShopsTableOnly = renderQuotaShopsTableOnly;
+
+    function exportCloudQuotaCsv() {
+        if (!latestQuotaReport || !window.EBQuotaEngine) {
+            Swal.fire(ebT('No Data', 'ڈیٹا موجود نہیں'), ebT('Load Cloud Quota analytics first before exporting.', 'ایکسپورٹ سے پہلے رپورٹ لوڈ کریں۔'), 'info');
+            return;
+        }
+        const csv = window.EBQuotaEngine.buildQuotaCsv(latestQuotaReport);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nhpos-cloud-quota-${latestQuotaReport.range.period}-${latestQuotaReport.range.startDate}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    window.exportCloudQuotaCsv = exportCloudQuotaCsv;
+
+    // ============================================
     // 🌐 INITIAL BILINGUAL SYNC & LIVE LANGUAGE SWITCH LISTENER
     // ============================================
     ebApplyBilingualDom(document);
@@ -2499,6 +3894,9 @@
             if (allAgencies.length > 0) {
                 renderLeaderboards();
                 renderAgenciesList();
+            }
+            if (latestQuotaReport) {
+                recomputeAndRenderQuota();
             }
             renderUpgradeRequests();
         });

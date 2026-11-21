@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NH POS">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NH POS — User Guide &amp; Help Center</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <link rel="stylesheet" href="panels.css">
+    <link rel="stylesheet" href="dark-theme.css">
+    <script src="theme-sync.js"></script>
+
+    <style>
+        :root {
+            --ug-canvas: #f8fafc;
+            --ug-surface: #ffffff;
+            --ug-surface-alt: #f1f5f9;
+            --ug-border: #e2e8f0;
+            --ug-text: #0f172a;
+            --ug-muted: #475569;
+            --ug-subtle: #64748b;
+            --ug-accent: #059669;
+            --ug-accent-hover: #047857;
+            --ug-accent-soft: rgba(16, 185, 129, 0.1);
+            --ug-warn: #b45309;
+            --ug-warn-soft: rgba(217, 119, 6, 0.1);
+            --ug-radius: 12px;
+        }
+
+        html.dark, html.dark-theme, html[data-theme="dark"] {
+            --ug-canvas: #0f172a;
+            --ug-surface: #1e293b;
+            --ug-surface-alt: #0f172a;
+            --ug-border: #334155;
+            --ug-text: #f8fafc;
+            --ug-muted: #cbd5e1;
+            --ug-subtle: #94a3b8;
+            --ug-accent: #10b981;
+            --ug-accent-hover: #059669;
+            --ug-accent-soft: rgba(16, 185, 129, 0.16);
+            --ug-warn: #fbbf24;
+            --ug-warn-soft: rgba(245, 158, 11, 0.14);
+        }
+
+        body {
+            background: var(--ug-canvas);
+            color: var(--ug-text);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            margin: 0;
+        }
+
+        .ug-shell {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 20px 20px 48px;
+            box-sizing: border-box;
+        }
+
+        .ug-tabular {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Header & Utility Bar */
+        .ug-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--ug-border);
+            margin-bottom: 20px;
+        }
+
+        .ug-header-title-block {
+            min-width: 240px;
+            flex: 1;
+        }
+
+        .ug-kicker {
+            font-size: 12.5px;
+            color: var(--ug-subtle);
+            margin-bottom: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ug-page-title {
+            margin: 0;
+            font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--ug-text);
+            text-wrap: balance;
+            line-height: 1.25;
+        }
+
+        .ug-page-title-ur {
+            margin: 4px 0 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--ug-muted);
+            direction: rtl;
+            line-height: 1.75;
+            font-family: 'Segoe UI', Tahoma, system-ui, sans-serif;
+        }
+
+        .ug-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ug-lang-segment {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px;
+            background: var(--ug-surface-alt);
+            border: 1px solid var(--ug-border);
+            border-radius: 10px;
+            gap: 2px;
+        }
+
+        .ug-lang-seg-btn {
+            border: none;
+            background: transparent;
+            color: var(--ug-muted);
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 7px 12px;
+            border-radius: 7px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 150ms ease, color 150ms ease;
+            min-height: 36px;
+        }
+
+        .ug-lang-seg-btn:hover {
+            color: var(--ug-text);
+        }
+
+        .ug-lang-seg-btn.active {
+            background: var(--ug-surface);
+            color: var(--ug-text);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        }
+
+        .ug-cat-select {
+            height: 42px;
+            padding: 0 12px;
+            border-radius: 10px;
+            border: 1px solid var(--ug-border);
+            background: var(--ug-surface);
+            color: var(--ug-text);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Search Bar */
+        .ug-search-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .ug-search-box {
+            position: relative;
+            flex: 1;
+            min-width: 240px;
+        }
+
+        .ug-search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--ug-subtle);
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .ug-search-input {
+            width: 100%;
+            height: 44px;
+            padding: 0 40px 0 40px;
+            border-radius: 10px;
+            border: 1px solid var(--ug-border);
+            background: var(--ug-surface);
+            color: var(--ug-text);
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 150ms ease;
+        }
+
+        .ug-search-input:focus {
+            border-color: var(--ug-accent);
+        }
+
+        .ug-search-clear {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: var(--ug-subtle);
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ug-search-clear.show {
+            display: inline-flex;
+        }
+
+        /* Day-1 Launch Checklist Surface */
+        .ug-checklist-panel {
+            background: var(--ug-surface);
+            border: 1px solid var(--ug-border);
+            border-radius: var(--ug-radius);
+            margin-bottom: 22px;
+            overflow: hidden;
+        }
+
+        .ug-checklist-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .ug-checklist-head:hover {
+            background: var(--ug-surface-alt);
+        }
+
+        .ug-checklist-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--ug-text);
+            margin: 0;
+        }
+
+        .ug-checklist-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--ug-subtle);
+        }
+
+        .ug-progress-track {
+            width: 110px;
+            height: 6px;
+            background: var(--ug-border);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .ug-progress-fill {
+            height: 100%;
+            background: var(--ug-accent);
+            border-radius: 99px;
+            transition: width 200ms ease;
+        }
+
+        .ug-checklist-body {
+            border-top: 1px solid var(--ug-border);
+            padding: 8px 20px 16px;
+        }
+
+        .ug-checklist-body.collapsed {
+            display: none;
+        }
+
+        .ug-check-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--ug-border);
+        }
+
+        .ug-check-row:last-child {
+            border-bottom: none;
+        }
+
+        .ug-check-left {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ug-check-box {
+            width: 22px;
+            height: 22px;
+            margin-top: 2px;
+            accent-color: var(--ug-accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .ug-check-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ug-check-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--ug-text);
+            margin: 0 0 2px;
+        }
+
+        .ug-check-row.done .ug-check-title {
+            text-decoration: line-through;
+            color: var(--ug-subtle);
+        }
+
+        .ug-check-desc {
+            font-size: 13px;
+            color: var(--ug-muted);
+            margin: 0;
+            line-height: 1.55;
+        }
+
+        .ug-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--ug-border);
+            background: var(--ug-surface);
+            color: var(--ug-text);
+            text-decoration: none;
+            font-size: 12.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-height: 36px;
+            box-sizing: border-box;
+            transition: border-color 150ms ease, background 150ms ease;
+        }
+
+        .ug-link-btn:hover {
+            border-color: var(--ug-accent);
+            background: var(--ug-accent-soft);
+        }
+
+        .ug-primary-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 9px;
+            border: none;
+            background: var(--ug-accent);
+            color: #ffffff;
+            text-decoration: none;
+            font-family: inherit;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            min-height: 42px;
+            box-sizing: border-box;
+            transition: background 150ms ease;
+        }
+
+        .ug-primary-btn:hover {
+            background: var(--ug-accent-hover);
+            color: #ffffff;
+        }
+
+        /* 2-Column Documentation Workbench */
+        .ug-workspace {
+            display: grid;
+            grid-template-columns: 290px minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .ug-rail {
+            background: var(--ug-surface);
+            border: 1px solid var(--ug-border);
+            border-radius: var(--ug-radius);
+            overflow: hidden;
+        }
+
+        .ug-rail-head {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--ug-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--ug-subtle);
+        }
+
+        .ug-chapter-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ug-chapter-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            width: 100%;
+            text-align: left;
+            border: none;
+            border-bottom: 1px solid var(--ug-border);
+            background: transparent;
+            padding: 13px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            color: var(--ug-text);
+            transition: background 150ms ease;
+        }
+
+        .ug-chapter-item:last-child {
+            border-bottom: none;
+        }
+
+        .ug-chapter-item:hover {
+            background: var(--ug-surface-alt);
+        }
+
+        .ug-chapter-item.active {
+            background: var(--ug-accent-soft);
+        }
+
+        .ug-chapter-num {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ug-subtle);
+            width: 24px;
+            flex-shrink: 0;
+            padding-top: 2px;
+        }
+
+        .ug-chapter-item.active .ug-chapter-num {
+            color: var(--ug-accent);
+        }
+
+        .ug-chapter-labels {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ug-chapter-name {
+            font-size: 13.5px;
+            font-weight: 700;
+            line-height: 1.35;
+            color: var(--ug-text);
+        }
+
+        .ug-chapter-sub {
+            font-size: 12px;
+            color: var(--ug-subtle);
+            margin-top: 3px;
+            line-height: 1.5;
+        }
+
+        /* Active Chapter Reader */
+        .ug-reader {
+            background: var(--ug-surface);
+            border: 1px solid var(--ug-border);
+            border-radius: var(--ug-radius);
+            padding: 26px 28px;
+        }
+
+        .ug-reader-meta {
+            font-size: 12.5px;
+            color: var(--ug-subtle);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .ug-reader-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--ug-border);
+            margin-bottom: 22px;
+        }
+
+        .ug-reader-title {
+            margin: 0;
+            font-size: clamp(1.25rem, 2vw, 1.55rem);
+            font-weight: 800;
+            color: var(--ug-text);
+            line-height: 1.3;
+            text-wrap: balance;
+        }
+
+        .ug-reader-summary {
+            margin: 8px 0 0;
+            font-size: 14.5px;
+            color: var(--ug-muted);
+            line-height: 1.65;
+            max-width: 70ch;
+        }
+
+        .ug-section-block {
+            margin-bottom: 24px;
+        }
+
+        .ug-section-heading {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--ug-text);
+            margin: 0 0 12px;
+        }
+
+        .ug-step-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .ug-step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 14px 0;
+            border-top: 1px solid var(--ug-border);
+        }
+
+        .ug-step-item:first-child {
+            border-top: none;
+            padding-top: 4px;
+        }
+
+        .ug-step-index {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--ug-surface-alt);
+            border: 1px solid var(--ug-border);
+            color: var(--ug-text);
+            font-size: 12.5px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ug-step-content {
+            flex: 1;
+            min-width: 0;
+            max-width: 72ch;
+        }
+
+        .ug-step-heading {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--ug-text);
+            margin: 0 0 4px;
+        }
+
+        .ug-step-detail {
+            font-size: 14px;
+            color: var(--ug-muted);
+            line-height: 1.65;
+            margin: 0;
+        }
+
+        .ug-tip-box {
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: var(--ug-surface-alt);
+            border: 1px solid var(--ug-border);
+            font-size: 13.5px;
+            color: var(--ug-muted);
+            line-height: 1.65;
+        }
+
+        .ug-lock-notice {
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: var(--ug-warn-soft);
+            border: 1px solid var(--ug-border);
+            color: var(--ug-text);
+            font-size: 13.5px;
+            margin-bottom: 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        /* FAQ Accordion */
+        .ug-faq-item {
+            border-top: 1px solid var(--ug-border);
+        }
+
+        .ug-faq-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: transparent;
+            border: none;
+            padding: 13px 0;
+            text-align: left;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--ug-text);
+            cursor: pointer;
+        }
+
+        .ug-faq-answer {
+            display: none;
+            padding: 0 0 14px;
+            font-size: 13.5px;
+            color: var(--ug-muted);
+            line-height: 1.65;
+            max-width: 72ch;
+        }
+
+        .ug-faq-item.open .ug-faq-answer {
+            display: block;
+        }
+
+        .ug-faq-item.open .ug-faq-chevron {
+            transform: rotate(180deg);
+        }
+
+        .ug-faq-chevron {
+            transition: transform 160ms ease;
+            color: var(--ug-subtle);
+            flex-shrink: 0;
+        }
+
+        /* Urdu RTL Typography */
+        .ug-ur {
+            direction: rtl;
+            text-align: right;
+            font-family: 'Segoe UI', Tahoma, system-ui, sans-serif;
+            line-height: 1.85;
+            display: block;
+        }
+
+        .ug-ur-secondary {
+            margin-top: 4px;
+            color: var(--ug-subtle);
+            font-size: 13.5px;
+        }
+
+        /* Empty Search State */
+        .ug-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--ug-muted);
+        }
+
+        .ug-checklist-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 10px;
+        }
+
+        .ug-reset-btn {
+            border: none;
+            background: transparent;
+            color: var(--ug-subtle);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 10px;
+        }
+
+        .ug-reset-btn:hover {
+            color: var(--ug-text);
+            text-decoration: underline;
+        }
+
+        @media (max-width: 900px) {
+            .ug-workspace {
+                grid-template-columns: 1fr;
+            }
+            .ug-shell {
+                padding: 14px 12px 44px;
+            }
+            .ug-reader {
+                padding: 18px 16px;
+            }
+            .ug-check-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .ug-link-btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="panel-container">
+    <div class="ug-shell">
+        <!-- Header & Controls -->
+        <header class="ug-header">
+            <div class="ug-header-title-block">
+                <div class="ug-kicker" id="ugContextKicker">
+                    <span>Loading active business category...</span>
+                </div>
+                <h1 class="ug-page-title" id="ugMainHeading">A-to-Z User Guide</h1>
+                <p class="ug-page-title-ur" id="ugMainHeadingUr" style="display:none;">مکمل اے ٹو زیڈ یوزر گائیڈ</p>
+            </div>
+
+            <div class="ug-controls">
+                <select id="ugSuperAdminCatPreview" class="ug-cat-select" style="display:none;" aria-label="Preview Category Guide"></select>
+                <div class="ug-lang-segment" role="group" aria-label="Guide Language Switcher">
+                    <button type="button" class="ug-lang-seg-btn" data-guide-lang="en">English</button>
+                    <button type="button" class="ug-lang-seg-btn" data-guide-lang="ur">اردو</button>
+                    <button type="button" class="ug-lang-seg-btn" data-guide-lang="both">Both (EN + اردو)</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Live Search & Section Filter -->
+        <div class="ug-search-row">
+            <div class="ug-search-box">
+                <i class="fas fa-search"></i>
+                <input
+                    type="text"
+                    id="ugSearchInput"
+                    class="ug-search-input"
+                    placeholder="Search any topic in English or Urdu (e.g., stock, bill, khata, profit, اسٹاک, کھاتہ)..."
+                    autocomplete="off"
+                >
+                <button type="button" id="ugSearchClear" class="ug-search-clear" aria-label="Clear search">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="ug-lang-segment" id="ugGroupFilterBar" role="group" aria-label="Filter chapters by section" style="overflow-x:auto; max-width:100%;">
+                <button type="button" class="ug-lang-seg-btn active" data-guide-group="all">All</button>
+                <button type="button" class="ug-lang-seg-btn" id="ugRecentFilterBtn" data-guide-group="recent-updates" style="display:none;">What's New</button>
+                <button type="button" class="ug-lang-seg-btn" id="ugPlaybookFilterBtn" data-guide-group="category-playbook" style="display:none;">Industry Playbook</button>
+                <button type="button" class="ug-lang-seg-btn" id="ugRoleManualFilterBtn" data-guide-group="role-manual" style="display:none;">Role Manuals</button>
+                <button type="button" class="ug-lang-seg-btn" data-guide-group="core-start">Start &amp; Core</button>
+                <button type="button" class="ug-lang-seg-btn" data-guide-group="daily-ops">Daily Ops</button>
+                <button type="button" class="ug-lang-seg-btn" data-guide-group="reports-finance">Reports &amp; Profit</button>
+                <button type="button" class="ug-lang-seg-btn" data-guide-group="settings-team">Team &amp; Settings</button>
+            </div>
+        </div>
+
+        <!-- Day-1 Interactive Setup Checklist -->
+        <section class="ug-checklist-panel" id="ugChecklistSection" aria-label="Day-1 Setup Checklist">
+            <div class="ug-checklist-head" id="ugChecklistToggle" role="button" tabindex="0">
+                <div>
+                    <h2 class="ug-checklist-title" id="ugChecklistTitle">Start Here: 7-Step First-Time Setup Checklist</h2>
+                </div>
+                <div class="ug-checklist-meta">
+                    <span class="ug-tabular" id="ugChecklistCounter">0 / 7</span>
+                    <div class="ug-progress-track">
+                        <div class="ug-progress-fill" id="ugChecklistFill" style="width:0%;"></div>
+                    </div>
+                    <i class="fas fa-chevron-down" id="ugChecklistChevron"></i>
+                </div>
+            </div>
+            <div class="ug-checklist-body" id="ugChecklistBody">
+                <div id="ugChecklistRows"></div>
+                <div class="ug-checklist-footer">
+                    <button type="button" class="ug-reset-btn" id="ugResetChecklistBtn">Reset checklist progress</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main 2-Column Workspace -->
+        <div class="ug-workspace">
+            <aside class="ug-rail" aria-label="Guide Chapters">
+                <div class="ug-rail-head">
+                    <span id="ugRailLabel">Chapters</span>
+                    <span class="ug-tabular" id="ugRailCount">0</span>
+                </div>
+                <div class="ug-chapter-list" id="ugChapterList"></div>
+            </aside>
+
+            <main class="ug-reader" id="ugReaderPane" aria-live="polite"></main>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase SDK (Compat) for profile/category context via sidebar.js -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script src="business-categories.js"></script>
+<script src="saas-modules.js"></script>
+<script src="user-guide-engine.js"></script>
+<script src="user-guide-universal.js"></script>
+<script src="user-guide-pack-a.js"></script>
+<script src="user-guide-pack-b.js"></script>
+<script src="user-guide-roles.js"></script>
+<script src="sidebar.js"></script>
+
+<script>
+(function initUserGuidePage() {
+    const engine = window.EBUserGuideEngine;
+    if (!engine) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const requestedModule = (urlParams.get('module') || '').trim().toLowerCase();
+
+    let state = {
+        lang: localStorage.getItem('eb_guide_lang') || (localStorage.getItem('eb_app_language') === 'en-ur' ? 'both' : 'en'),
+        searchQuery: '',
+        groupFilter: 'all',
+        activeChapterId: requestedModule || 'start_here',
+        previewCategoryId: '',
+        checklistCollapsed: false,
+        openFaqs: {}
+    };
+
+    function escapeHtml(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function getUserContext() {
+        let profile = window.__myProfile || null;
+        let agency = window.__myAgencyData || null;
+        if (!profile) {
+            try { profile = JSON.parse(sessionStorage.getItem('eb_user_profile') || 'null'); } catch (_) {}
+        }
+        if (!agency) {
+            try { agency = JSON.parse(sessionStorage.getItem('eb_agency_data') || 'null'); } catch (_) {}
+        }
+        const role = engine.normalizeRole((profile && profile.role) || localStorage.getItem('eb_user_role') || 'owner');
+        const agencyId = (agency && agency.id) || (profile && profile.agencyId) || localStorage.getItem('eb_active_agencyId') || 'default';
+
+        let detectedCat = 'distributor';
+        if (window.BusinessCategories && typeof window.BusinessCategories.resolveActiveCategory === 'function') {
+            detectedCat = window.BusinessCategories.resolveActiveCategory(agency, 'distributor');
+        } else {
+            detectedCat = (agency && (agency.businessCategory || agency.businessType))
+                || localStorage.getItem('eb_active_business_category')
+                || localStorage.getItem('eb_active_category')
+                || 'distributor';
+        }
+        const activeCategoryId = (role === 'super-admin' && state.previewCategoryId)
+            ? engine.normalizeCategory(state.previewCategoryId)
+            : engine.normalizeCategory(detectedCat);
+
+        return { profile, agency, role, agencyId, activeCategoryId };
+    }
+
+    function getCategoryMeta(catId) {
+        return engine.ACTIVE_COMPLETED_CATEGORIES.find(c => c.id === catId)
+            || { id: catId, nameEn: catId, nameUr: catId };
+    }
+
+    function renderBilingualText(enText, urText, extraClass) {
+        const cls = extraClass ? ` ${extraClass}` : '';
+        if (state.lang === 'ur') {
+            return `<span class="ug-ur${cls}">${escapeHtml(urText || enText)}</span>`;
+        }
+        if (state.lang === 'both') {
+            return `<span class="${extraClass || ''}">${escapeHtml(enText)}</span><span class="ug-ur ug-ur-secondary">${escapeHtml(urText || '')}</span>`;
+        }
+        return `<span class="${extraClass || ''}">${escapeHtml(enText)}</span>`;
+    }
+
+    function syncLangButtons() {
+        document.querySelectorAll('[data-guide-lang]').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-guide-lang') === state.lang);
+        });
+        const hEn = document.getElementById('ugMainHeading');
+        const hUr = document.getElementById('ugMainHeadingUr');
+        if (state.lang === 'ur') {
+            hEn.style.display = 'none';
+            hUr.style.display = 'block';
+            hUr.style.fontSize = '1.65rem';
+            hUr.style.color = 'var(--ug-text)';
+        } else if (state.lang === 'both') {
+            hEn.style.display = 'block';
+            hUr.style.display = 'block';
+            hUr.style.fontSize = '15px';
+            hUr.style.color = 'var(--ug-muted)';
+        } else {
+            hEn.style.display = 'block';
+            hUr.style.display = 'none';
+        }
+    }
+
+    function renderChecklist(ctx) {
+        const completedIds = engine.getCompletedChecklistIds(ctx.agencyId, ctx.activeCategoryId);
+        const cl = engine.resolveChecklist({ role: ctx.role, completedIds });
+        const section = document.getElementById('ugChecklistSection');
+        if (!cl.steps.length) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+
+        const titleEl = document.getElementById('ugChecklistTitle');
+        titleEl.innerHTML = state.lang === 'ur'
+            ? `<span class="ug-ur">پہلے دن کی مکمل شروعات (${cl.totalCount} مراحل)</span>`
+            : (state.lang === 'both'
+                ? `Start Here: ${cl.totalCount}-Step First-Time Setup Checklist <span class="ug-ur ug-ur-secondary">پہلے دن کی شروعات کے ${cl.totalCount} لازمی مراحل</span>`
+                : `Start Here: ${cl.totalCount}-Step First-Time Setup Checklist`);
+
+        document.getElementById('ugChecklistCounter').textContent = `${cl.doneCount} / ${cl.totalCount}`;
+        document.getElementById('ugChecklistFill').style.width = `${cl.pct}%`;
+
+        const body = document.getElementById('ugChecklistBody');
+        body.classList.toggle('collapsed', state.checklistCollapsed);
+        const chev = document.getElementById('ugChecklistChevron');
+        chev.style.transform = state.checklistCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+
+        const rowsEl = document.getElementById('ugChecklistRows');
+        rowsEl.innerHTML = cl.steps.map(st => {
+            const btnLabel = state.lang === 'ur' ? st.actionLabelUr : st.actionLabelEn;
+            return `
+                <div class="ug-check-row ${st.completed ? 'done' : ''}">
+                    <label class="ug-check-left">
+                        <input type="checkbox" class="ug-check-box" data-check-step="${escapeHtml(st.id)}" ${st.completed ? 'checked' : ''}>
+                        <div class="ug-check-text">
+                            <div class="ug-check-title">${String(st.order).padStart(2, '0')}. ${renderBilingualText(st.titleEn, st.titleUr)}</div>
+                            <p class="ug-check-desc">${renderBilingualText(st.detailEn, st.detailUr)}</p>
+                        </div>
+                    </label>
+                    <a class="ug-link-btn" href="${escapeHtml(st.actionUrl)}">
+                        <span>${escapeHtml(btnLabel)}</span>
+                        <i class="fas fa-arrow-right" style="font-size:11px;"></i>
+                    </a>
+                </div>
+            `;
+        }).join('');
+
+        rowsEl.querySelectorAll('[data-check-step]').forEach(cb => {
+            cb.addEventListener('change', () => {
+                engine.toggleChecklistStep(ctx.agencyId, ctx.activeCategoryId, cb.getAttribute('data-check-step'));
+                renderChecklist(ctx);
+            });
+        });
+    }
+
+    function renderAll() {
+        const ctx = getUserContext();
+        const catMeta = getCategoryMeta(ctx.activeCategoryId);
+        syncLangButtons();
+
+        // Super Admin Category Preview Dropdown
+        const previewSel = document.getElementById('ugSuperAdminCatPreview');
+        if (ctx.role === 'super-admin') {
+            previewSel.style.display = 'inline-block';
+            if (!previewSel.options.length) {
+                previewSel.innerHTML = engine.ACTIVE_COMPLETED_CATEGORIES.map(c =>
+                    `<option value="${escapeHtml(c.id)}">Preview: ${escapeHtml(c.nameEn)}</option>`
+                ).join('');
+            }
+            previewSel.value = ctx.activeCategoryId;
+        } else {
+            previewSel.style.display = 'none';
+        }
+
+        // Unboxed Clean Context Metadata (Zero-Pill Discipline)
+        const roleLabelMap = {
+            'super-admin': { en: 'Super Admin', ur: 'سپر ایڈمن' },
+            'owner': { en: 'Shop Owner', ur: 'دکان مالک' },
+            'booker': { en: 'Order Booker', ur: 'آرڈر بکر' },
+            'supplier': { en: 'Delivery Supplier', ur: 'سپلائر' }
+        };
+        const rMeta = roleLabelMap[ctx.role] || roleLabelMap.owner;
+        const kickerEl = document.getElementById('ugContextKicker');
+        kickerEl.innerHTML = state.lang === 'ur'
+            ? `<span class="ug-ur">${escapeHtml(catMeta.nameUr)} · ${escapeHtml(rMeta.ur)} · آف لائن تیار</span>`
+            : `<span>${escapeHtml(catMeta.nameEn)}</span><span aria-hidden="true">·</span><span>${escapeHtml(rMeta.en)}</span><span aria-hidden="true">·</span><span>Offline Ready</span>`;
+
+        renderChecklist(ctx);
+
+        const modulesMap = (window.SaaSModules && window.SaaSModules.MODULES) ? window.SaaSModules.MODULES : {};
+        const businessCategories = Array.isArray(window.BUSINESS_CATEGORIES) ? window.BUSINESS_CATEGORIES : [];
+        const completedCategoryIds = (window.BusinessCategories && Array.isArray(window.BusinessCategories.COMPLETED_CATEGORY_IDS))
+            ? window.BusinessCategories.COMPLETED_CATEGORY_IDS
+            : engine.ACTIVE_COMPLETED_CATEGORIES.map(c => c.id);
+        const allVisibleChapters = engine.resolveVisibleChapters({
+            categoryId: ctx.activeCategoryId,
+            role: ctx.role,
+            searchQuery: state.searchQuery,
+            modulesMap,
+            businessCategories,
+            completedCategoryIds,
+            checkModuleAccess: (modId) => {
+                if (window.SaaSModules && typeof window.SaaSModules.checkModuleAccess === 'function') {
+                    return window.SaaSModules.checkModuleAccess(modId, ctx.agency, ctx.role, ctx.agency && ctx.agency.permissions);
+                }
+                return { locked: false };
+            }
+        });
+        const hasRecentUpdates = allVisibleChapters.some(ch => ch.isRecentUpdate);
+        const recentBtn = document.getElementById('ugRecentFilterBtn');
+        if (recentBtn) {
+            recentBtn.style.display = hasRecentUpdates ? '' : 'none';
+            recentBtn.textContent = state.lang === 'ur' ? 'تازہ اپڈیٹس' : "What's New";
+        }
+        const hasPlaybook = allVisibleChapters.some(ch => ch.group === 'category-playbook');
+        const playbookBtn = document.getElementById('ugPlaybookFilterBtn');
+        if (playbookBtn) {
+            playbookBtn.style.display = hasPlaybook ? '' : 'none';
+            playbookBtn.textContent = state.lang === 'ur' ? 'انڈسٹری پلے بُک' : 'Industry Playbook';
+        }
+        const hasRoleManuals = allVisibleChapters.some(ch => ch.group === 'role-manual');
+        const roleBtn = document.getElementById('ugRoleManualFilterBtn');
+        if (roleBtn) {
+            roleBtn.style.display = hasRoleManuals ? '' : 'none';
+            roleBtn.textContent = state.lang === 'ur' ? 'رول مینوئل' : 'Role Manuals';
+        }
+        if (
+            (state.groupFilter === 'recent-updates' && !hasRecentUpdates)
+            || (state.groupFilter === 'category-playbook' && !hasPlaybook)
+            || (state.groupFilter === 'role-manual' && !hasRoleManuals)
+        ) {
+            state.groupFilter = 'all';
+            document.querySelectorAll('[data-guide-group]').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-guide-group') === 'all');
+            });
+        }
+
+        let chapters = allVisibleChapters;
+        if (state.groupFilter && state.groupFilter !== 'all') {
+            chapters = chapters.filter(ch => {
+                if (state.groupFilter === 'recent-updates') return Boolean(ch.isRecentUpdate);
+                if (state.groupFilter === 'core-start') return ch.group === 'getting-started' || ch.group === 'core-modules';
+                return ch.group === state.groupFilter;
+            });
+        }
+
+        document.getElementById('ugRailLabel').textContent = state.lang === 'ur' ? 'ابواب (ماڈیولز)' : 'Guide Chapters';
+        document.getElementById('ugRailCount').textContent = String(chapters.length);
+
+        const listEl = document.getElementById('ugChapterList');
+        const readerEl = document.getElementById('ugReaderPane');
+
+        if (chapters.length === 0) {
+            listEl.innerHTML = `<div class="ug-empty" style="padding:20px 14px; font-size:13px;">${state.lang === 'ur' ? 'کوئی باب نہیں ملا' : 'No matching chapters'}</div>`;
+            readerEl.innerHTML = `
+                <div class="ug-empty">
+                    <h3 style="margin:0 0 8px; color:var(--ug-text);">${state.lang === 'ur' ? 'کوئی موضوع نہیں ملا' : 'No guide topic matched your search'}</h3>
+                    <p style="margin:0 0 16px;">${state.lang === 'ur' ? 'تلاش صاف کر کے تمام ابواب دیکھیں۔' : 'Clear your search filter to browse all chapters for your active category.'}</p>
+                    <button type="button" class="ug-primary-btn" id="ugEmptyClearBtn">${state.lang === 'ur' ? 'تلاش صاف کریں' : 'Clear Search'}</button>
+                </div>
+            `;
+            const clr = document.getElementById('ugEmptyClearBtn');
+            if (clr) {
+                clr.addEventListener('click', () => {
+                    state.searchQuery = '';
+                    document.getElementById('ugSearchInput').value = '';
+                    document.getElementById('ugSearchClear').classList.remove('show');
+                    renderAll();
+                });
+            }
+            return;
+        }
+
+        // Match active chapter by id or moduleId
+        let activeCh = chapters.find(c => c.id === state.activeChapterId || c.moduleId === state.activeChapterId);
+        if (!activeCh) {
+            activeCh = chapters[0];
+            state.activeChapterId = activeCh.id;
+        }
+
+        listEl.innerHTML = chapters.map((ch, idx) => {
+            const isAct = ch.id === activeCh.id;
+            const num = String(idx + 1).padStart(2, '0') + '.';
+            const titleText = state.lang === 'ur' ? ch.titleUr : ch.titleEn;
+            const subLine = ch.isLocked
+                ? (state.lang === 'ur' ? 'پرو پیکیج ماڈیول' : 'Pro Plan module')
+                : (state.lang === 'both' ? ch.titleUr : `${ch.readMins || 2} min read`);
+            return `
+                <button type="button" class="ug-chapter-item ${isAct ? 'active' : ''}" data-chapter-id="${escapeHtml(ch.id)}">
+                    <span class="ug-chapter-num ug-tabular">${num}</span>
+                    <span class="ug-chapter-labels">
+                        <span class="ug-chapter-name ${state.lang === 'ur' ? 'ug-ur' : ''}">${escapeHtml(titleText)}</span>
+                        <span class="ug-chapter-sub ${state.lang === 'both' || state.lang === 'ur' ? 'ug-ur' : ''}" style="display:block;">${escapeHtml(subLine)}</span>
+                    </span>
+                </button>
+            `;
+        }).join('');
+
+        listEl.querySelectorAll('[data-chapter-id]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.activeChapterId = btn.getAttribute('data-chapter-id');
+                renderAll();
+                if (window.innerWidth <= 900) {
+                    readerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Render Active Chapter Reader
+        const lockBannerHtml = activeCh.isLocked ? `
+            <div class="ug-lock-notice">
+                <div>
+                    <strong>${state.lang === 'ur' ? 'پرو پیکیج فیچر' : 'Pro Package Feature'}:</strong>
+                    <span>${state.lang === 'ur' ? 'یہ ماڈیول آپ کے موجودہ مفت پیکیج پر لاک ہے۔ آپ یہاں مکمل طریقہ پڑھ سکتے ہیں اور اپ گریڈ کر کے اسے ان لاک کر سکتے ہیں۔' : 'This module is currently locked on your active plan. You can review how it works here and upgrade anytime to unlock it.'}</span>
+                </div>
+                <button type="button" class="ug-link-btn" id="ugUpgradeModuleBtn">
+                    <i class="fas fa-lock"></i>
+                    <span>${state.lang === 'ur' ? 'پیکیج اپ گریڈ دیکھیں' : 'View Upgrade Options'}</span>
+                </button>
+            </div>
+        ` : '';
+
+        const openBtnLabel = state.lang === 'ur' ? 'یہ ماڈیول کھولیں' : 'Open Module';
+        const ctaHtml = activeCh.isLocked
+            ? ''
+            : `<a class="ug-primary-btn" href="${escapeHtml(activeCh.actionUrl || 'dashboard.html')}">
+                   <span>${escapeHtml(openBtnLabel)}</span>
+                   <i class="fas fa-arrow-right" style="font-size:12px;"></i>
+               </a>`;
+
+        const stepsHtml = (activeCh.steps || []).map((st, idx) => `
+            <li class="ug-step-item">
+                <span class="ug-step-index ug-tabular">${String(idx + 1).padStart(2, '0')}</span>
+                <div class="ug-step-content">
+                    <h4 class="ug-step-heading">${renderBilingualText(st.headingEn, st.headingUr)}</h4>
+                    <p class="ug-step-detail">${renderBilingualText(st.detailEn, st.detailUr)}</p>
+                </div>
+            </li>
+        `).join('');
+
+        const faqsHtml = (activeCh.faqs || []).length ? `
+            <section class="ug-section-block" style="margin-bottom:0;">
+                <h3 class="ug-section-heading">${state.lang === 'ur' ? 'عام مسائل اور فوری حل (FAQs)' : 'Common Problems & Quick Fixes'}</h3>
+                <div>
+                    ${activeCh.faqs.map((fq, idx) => {
+                        const faqKey = `${activeCh.id}_${idx}`;
+                        const isOpen = Boolean(state.openFaqs[faqKey]) || Boolean(state.searchQuery);
+                        return `
+                            <div class="ug-faq-item ${isOpen ? 'open' : ''}" data-faq-key="${escapeHtml(faqKey)}">
+                                <button type="button" class="ug-faq-btn">
+                                    <span>${renderBilingualText(fq.qEn, fq.qUr)}</span>
+                                    <i class="fas fa-chevron-down ug-faq-chevron"></i>
+                                </button>
+                                <div class="ug-faq-answer">${renderBilingualText(fq.aEn, fq.aUr)}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </section>
+        ` : '';
+
+        const updateMetaHtml = activeCh.isRecentUpdate
+            ? `<span aria-hidden="true">·</span><span style="color:var(--ug-accent); font-weight:700;">${activeCh.autoSynced ? (state.lang === 'ur' ? 'خودکار اپڈیٹ شدہ' : 'Auto-Synced') : (state.lang === 'ur' ? `تازہ اپڈیٹ v${escapeHtml(activeCh.addedInVersion || engine.GUIDE_CURRENT_VERSION)}` : `New in v${escapeHtml(activeCh.addedInVersion || engine.GUIDE_CURRENT_VERSION)}`)}</span>`
+            : '';
+
+        readerEl.innerHTML = `
+            <div class="ug-reader-meta">
+                <span>${escapeHtml(state.lang === 'ur' ? catMeta.nameUr : catMeta.nameEn)}</span>
+                <span aria-hidden="true">·</span>
+                <span>${activeCh.isCore ? (state.lang === 'ur' ? 'تمام پیکیجز میں دستیاب' : 'Included in all plans') : (state.lang === 'ur' ? 'پرو / کسٹم پیکیج' : 'Pro / Custom Plan')}</span>
+                <span aria-hidden="true">·</span>
+                <span class="ug-tabular">${activeCh.readMins || 2} min read</span>
+                ${updateMetaHtml}
+            </div>
+
+            ${lockBannerHtml}
+
+            <div class="ug-reader-head">
+                <div style="flex:1; min-width:220px;">
+                    <h2 class="ug-reader-title">${renderBilingualText(activeCh.titleEn, activeCh.titleUr)}</h2>
+                    <p class="ug-reader-summary">${renderBilingualText(activeCh.summaryEn, activeCh.summaryUr)}</p>
+                </div>
+                ${ctaHtml}
+            </div>
+
+            <section class="ug-section-block">
+                <h3 class="ug-section-heading">${state.lang === 'ur' ? 'یہ ماڈیول کب استعمال کریں؟' : 'When to Use This Module'}</h3>
+                <p class="ug-step-detail">${renderBilingualText(activeCh.whenToUseEn, activeCh.whenToUseUr)}</p>
+            </section>
+
+            <section class="ug-section-block">
+                <h3 class="ug-section-heading">${state.lang === 'ur' ? 'قدم بہ قدم مکمل طریقہ کار' : 'Step-by-Step Instructions'}</h3>
+                <ol class="ug-step-list">${stepsHtml}</ol>
+            </section>
+
+            ${(activeCh.tipsEn || activeCh.tipsUr) ? `
+                <section class="ug-section-block">
+                    <h3 class="ug-section-heading">${state.lang === 'ur' ? 'اہم مشورہ' : 'Practical Tip'}</h3>
+                    <div class="ug-tip-box">${renderBilingualText(activeCh.tipsEn, activeCh.tipsUr)}</div>
+                </section>
+            ` : ''}
+
+            ${faqsHtml}
+        `;
+
+        const upgBtn = document.getElementById('ugUpgradeModuleBtn');
+        if (upgBtn) {
+            upgBtn.addEventListener('click', () => {
+                if (window.SaaSModules && typeof window.SaaSModules.showUpgradeModal === 'function') {
+                    window.SaaSModules.showUpgradeModal(activeCh.moduleId, ctx.agency, ctx.profile);
+                }
+            });
+        }
+
+        readerEl.querySelectorAll('.ug-faq-item .ug-faq-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const parent = btn.closest('.ug-faq-item');
+                const k = parent.getAttribute('data-faq-key');
+                const willOpen = !parent.classList.contains('open');
+                parent.classList.toggle('open', willOpen);
+                state.openFaqs[k] = willOpen;
+            });
+        });
+    }
+
+    // Bind static controls
+    document.querySelectorAll('[data-guide-lang]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.lang = btn.getAttribute('data-guide-lang') || 'en';
+            try { localStorage.setItem('eb_guide_lang', state.lang); } catch (_) {}
+            renderAll();
+        });
+    });
+
+    const searchInput = document.getElementById('ugSearchInput');
+    const searchClear = document.getElementById('ugSearchClear');
+    searchInput.addEventListener('input', () => {
+        state.searchQuery = searchInput.value.trim();
+        searchClear.classList.toggle('show', state.searchQuery.length > 0);
+        renderAll();
+    });
+    searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        state.searchQuery = '';
+        searchClear.classList.remove('show');
+        searchInput.focus();
+        renderAll();
+    });
+
+    const previewSel = document.getElementById('ugSuperAdminCatPreview');
+    previewSel.addEventListener('change', () => {
+        state.previewCategoryId = previewSel.value;
+        renderAll();
+    });
+
+    document.querySelectorAll('[data-guide-group]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.groupFilter = btn.getAttribute('data-guide-group') || 'all';
+            document.querySelectorAll('[data-guide-group]').forEach(b => {
+                b.classList.toggle('active', b === btn);
+            });
+            renderAll();
+        });
+    });
+
+    const clToggle = document.getElementById('ugChecklistToggle');
+    clToggle.addEventListener('click', () => {
+        state.checklistCollapsed = !state.checklistCollapsed;
+        renderAll();
+    });
+    clToggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            state.checklistCollapsed = !state.checklistCollapsed;
+            renderAll();
+        }
+    });
+
+    document.getElementById('ugResetChecklistBtn').addEventListener('click', () => {
+        const ctx = getUserContext();
+        engine.resetChecklist(ctx.agencyId, ctx.activeCategoryId);
+        renderAll();
+    });
+
+    window.addEventListener('eb-lang-changed', (e) => {
+        if (e && e.detail && e.detail.lang) {
+            state.lang = e.detail.lang === 'en-ur' ? 'both' : 'en';
+            try { localStorage.setItem('eb_guide_lang', state.lang); } catch (_) {}
+            renderAll();
+        }
+    });
+
+    // Initial render + re-render once Firebase auth/profile hydrates via sidebar.js
+    renderAll();
+    setTimeout(renderAll, 600);
+    setTimeout(renderAll, 1600);
+})();
+</script>
+</body>
+</html>

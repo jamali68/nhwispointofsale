@@ -175,6 +175,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
                 { icon: 'fa-cloud-arrow-up', text: 'Backup & Restore <span class="ur-sub">(بیک اپ و ڈیٹا بحالی)</span>', url: 'backup.html', roles: ['super-admin', 'owner'] },
                 { icon: 'fa-cloud-arrow-down', text: 'Cloud Sync & Shifts <span class="ur-sub">(کلاؤڈ سنک و شفٹس)</span>', url: 'settings.html?tab=secSyncSchedule', roles: ['super-admin', 'owner', 'booker'] },
                 { icon: 'fa-gear', text: 'Settings <span class="ur-sub">(ایجنسی سیٹنگز)</span>', url: 'settings.html', roles: ['super-admin', 'owner'] },
+                { icon: 'fa-book-open-reader', text: 'User Guide <span class="ur-sub">(یوزر گائیڈ)</span>', url: 'user-guide.html', roles: ['super-admin', 'owner', 'booker', 'supplier'] },
             ]
         }
     ];
@@ -185,6 +186,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
             title: 'SAAS PLATFORM <span class="ur-sub">(سپر ایڈمن کنٹرول روم)</span>',
             items: [
                 { icon: 'fa-gauge-high', text: 'Executive Dashboard <span class="ur-sub">(پلیٹ فارم جائزہ)</span>', url: 'admin.html', roles: ['super-admin'] },
+                { icon: 'fa-server', text: 'Cloud Quota & Usage <span class="ur-sub">(فائر بیس و نیٹلی فائی رپورٹ)</span>', url: 'admin.html#tabCloudQuota', roles: ['super-admin'] },
                 { icon: 'fa-trophy', text: 'Store Intelligence & Rankings <span class="ur-sub">(رینکنگ و کارکردگی)</span>', url: 'admin.html#tabLeaderboard', roles: ['super-admin'] },
                 { icon: 'fa-building', text: 'Client Stores & Governance <span class="ur-sub">(تمام رجسٹرڈ دکانیں)</span>', url: 'admin.html#tabAgencies', roles: ['super-admin'] },
                 { icon: 'fa-cubes', text: 'Customizable Packages <span class="ur-sub">(پیکیجز و کسٹمائزیشن)</span>', url: 'admin.html#tabPackages', roles: ['super-admin'] },
@@ -198,6 +200,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
                 { icon: 'fa-network-wired', text: 'Multi-Agency Hub <span class="ur-sub">(ملٹی ایجنسی و برانچز آڈٹ)</span>', url: 'multi-agency.html', roles: ['super-admin', 'owner'] },
                 { icon: 'fa-money-bill-wave', text: 'Subscriptions & Revenue <span class="ur-sub">(ماہانہ فیس لاگ)</span>', url: 'admin.html#tabOverview', roles: ['super-admin'] },
                 { icon: 'fa-cloud-arrow-up', text: 'Cloud Data Backup <span class="ur-sub">(بیک اپ و ڈیٹا بحالی)</span>', url: 'backup.html', roles: ['super-admin'] },
+                { icon: 'fa-book-open-reader', text: 'User Guide <span class="ur-sub">(یوزر گائیڈ)</span>', url: 'user-guide.html', roles: ['super-admin'] },
             ]
         }
     ];
@@ -1635,11 +1638,14 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
             'reports.html': { title: 'Reports & Analytics <span class="ur-sub">(کاروباری رپورٹس)</span>', icon: '📈', color: '#059669' },
             'backup.html': { title: 'Backup & Restore <span class="ur-sub">(بیک اپ و ڈیٹا بحالی)</span>', icon: '💾', color: '#0284c7' },
             'settings.html': { title: role === 'booker' ? 'Cloud Sync & Shifts <span class="ur-sub">(کلاؤڈ سنک و شفٹس)</span>' : 'Agency Settings <span class="ur-sub">(ایجنسی سیٹنگز)</span>', icon: role === 'booker' ? '☁️' : '⚙️', color: '#0284c7' },
-            'profile.html': { title: 'My Account Profile <span class="ur-sub">(اکاؤنٹ پروفائل)</span>', icon: '👤', color: '#10b981' }
+            'profile.html': { title: 'My Account Profile <span class="ur-sub">(اکاؤنٹ پروفائل)</span>', icon: '👤', color: '#10b981' },
+            'user-guide.html': { title: 'A-to-Z User Guide <span class="ur-sub">(مکمل یوزر گائیڈ)</span>', icon: '📖', color: '#10b981' }
         };
 
         const activeFile = window.location.pathname.split('/').pop() || 'index.html';
         const pageConf = PAGE_CONFIG[activeFile] || { title: (document.title ? document.title.replace('Easy Bill Generator — ', '').replace('NH POS — ', '') : 'NH POS'), icon: '⚡', color: '#10b981' };
+        const helpModId = getModuleIdFromUrl(activeFile) || (activeFile === 'profile.html' ? 'profile' : (activeFile === 'admin.html' ? 'super_admin_hub' : 'start_here'));
+        const quickHelpHref = activeFile === 'user-guide.html' ? 'user-guide.html' : `user-guide.html?module=${encodeURIComponent(helpModId)}`;
 
         const agencyTitle = isSuperAdmin ? 'SaaS Master Platform' : (myProfile.agencyName || (myProfile.name ? myProfile.name : 'NH POS Enterprise'));
         const agencyCity = isSuperAdmin ? 'Master Platform HQ' : (myProfile.city || myProfile.depot || '');
@@ -1671,6 +1677,9 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
                         <span>OFFLINE</span>
                     </div>
 
+                    <a class="eb-topbar-btn" href="${quickHelpHref}" id="ebTopHelpBtn" title="Quick User Guide / یوزر گائیڈ" aria-label="Open User Guide for this page">
+                        <i class="fas fa-question-circle"></i>
+                    </a>
                     <a class="eb-topbar-btn eb-topbar-bell" href="alerts.html" title="Low Stock Alerts">
                         <i class="fas fa-bell"></i>
                         <span class="eb-bell-badge" id="ebSidebarBellBadge" style="display:none;">0</span>

@@ -1189,5 +1189,19 @@ window.EASYBILL_VERSION = (function() {
     });
 })();
 
+// ==========================================================================
+// 📊 AUTO-LOAD CLOUD QUOTA & TELEMETRY TRACKER ACROSS ALL PAGES
+// ==========================================================================
+(function autoLoadNhQuotaTracker() {
+    if (typeof document === 'undefined' || window.__ebQuotaTrackerInstalled) return;
+    if (document.querySelector('script[src*="quota-tracker.js"]')) return;
+    try {
+        var s = document.createElement('script');
+        s.src = 'quota-tracker.js';
+        s.async = false;
+        (document.head || document.documentElement).appendChild(s);
+    } catch (_) {}
+})();
+
 
 

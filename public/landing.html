@@ -528,29 +528,133 @@
             border: 1px solid #fde68a;
         }
 
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 28px;
-            align-items: stretch;
+        /* 💎 Interactive Live Package Slider */
+        .pricing-slider-tabs {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
         }
-        .pricing-card {
+        .pricing-tab-pill {
             background: #ffffff;
-            border: 1px solid var(--border);
+            border: 1.5px solid #cbd5e1;
+            color: var(--text-muted);
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: inherit;
+        }
+        .pricing-tab-pill:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .pricing-tab-pill.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.28);
+        }
+        .pricing-tab-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 5px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            background: #e2e8f0;
+            color: #334155;
+        }
+        .pricing-tab-pill.active .pricing-tab-num {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        .pricing-slider-shell {
+            position: relative;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 44px;
+        }
+        .pricing-slider-track {
+            display: flex;
+            gap: 22px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            padding: 20px 6px 26px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            direction: ltr;
+        }
+        .pricing-slider-track::-webkit-scrollbar {
+            display: none;
+        }
+        .pricing-slider-track.centered-track {
+            justify-content: center;
+        }
+        .pricing-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 1.5px solid #cbd5e1;
+            background: #ffffff;
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+            z-index: 15;
+            transition: all 0.2s ease;
+        }
+        .pricing-nav-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+            transform: translateY(-50%) scale(1.06);
+        }
+        .pricing-nav-btn.prev-btn { left: 0; }
+        .pricing-nav-btn.next-btn { right: 0; }
+        .pricing-nav-btn:disabled {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .pricing-card {
+            flex: 0 0 345px;
+            width: 345px;
+            max-width: 100%;
+            scroll-snap-align: center;
+            background: #ffffff;
+            border: 1.5px solid var(--border);
             border-radius: 22px;
-            padding: 34px 28px;
+            padding: 28px 24px 24px;
             display: flex;
             flex-direction: column;
             position: relative;
             box-shadow: var(--shadow-sm);
-            transition: all 0.25s ease;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
         .pricing-card.featured {
             border-color: var(--primary);
             border-width: 2px;
             background: #ffffff;
-            box-shadow: 0 20px 45px -10px rgba(5, 150, 105, 0.22);
-            transform: scale(1.03);
+            box-shadow: 0 18px 40px -10px rgba(5, 150, 105, 0.22);
         }
         .popular-badge {
             position: absolute;
@@ -566,62 +670,127 @@
             letter-spacing: 0.5px;
             text-transform: uppercase;
             box-shadow: 0 3px 10px rgba(5, 150, 105, 0.3);
+            white-space: nowrap;
+        }
+        .plan-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .plan-pos-chip {
+            font-size: 11px;
+            font-weight: 800;
+            color: #047857;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            padding: 2px 9px;
+            border-radius: 999px;
+        }
+        .plan-type-chip {
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #475569;
+            background: #f1f5f9;
+            padding: 2px 9px;
+            border-radius: 999px;
+        }
+        .plan-type-chip.multi {
+            color: #6d28d9;
+            background: #f3e8ff;
         }
         .plan-header {
-            margin-bottom: 24px;
-            padding-bottom: 20px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
             border-bottom: 1px solid var(--border);
         }
         .plan-name {
-            font-size: 21px;
+            font-size: 20px;
             font-weight: 800;
             margin-bottom: 6px;
             color: var(--text-main);
+            line-height: 1.25;
         }
         .plan-tagline {
             font-size: 13px;
             color: var(--text-muted);
-            min-height: 38px;
+            min-height: 36px;
+            line-height: 1.45;
         }
         .plan-price-wrap {
-            margin: 18px 0 6px;
+            margin: 14px 0 4px;
             display: flex;
             align-items: baseline;
             gap: 6px;
+            flex-wrap: wrap;
         }
         .plan-currency {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
             color: var(--text-muted);
         }
         .plan-amount {
-            font-size: 42px;
+            font-size: 38px;
             font-weight: 800;
             letter-spacing: -1px;
             color: var(--text-main);
         }
         .plan-period {
-            font-size: 13px;
+            font-size: 12.5px;
             color: var(--text-sub);
+            font-weight: 600;
+        }
+        .plan-limits-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .plan-limit-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 10px;
+        }
+        .plan-limit-box.off {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+        .plan-limit-lbl {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+        .plan-limit-val {
+            font-size: 13px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .plan-limit-box.off .plan-limit-val {
+            color: #dc2626;
         }
         .plan-features-list {
             list-style: none;
-            margin-bottom: 30px;
+            margin-bottom: 22px;
             flex-grow: 1;
         }
         .plan-features-list li {
-            font-size: 13.5px;
+            font-size: 13px;
             color: #334155;
             display: flex;
             align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 14px;
-            line-height: 1.45;
+            gap: 9px;
+            margin-bottom: 10px;
+            line-height: 1.4;
         }
-        .plan-features-list li i {
+        .plan-features-list li i.fa-check-circle,
+        .plan-features-list li i.fa-check {
             color: var(--primary);
-            margin-top: 3px;
-            font-size: 13px;
+            margin-top: 2px;
+            font-size: 13.5px;
             flex-shrink: 0;
         }
         .plan-features-list li.disabled {
@@ -629,7 +798,46 @@
             text-decoration: line-through;
         }
         .plan-features-list li.disabled i {
-            color: #cbd5e1;
+            color: #ef4444;
+            opacity: 0.75;
+            margin-top: 2px;
+            font-size: 13.5px;
+            flex-shrink: 0;
+        }
+        .pricing-slider-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .pricing-slider-dots {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .pricing-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            border: none;
+            background: #cbd5e1;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.2s ease;
+        }
+        .pricing-dot.active {
+            width: 26px;
+            background: var(--primary);
+        }
+        .pricing-swipe-hint {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-sub);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* ❓ FAQ Section */
@@ -797,13 +1005,26 @@
             .hero-trust-bar {
                 justify-content: center;
             }
-            .features-grid, .pricing-grid {
+            .features-grid {
                 grid-template-columns: 1fr;
                 max-width: 480px;
                 margin: 0 auto;
             }
-            .pricing-card.featured {
-                transform: none;
+            .pricing-slider-shell {
+                padding: 0 10px;
+            }
+            .pricing-nav-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 14px;
+            }
+            .pricing-nav-btn.prev-btn { left: 2px; }
+            .pricing-nav-btn.next-btn { right: 2px; }
+            .pricing-card {
+                flex: 0 0 calc(100% - 26px);
+                width: calc(100% - 26px);
+                max-width: 400px;
+                padding: 24px 18px 20px;
             }
             .faq-grid {
                 grid-template-columns: 1fr;
@@ -1126,87 +1347,29 @@
             <span class="discount-tag">🔥 2 Months Free on Yearly!</span>
         </div>
 
-        <div class="pricing-grid">
-            <!-- PLAN 1: FREE FOREVER -->
-            <div class="pricing-card">
-                <div class="plan-header">
-                    <h3 class="plan-name" data-en="Free Starter" data-ur="فری اسٹارٹر (مفت)">Free Starter</h3>
-                    <p class="plan-tagline" data-en="Ideal for small single-counter shops and new retail outlets." data-ur="چھوٹی دکانوں اور شروعاتی کاروبار کے لیے لائف ٹائم مفت۔">Ideal for small single-counter shops and new retail outlets.</p>
-                    <div class="plan-price-wrap">
-                        <span class="plan-currency">Rs</span>
-                        <span class="plan-amount">0</span>
-                        <span class="plan-period" data-en="/ lifetime" data-ur="/ لائف ٹائم">/ lifetime</span>
-                    </div>
-                </div>
+        <!-- Quick Package Position Tabs (Synced with Super Admin Order) -->
+        <div class="pricing-slider-tabs" id="pricingSliderTabs"></div>
 
-                <ul class="plan-features-list">
-                    <li><i class="fas fa-check"></i> <span data-en="1 Shop / Counter Access" data-ur="1 دکان یا کاؤنٹر">1 Shop / Counter Access</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Up to 100 Products Inventory" data-ur="100 آئٹمز تک اسٹاک">Up to 100 Products Inventory</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Fast POS Billing & Thermal Receipts" data-ur="تیز رفتار بلنگ و تھرمل پرنٹ">Fast POS Billing & Thermal Receipts</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Customer Khata Ledger (50 Customers)" data-ur="50 گاہکوں کا ادھار کھاتہ">Customer Khata Ledger (50 Customers)</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="100% Offline PWA Functionality" data-ur="مکمل آف لائن سپورٹ">100% Offline PWA Functionality</span></li>
-                    <li class="disabled"><i class="fas fa-times"></i> <span data-en="WhatsApp Invoice PDFs" data-ur="واٹس ایپ پی ڈی ایف بل">WhatsApp Invoice PDFs</span></li>
-                    <li class="disabled"><i class="fas fa-times"></i> <span data-en="Booker Orders & Dispatch" data-ur="سیلز بکر آرڈرز">Booker Orders & Dispatch</span></li>
-                </ul>
-
-                <a href="auth.html?mode=signup" class="btn-outline" style="text-align: center; justify-content: center; width: 100%;" data-en="Sign Up Free" data-ur="ابھی مفت سائن اپ کریں">
-                    Sign Up Free
-                </a>
+        <!-- Interactive Horizontal Package Slider -->
+        <div class="pricing-slider-shell">
+            <button type="button" class="pricing-nav-btn prev-btn" id="pricingPrevBtn" onclick="slidePackages(-1)" aria-label="Previous Package">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="pricing-slider-track" id="livePricingSliderTrack" role="region" aria-label="Subscription Packages Slider">
+                <!-- Populated LIVE from Super Admin / Firestore packages -->
             </div>
+            <button type="button" class="pricing-nav-btn next-btn" id="pricingNextBtn" onclick="slidePackages(1)" aria-label="Next Package">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
 
-            <!-- PLAN 2: PRO RETAILER (FEATURED) -->
-            <div class="pricing-card featured">
-                <span class="popular-badge" data-en="MOST POPULAR" data-ur="سب سے مقبول">MOST POPULAR</span>
-                <div class="plan-header">
-                    <h3 class="plan-name" style="color: #059669;" data-en="Pro Retailer" data-ur="پرو ریٹیلر">Pro Retailer</h3>
-                    <p class="plan-tagline" data-en="Best for busy general stores, marts, and mobile shops." data-ur="کامیاب دکانوں، مارٹس اور موبائل دکانوں کے لیے مکمل پیکیج۔">Best for busy general stores, marts, and mobile shops.</p>
-                    <div class="plan-price-wrap">
-                        <span class="plan-currency">Rs</span>
-                        <span class="plan-amount" id="proPrice" style="color:#059669;">1,499</span>
-                        <span class="plan-period" id="proPeriod" data-en="/ month" data-ur="/ ماہانہ">/ month</span>
-                    </div>
-                </div>
-
-                <ul class="plan-features-list">
-                    <li><i class="fas fa-check"></i> <strong data-en="Unlimited Products & Bills" data-ur="لامحدود پراڈکٹس اور بلز">Unlimited Products & Bills</strong></li>
-                    <li><i class="fas fa-check"></i> <strong data-en="Unlimited Customer Khata" data-ur="لامحدود گاہکوں کا کھاتہ">Unlimited Customer Khata</strong></li>
-                    <li><i class="fas fa-check"></i> <span data-en="1-Click WhatsApp Invoices & Reminders" data-ur="واٹس ایپ پر بل اور ادھار وصولی">1-Click WhatsApp Invoices & Reminders</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Barcode & Camera Fast Scanner" data-ur="بارکوڈ اور کیمرہ اسکینر">Barcode & Camera Fast Scanner</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Real-Time Profit Margin Analytics" data-ur="خالص منافع اور اخراجات کا حساب">Real-Time Profit Margin Analytics</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Automated Daily Cloud Sync" data-ur="کلاؤڈ بیک اپ و ڈیٹا تحفظ">Automated Daily Cloud Sync</span></li>
-                    <li class="disabled"><i class="fas fa-times"></i> <span data-en="Multi-Agency Dispatch Hub" data-ur="ملٹی ایجنسی ڈسپیچ ہب">Multi-Agency Dispatch Hub</span></li>
-                </ul>
-
-                <a href="auth.html?mode=signup&plan=pro" class="btn-primary" style="text-align: center; justify-content: center; width: 100%;" data-en="Sign Up for Pro" data-ur="پرو سائن اپ کریں">
-                    Sign Up for Pro
-                </a>
-            </div>
-
-            <!-- PLAN 3: BUSINESS & AGENCY -->
-            <div class="pricing-card">
-                <div class="plan-header">
-                    <h3 class="plan-name" data-en="Business & Agency" data-ur="بزنس و ہول سیل ایجنسی">Business & Agency</h3>
-                    <p class="plan-tagline" data-en="Built for wholesalers, distributors, and multi-booker networks." data-ur="ہول سیلرز، ایجنسیوں اور فیلڈ بکرز کے مکمل نیٹ ورک کے لیے۔">Built for wholesalers, distributors, and multi-booker networks.</p>
-                    <div class="plan-price-wrap">
-                        <span class="plan-currency">Rs</span>
-                        <span class="plan-amount" id="bizPrice">3,499</span>
-                        <span class="plan-period" id="bizPeriod" data-en="/ month" data-ur="/ ماہانہ">/ month</span>
-                    </div>
-                </div>
-
-                <ul class="plan-features-list">
-                    <li><i class="fas fa-check"></i> <strong data-en="Everything in Pro Plan Included" data-ur="پرو کے تمام فیچرز شامل ہیں">Everything in Pro Plan Included</strong></li>
-                    <li><i class="fas fa-check"></i> <strong data-en="Full Booker Mobile Order Engine" data-ur="فیلڈ سیلز بکرز موبائل سسٹم">Full Booker Mobile Order Engine</strong></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Warehouse Dispatch & Vehicle Loading" data-ur="گودام پیکنگ و لوڈنگ ڈسپیچ">Warehouse Dispatch & Vehicle Loading</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Multi-Agency / Multi-Branch Hub" data-ur="ملٹی برانچ اور ملٹی ایجنسی لاگ ان">Multi-Agency / Multi-Branch Hub</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Unlimited Staff & Booker Accounts" data-ur="لامحدود اسٹاف اور بکر اکاؤنٹس">Unlimited Staff & Booker Accounts</span></li>
-                    <li><i class="fas fa-check"></i> <span data-en="Priority 24/7 Phone & WhatsApp Support" data-ur="ترجیحی 24/7 فون اور واٹس ایپ سپورٹ">Priority 24/7 Phone & WhatsApp Support</span></li>
-                </ul>
-
-                <a href="auth.html?mode=signup&plan=business" class="btn-outline" style="text-align: center; justify-content: center; width: 100%;" data-en="Sign Up for Business" data-ur="بزنس سائن اپ کریں">
-                    Sign Up for Business
-                </a>
-            </div>
+        <!-- Slider Dot Indicators & Counter -->
+        <div class="pricing-slider-footer">
+            <div class="pricing-slider-dots" id="pricingSliderDots"></div>
+            <span class="pricing-swipe-hint" id="pricingSliderCounter">
+                <i class="fas fa-arrows-left-right"></i>
+                <span data-en="Slide to compare all plans" data-ur="تمام پیکیجز کا موازنہ کرنے کے لیے سلائیڈ کریں">Slide to compare all plans</span>
+            </span>
         </div>
     </section>
 
@@ -1284,47 +1447,525 @@
         <i class="fab fa-whatsapp"></i>
     </a>
 
-    <!-- ⚙️ INTERACTIVE SCRIPTS -->
+    <!-- ⚙️ INTERACTIVE SCRIPTS (LIVE SUPER ADMIN PACKAGES & SLIDER) -->
     <script>
-        // 🔄 Billing Cycle Toggle (Monthly vs Yearly Discount)
+        const LIVE_PACKAGES_CACHE_KEY = 'eb_live_packages_v1';
+        const PUBLIC_CATALOG_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_catalog';
+        const FIRESTORE_PACKAGES_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/(default)/documents/packages?pageSize=100';
+
+        // Exact parity with Super Admin's permission modules
+        const WEBSITE_MODULE_CATALOG = [
+            { id: 'delivery_returns', en: 'Van Dispatch & Delivery Returns', ur: 'وین ڈسپیچ و مال واپسی' },
+            { id: 'claims', en: 'Damage, Expire & Claims Hub', ur: 'ڈیمیج، ایکسپائری اور کلیمز' },
+            { id: 'expenses', en: 'Daily Expenses & Payroll', ur: 'روزانہ اخراجات و تنخواہ' },
+            { id: 'alerts', en: 'Low Stock Alerts & Reorder', ur: 'کم اسٹاک الرٹس و ری آرڈر' },
+            { id: 'reports', en: 'Sales & Wholesale Reports', ur: 'سیلز اور کاروباری رپورٹس' },
+            { id: 'profit', en: 'Profit Analytics & Margin', ur: 'خالص منافع کا تفصیلی تجزیہ' },
+            { id: 'owner', en: 'Staff & Role Management', ur: 'اسٹاف اور رول کنٹرول' },
+            { id: 'backup', en: 'Cloud Backup & JSON Restore', ur: 'کلاؤڈ بیک اپ و ڈیٹا بحالی' },
+            { id: 'session_security', en: 'Session Auto-Timeout Security', ur: 'سیشن آٹو لاک سیکیورٹی' },
+            { id: 'gps_tracking', en: 'Live GPS Booker Tracking', ur: 'لائیو GPS بکر لوکیشن ٹریکنگ' }
+        ];
+
+        const DEFAULT_WEBSITE_PACKAGES = {
+            free: {
+                id: 'free',
+                name: '🆓 Free Starter',
+                tagline: 'Ideal for small single-counter shops and new retail outlets.',
+                taglineUr: 'چھوٹی دکانوں اور شروعاتی کاروبار کے لیے لائف ٹائم مفت۔',
+                showOnWebsite: true,
+                displayOrder: 1,
+                featured: false,
+                type: 'single',
+                fee: 0,
+                limits: { maxBranches: 1, maxItems: 50, monthlyBills: 150, maxBookers: 0 },
+                allowedModules: {
+                    booker_orders: false, delivery_returns: false, claims: false,
+                    expenses: false, alerts: false, reports: false, profit: false,
+                    owner: false, backup: false, session_security: false, multi_agency: false,
+                    gps_tracking: false
+                }
+            },
+            starter_single: {
+                id: 'starter_single',
+                name: '🏪 Single Agency Pro',
+                tagline: 'Best for busy general stores, marts, and growing agencies.',
+                taglineUr: 'کامیاب دکانوں، مارٹس اور بڑھتی ہوئی ایجنسیوں کے لیے مکمل پیکیج۔',
+                showOnWebsite: true,
+                displayOrder: 2,
+                featured: true,
+                type: 'single',
+                fee: 2000,
+                limits: { maxBranches: 1, maxItems: 500, monthlyBills: 99999, maxBookers: 3 },
+                allowedModules: {
+                    booker_orders: true, delivery_returns: true, claims: true,
+                    expenses: true, alerts: true, reports: true, profit: true,
+                    owner: true, backup: true, session_security: true, multi_agency: false,
+                    gps_tracking: false
+                }
+            },
+            wholesale_dist: {
+                id: 'wholesale_dist',
+                name: '📦 Wholesale Distribution Pro',
+                tagline: 'Built for wholesale distributors and active field sales teams.',
+                taglineUr: 'ہول سیل ڈسٹری بیوٹرز اور فیلڈ سیلز ٹیموں کے لیے بہترین۔',
+                showOnWebsite: true,
+                displayOrder: 3,
+                featured: false,
+                type: 'single',
+                fee: 3500,
+                limits: { maxBranches: 1, maxItems: 1500, monthlyBills: 99999, maxBookers: 6 },
+                allowedModules: {
+                    booker_orders: true, delivery_returns: true, claims: true,
+                    expenses: true, alerts: true, reports: true, profit: true,
+                    owner: true, backup: true, session_security: true, multi_agency: false,
+                    gps_tracking: false
+                }
+            },
+            multi_pro: {
+                id: 'multi_pro',
+                name: '🏢 Multi-Agency Pro',
+                tagline: 'Connect multiple branches, depots, and inter-branch stock.',
+                taglineUr: 'متعدد برانچز، گوداموں اور انٹر برانچ اسٹاک کنٹرول کے لیے۔',
+                showOnWebsite: true,
+                displayOrder: 4,
+                featured: false,
+                type: 'multi',
+                fee: 5000,
+                limits: { maxBranches: 3, maxItems: 3000, monthlyBills: 99999, maxBookers: 12 },
+                allowedModules: {
+                    booker_orders: true, delivery_returns: true, claims: true,
+                    expenses: true, alerts: true, reports: true, profit: true,
+                    owner: true, backup: true, session_security: true, multi_agency: true,
+                    gps_tracking: false
+                }
+            },
+            enterprise_multi: {
+                id: 'enterprise_multi',
+                name: '👑 Enterprise Unlimited',
+                tagline: 'Unlimited scale for mega distributors and multi-city networks.',
+                taglineUr: 'بڑے ڈسٹری بیوٹرز اور ملٹی سٹی نیٹ ورکس کے لیے لامحدود سہولیات۔',
+                showOnWebsite: true,
+                displayOrder: 5,
+                featured: false,
+                type: 'multi',
+                fee: 10000,
+                limits: { maxBranches: 10, maxItems: 99999, monthlyBills: 99999, maxBookers: 50 },
+                allowedModules: {
+                    booker_orders: true, delivery_returns: true, claims: true,
+                    expenses: true, alerts: true, reports: true, profit: true,
+                    owner: true, backup: true, session_security: true, multi_agency: true,
+                    gps_tracking: false
+                }
+            }
+        };
+
         let currentCycle = 'monthly';
+        let currentLang = localStorage.getItem('eb_landing_lang') || 'en';
+        let livePackagesList = [];
+        let activeSlideIndex = 0;
+
+        function escapeLandingHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function decodeFirestoreValue(val) {
+            if (!val || typeof val !== 'object') return null;
+            if ('stringValue' in val) return val.stringValue;
+            if ('booleanValue' in val) return Boolean(val.booleanValue);
+            if ('integerValue' in val) return parseInt(val.integerValue, 10);
+            if ('doubleValue' in val) return Number(val.doubleValue);
+            if ('nullValue' in val) return null;
+            if ('timestampValue' in val) return val.timestampValue;
+            if ('arrayValue' in val) {
+                return (val.arrayValue.values || []).map(decodeFirestoreValue);
+            }
+            if ('mapValue' in val) {
+                const out = {};
+                const fields = val.mapValue.fields || {};
+                for (const [k, v] of Object.entries(fields)) {
+                    out[k] = decodeFirestoreValue(v);
+                }
+                return out;
+            }
+            return null;
+        }
+
+        function normalizeLivePackagesForWebsite(rawMap) {
+            const entries = Object.entries(rawMap || {});
+            const list = [];
+
+            for (const [id, raw] of entries) {
+                if (!raw || typeof raw !== 'object') continue;
+                const def = DEFAULT_WEBSITE_PACKAGES[id] || {};
+                const showOnWebsite = raw.showOnWebsite !== undefined ? raw.showOnWebsite !== false : (def.showOnWebsite !== false);
+                if (!showOnWebsite) continue;
+
+                const lim = { ...(def.limits || {}), ...(raw.limits || {}) };
+                const mods = { ...(def.allowedModules || {}), ...(raw.allowedModules || {}) };
+
+                const bookerEnabled = mods.booker_orders !== undefined
+                    ? mods.booker_orders === true
+                    : (id !== 'free' && Number(lim.maxBookers || 0) > 0);
+                const multiEnabled = mods.multi_agency !== undefined
+                    ? mods.multi_agency === true
+                    : (raw.type === 'multi' || Number(lim.maxBranches || 1) > 1);
+
+                const orderVal = Number(raw.displayOrder);
+                const defOrder = Number(def.displayOrder);
+                const displayOrder = Number.isInteger(orderVal) && orderVal >= 1
+                    ? orderVal
+                    : (Number.isInteger(defOrder) && defOrder >= 1 ? defOrder : 999);
+
+                list.push({
+                    id: raw.id || id,
+                    name: raw.name || def.name || id,
+                    tagline: raw.tagline || def.tagline || 'Complete POS, Khata & Inventory suite.',
+                    taglineUr: raw.taglineUr || def.taglineUr || raw.tagline || 'مکمل POS، کھاتہ اور اسٹاک سسٹم۔',
+                    displayOrder: displayOrder,
+                    featured: raw.featured !== undefined ? raw.featured === true : def.featured === true,
+                    fee: Math.max(0, Number(raw.fee !== undefined ? raw.fee : (def.fee || 0)) || 0),
+                    bookerEnabled: bookerEnabled,
+                    maxBookers: bookerEnabled ? Math.max(1, parseInt(lim.maxBookers, 10) || 1) : 0,
+                    multiEnabled: multiEnabled,
+                    maxBranches: multiEnabled ? Math.max(1, parseInt(lim.maxBranches, 10) || 1) : 0,
+                    monthlyBills: Math.max(1, parseInt(lim.monthlyBills, 10) || 150),
+                    maxItems: Math.max(1, parseInt(lim.maxItems, 10) || 50),
+                    allowedModules: {
+                        ...mods,
+                        booker_orders: bookerEnabled,
+                        multi_agency: multiEnabled
+                    }
+                });
+            }
+
+            list.sort((a, b) => {
+                if (a.displayOrder !== b.displayOrder) return a.displayOrder - b.displayOrder;
+                return a.fee - b.fee;
+            });
+
+            return list;
+        }
+
+        function formatLimitNum(num, isUrdu) {
+            if (Number(num) >= 99999) return isUrdu ? 'لامحدود' : 'Unlimited';
+            return Number(num).toLocaleString();
+        }
+
+        function renderLivePricingSlider(preserveSlide) {
+            const track = document.getElementById('livePricingSliderTrack');
+            const tabsEl = document.getElementById('pricingSliderTabs');
+            const dotsEl = document.getElementById('pricingSliderDots');
+            const counterEl = document.getElementById('pricingSliderCounter');
+            if (!track) return;
+
+            const isUr = currentLang === 'ur';
+            const pkgs = livePackagesList;
+
+            if (!pkgs.length) {
+                track.innerHTML = `<div style="text-align:center; padding:32px; color:#64748b; width:100%; font-weight:700;">${isUr ? 'فی الحال کوئی پیکیج ویب سائٹ پر فعال نہیں ہے۔' : 'No packages are currently visible on the website.'}</div>`;
+                if (tabsEl) tabsEl.innerHTML = '';
+                if (dotsEl) dotsEl.innerHTML = '';
+                return;
+            }
+
+            if (activeSlideIndex >= pkgs.length) activeSlideIndex = 0;
+
+            // Tabs above slider
+            if (tabsEl) {
+                tabsEl.innerHTML = pkgs.map((pkg, idx) => `
+                    <button type="button" class="pricing-tab-pill ${idx === activeSlideIndex ? 'active' : ''}" onclick="goToPackageSlide(${idx})">
+                        <span class="pricing-tab-num">${pkg.displayOrder < 999 ? pkg.displayOrder : (idx + 1)}</span>
+                        <span>${escapeLandingHtml(pkg.name)}</span>
+                    </button>
+                `).join('');
+            }
+
+            // Cards inside horizontal slider track
+            track.classList.toggle('centered-track', pkgs.length <= 2);
+            track.innerHTML = pkgs.map((pkg, idx) => {
+                const isFree = pkg.fee <= 0;
+                const priceAmount = isFree
+                    ? '0'
+                    : (currentCycle === 'yearly' ? (pkg.fee * 10).toLocaleString() : pkg.fee.toLocaleString());
+                const periodText = isFree
+                    ? (isUr ? '/ لائف ٹائم' : '/ lifetime')
+                    : (currentCycle === 'yearly'
+                        ? (isUr ? '/ سالانہ (2 ماہ مفت)' : '/ year (2 mo free)')
+                        : (isUr ? '/ ماہانہ' : '/ month'));
+
+                const billsLabel = pkg.monthlyBills >= 99999
+                    ? (isUr ? 'لامحدود ماہانہ بلز' : 'Unlimited Monthly Bills')
+                    : (isUr ? `${pkg.monthlyBills.toLocaleString()} ماہانہ بلز` : `Up to ${pkg.monthlyBills.toLocaleString()} Monthly Bills`);
+                const itemsLabel = pkg.maxItems >= 99999
+                    ? (isUr ? 'لامحدود اسٹاک آئٹمز' : 'Unlimited Stock Items')
+                    : (isUr ? `${pkg.maxItems.toLocaleString()} اسٹاک آئٹمز` : `Up to ${pkg.maxItems.toLocaleString()} Stock Items`);
+
+                const bookerLine = pkg.bookerEnabled
+                    ? `<li><i class="fas fa-check-circle"></i> <strong>${isUr ? `${pkg.maxBookers} فیلڈ آرڈر بکر اور آرڈر ڈسپیچ` : `Up to ${pkg.maxBookers} Field Order ${pkg.maxBookers > 1 ? 'Bookers' : 'Booker'} & Dispatch`}</strong></li>`
+                    : `<li class="disabled"><i class="fas fa-times-circle"></i> <span>${isUr ? 'فیلڈ آرڈر بکرز اور ڈسپیچ' : 'Field Order Bookers & Dispatch'}</span></li>`;
+
+                const multiLine = pkg.multiEnabled
+                    ? `<li><i class="fas fa-check-circle"></i> <strong>${isUr ? `ملٹی ایجنسی ہب (${pkg.maxBranches} برانچز)` : `Multi-Agency Hub (${pkg.maxBranches} ${pkg.maxBranches > 1 ? 'Branches' : 'Branch'})`}</strong></li>`
+                    : `<li class="disabled"><i class="fas fa-times-circle"></i> <span>${isUr ? 'ملٹی ایجنسی / ملٹی برانچ ہب' : 'Multi-Agency / Multi-Branch Hub'}</span></li>`;
+
+                const moduleLines = WEBSITE_MODULE_CATALOG.map(mod => {
+                    const enabled = pkg.allowedModules && pkg.allowedModules[mod.id] === true;
+                    const lbl = isUr ? mod.ur : mod.en;
+                    return enabled
+                        ? `<li><i class="fas fa-check-circle"></i> <span>${escapeLandingHtml(lbl)}</span></li>`
+                        : `<li class="disabled"><i class="fas fa-times-circle"></i> <span>${escapeLandingHtml(lbl)}</span></li>`;
+                }).join('');
+
+                const ctaLabel = isFree
+                    ? (isUr ? 'ابھی مفت سائن اپ کریں' : 'Sign Up Free')
+                    : (isUr ? 'یہ پیکیج منتخب کریں' : `Choose ${pkg.name.replace(/^[^\w]+/, '').trim() || 'Plan'}`);
+
+                return `
+                <article class="pricing-card ${pkg.featured ? 'featured' : ''}" data-slide-idx="${idx}" dir="${isUr ? 'rtl' : 'ltr'}">
+                    ${pkg.featured ? `<span class="popular-badge">${isUr ? 'سب سے مقبول' : 'MOST POPULAR'}</span>` : ''}
+                    <div class="plan-meta-row">
+                        <span class="plan-pos-chip">#${pkg.displayOrder < 999 ? pkg.displayOrder : (idx + 1)}</span>
+                        <span class="plan-type-chip ${pkg.multiEnabled ? 'multi' : ''}">
+                            ${pkg.multiEnabled ? (isUr ? 'ملٹی ایجنسی' : 'Multi-Agency') : (isUr ? 'سنگل ایجنسی' : 'Single Agency')}
+                        </span>
+                    </div>
+
+                    <div class="plan-header">
+                        <h3 class="plan-name" ${pkg.featured ? 'style="color:#059669;"' : ''}>${escapeLandingHtml(pkg.name)}</h3>
+                        <p class="plan-tagline">${escapeLandingHtml(isUr ? pkg.taglineUr : pkg.tagline)}</p>
+                        <div class="plan-price-wrap">
+                            <span class="plan-currency">Rs</span>
+                            <span class="plan-amount" ${pkg.featured ? 'style="color:#059669;"' : ''}>${priceAmount}</span>
+                            <span class="plan-period">${escapeLandingHtml(periodText)}</span>
+                        </div>
+                    </div>
+
+                    <div class="plan-limits-grid">
+                        <div class="plan-limit-box">
+                            <span class="plan-limit-lbl">${isUr ? 'ماہانہ بلز' : 'Monthly Bills'}</span>
+                            <span class="plan-limit-val">✅ ${escapeLandingHtml(formatLimitNum(pkg.monthlyBills, isUr))}</span>
+                        </div>
+                        <div class="plan-limit-box">
+                            <span class="plan-limit-lbl">${isUr ? 'اسٹاک آئٹمز' : 'Stock Items'}</span>
+                            <span class="plan-limit-val">✅ ${escapeLandingHtml(formatLimitNum(pkg.maxItems, isUr))}</span>
+                        </div>
+                        <div class="plan-limit-box ${pkg.bookerEnabled ? '' : 'off'}">
+                            <span class="plan-limit-lbl">${isUr ? 'آرڈر بکرز' : 'Order Bookers'}</span>
+                            <span class="plan-limit-val">${pkg.bookerEnabled ? `✅ ${pkg.maxBookers}` : (isUr ? '❌ شامل نہیں' : '❌ OFF')}</span>
+                        </div>
+                        <div class="plan-limit-box ${pkg.multiEnabled ? '' : 'off'}">
+                            <span class="plan-limit-lbl">${isUr ? 'ملٹی ایجنسی' : 'Multi-Agency'}</span>
+                            <span class="plan-limit-val">${pkg.multiEnabled ? `✅ ${pkg.maxBranches}` : (isUr ? '❌ شامل نہیں' : '❌ OFF')}</span>
+                        </div>
+                    </div>
+
+                    <ul class="plan-features-list">
+                        <li><i class="fas fa-check-circle"></i> <strong>${isUr ? 'تیز رفتار POS بلنگ، کھاتہ اور آف لائن PWA' : 'Fast POS Billing, Customer Khata & Offline PWA'}</strong></li>
+                        <li><i class="fas fa-check-circle"></i> <strong>${escapeLandingHtml(billsLabel)}</strong></li>
+                        <li><i class="fas fa-check-circle"></i> <strong>${escapeLandingHtml(itemsLabel)}</strong></li>
+                        ${bookerLine}
+                        ${multiLine}
+                        ${moduleLines}
+                    </ul>
+
+                    <a href="auth.html?mode=signup&plan=${encodeURIComponent(pkg.id)}" class="${pkg.featured ? 'btn-primary' : 'btn-outline'}" style="text-align:center; justify-content:center; width:100%;">
+                        ${escapeLandingHtml(ctaLabel)}
+                    </a>
+                </article>`;
+            }).join('');
+
+            // Dots below slider
+            if (dotsEl) {
+                dotsEl.innerHTML = pkgs.map((_, idx) => `
+                    <button type="button" class="pricing-dot ${idx === activeSlideIndex ? 'active' : ''}" onclick="goToPackageSlide(${idx})" aria-label="Package ${idx + 1}"></button>
+                `).join('');
+            }
+
+            updateSliderActiveIndicators(activeSlideIndex);
+            if (preserveSlide) {
+                goToPackageSlide(activeSlideIndex, true);
+            }
+            if (counterEl) {
+                counterEl.innerHTML = `<i class="fas fa-arrows-left-right"></i> <span>${activeSlideIndex + 1} / ${pkgs.length} — ${isUr ? 'سلائیڈ کر کے پیکیجز موازنہ کریں' : 'Slide to compare all plans'}</span>`;
+            }
+        }
+
+        function updateSliderActiveIndicators(index) {
+            activeSlideIndex = Math.max(0, Math.min(index, Math.max(0, livePackagesList.length - 1)));
+            document.querySelectorAll('#pricingSliderTabs .pricing-tab-pill').forEach((btn, i) => {
+                btn.classList.toggle('active', i === activeSlideIndex);
+            });
+            document.querySelectorAll('#pricingSliderDots .pricing-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === activeSlideIndex);
+            });
+            const prevBtn = document.getElementById('pricingPrevBtn');
+            const nextBtn = document.getElementById('pricingNextBtn');
+            if (prevBtn) prevBtn.disabled = activeSlideIndex <= 0;
+            if (nextBtn) nextBtn.disabled = activeSlideIndex >= livePackagesList.length - 1;
+
+            const counterEl = document.getElementById('pricingSliderCounter');
+            if (counterEl && livePackagesList.length) {
+                const isUr = currentLang === 'ur';
+                counterEl.innerHTML = `<i class="fas fa-arrows-left-right"></i> <span>${activeSlideIndex + 1} / ${livePackagesList.length} — ${isUr ? 'سلائیڈ کر کے پیکیجز موازنہ کریں' : 'Slide to compare all plans'}</span>`;
+            }
+        }
+
+        function goToPackageSlide(index, instant) {
+            const track = document.getElementById('livePricingSliderTrack');
+            if (!track) return;
+            const cards = track.querySelectorAll('.pricing-card');
+            if (!cards.length) return;
+            const clamped = Math.max(0, Math.min(index, cards.length - 1));
+            const target = cards[clamped];
+            updateSliderActiveIndicators(clamped);
+            if (target) {
+                const left = target.offsetLeft - (track.clientWidth - target.clientWidth) / 2;
+                track.scrollTo({ left: Math.max(0, left), behavior: instant ? 'auto' : 'smooth' });
+            }
+        }
+        window.goToPackageSlide = goToPackageSlide;
+
+        function slidePackages(delta) {
+            goToPackageSlide(activeSlideIndex + delta);
+        }
+        window.slidePackages = slidePackages;
+
+        // Track active card while user swipes horizontally
+        (function bindSliderScrollSync() {
+            const track = document.getElementById('livePricingSliderTrack');
+            if (!track) return;
+            let scrollTimer = null;
+            track.addEventListener('scroll', () => {
+                if (scrollTimer) clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(() => {
+                    const cards = Array.from(track.querySelectorAll('.pricing-card'));
+                    if (!cards.length) return;
+                    const center = track.scrollLeft + track.clientWidth / 2;
+                    let closestIdx = 0;
+                    let minDist = Infinity;
+                    cards.forEach((card, idx) => {
+                        const cardCenter = card.offsetLeft + card.clientWidth / 2;
+                        const dist = Math.abs(cardCenter - center);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestIdx = idx;
+                        }
+                    });
+                    if (closestIdx !== activeSlideIndex) {
+                        updateSliderActiveIndicators(closestIdx);
+                    }
+                }, 70);
+            }, { passive: true });
+        })();
+
+        async function loadLiveWebsitePackages() {
+            // 1. Instant render from Super Admin local cache or defaults (0ms paint)
+            let initialMap = DEFAULT_WEBSITE_PACKAGES;
+            try {
+                const cachedRaw = localStorage.getItem(LIVE_PACKAGES_CACHE_KEY);
+                if (cachedRaw) {
+                    const parsed = JSON.parse(cachedRaw);
+                    if (parsed && parsed.packages && Object.keys(parsed.packages).length > 0) {
+                        initialMap = parsed.packages;
+                    }
+                }
+            } catch (_) {}
+
+            livePackagesList = normalizeLivePackagesForWebsite(initialMap);
+            renderLivePricingSlider(false);
+
+            // 2. Primary live fetch from public-read catalog synced automatically by Super Admin
+            let cloudMap = null;
+            try {
+                const pubRes = await fetch(PUBLIC_CATALOG_REST_URL, { cache: 'no-store' });
+                if (pubRes.ok) {
+                    const pubDoc = await pubRes.json();
+                    const rawJson = pubDoc && pubDoc.fields && pubDoc.fields.packagesJson && pubDoc.fields.packagesJson.stringValue;
+                    if (rawJson) {
+                        const parsed = JSON.parse(rawJson);
+                        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                            cloudMap = parsed;
+                        }
+                    }
+                }
+            } catch (_) {}
+
+            // 3. Fallback live fetch from (default) Firestore packages collection if public read is enabled there
+            if (!cloudMap) {
+                try {
+                    const res = await fetch(FIRESTORE_PACKAGES_REST_URL, { cache: 'no-store' });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && Array.isArray(data.documents) && data.documents.length > 0) {
+                            const mapFromDefault = {};
+                            data.documents.forEach(doc => {
+                                const docId = String(doc.name || '').split('/').pop();
+                                if (!docId || !doc.fields) return;
+                                const decoded = {};
+                                for (const [k, v] of Object.entries(doc.fields)) {
+                                    decoded[k] = decodeFirestoreValue(v);
+                                }
+                                decoded.id = decoded.id || docId;
+                                mapFromDefault[docId] = decoded;
+                            });
+                            if (Object.keys(mapFromDefault).length > 0) {
+                                cloudMap = mapFromDefault;
+                            }
+                        }
+                    }
+                } catch (_) {}
+            }
+
+            if (cloudMap && Object.keys(cloudMap).length > 0) {
+                livePackagesList = normalizeLivePackagesForWebsite(cloudMap);
+                renderLivePricingSlider(true);
+                try {
+                    localStorage.setItem(LIVE_PACKAGES_CACHE_KEY, JSON.stringify({
+                        updatedAt: new Date().toISOString(),
+                        packages: cloudMap
+                    }));
+                } catch (_) {}
+            }
+        }
+
+        // Instant cross-tab live sync if Super Admin saves in another tab
+        window.addEventListener('storage', (ev) => {
+            if (ev.key === LIVE_PACKAGES_CACHE_KEY && ev.newValue) {
+                try {
+                    const parsed = JSON.parse(ev.newValue);
+                    if (parsed && parsed.packages) {
+                        livePackagesList = normalizeLivePackagesForWebsite(parsed.packages);
+                        renderLivePricingSlider(true);
+                    }
+                } catch (_) {}
+            }
+        });
+
+        // 🔄 Billing Cycle Toggle (Monthly vs Yearly Discount)
         function setBillingCycle(cycle) {
             currentCycle = cycle;
             const btnM = document.getElementById('btnMonthly');
             const btnY = document.getElementById('btnYearly');
-            const proPrice = document.getElementById('proPrice');
-            const bizPrice = document.getElementById('bizPrice');
-            const proPeriod = document.getElementById('proPeriod');
-            const bizPeriod = document.getElementById('bizPeriod');
-
-            const isUr = document.documentElement.getAttribute('data-lang') === 'ur';
-
-            if (cycle === 'yearly') {
-                btnY.classList.add('active');
-                btnM.classList.remove('active');
-                proPrice.innerText = '14,999';
-                bizPrice.innerText = '34,999';
-                proPeriod.innerText = isUr ? '/ سالانہ (2 ماہ مفت)' : '/ year (2 mo free)';
-                bizPeriod.innerText = isUr ? '/ سالانہ (2 ماہ مفت)' : '/ year (2 mo free)';
-            } else {
-                btnM.classList.add('active');
-                btnY.classList.remove('active');
-                proPrice.innerText = '1,499';
-                bizPrice.innerText = '3,499';
-                proPeriod.innerText = isUr ? '/ ماہانہ' : '/ month';
-                bizPeriod.innerText = isUr ? '/ ماہانہ' : '/ month';
-            }
+            if (btnM) btnM.classList.toggle('active', cycle !== 'yearly');
+            if (btnY) btnY.classList.toggle('active', cycle === 'yearly');
+            renderLivePricingSlider(true);
         }
 
         // 🌐 Bilingual Language Switcher (English / Urdu)
-        let currentLang = localStorage.getItem('eb_landing_lang') || 'en';
         function applyLandingLanguage(lang) {
             currentLang = lang;
             localStorage.setItem('eb_landing_lang', lang);
             document.documentElement.setAttribute('data-lang', lang);
 
             const isUrdu = lang === 'ur';
-            document.getElementById('langBtnText').innerText = isUrdu ? 'English' : 'اردو';
+            const langBtnText = document.getElementById('langBtnText');
+            if (langBtnText) langBtnText.innerText = isUrdu ? 'English' : 'اردو';
 
             document.querySelectorAll('[data-en]').forEach(el => {
                 const en = el.getAttribute('data-en');
@@ -1338,7 +1979,7 @@
 
             // Adjust direction for headings
             document.body.dir = isUrdu ? 'rtl' : 'ltr';
-            setBillingCycle(currentCycle);
+            renderLivePricingSlider(true);
         }
 
         function toggleLanguage() {
@@ -1346,7 +1987,8 @@
             applyLandingLanguage(next);
         }
 
-        // Initialize saved language
+        // Initialize packages slider + saved language
+        loadLiveWebsitePackages();
         if (currentLang === 'ur') {
             applyLandingLanguage('ur');
         }

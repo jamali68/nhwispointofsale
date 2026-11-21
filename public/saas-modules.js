@@ -313,14 +313,22 @@
         try {
             const snap = await db.collection('packages').get();
             if (!snap.empty) {
+                const liveMap = {};
                 snap.forEach(d => {
-                    const data = d.data();
+                    const data = { id: d.id, ...d.data() };
+                    liveMap[d.id] = data;
                     if (SAAS_PACKAGES[d.id]) {
                         SAAS_PACKAGES[d.id] = { ...SAAS_PACKAGES[d.id], ...data };
                     } else {
                         SAAS_PACKAGES[d.id] = data;
                     }
                 });
+                try {
+                    localStorage.setItem('eb_live_packages_v1', JSON.stringify({
+                        updatedAt: new Date().toISOString(),
+                        packages: liveMap
+                    }));
+                } catch (_) {}
             }
         } catch (e) {
             console.warn('SaaS Packages cloud sync:', e.message);

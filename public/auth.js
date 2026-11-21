@@ -44,13 +44,16 @@ const AUTH_TEXTS = {
         msgCreated: "Account created! Setup complete ✅",
         msgNoMatch: "Passwords do not match!",
         msgShort: "Password must be at least 6 characters!",
-        msgWrongPass: "Incorrect email, mobile or password!",
+        msgWrongPass: "Incorrect email, mobile or password. Check spelling, click Forgot Password, or use Google Login if you signed up with Google.",
         msgExists: "This email is already registered! Please Login.",
         msgTooMany: "Too many attempts. Please try again later.",
         msgNetwork: "Network error. Please check your internet connection.",
         msgGeneric: "Something went wrong. Please try again.",
         msgUnauthorizedDomain: "Google Sign-In is not authorized on this preview domain yet. Use Email & Password login, or add this domain in Firebase Console → Authentication → Settings → Authorized domains.",
-        msgFirebaseLoad: "⚠️ Firebase service failed to load — Please check internet and refresh!"
+        msgFirebaseLoad: "⚠️ Firebase service failed to load — Please check internet and refresh!",
+        forgotPass: "Forgot Password?",
+        msgResetEnterEmail: "Please enter your registered Email address above first, then click Forgot Password.",
+        msgResetSent: "✅ Password reset link sent! Check your Email inbox (and Spam folder)."
     },
     ur: {
         appTitle: "ایزی بل جنریٹر",
@@ -74,13 +77,16 @@ const AUTH_TEXTS = {
         msgCreated: "اکاؤنٹ بن گیا! سیٹ اپ مکمل ✅",
         msgNoMatch: "پاس ورڈ میچ نہیں ہو رہے!",
         msgShort: "پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے!",
-        msgWrongPass: "ای میل یا پاس ورڈ غلط ہے!",
+        msgWrongPass: "ای میل، موبائل یا پاس ورڈ غلط ہے۔ درست معلومات چیک کریں، 'پاس ورڈ بھول گئے؟' استعمال کریں یا گوگل لاگ اِن آزمائیں۔",
         msgExists: "یہ ای میل پہلے سے رجسٹرڈ ہے! لاگ اِن کریں۔",
         msgTooMany: "بہت زیادہ کوششیں۔ تھوڑی دیر بعد کوشش کریں۔",
         msgNetwork: "انٹرنیٹ کا مسئلہ ہے۔ چیک کریں۔",
         msgGeneric: "کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔",
         msgUnauthorizedDomain: "اس ڈومین پر گوگل لاگ اِن کی اجازت ابھی فائر بیس کنسول میں شامل نہیں ہے۔ براہِ کرم ای میل اور پاسورڈ سے لاگ اِن کریں یا اس ڈومین کو Firebase Authorized Domains میں شامل کریں۔",
-        msgFirebaseLoad: "⚠️ فائر بیس لوڈ نہیں ہوا — انٹرنیٹ چیک کریں اور ریفریش کریں!"
+        msgFirebaseLoad: "⚠️ فائر بیس لوڈ نہیں ہوا — انٹرنیٹ چیک کریں اور ریفریش کریں!",
+        forgotPass: "پاس ورڈ بھول گئے؟",
+        msgResetEnterEmail: "پہلے اوپر اپنا رجسٹرڈ ای میل ایڈریس لکھیں، پھر 'پاس ورڈ بھول گئے؟' پر کلک کریں۔",
+        msgResetSent: "✅ پاس ورڈ ری سیٹ لنک آپ کے ای میل پر بھیج دیا گیا ہے! براہِ کرم ان باکس (یا اسپیم) چیک کریں۔"
     }
 };
 
@@ -134,9 +140,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // -------------------------------------------
     // 🔥 FIREBASE ERROR TRANSLATOR
     // -------------------------------------------
+    const EXPECTED_AUTH_ERROR_CODES = new Set([
+        'auth/invalid-credential',
+        'auth/wrong-password',
+        'auth/user-not-found',
+        'auth/invalid-email',
+        'auth/email-already-in-use',
+        'auth/weak-password',
+        'auth/too-many-requests',
+        'auth/user-disabled',
+        'auth/network-request-failed',
+        'auth/unauthorized-domain',
+        'permission-denied'
+    ]);
+
     function translateFirebaseError(error) {
-        switch (error.code) {
-            case 'auth/invalid-email': return 'msgGeneric';
+        const code = error && error.code ? String(error.code) : '';
+        switch (code) {
+            case 'auth/invalid-email': return 'msgWrongPass';
             case 'auth/user-not-found':
             case 'auth/wrong-password':
             case 'auth/invalid-credential': return 'msgWrongPass';
@@ -574,7 +595,12 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             btnLoading('signupBtn', false);
             showAuthMsg(translateFirebaseError(error));
-            console.error('Signup Error:', error);
+            const errCode = error && error.code ? String(error.code) : '';
+            if (EXPECTED_AUTH_ERROR_CODES.has(errCode)) {
+                console.warn('[Auth] Signup rejected:', errCode);
+            } else {
+                console.error('Signup Error:', error);
+            }
         }
     });
 
@@ -589,6 +615,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const inputRaw = document.getElementById('loginEmail').value.trim();
         const pass = document.getElementById('loginPassword').value;
+        if (!inputRaw || !pass) {
+            return showAuthMsg('msgWrongPass', 'error');
+        }
 
         // 🛡️ Security Guard #1 & #2: Anti-Brute-Force, Dictionary Bot Probe & Rate Limit Check
         if (window.EB_GUARD) {
@@ -711,9 +740,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             showAuthMsg(translateFirebaseError(error));
-            console.error('Login Error:', error);
+            const errCode = error && error.code ? String(error.code) : '';
+            if (EXPECTED_AUTH_ERROR_CODES.has(errCode)) {
+                console.warn('[Auth] Login rejected:', errCode);
+            } else {
+                console.error('Login Error:', error);
+            }
         }
     });
+
+    // -------------------------------------------
+    // 🔁 FORGOT PASSWORD (Send Reset Email)
+    // -------------------------------------------
+    const forgotPassBtn = document.getElementById('forgotPassBtn');
+    if (forgotPassBtn) {
+        forgotPassBtn.addEventListener('click', async () => {
+            if (!firebaseReady) return showAuthMsg('msgFirebaseLoad');
+            const emailInput = document.getElementById('loginEmail');
+            const emailVal = emailInput ? emailInput.value.trim().toLowerCase() : '';
+            if (!emailVal || !emailVal.includes('@')) {
+                showAuthMsg('msgResetEnterEmail', 'error');
+                if (emailInput) emailInput.focus();
+                return;
+            }
+            forgotPassBtn.disabled = true;
+            try {
+                await auth.sendPasswordResetEmail(emailVal);
+                showAuthMsg('msgResetSent', 'success');
+            } catch (resetErr) {
+                const errCode = resetErr && resetErr.code ? String(resetErr.code) : '';
+                if (EXPECTED_AUTH_ERROR_CODES.has(errCode)) {
+                    console.warn('[Auth] Password reset notice:', errCode);
+                } else {
+                    console.error('Password Reset Error:', resetErr);
+                }
+                showAuthMsg(translateFirebaseError(resetErr), 'error');
+            } finally {
+                forgotPassBtn.disabled = false;
+            }
+        });
+    }
 
     // -------------------------------------------
     // 🌐 GOOGLE LOGIN (Continue with Google)
