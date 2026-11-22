@@ -403,26 +403,45 @@ test('11. Zero-Quota Firestore Compliance + Sidebar, SW & App-Style User Guide W
     'smart-assistant.js must never write to Firestore'
   );
 
-  // Verify wiring
+  // Verify wiring & v5.8.35 Pro-Level Polish
   assert(sidebar.includes("'smart-assistant.js'"), 'sidebar.js must auto-inject smart-assistant.js');
   assert(sidebar.includes('id="ebSidebarAiBotToggle"') && sidebar.includes('AI Assistant'), 'sidebar.js must place AI Assistant ON/OFF button beside User Guide');
   assert(sw.includes("'smart-assistant.js'"), 'sw.js must precache smart-assistant.js');
-  assert(sw.includes("SW_VERSION = '5.8.34'"), 'sw.js must be bumped to v5.8.34');
-  assert(readRel('public/manifest.json').includes('"version": "5.8.34"'), 'manifest.json must be synced to v5.8.34');
+  assert(sw.includes("SW_VERSION = '5.8.36'"), 'sw.js must be bumped to v5.8.36');
+  assert(readRel('public/manifest.json').includes('"version": "5.8.36"'), 'manifest.json must be synced to v5.8.36');
   assert(guideHtml.includes('id="ugSmartBotToggle"'), 'user-guide.html must include AI Assistant ON/OFF switch');
   assert(guideHtml.includes('id="ugSidebar"'), 'user-guide.html must render App-Style left sidebar');
   assert(guideHtml.includes('src="smart-assistant.js"'), 'user-guide.html must load smart-assistant.js');
   assert(botClient.includes('BOT_ROBOT_SVG') && botClient.includes("'data-bot-icon', 'robot'"), 'smart-assistant.js FAB must display Robot Bot icon');
+  assert(botClient.includes('ebBotBlink') && botClient.includes('eb-bot-eye'), 'Robot bot must have natural occasional eye-blinking animation');
+  assert(botClient.includes('.eb-bot-fab.chat-open') && botClient.includes('close chat') && botClient.includes('eb-bot-fab-cross'), 'Open chat must dock 30% smaller bot icon above input with close chat label & cross badge');
+  assert(botClient.includes('Thinking...') && botClient.includes('computeThinkingDelayMs'), 'Chat send button & reply flow must support adaptive Thinking... state');
+  assert(!botClient.includes('0 Cloud Quota') && !botClient.includes('Offline Local DB'), 'UI must not display raw Offline Local DB / 0 Cloud Quota technical clutter');
   assert(botClient.includes('ev.target.transaction.abort()'), 'smart-assistant.js must abort empty IndexedDB creation before bills-db.js initializes stores');
+
+  // Verify business_summary intent accuracy in core engine
+  const summaryRes = bot.answerQuery({
+    query: 'business summary dikhao',
+    role: 'owner',
+    categoryId: 'medical',
+    lang: 'en',
+    localData: SAMPLE_LOCAL_DATA,
+    guideChapters: ownerGuide,
+    now: NOW
+  });
+  assert.strictEqual(summaryRes.intent, 'business_summary', 'Must classify business summary intent');
+  assert(summaryRes.lines.some(l => l.value.includes('Rs. 23,500')), 'Business summary must include exact today sales Rs. 23,500');
+  assert(summaryRes.lines.some(l => l.value === 'Rs. 64,000'), 'Business summary must include exact pending receivable Rs. 64,000');
 });
 
-test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, toggles ON/OFF & answers from localStorage', () => {
+test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, docks close-chat FAB, toggles ON/OFF & answers from localStorage', () => {
   // Minimal faithful DOM mock for Node VM browser runtime execution
   const elementsById = {};
   function makeEl(tag) {
     const el = {
       tagName: String(tag || 'div').toUpperCase(),
       _id: '',
+      parentNode: null,
       get id() { return this._id; },
       set id(v) { this._id = v; if (v) elementsById[v] = this; },
       className: '',
@@ -431,6 +450,7 @@ test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, 
       textContent: '',
       _innerHTML: '',
       value: '',
+      disabled: false,
       listeners: {},
       classList: {
         _set: new Set(),
@@ -446,7 +466,13 @@ test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, 
       },
       setAttribute(k, v) { if (k === 'id') this.id = v; this[k] = v; },
       getAttribute(k) { return this[k] || null; },
-      appendChild(child) { this.children.push(child); return child; },
+      appendChild(child) { child.parentNode = this; this.children.push(child); return child; },
+      removeChild(child) {
+        const idx = this.children.indexOf(child);
+        if (idx >= 0) this.children.splice(idx, 1);
+        if (child) child.parentNode = null;
+        return child;
+      },
       addEventListener(ev, fn) { (this.listeners[ev] = this.listeners[ev] || []).push(fn); },
       click() { (this.listeners.click || []).forEach(fn => fn({ preventDefault() {} })); },
       focus() {},
@@ -472,12 +498,11 @@ test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, 
     eb_active_agencyId: 'ag_live_1',
     eb_active_business_category: 'medical',
     eb_smart_bot_enabled: 'true',
-    eb_cust_cache_ag_live_1_medical: JSON.stringify({
-      timestamp: Date.now(),
-      customers: [
-        { id: 'c1', name: 'Al-Shifa Clinic', balance: 27500, mobile: '0300-5551122' }
-      ]
-    })
+    // Test real bills.js plain-array fallback key (eb_cust_cache_${agencyId})!
+    eb_cust_cache_ag_live_1: JSON.stringify([
+      { id: 'c1', name: 'Al-Shifa Clinic', balance: 27500, mobile: '0300-5551122' },
+      { id: 'c_del', name: 'Deleted Shop', balance: 99999, status: 'deleted' }
+    ])
   };
   let idbUpgradeAborted = false;
 
@@ -496,6 +521,7 @@ test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, 
     globalThis: null,
     document: doc,
     location: { pathname: '/dashboard.html', search: '', hash: '' },
+    __EB_BOT_FAST_TEST__: true,
     localStorage: {
       getItem: (k) => (Object.prototype.hasOwnProperty.call(lsStore, k) ? lsStore[k] : null),
       setItem: (k, v) => { lsStore[k] = String(v); },
@@ -530,6 +556,7 @@ test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, 
   assert(sandbox.EBSmartBot && typeof sandbox.EBSmartBot.open === 'function', 'window.EBSmartBot API must mount');
   assert(elementsById.ebSmartBotFab && elementsById.ebSmartBotPanel, 'FAB and WhatsApp chat panel must mount in DOM');
   assert.strictEqual(sandbox.EBSmartBot.isEnabled(), true, 'Bot should start enabled');
+  assert.strictEqual(elementsById.ebSmartBotFab.classList.contains('chat-open'), false, 'FAB starts in closed floating state');
 
   // Toggle OFF -> FAB hidden via CSS class
   sandbox.EBSmartBot.setEnabled(false);
@@ -542,20 +569,153 @@ test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, 
   sandbox.EBSmartBot.ask('kis se paise lene hain');
   assert.strictEqual(sandbox.EBSmartBot.isEnabled(), true, 'ask() must auto-enable bot');
   assert.strictEqual(elementsById.ebSmartBotFab.classList.contains('hidden'), false, 'FAB must remove .hidden class when toggled ON');
+  assert.strictEqual(elementsById.ebSmartBotFab.classList.contains('chat-open'), true, 'FAB must enter docked .chat-open state when chat opens');
 
-  return new Promise((resolve) => setTimeout(resolve, 30)).then(() => {
+  return new Promise((resolve) => setTimeout(resolve, 40)).then(() => {
     assert.strictEqual(idbUpgradeAborted, true, 'Missing IndexedDB must abort upgrade safely without creating empty DB');
     const renderedMsgs = (elementsById.ebBotMessages.children || []).map(c => c.innerHTML + ' ' + c.textContent).join(' ');
     assert(renderedMsgs.includes('27,500') && renderedMsgs.includes('Al-Shifa Clinic'), `Expected live DOM answer with Al-Shifa Clinic & Rs. 27,500, got: ${renderedMsgs.slice(0, 200)}`);
+    assert(!renderedMsgs.includes('Deleted Shop') && !renderedMsgs.includes('99,999'), 'Soft-deleted customer must be excluded from live calculations');
+    assert(!renderedMsgs.includes('Thinking & checking'), 'Thinking bubble must be removed cleanly after final answer renders');
+
+    // Close chat -> FAB must return to original floating closed state
+    sandbox.EBSmartBot.close();
+    assert.strictEqual(elementsById.ebSmartBotFab.classList.contains('chat-open'), false, 'FAB must restore floating state after closing chat');
   });
+});
+
+test('13. Accounting Math Accuracy: Payment Vouchers separated, previousBalance excluded from new sales, deleted records ignored, Yesterday & Recovery work', () => {
+  const realWorldData = {
+    customers: SAMPLE_LOCAL_DATA.customers,
+    stock: SAMPLE_LOCAL_DATA.stock,
+    expenses: SAMPLE_LOCAL_DATA.expenses,
+    bills: [
+      // Real NH POS bill with previousBalance rolled into grandTotal (new bill = 10,000, old udhaar = 25,000, grandTotal = 35,000)
+      { id: 'rw1', billNo: '201', customerName: 'Haji Akram Traders', grandTotal: 35000, previousBalance: 25000, received: 10000, date: '2026-05-15' },
+      // Khata payment voucher stored inside bills collection (type: 'payment') — MUST NOT inflate sales bill count!
+      { id: 'rw_pay1', type: 'payment', customerName: 'Bilal Medicos', grandTotal: 0, received: 7500, date: '2026-05-15' },
+      // Cancelled / deleted bill — MUST be excluded completely!
+      { id: 'rw_del', billNo: '202', customerName: 'Voided', grandTotal: 99000, received: 99000, status: 'cancelled', date: '2026-05-15' },
+      // Yesterday's bill (2026-05-14)
+      { id: 'rw_yest', billNo: '199', customerName: 'Bilal Medicos', billAmount: 12400, grandTotal: 12400, received: 10000, date: '2026-05-14' }
+    ]
+  };
+
+  const todaySales = bot.answerQuery({
+    query: 'aaj ki sale batao',
+    role: 'owner',
+    categoryId: 'medical',
+    lang: 'en',
+    localData: realWorldData,
+    guideChapters: ownerGuide,
+    now: NOW
+  });
+  assert.strictEqual(todaySales.intent, 'today_sales');
+  assert(todaySales.lines.some(l => l.value === '1'), `Expected exactly 1 sales bill (excluding payment voucher & cancelled bill), got: ${JSON.stringify(todaySales.lines)}`);
+  assert(todaySales.lines.some(l => l.value === 'Rs. 10,000'), `Expected new sale Rs. 10,000 (excluding Rs. 25,000 previousBalance), got: ${JSON.stringify(todaySales.lines)}`);
+  assert(todaySales.lines.some(l => l.value.includes('Rs. 7,500')), 'Must report Khata Recovery Collected Rs. 7,500 separately');
+
+  const yestSales = bot.answerQuery({
+    query: 'kal ki sale kitni thi',
+    role: 'owner',
+    categoryId: 'medical',
+    lang: 'en',
+    localData: realWorldData,
+    guideChapters: ownerGuide,
+    now: NOW
+  });
+  assert.strictEqual(yestSales.intent, 'yesterday_sales');
+  assert(yestSales.lines.some(l => l.value === 'Rs. 12,400'), 'Yesterday sales must calculate exact Rs. 12,400');
+
+  const recRes = bot.answerQuery({
+    query: 'aaj kitni wasooli hui',
+    role: 'owner',
+    categoryId: 'medical',
+    lang: 'en',
+    localData: realWorldData,
+    guideChapters: ownerGuide,
+    now: NOW
+  });
+  assert.strictEqual(recRes.intent, 'khata_recovery', 'Must route "aaj kitni wasooli hui" to khata_recovery (not pending_receivable)');
+  assert(recRes.lines.some(l => l.value.includes('Rs. 7,500')), 'Must report Rs. 7,500 khata payment vouchers');
+  assert(recRes.lines.some(l => l.value === 'Rs. 17,500'), 'Total cash inflow must be Rs. 7,500 recovery + Rs. 10,000 bill cash = Rs. 17,500');
+});
+
+test('14. Owner Profit Overview & Stock Valuation work accurately while Staff remain strictly blocked', () => {
+  const profitData = {
+    ...SAMPLE_LOCAL_DATA,
+    bills: [
+      {
+        id: 'bp1', billNo: '301', customerName: 'Cash', billAmount: 16500, grandTotal: 16500, received: 16500, date: '2026-05-15',
+        items: [{ name: 'Tapal Danedar 900g', qty: 10, rate: 1650 }] // purchasePrice from stock = 1480 -> COGS = 14,800
+      }
+    ]
+  };
+  const ownerProfit = bot.answerQuery({
+    query: 'aaj ka profit aur munafa batao',
+    role: 'owner',
+    categoryId: 'medical',
+    lang: 'en',
+    localData: profitData,
+    guideChapters: ownerGuide,
+    now: NOW
+  });
+  assert.strictEqual(ownerProfit.intent, 'profit_overview');
+  assert(ownerProfit.lines.some(l => l.value === 'Rs. 14,800'), `Expected COGS Rs. 14,800, got: ${JSON.stringify(ownerProfit.lines)}`);
+  assert(ownerProfit.lines.some(l => l.value === 'Rs. -2,800'), `Expected Net Profit (16500 - 14800 - 4500 = -2800), got: ${JSON.stringify(ownerProfit.lines)}`);
+
+  const ownerStockVal = bot.answerQuery({
+    query: 'total stock value kitne ka stock hai',
+    role: 'owner',
+    categoryId: 'medical',
+    lang: 'en',
+    localData: SAMPLE_LOCAL_DATA,
+    guideChapters: ownerGuide,
+    now: NOW
+  });
+  assert.strictEqual(ownerStockVal.intent, 'stock_value');
+  // Cost value: 0*34 + 6*350 (2100) + 42*1480 (62160) + 12*145 (1740) = 66,000
+  assert(ownerStockVal.lines.some(l => l.value === 'Rs. 66,000'), `Expected Stock Cost Value Rs. 66,000, got: ${JSON.stringify(ownerStockVal.lines)}`);
+
+  // Booker MUST stay blocked from stock value
+  const bookerStockVal = bot.answerQuery({
+    query: 'total stock value batao',
+    role: 'booker',
+    categoryId: 'distributor',
+    lang: 'en',
+    localData: SAMPLE_LOCAL_DATA,
+    guideChapters: bookerGuide,
+    now: NOW
+  });
+  assert.strictEqual(bookerStockVal.restricted, true, 'Booker must be blocked from Stock Valuation');
+});
+
+test('15. Greetings vs Mixed Queries & Super Admin Real EBQuotaTracker API Parity', () => {
+  const greetOnly = bot.answerQuery({ query: 'Assalam-o-Alaikum', role: 'owner', lang: 'en', localData: SAMPLE_LOCAL_DATA, guideChapters: ownerGuide, now: NOW });
+  assert.strictEqual(greetOnly.intent, 'greeting');
+
+  const mixedQuery = bot.answerQuery({ query: 'Assalam-o-Alaikum aaj ki sale batao', role: 'owner', lang: 'en', localData: SAMPLE_LOCAL_DATA, guideChapters: ownerGuide, now: NOW });
+  assert.strictEqual(mixedQuery.intent, 'today_sales', 'Greeting prefix must not swallow real business question');
+
+  const superQuota = bot.answerQuery({
+    query: 'firebase quota',
+    role: 'super-admin',
+    lang: 'en',
+    localData: { quota: { fbReads: 310, fbWrites: 45, netlifyTotalReqs: 90, pwaCacheHits: 1200 } },
+    guideChapters: adminGuide,
+    now: NOW
+  });
+  assert.strictEqual(superQuota.intent, 'superadmin_quota');
+  assert(superQuota.lines.some(l => l.value === '310'), 'Must read fbReads from EBQuotaTracker shape');
+  assert(superQuota.lines.some(l => l.value === '1200'), 'Must include PWA cache hits when > 0');
 });
 
 Promise.all(pendingAsyncTests).then(() => {
   console.log('====================================================================');
   if (process.exitCode && process.exitCode !== 0) {
-    console.log(`❌ SMART ASSISTANT SUITE FAILED (${passed}/12 passed)`);
+    console.log(`❌ SMART ASSISTANT SUITE FAILED (${passed}/15 passed)`);
   } else {
-    console.log(`🎯 SMART ASSISTANT ACCURACY & SECURITY SUITE: ${passed}/12 PASSED | 0 FAILED`);
+    console.log(`🎯 SMART ASSISTANT ACCURACY & SECURITY SUITE: ${passed}/15 PASSED | 0 FAILED`);
   }
   console.log('====================================================================');
 });

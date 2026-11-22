@@ -102,10 +102,29 @@
         return sanitizeText((c && (c.mobile || c.phone || c.contact)) || '');
     }
 
+    function isActiveRecord(rec) {
+        if (!rec || typeof rec !== 'object') return false;
+        const st = String(rec.status || '').trim().toLowerCase();
+        if (st === 'deleted' || st === 'cancelled' || st === 'canceled' || st === 'void') return false;
+        if (rec.isDeleted === true || rec.deleted === true) return false;
+        return true;
+    }
+
+    function isPaymentReceipt(b) {
+        if (!b || typeof b !== 'object') return false;
+        const t = String(b.type || b.recordType || '').trim().toLowerCase();
+        return t === 'payment' || t === 'payment_receipt' || t === 'recovery' || b.isPaymentReceipt === true;
+    }
+
     function getBillTotal(b) {
-        if (!b || typeof b !== 'object') return 0;
+        if (!b || typeof b !== 'object' || isPaymentReceipt(b)) return 0;
         if (b.billAmount !== undefined && b.billAmount !== null && num(b.billAmount) > 0) return num(b.billAmount);
-        if (b.grandTotal !== undefined && b.grandTotal !== null) return num(b.grandTotal);
+        const prev = num(b.previousBalance);
+        if (b.grandTotal !== undefined && b.grandTotal !== null) {
+            const gt = num(b.grandTotal);
+            if (prev > 0 && gt > prev) return gt - prev;
+            return gt;
+        }
         if (b.totalAmount !== undefined && b.totalAmount !== null) return num(b.totalAmount);
         return num(b.total);
     }
@@ -113,8 +132,10 @@
     function getBillReceived(b) {
         if (!b || typeof b !== 'object') return 0;
         if (b.received !== undefined && b.received !== null) return num(b.received);
+        if (b.paymentAmount !== undefined && b.paymentAmount !== null) return num(b.paymentAmount);
         if (b.paidAmount !== undefined && b.paidAmount !== null) return num(b.paidAmount);
         if (b.cashReceived !== undefined && b.cashReceived !== null) return num(b.cashReceived);
+        if (isPaymentReceipt(b)) return 0;
         const total = getBillTotal(b);
         const bal = b.balance !== undefined ? num(b.balance) : 0;
         return Math.max(0, total - Math.max(0, bal));
@@ -162,7 +183,7 @@
             actionUrl,
             actionLabelEn: sanitizeText(opts.actionLabelEn || (actionUrl ? 'Open Screen' : '')),
             actionLabelUr: sanitizeText(opts.actionLabelUr || (actionUrl ? 'اسکرین کھولیں' : '')),
-            sourceTag: sanitizeText(opts.sourceTag || 'Offline Local DB'),
+            sourceTag: sanitizeText(opts.sourceTag || 'NH POS AI'),
             restricted: Boolean(opts.restricted)
         };
     }
@@ -213,19 +234,21 @@
             const uiLang = p.lang || 'en';
             const preferUr = /[\u0600-\u06FF]/.test(rawQuery) || uiLang === 'ur';
             const data = p.localData || {};
-            const customers = Array.isArray(data.customers) ? data.customers : [];
-            const stock = Array.isArray(data.stock) ? data.stock : [];
-            const bills = Array.isArray(data.bills) ? data.bills : [];
-            const expenses = Array.isArray(data.expenses) ? data.expenses : [];
+            const customers = (Array.isArray(data.customers) ? data.customers : []).filter(isActiveRecord);
+            const stock = (Array.isArray(data.stock) ? data.stock : []).filter(isActiveRecord);
+            const bills = (Array.isArray(data.bills) ? data.bills : []).filter(isActiveRecord);
+            const salesBills = bills.filter(b => !isPaymentReceipt(b));
+            const paymentReceipts = bills.filter(isPaymentReceipt);
+            const expenses = (Array.isArray(data.expenses) ? data.expenses : []).filter(isActiveRecord);
             const guideChapters = Array.isArray(p.guideChapters) ? p.guideChapters : [];
-            const now = p.now instanceof Date ? p.now : new Date();
-            const freshTag = data.lastSyncLabel ? `Offline DB · ${data.lastSyncLabel}` : 'Offline Local DB';
+            const now = (p.now && typeof p.now.getFullYear === 'function' && !isNaN(p.now.getTime())) ? p.now : new Date();
+            const freshTag = data.lastSyncLabel ? `Verified · ${data.lastSyncLabel}` : 'NH POS AI';
 
             if (!rawQuery) {
                 return buildReply({
                     intent: 'welcome',
-                    titleEn: 'NH POS Offline Smart Assistant',
-                    titleUr: 'این ایچ پی او ایس آف لائن اسمارٹ اسسٹنٹ',
+                    titleEn: 'NH POS AI Assistant',
+                    titleUr: 'این ایچ پی او ایس اے آئی اسسٹنٹ',
                     textEn: 'Ask about pending customer payments, today’s sales, low stock, expiry alerts, or how to use any module.',
                     textUr: 'بقایا کھاتہ، آج کی سیل، کم اسٹاک، ایکسپائری یا کسی بھی ماڈیول کے استعمال کے بارے میں پوچھیں۔',
                     sourceTag: freshTag
@@ -233,8 +256,30 @@
             }
 
             const q = rawQuery.toLowerCase();
+
+            if (/^(salam|salaam|aoa|assalam[\s-]*o?[\s-]*alaikum|hello|hi|hey|good morning|good evening|السلام علیکم|سلام)[!.\s]*$/i.test(rawQuery)) {
+                return buildReply({
+                    intent: 'greeting',
+                    titleEn: 'Wa-Alaikum-Assalam! How can I help?',
+                    titleUr: 'وعلیکم السلام! میں آپ کی کیا مدد کر سکتا ہوں؟',
+                    textEn: 'Ask me about pending khata payments, today’s or yesterday’s sales, low stock alerts, stock valuation, expenses, or how to use any feature.',
+                    textUr: 'آپ مجھ سے بقایا کھاتہ، آج یا کل کی سیل، کم اسٹاک، اخراجات، اسٹاک ویلیو یا کسی بھی فیچر کے استعمال کے بارے میں پوچھ سکتے ہیں۔',
+                    sourceTag: freshTag
+                });
+            }
+            if (/^(thanks|thank you|shukriya|jazakallah|ok|okay|theek hai|شکریہ|جزاک اللہ)[!.\s]*$/i.test(rawQuery)) {
+                return buildReply({
+                    intent: 'greeting',
+                    titleEn: 'You’re Welcome!',
+                    titleUr: 'خوش آمدید!',
+                    textEn: 'Happy to help anytime. Ask another question whenever you need verified shop insights.',
+                    textUr: 'کسی بھی وقت کاروباری ریکارڈ یا گائیڈ کے لیے دوبارہ پوچھ سکتے ہیں۔',
+                    sourceTag: freshTag
+                });
+            }
+
             const asksExpenses = matchAny(q, ['expense', 'expenses', 'kharch', 'kharcha', 'karcha', 'اخراجات', 'خرچ', 'خرچہ']);
-            const asksProfitOrCost = matchAny(q, ['profit', 'margin', 'purchase price', 'cost price', 'khareed', 'munafa', 'منافع', 'خریداری قیمت']);
+            const asksProfitOrCost = matchAny(q, ['profit', 'margin', 'purchase price', 'cost price', 'khareed', 'munafa', 'bachat', 'stock value', 'stock ki qeemat', 'inventory value', 'منافع', 'بچت', 'خریداری قیمت', 'اسٹاک ویلیو']);
             const asksSuperAdminQuota = matchAny(q, ['netlify', 'firebase', 'quota', 'read count', 'write count', 'کوٹہ', 'فائر بیس', 'نیٹلی فائی', 'all shops', 'saray shops', 'sari shops']);
 
             if (asksSuperAdminQuota && role !== 'super-admin') {
@@ -254,25 +299,30 @@
                     restricted: true,
                     titleEn: 'Owner-Only Financial Data',
                     titleUr: 'صرف دکان مالک کے لیے مالی معلومات',
-                    textEn: 'Expenses, purchase rates, and net profit figures are private to the Shop Owner account and protected from staff views.',
-                    textUr: 'سیکیورٹی اصول کے مطابق اخراجات، خریداری قیمت اور منافع کی معلومات صرف دکان مالک کو دستیاب ہیں۔',
+                    textEn: 'Expenses, purchase rates, stock valuation, and net profit figures are private to the Shop Owner account and protected from staff views.',
+                    textUr: 'سیکیورٹی اصول کے مطابق اخراجات، خریداری قیمت، اسٹاک ویلیو اور منافع کی معلومات صرف دکان مالک کو دستیاب ہیں۔',
                     sourceTag: 'Role Protected'
                 });
             }
 
             if (asksSuperAdminQuota && role === 'super-admin') {
                 const qData = data.quota || null;
+                const qLines = [];
+                if (qData && typeof qData === 'object') {
+                    qLines.push({ label: 'Firestore Reads (Tracked)', value: String(num(qData.reads ?? qData.readsToday ?? qData.fbReads ?? 0)) });
+                    qLines.push({ label: 'Firestore Writes (Tracked)', value: String(num(qData.writes ?? qData.writesToday ?? qData.fbWrites ?? 0)) });
+                    qLines.push({ label: 'Netlify Requests (Tracked)', value: String(num(qData.netlifyRequests ?? qData.netlifyTotalReqs ?? 0)) });
+                    if (num(qData.pwaCacheHits) > 0) {
+                        qLines.push({ label: 'PWA Offline Cache Hits', value: String(num(qData.pwaCacheHits)) });
+                    }
+                }
                 return buildReply({
                     intent: 'superadmin_quota',
                     titleEn: 'Cloud Quota & Usage Snapshot (Super Admin)',
                     titleUr: 'فائر بیس اور نیٹلی فائی کلاؤڈ کوٹہ صورتحال',
-                    textEn: 'Live local telemetry captured on this device. Open Cloud Quota & Usage for full per-shop daily/weekly/monthly/yearly totals.',
+                    textEn: 'Live telemetry captured on this device. Open Cloud Quota & Usage for full per-shop daily/weekly/monthly/yearly totals.',
                     textUr: 'اس ڈیوائس کا تازہ کلاؤڈ کوٹہ ریکارڈ۔ ہر دکان کی روزانہ، ہفتہ وار، ماہانہ اور سالانہ تفصیل کے لیے کلاؤڈ کوٹہ ٹیب کھولیں۔',
-                    lines: qData ? [
-                        { label: 'Firestore Reads (Tracked)', value: String(num(qData.reads || 0)) },
-                        { label: 'Firestore Writes (Tracked)', value: String(num(qData.writes || 0)) },
-                        { label: 'Netlify Requests (Tracked)', value: String(num(qData.netlifyRequests || 0)) }
-                    ] : [],
+                    lines: qLines,
                     actionUrl: 'admin.html#tabCloudQuota',
                     actionLabelEn: 'Open Cloud Quota & Usage',
                     actionLabelUr: 'کلاؤڈ کوٹہ کھولیں',
@@ -325,6 +375,41 @@
             if (asksHowTo) {
                 const gAns = searchGuide(rawQuery, guideChapters, preferUr);
                 if (gAns) return gAns;
+            }
+
+            const asksSummary = matchAny(q, ['business summary', 'shop summary', 'store summary', 'overview', 'karobar ka haal', 'total customers', 'kitne customer', 'kitne client', 'kitnay client', 'total stock items', 'کل گاہک', 'کاروبار کا خلاصہ', 'مکمل رپورٹ', 'خلاصہ']);
+            if (asksSummary && role !== 'supplier') {
+                const totalRec = customers.reduce((s, c) => s + Math.max(0, getCustomerBalance(c)), 0);
+                const totalPay = customers.reduce((s, c) => s + (getCustomerBalance(c) < 0 ? Math.abs(getCustomerBalance(c)) : 0), 0);
+                const todayIso = getTodayIso(now);
+                const todayBills = salesBills.filter(b => extractRecordDateIso(b) === todayIso);
+                const todaySales = todayBills.reduce((s, b) => s + getBillTotal(b), 0);
+                const todayRecovery = paymentReceipts
+                    .filter(pr => extractRecordDateIso(pr) === todayIso)
+                    .reduce((s, pr) => s + getBillReceived(pr), 0);
+                const lowCnt = stock.filter(it => getStockQty(it) <= getStockMinLimit(it)).length;
+                const sumLines = [
+                    { label: preferUr ? 'کل گاہک (Customers)' : 'Total Customers', value: String(customers.length) },
+                    { label: preferUr ? 'کل پینڈنگ وصولی (لینے ہیں)' : 'Pending Receivable', value: fmtRs(totalRec) },
+                    { label: preferUr ? 'کل واجب الادا (دینے ہیں)' : 'Pending Payable', value: fmtRs(totalPay) },
+                    { label: preferUr ? 'آج کی سیل' : "Today's Sales", value: `${fmtRs(todaySales)} (${todayBills.length} bills)` },
+                    { label: preferUr ? 'اسٹاک آئٹمز / کم اسٹاک' : 'Stock Items / Low Stock', value: `${stock.length} items (${lowCnt} low)` }
+                ];
+                if (todayRecovery > 0) {
+                    sumLines.push({ label: preferUr ? 'آج کھاتہ وصولی' : 'Khata Recovery Today', value: fmtRs(todayRecovery) });
+                }
+                return buildReply({
+                    intent: 'business_summary',
+                    titleEn: 'Business Snapshot Summary',
+                    titleUr: 'کاروباری خلاصہ (Business Summary)',
+                    textEn: `Verified summary across ${customers.length} client(s), ${stock.length} stock item(s), and ${salesBills.length} sales bill(s).`,
+                    textUr: `${customers.length} گاہک، ${stock.length} اسٹاک آئٹمز اور ${salesBills.length} سیل بلز کا مکمل تصدیق شدہ خلاصہ:`,
+                    lines: sumLines,
+                    actionUrl: 'dashboard.html',
+                    actionLabelEn: 'Open Dashboard',
+                    actionLabelUr: 'ڈیش بورڈ کھولیں',
+                    sourceTag: freshTag
+                });
             }
 
             const asksPayable = matchAny(q, ['kis ko dene', 'kisko dene', 'ko dene', 'dene hain', 'denay hain', 'dene hen', 'payable', 'advance balance', 'کس کو دینے', 'پیسے دینے ہیں', 'رقم دینی ہے']);
@@ -394,7 +479,11 @@
                 }
             }
 
-            const asksReceivable = matchAny(q, ['pending', 'udhaar', 'udhar', 'khata', 'receivable', 'baqaya', 'bakaya', 'due', 'kis se lene', 'kisse lene', 'paise lene', 'rakam', 'raqam', 'balance', 'vasooli', 'recovery', 'پینڈنگ', 'ادھار', 'کھاتہ', 'بقایا', 'وصولی', 'کس سے لینے', 'رقم', 'پیسے لینے']);
+            const asksRecoveryOnly = matchAny(q, [
+                'aaj ki wasooli', 'aj ki wasooli', 'aaj kitni wasooli', 'aaj ki recovery', 'today recovery',
+                'payments received today', 'cash collected today', 'آج کی وصولی', 'آج کتنی وصولی'
+            ]);
+            const asksReceivable = !asksRecoveryOnly && matchAny(q, ['pending', 'udhaar', 'udhar', 'khata', 'receivable', 'baqaya', 'bakaya', 'due', 'kis se lene', 'kisse lene', 'paise lene', 'rakam', 'raqam', 'balance', 'vasooli', 'recovery', 'پینڈنگ', 'ادھار', 'کھاتہ', 'بقایا', 'وصولی', 'کس سے لینے', 'رقم', 'پیسے لینے']);
             if (asksReceivable && role !== 'supplier') {
                 if (customers.length === 0) {
                     return buildReply({
@@ -507,34 +596,170 @@
                 });
             }
 
-            const asksSales = matchAny(q, ['today sale', 'aaj ki sale', 'aj ki sale', 'today bill', 'aaj ke bill', 'aaj kitne bill', 'monthly sale', 'this month', 'is mahine', 'mahinay', 'total sale', 'pending bill', 'آج کی سیل', 'آج کتنے بل', 'اس مہینے کی سیل', 'کل سیل', 'پینڈنگ بلز', 'بلز']);
-            if (asksSales) {
+            const asksStockValue = matchAny(q, ['stock value', 'stock ki qeemat', 'stock ki kimat', 'inventory value', 'kitne ka stock', 'kitnay ka stock', 'total stock worth', 'اسٹاک ویلیو', 'اسٹاک کی قیمت']);
+            if (asksStockValue && (role === 'owner' || role === 'super-admin')) {
+                const totalUnits = stock.reduce((s, it) => s + Math.max(0, getStockQty(it)), 0);
+                const costVal = stock.reduce((s, it) => s + Math.max(0, getStockQty(it)) * getStockPurchasePrice(it), 0);
+                const saleVal = stock.reduce((s, it) => s + Math.max(0, getStockQty(it)) * getStockSalePrice(it), 0);
+                const lowCnt = stock.filter(it => getStockQty(it) <= getStockMinLimit(it)).length;
+                return buildReply({
+                    intent: 'stock_value',
+                    titleEn: `Total Stock Valuation (${stock.length} Products)`,
+                    titleUr: `مکمل اسٹاک ویلیو (${stock.length} پروڈکٹس)`,
+                    textEn: stock.length ? `Inventory holds ${totalUnits.toLocaleString('en-US')} total units across ${stock.length} product(s).` : 'Open Stock Manager once so your inventory caches locally.',
+                    textUr: stock.length ? `اسٹاک میں کل ${stock.length} پروڈکٹس کے ${totalUnits.toLocaleString('en-US')} یونٹس موجود ہیں۔` : 'ایک بار "Stock Manager" کھولیں تاکہ اسٹاک محفوظ ہو سکے۔',
+                    lines: [
+                        { label: preferUr ? 'کل خریداری ویلیو (Cost)' : 'Stock Value (Purchase Cost)', value: fmtRs(costVal) },
+                        { label: preferUr ? 'کل فروخت ویلیو (Retail)' : 'Potential Sale Value', value: fmtRs(saleVal) },
+                        { label: preferUr ? 'متوقع مجموعی منافع' : 'Estimated Stock Margin', value: fmtRs(Math.max(0, saleVal - costVal)) },
+                        { label: preferUr ? 'کم / ختم اسٹاک' : 'Low / Out of Stock', value: `${lowCnt} item(s)` }
+                    ],
+                    actionUrl: 'stock.html',
+                    actionLabelEn: 'Open Stock Manager',
+                    actionLabelUr: 'اسٹاک کھولیں',
+                    sourceTag: freshTag
+                });
+            }
+
+            if (asksRecoveryOnly && role !== 'supplier') {
                 const todayIso = getTodayIso(now);
                 const monthIso = todayIso.slice(0, 7);
                 const isMonthly = matchAny(q, ['month', 'mahine', 'mahinay', 'ماہانہ', 'مہینے']);
-                const targetBills = bills.filter(b => {
-                    const dt = extractRecordDateIso(b);
+                const targetPays = paymentReceipts.filter(pr => {
+                    const dt = extractRecordDateIso(pr);
                     return isMonthly ? dt.startsWith(monthIso) : dt === todayIso;
                 });
-                const totalSale = targetBills.reduce((s, b) => s + getBillTotal(b), 0);
-                const totalCash = targetBills.reduce((s, b) => s + getBillReceived(b), 0);
-                const totalCredit = Math.max(0, totalSale - totalCash);
-                const pendSync = targetBills.filter(b => b.syncStatus === 'pending' || b.isOffline).length;
+                const targetSalesCash = salesBills
+                    .filter(b => {
+                        const dt = extractRecordDateIso(b);
+                        return isMonthly ? dt.startsWith(monthIso) : dt === todayIso;
+                    })
+                    .reduce((s, b) => s + Math.min(getBillTotal(b), getBillReceived(b)), 0);
+                const khataRecTotal = targetPays.reduce((s, pr) => s + getBillReceived(pr), 0);
                 return buildReply({
-                    intent: isMonthly ? 'monthly_sales' : 'today_sales',
-                    titleEn: isMonthly ? `This Month's Local Sales (${monthIso})` : `Today's Local Sales (${todayIso})`,
-                    titleUr: isMonthly ? `اس مہینے کی لوکل سیل (${monthIso})` : `آج کی لوکل سیل (${todayIso})`,
-                    textEn: targetBills.length ? `${targetBills.length} bill(s) found in your local offline DB.${pendSync ? ` (${pendSync} waiting for cloud sync).` : ''}` : `0 bills recorded for ${isMonthly ? 'this month' : 'today'} in local cache (${bills.length} total cached bills).`,
-                    textUr: targetBills.length ? `لوکل آف لائن ڈیٹا بیس میں ${targetBills.length} بلز ریکارڈ ہوئے ہیں۔${pendSync ? ` (${pendSync} کلاؤڈ سنک کے منتظر ہیں)۔` : ''}` : `لوکل ریکارڈ میں ${isMonthly ? 'اس مہینے' : 'آج'} کے لیے کوئی بل موجود نہیں۔`,
+                    intent: 'khata_recovery',
+                    titleEn: isMonthly ? `Monthly Cash & Khata Recovery (${monthIso})` : `Today's Cash & Khata Recovery (${todayIso})`,
+                    titleUr: isMonthly ? `ماہانہ کیش اور کھاتہ وصولی (${monthIso})` : `آج کی کیش اور کھاتہ وصولی (${todayIso})`,
+                    textEn: `Total cash collected: ${fmtRs(khataRecTotal + targetSalesCash)} (${targetPays.length} khata payment voucher(s)).`,
+                    textUr: `مجموعی کیش وصولی: ${fmtRs(khataRecTotal + targetSalesCash)} (${targetPays.length} کھاتہ رسیدیں)۔`,
                     lines: [
-                        { label: preferUr ? 'کل بلز کی تعداد' : 'Total Bills', value: String(targetBills.length) },
-                        { label: preferUr ? 'کل سیل' : 'Total Sale', value: fmtRs(totalSale) },
-                        { label: preferUr ? 'کیش وصولی' : 'Cash Received', value: fmtRs(totalCash) },
-                        { label: preferUr ? 'ادھار / بقایا' : 'Credit / Unpaid', value: fmtRs(totalCredit) }
+                        { label: preferUr ? 'کھاتہ وصولی (Payment Vouchers)' : 'Khata Payment Receipts', value: `${fmtRs(khataRecTotal)} (${targetPays.length})` },
+                        { label: preferUr ? 'بلز پر کیش وصولی' : 'Cash Received on Bills', value: fmtRs(targetSalesCash) },
+                        { label: preferUr ? 'کل کیش آمدنی' : 'Total Cash Inflow', value: fmtRs(khataRecTotal + targetSalesCash) }
                     ],
+                    actionUrl: 'customers.html',
+                    actionLabelEn: 'Open Customers & Khata',
+                    actionLabelUr: 'کھاتہ کھولیں',
+                    sourceTag: freshTag
+                });
+            }
+
+            const asksSales = !asksProfitOrCost && !asksExpenses && matchAny(q, [
+                'today sale', 'aaj ki sale', 'aj ki sale', 'today bill', 'aaj ke bill', 'aaj kitne bill',
+                'yesterday sale', 'kal ki sale', 'kal ke bill', 'yesterday bill',
+                'monthly sale', 'this month', 'is mahine', 'mahinay', 'total sale', 'pending bill',
+                'آج کی سیل', 'کل کی سیل', 'آج کتنے بل', 'اس مہینے کی سیل', 'کل سیل', 'پینڈنگ بلز', 'بلز'
+            ]);
+            if (asksSales) {
+                const todayIso = getTodayIso(now);
+                const yesterdayIso = getTodayIso(new Date(now.getTime() - 86400000));
+                const monthIso = todayIso.slice(0, 7);
+                const isMonthly = matchAny(q, ['month', 'mahine', 'mahinay', 'ماہانہ', 'مہینے']);
+                const isYesterday = !isMonthly && matchAny(q, ['yesterday', 'kal ki', 'kal ke', 'کل کی سیل', 'کل کے بل']);
+                const matchDate = (rec) => {
+                    const dt = extractRecordDateIso(rec);
+                    if (isMonthly) return dt.startsWith(monthIso);
+                    if (isYesterday) return dt === yesterdayIso;
+                    return dt === todayIso;
+                };
+                const targetBills = salesBills.filter(matchDate);
+                const targetReceipts = paymentReceipts.filter(matchDate);
+                const totalSale = targetBills.reduce((s, b) => s + getBillTotal(b), 0);
+                const totalCash = targetBills.reduce((s, b) => s + Math.min(getBillTotal(b), getBillReceived(b)), 0);
+                const totalCredit = Math.max(0, totalSale - totalCash);
+                const khataRecovery = targetReceipts.reduce((s, pr) => s + getBillReceived(pr), 0);
+                const pendSync = targetBills.filter(b => b.syncStatus === 'pending' || b.isOffline).length;
+                const periodLabelEn = isMonthly ? `This Month's Sales (${monthIso})` : (isYesterday ? `Yesterday's Sales (${yesterdayIso})` : `Today's Sales (${todayIso})`);
+                const periodLabelUr = isMonthly ? `اس مہینے کی سیل (${monthIso})` : (isYesterday ? `گزشتہ کل کی سیل (${yesterdayIso})` : `آج کی سیل (${todayIso})`);
+                const periodShortEn = isMonthly ? 'this month' : (isYesterday ? 'yesterday' : 'today');
+                const periodShortUr = isMonthly ? 'اس مہینے' : (isYesterday ? 'گزشتہ کل' : 'آج');
+                const salesLines = [
+                    { label: preferUr ? 'کل سیل بلز کی تعداد' : 'Sales Bills Count', value: String(targetBills.length) },
+                    { label: preferUr ? 'کل سیل' : 'Total Sale', value: fmtRs(totalSale) },
+                    { label: preferUr ? 'بلز پر کیش وصولی' : 'Cash Received on Bills', value: fmtRs(totalCash) },
+                    { label: preferUr ? 'ادھار / بقایا' : 'Credit / Unpaid', value: fmtRs(totalCredit) }
+                ];
+                if (khataRecovery > 0) {
+                    salesLines.push({ label: preferUr ? 'کھاتہ ریکوری وصولی' : 'Khata Recovery Collected', value: `${fmtRs(khataRecovery)} (${targetReceipts.length})` });
+                }
+                return buildReply({
+                    intent: isMonthly ? 'monthly_sales' : (isYesterday ? 'yesterday_sales' : 'today_sales'),
+                    titleEn: periodLabelEn,
+                    titleUr: periodLabelUr,
+                    textEn: targetBills.length ? `${targetBills.length} bill(s) verified for ${periodShortEn}.${pendSync ? ` (${pendSync} waiting for cloud sync).` : ''}` : `0 sales bills recorded for ${periodShortEn} (${salesBills.length} total cached bills).`,
+                    textUr: targetBills.length ? `${periodShortUr} کے کل ${targetBills.length} سیل بلز ریکارڈ ہوئے ہیں۔${pendSync ? ` (${pendSync} کلاؤڈ سنک کے منتظر ہیں)۔` : ''}` : `${periodShortUr} کے لیے کوئی سیل بل موجود نہیں۔`,
+                    lines: salesLines,
                     actionUrl: role === 'supplier' ? 'delivery-returns.html' : 'bills.html',
                     actionLabelEn: role === 'supplier' ? 'Open Delivery & Returns' : 'Open Bills & POS',
                     actionLabelUr: role === 'supplier' ? 'ڈلیوری کھولیں' : 'بلز کھولیں',
+                    sourceTag: freshTag
+                });
+            }
+
+            if (asksProfitOrCost && (role === 'owner' || role === 'super-admin')) {
+                const todayIso = getTodayIso(now);
+                const monthIso = todayIso.slice(0, 7);
+                const isMonthly = matchAny(q, ['month', 'mahine', 'mahinay', 'ماہانہ', 'مہینے', 'total', 'کل']);
+                const targetBills = salesBills.filter(b => {
+                    const dt = extractRecordDateIso(b);
+                    return isMonthly ? dt.startsWith(monthIso) : dt === todayIso;
+                });
+                const targetExp = expenses.filter(ex => {
+                    const dt = extractRecordDateIso(ex);
+                    return isMonthly ? (!dt || dt.startsWith(monthIso)) : dt === todayIso;
+                });
+                const totalSale = targetBills.reduce((s, b) => s + getBillTotal(b), 0);
+                const totalExp = targetExp.reduce((s, ex) => s + num(ex.amount), 0);
+                const stockCostByName = Object.create(null);
+                stock.forEach(it => {
+                    const key = String(it && it.name || '').trim().toLowerCase();
+                    const pur = getStockPurchasePrice(it);
+                    if (key && pur > 0) stockCostByName[key] = pur;
+                });
+                let estimatedCogs = 0;
+                let hasCogsData = false;
+                targetBills.forEach(b => {
+                    const items = Array.isArray(b.items) ? b.items : [];
+                    items.forEach(it => {
+                        const qty = num(it.qty || it.quantity || 1);
+                        const itemKey = String(it.name || it.itemName || '').trim().toLowerCase();
+                        const unitCost = num(it.purchasePrice ?? it.costPrice ?? it.tp ?? 0) || num(stockCostByName[itemKey]);
+                        if (unitCost > 0 && qty > 0) {
+                            estimatedCogs += unitCost * qty;
+                            hasCogsData = true;
+                        }
+                    });
+                });
+                const pLines = [
+                    { label: preferUr ? 'کل سیل' : 'Total Sales', value: `${fmtRs(totalSale)} (${targetBills.length} bills)` },
+                    { label: preferUr ? 'کل اخراجات' : 'Total Expenses', value: fmtRs(totalExp) }
+                ];
+                if (hasCogsData) {
+                    pLines.push({ label: preferUr ? 'تخمینی لاگت (COGS)' : 'Estimated Cost of Goods', value: fmtRs(estimatedCogs) });
+                    pLines.push({ label: preferUr ? 'تخمینی خالص منافع' : 'Estimated Net Profit', value: fmtRs(totalSale - estimatedCogs - totalExp) });
+                } else {
+                    pLines.push({ label: preferUr ? 'سیل منفی اخراجات (Net)' : 'Sales Minus Expenses', value: fmtRs(totalSale - totalExp) });
+                }
+                return buildReply({
+                    intent: 'profit_overview',
+                    titleEn: isMonthly ? `Monthly Profit & Expense Overview (${monthIso})` : `Today's Profit & Expense Overview (${todayIso})`,
+                    titleUr: isMonthly ? `ماہانہ منافع اور اخراجات کا جائزہ (${monthIso})` : `آج کے منافع اور اخراجات کا جائزہ (${todayIso})`,
+                    textEn: hasCogsData ? `Calculated from ${targetBills.length} sales bill(s), stock purchase costs, and ${targetExp.length} expense(s).` : `Showing verified Sales vs Expenses across ${targetBills.length} bill(s) and ${targetExp.length} expense(s).`,
+                    textUr: hasCogsData ? `${targetBills.length} بلز، خریداری لاگت اور ${targetExp.length} اخراجات کی بنیاد پر تخمینی منافع:` : `${targetBills.length} بلز اور ${targetExp.length} اخراجات کا تصدیق شدہ موازنہ:`,
+                    lines: pLines,
+                    actionUrl: 'reports.html',
+                    actionLabelEn: 'Open Profit & Sales Reports',
+                    actionLabelUr: 'منافع رپورٹ کھولیں',
                     sourceTag: freshTag
                 });
             }
@@ -553,7 +778,7 @@
                     titleEn: isMonthly ? `Monthly Expenses (${monthIso})` : `Today's Expenses (${todayIso})`,
                     titleUr: isMonthly ? `ماہانہ اخراجات (${monthIso})` : `آج کے اخراجات (${todayIso})`,
                     textEn: targetExp.length ? `Found ${targetExp.length} expense entry/entries totaling ${fmtRs(totalExp)}.` : `No expenses cached for ${isMonthly ? 'this month' : 'today'}.`,
-                    textUr: targetExp.length ? `لوکل ریکارڈ میں ${targetExp.length} اخراجات کی کل رقم ${fmtRs(totalExp)} ہے۔` : `${isMonthly ? 'اس مہینے' : 'آج'} کا کوئی خرچ لوکل کیش میں موجود نہیں۔`,
+                    textUr: targetExp.length ? `ریکارڈ میں ${targetExp.length} اخراجات کی کل رقم ${fmtRs(totalExp)} ہے۔` : `${isMonthly ? 'اس مہینے' : 'آج'} کا کوئی خرچ محفوظ نہیں ملا۔`,
                     lines: targetExp.slice(0, 6).map(ex => ({ label: sanitizeText(ex.title || ex.category || 'Expense'), value: fmtRs(ex.amount), sub: extractRecordDateIso(ex) })),
                     actionUrl: 'expenses.html',
                     actionLabelEn: 'Open Daily Expenses',
@@ -673,7 +898,7 @@
             actionUrl: bestCh.actionUrl || `user-guide.html?module=${encodeURIComponent(bestCh.moduleId || bestCh.id)}`,
             actionLabelEn: 'Open Module',
             actionLabelUr: 'ماڈیول کھولیں',
-            sourceTag: 'User Guide (Offline)'
+            sourceTag: 'NH POS User Guide'
         });
     }
 
@@ -688,10 +913,20 @@
         const sb = global.ebSidebar || {};
         const agency = sb.agency || {};
         const profile = sb.profile || {};
-        const agencyId = agency.id || profile.agencyId || localStorage.getItem('eb_active_agencyId') || '';
+        let cachedAgency = {};
+        try {
+            const rawAg = localStorage.getItem('eb_user_agency');
+            if (rawAg) cachedAgency = JSON.parse(rawAg) || {};
+        } catch (_) {}
+        const agencyId = agency.id
+            || profile.agencyId
+            || localStorage.getItem('eb_active_agencyId')
+            || cachedAgency.id
+            || '';
         const role = normalizeRole(
             profile.role
             || (sb.user && sb.user.email === 'aliimtiaz1126@gmail.com' ? 'super-admin' : '')
+            || localStorage.getItem('eb_user_role')
             || localStorage.getItem('eb_active_role')
             || (curPage === 'admin.html' ? 'super-admin' : 'owner')
         );
@@ -699,9 +934,10 @@
             agency.businessCategory
             || localStorage.getItem('eb_active_business_category')
             || localStorage.getItem('eb_active_category')
+            || cachedAgency.businessCategory
             || 'distributor'
         ).trim().toLowerCase();
-        return { agencyId, role, categoryId, agency, profile };
+        return { agencyId, role, categoryId, agency: agency.id ? agency : cachedAgency, profile };
     }
 
     function readIndexedDbStore(storeName, agencyId) {
@@ -775,13 +1011,28 @@
 
     function mergeUniqueById(primary, secondary) {
         const map = new Map();
+        const seenBillNos = new Set();
+        const getKeys = (item, prefix, idx) => {
+            const idKey = item && (item.id || item.localId) ? String(item.id || item.localId).trim() : '';
+            const billKey = item && item.billNo !== undefined && item.billNo !== null && String(item.billNo).trim() !== ''
+                ? `billno_${String(item.billNo).trim().toLowerCase()}`
+                : '';
+            return { primaryKey: idKey || billKey || `${prefix}_${idx}`, billKey };
+        };
         (primary || []).forEach((item, idx) => {
-            const k = item && (item.id || item.localId || item.billNo) ? String(item.id || item.localId || item.billNo) : `p_${idx}`;
-            map.set(k, item);
+            if (!item || typeof item !== 'object') return;
+            const { primaryKey, billKey } = getKeys(item, 'p', idx);
+            if (billKey && seenBillNos.has(billKey)) return;
+            map.set(primaryKey, item);
+            if (billKey) seenBillNos.add(billKey);
         });
         (secondary || []).forEach((item, idx) => {
-            const k = item && (item.id || item.localId || item.billNo) ? String(item.id || item.localId || item.billNo) : `s_${idx}`;
-            if (!map.has(k)) map.set(k, item);
+            if (!item || typeof item !== 'object') return;
+            const { primaryKey, billKey } = getKeys(item, 's', idx);
+            if (map.has(primaryKey)) return;
+            if (billKey && seenBillNos.has(billKey)) return;
+            map.set(primaryKey, item);
+            if (billKey) seenBillNos.add(billKey);
         });
         return Array.from(map.values());
     }
@@ -794,14 +1045,16 @@
         let expenses = [];
         let lastSyncTs = '';
 
-        // 1. Read localStorage caches strictly scoped by agencyId + categoryId
+        // 1. Read localStorage caches strictly scoped by agencyId + categoryId (with bills.js array fallback)
         if (agencyId) {
             try {
-                const cRaw = localStorage.getItem(`eb_cust_cache_${agencyId}_${categoryId}`);
+                const cRaw = localStorage.getItem(`eb_cust_cache_${agencyId}_${categoryId}`)
+                    || localStorage.getItem(`eb_cust_cache_${agencyId}`);
                 if (cRaw) {
                     const parsed = JSON.parse(cRaw);
-                    if (Array.isArray(parsed.customers)) customers = parsed.customers;
-                    if (parsed.timestamp) lastSyncTs = parsed.timestamp;
+                    if (Array.isArray(parsed)) customers = parsed;
+                    else if (parsed && Array.isArray(parsed.customers)) customers = parsed.customers;
+                    if (parsed && parsed.timestamp) lastSyncTs = parsed.timestamp;
                 }
             } catch (_) {}
 
@@ -810,8 +1063,9 @@
                     || localStorage.getItem(`eb_stock_cache_${agencyId}`);
                 if (sRaw) {
                     const parsed = JSON.parse(sRaw);
-                    if (Array.isArray(parsed.items)) stock = parsed.items;
-                    if (!lastSyncTs && parsed.timestamp) lastSyncTs = parsed.timestamp;
+                    if (Array.isArray(parsed)) stock = parsed;
+                    else if (parsed && Array.isArray(parsed.items)) stock = parsed.items;
+                    if (!lastSyncTs && parsed && parsed.timestamp) lastSyncTs = parsed.timestamp;
                 }
             } catch (_) {}
 
@@ -826,7 +1080,8 @@
             // Strict RBAC: Only read expenses for owner or super-admin
             if (role === 'owner' || role === 'super-admin') {
                 try {
-                    const eRaw = localStorage.getItem(`eb_expenses_${agencyId}_${categoryId}`);
+                    const eRaw = localStorage.getItem(`eb_expenses_${agencyId}_${categoryId}`)
+                        || localStorage.getItem(`eb_expenses_${agencyId}`);
                     if (eRaw) {
                         const arr = JSON.parse(eRaw);
                         if (Array.isArray(arr)) expenses = arr;
@@ -847,32 +1102,47 @@
 
         // 3. Enrich from Firestore browser disk cache ONLY ({ source: 'cache' } — 0 server reads!)
         if (agencyId) {
-            const [fsBills, fsCusts, fsStock] = await Promise.all([
+            const allowExpCache = (role === 'owner' || role === 'super-admin') && expenses.length === 0;
+            const [fsBills, fsCusts, fsStock, fsExps] = await Promise.all([
                 readFirestoreLocalCacheOnly('bills', agencyId),
                 customers.length ? Promise.resolve([]) : readFirestoreLocalCacheOnly('customers', agencyId),
-                stock.length ? Promise.resolve([]) : readFirestoreLocalCacheOnly('stock', agencyId)
+                stock.length ? Promise.resolve([]) : readFirestoreLocalCacheOnly('stock', agencyId),
+                allowExpCache ? readFirestoreLocalCacheOnly('expenses', agencyId) : Promise.resolve([])
             ]);
             bills = mergeUniqueById(bills, fsBills);
             customers = mergeUniqueById(customers, fsCusts);
             stock = mergeUniqueById(stock, fsStock);
+            if (allowExpCache) expenses = mergeUniqueById(expenses, fsExps);
         }
 
-        // Enforce strict active-category isolation
-        customers = filterByCategory(customers, categoryId, agency);
-        stock = filterByCategory(stock, categoryId, agency);
-        bills = filterByCategory(bills, categoryId, agency);
-        expenses = filterByCategory(expenses, categoryId, agency);
+        // Enforce strict active-category isolation + exclude soft-deleted/cancelled records
+        customers = filterByCategory(customers, categoryId, agency).filter(isActiveRecord);
+        stock = filterByCategory(stock, categoryId, agency).filter(isActiveRecord);
+        bills = filterByCategory(bills, categoryId, agency).filter(isActiveRecord);
+        expenses = filterByCategory(expenses, categoryId, agency).filter(isActiveRecord);
 
-        // Super Admin local quota snapshot
+        // Super Admin local quota snapshot (supports real EBQuotaTracker.getLocalHistoryRecords() API!)
         let quota = null;
-        if (role === 'super-admin' && global.EBQuotaTracker && typeof global.EBQuotaTracker.getStats === 'function') {
+        if (role === 'super-admin' && global.EBQuotaTracker) {
             try {
-                const st = global.EBQuotaTracker.getStats();
-                quota = {
-                    reads: (st && (st.reads || st.firestoreReads)) || 0,
-                    writes: (st && (st.writes || st.firestoreWrites)) || 0,
-                    netlifyRequests: (st && (st.netlifyRequests || st.requests)) || 0
-                };
+                if (typeof global.EBQuotaTracker.getLocalHistoryRecords === 'function') {
+                    const recs = global.EBQuotaTracker.getLocalHistoryRecords() || [];
+                    const agg = recs.reduce((acc, r) => {
+                        acc.reads += num(r && (r.fbReads || r.reads));
+                        acc.writes += num(r && (r.fbWrites || r.writes));
+                        acc.netlifyRequests += num(r && (r.netlifyTotalReqs || r.netlifyRequests));
+                        acc.pwaCacheHits += num(r && r.pwaCacheHits);
+                        return acc;
+                    }, { reads: 0, writes: 0, netlifyRequests: 0, pwaCacheHits: 0 });
+                    quota = agg;
+                } else if (typeof global.EBQuotaTracker.getStats === 'function') {
+                    const st = global.EBQuotaTracker.getStats();
+                    quota = {
+                        reads: (st && (st.reads || st.firestoreReads)) || 0,
+                        writes: (st && (st.writes || st.firestoreWrites)) || 0,
+                        netlifyRequests: (st && (st.netlifyRequests || st.requests)) || 0
+                    };
+                }
             } catch (_) {}
         }
 
@@ -977,6 +1247,7 @@
     } catch (_) {}
 
     let isOpen = false;
+    let isThinking = false;
     let lastQueryAt = 0;
 
     function injectStyles() {
@@ -984,65 +1255,172 @@
         const style = document.createElement('style');
         style.id = 'ebSmartBotStyles';
         style.textContent = `
+            @keyframes ebBotBlink {
+                0%, 88%, 93.5%, 97.5%, 100% { transform: scaleY(1); }
+                91%, 95.5% { transform: scaleY(0.12); }
+            }
+            @keyframes ebDotPulse {
+                0%, 80%, 100% { transform: scale(0.65); opacity: 0.4; }
+                40% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes ebSpin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+            .eb-bot-eye {
+                transform-box: fill-box;
+                transform-origin: center;
+                animation: ebBotBlink 5.2s ease-in-out infinite;
+            }
             .eb-bot-fab {
                 position: fixed;
-                right: 20px;
-                bottom: 22px;
+                right: 18px;
+                bottom: 20px;
                 width: 56px;
                 height: 56px;
                 border-radius: 50%;
-                background: #059669;
+                background: linear-gradient(135deg, #059669, #047857);
                 color: #ffffff;
                 border: none;
-                box-shadow: 0 10px 26px rgba(5, 150, 105, 0.38);
+                box-shadow: 0 10px 26px rgba(5, 150, 105, 0.42);
                 cursor: pointer;
-                z-index: 99985;
-                display: flex;
+                z-index: 999998;
+                display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 24px;
-                transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+                padding: 0;
+                font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+                transition: all 0.24s cubic-bezier(0.22, 1, 0.36, 1);
             }
             .eb-bot-fab:hover {
-                background: #047857;
                 transform: translateY(-2px);
-                box-shadow: 0 14px 30px rgba(5, 150, 105, 0.45);
+                box-shadow: 0 14px 30px rgba(5, 150, 105, 0.48);
             }
             .eb-bot-fab.hidden { display: none !important; }
+            .eb-bot-fab-label {
+                display: none;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.01em;
+                color: #f8fafc;
+                background: rgba(15, 23, 42, 0.86);
+                padding: 5px 9px;
+                border-radius: 8px;
+                white-space: nowrap;
+                box-shadow: 0 4px 12px rgba(15, 23, 42, 0.28);
+            }
+            .eb-bot-fab-circle {
+                position: relative;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                transition: width 0.24s ease, height 0.24s ease, background 0.2s ease;
+            }
+            .eb-bot-fab-circle svg {
+                width: 28px;
+                height: 28px;
+                transition: width 0.24s ease, height 0.24s ease;
+            }
+            .eb-bot-fab-cross {
+                display: none;
+                position: absolute;
+                top: -3px;
+                right: -3px;
+                width: 17px;
+                height: 17px;
+                border-radius: 50%;
+                background: #ef4444;
+                color: #ffffff;
+                font-size: 10px;
+                font-weight: 800;
+                line-height: 1;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid #ffffff;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+            }
+            /* Docked 30% smaller right above the chat input area when chat is open */
+            .eb-bot-fab.chat-open {
+                right: 12px;
+                bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+                width: auto;
+                height: auto;
+                border-radius: 999px;
+                background: transparent;
+                box-shadow: none;
+                gap: 7px;
+                z-index: 1000001;
+            }
+            .eb-bot-fab.chat-open:hover {
+                transform: none;
+                box-shadow: none;
+            }
+            .eb-bot-fab.chat-open .eb-bot-fab-label {
+                display: inline-flex;
+                align-items: center;
+            }
+            .eb-bot-fab.chat-open .eb-bot-fab-circle {
+                width: 39px;
+                height: 39px;
+                background: linear-gradient(135deg, #059669, #047857);
+                box-shadow: 0 6px 16px rgba(5, 150, 105, 0.42);
+            }
+            .eb-bot-fab.chat-open .eb-bot-fab-circle svg {
+                width: 20px;
+                height: 20px;
+            }
+            .eb-bot-fab.chat-open .eb-bot-fab-cross {
+                display: inline-flex;
+            }
+
+            /* Full-height WhatsApp-style Drawer (Covers topbar, sides & bottom cleanly) */
             .eb-bot-panel {
                 position: fixed;
-                right: 20px;
-                bottom: 88px;
-                width: 380px;
-                max-width: calc(100vw - 24px);
-                height: 540px;
-                max-height: calc(100vh - 110px);
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 420px;
+                max-width: 100vw;
+                height: 100vh;
+                height: 100dvh;
+                max-height: 100dvh;
                 background: #f8fafc;
                 color: #0f172a;
-                border: 1px solid #cbd5e1;
-                border-radius: 16px;
-                box-shadow: 0 22px 48px rgba(15, 23, 42, 0.24);
-                z-index: 99986;
+                border-left: 1px solid #cbd5e1;
+                border-radius: 0;
+                box-shadow: -12px 0 36px rgba(15, 23, 42, 0.22);
+                z-index: 999999;
                 display: none;
                 flex-direction: column;
                 overflow: hidden;
                 font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
             }
+            @media (max-width: 640px) {
+                .eb-bot-panel {
+                    left: 0;
+                    width: 100vw;
+                    border-left: none;
+                }
+            }
             .eb-bot-panel.open { display: flex; }
             [data-theme="dark"] .eb-bot-panel {
                 background: #0f172a;
                 color: #f1f5f9;
-                border-color: #334155;
+                border-left-color: #334155;
             }
             .eb-bot-header {
                 background: #075e54;
                 color: #ffffff;
-                padding: 12px 14px;
+                padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 12px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 gap: 8px;
                 flex-shrink: 0;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
             }
             .eb-bot-head-left {
                 display: flex;
@@ -1051,8 +1429,8 @@
                 min-width: 0;
             }
             .eb-bot-avatar {
-                width: 36px;
-                height: 36px;
+                width: 38px;
+                height: 38px;
                 border-radius: 50%;
                 background: rgba(255,255,255,0.16);
                 display: flex;
@@ -1062,17 +1440,18 @@
                 flex-shrink: 0;
             }
             .eb-bot-title {
-                font-size: 14px;
-                font-weight: 700;
+                font-size: 15px;
+                font-weight: 800;
                 line-height: 1.2;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
             .eb-bot-sub {
-                font-size: 11px;
+                font-size: 11.5px;
                 color: #a7f3d0;
                 margin-top: 2px;
+                font-weight: 600;
             }
             .eb-bot-head-actions {
                 display: flex;
@@ -1081,21 +1460,21 @@
                 flex-shrink: 0;
             }
             .eb-bot-head-btn {
-                background: rgba(255,255,255,0.14);
+                background: rgba(255,255,255,0.15);
                 color: #ffffff;
                 border: none;
-                border-radius: 7px;
-                padding: 5px 8px;
-                font-size: 11px;
+                border-radius: 8px;
+                padding: 6px 9px;
+                font-size: 11.5px;
                 font-weight: 700;
                 cursor: pointer;
                 font-family: inherit;
             }
-            .eb-bot-head-btn:hover { background: rgba(255,255,255,0.24); }
+            .eb-bot-head-btn:hover { background: rgba(255,255,255,0.26); }
             .eb-bot-messages {
                 flex: 1;
                 overflow-y: auto;
-                padding: 14px 12px;
+                padding: 14px 12px 58px;
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
@@ -1106,9 +1485,9 @@
             }
             .eb-bot-msg {
                 max-width: 88%;
-                padding: 10px 12px;
+                padding: 10px 13px;
                 border-radius: 12px;
-                font-size: 13px;
+                font-size: 13.5px;
                 line-height: 1.5;
                 word-break: break-word;
                 box-shadow: 0 1px 2px rgba(0,0,0,0.08);
@@ -1133,9 +1512,32 @@
                 background: #1e293b;
                 color: #f1f5f9;
             }
+            .eb-bot-thinking-bubble {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 12.5px;
+                font-weight: 600;
+                color: #065f46;
+            }
+            [data-theme="dark"] .eb-bot-thinking-bubble { color: #34d399; }
+            .eb-bot-dots {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .eb-bot-dots span {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: currentColor;
+                animation: ebDotPulse 1.2s infinite ease-in-out;
+            }
+            .eb-bot-dots span:nth-child(2) { animation-delay: 0.2s; }
+            .eb-bot-dots span:nth-child(3) { animation-delay: 0.4s; }
             .eb-bot-msg-title {
                 font-weight: 800;
-                font-size: 13.5px;
+                font-size: 14px;
                 margin-bottom: 4px;
                 color: #065f46;
             }
@@ -1214,7 +1616,7 @@
                 color: #0f172a;
                 border: 1px solid #cbd5e1;
                 border-radius: 8px;
-                padding: 5px 10px;
+                padding: 6px 11px;
                 font-size: 11.5px;
                 font-weight: 600;
                 white-space: nowrap;
@@ -1231,7 +1633,7 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                padding: 10px;
+                padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
                 background: #ffffff;
                 border-top: 1px solid #e2e8f0;
                 flex-shrink: 0;
@@ -1244,8 +1646,8 @@
                 flex: 1;
                 border: 1px solid #cbd5e1;
                 border-radius: 10px;
-                padding: 9px 12px;
-                font-size: 13px;
+                padding: 10px 12px;
+                font-size: 13.5px;
                 background: #f8fafc;
                 color: #0f172a;
                 outline: none;
@@ -1258,20 +1660,35 @@
                 border-color: #334155;
             }
             .eb-bot-send {
-                width: 38px;
-                height: 38px;
+                min-width: 40px;
+                height: 40px;
+                padding: 0 11px;
                 border-radius: 10px;
                 border: none;
                 background: #059669;
                 color: #ffffff;
                 cursor: pointer;
-                display: flex;
+                display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 15px;
+                gap: 6px;
+                font-size: 14px;
+                font-weight: 700;
+                font-family: inherit;
                 flex-shrink: 0;
+                transition: background 0.16s ease, opacity 0.16s ease;
             }
             .eb-bot-send:hover { background: #047857; }
+            .eb-bot-send.thinking {
+                background: #0f766e;
+                font-size: 12px;
+                cursor: wait;
+                opacity: 0.94;
+            }
+            .eb-bot-send .eb-spin-icon {
+                display: inline-block;
+                animation: ebSpin 0.9s linear infinite;
+            }
             @media print {
                 .eb-bot-fab, .eb-bot-panel { display: none !important; }
             }
@@ -1284,13 +1701,23 @@
     let msgListEl = null;
     let chipsEl = null;
     let inputEl = null;
+    let sendBtnEl = null;
+
+    function syncChatOpenState(openNext) {
+        isOpen = Boolean(openNext);
+        if (panelEl) panelEl.classList.toggle('open', isOpen);
+        if (fabEl) {
+            fabEl.classList.toggle('chat-open', isOpen);
+            fabEl.setAttribute('aria-label', isOpen ? 'Close NH POS AI Assistant' : 'Open NH POS AI Assistant');
+            fabEl.title = isOpen ? 'Close Chat' : 'NH POS AI Assistant';
+        }
+    }
 
     function syncVisibility() {
         const enabled = isBotEnabled();
         if (fabEl) fabEl.classList.toggle('hidden', !enabled);
-        if (!enabled && panelEl) {
-            isOpen = false;
-            panelEl.classList.remove('open');
+        if (!enabled) {
+            syncChatOpenState(false);
         }
     }
 
@@ -1334,12 +1761,72 @@
             <div>${escapeHtml(body)}</div>
             ${rowsHtml}
             <div class="eb-bot-meta">
-                <span>${escapeHtml(reply.sourceTag || 'Offline Local DB')}</span>
+                <span>${escapeHtml(reply.sourceTag || 'NH POS AI')}</span>
                 ${actionHtml}
             </div>
         `;
         msgListEl.appendChild(div);
         msgListEl.scrollTop = msgListEl.scrollHeight;
+    }
+
+    function isBusinessDataQuery(q) {
+        const lower = String(q || '').toLowerCase();
+        return matchAny(lower, [
+            'pending', 'khata', 'udhaar', 'udhar', 'baqi', 'baki', 'bakaya', 'wasooli', 'recovery',
+            'lene', 'dene', 'payable', 'receivable', 'client', 'customer', 'sale', 'bill', 'yesterday', 'kal ki',
+            'stock', 'expiry', 'expire', 'expense', 'kharch', 'profit', 'munafa', 'bachat', 'rate', 'price', 'qeemat', 'worth',
+            'summary', 'overview', 'quota', 'بقایا', 'کھاتہ', 'سیل', 'بل', 'اسٹاک', 'ایکسپائری', 'خرچ', 'وصولی', 'منافع'
+        ]);
+    }
+
+    function computeThinkingDelayMs(queryText) {
+        if (global.__EB_BOT_FAST_TEST__ === true) return 0;
+        const dataQuery = isBusinessDataQuery(queryText);
+        if (dataQuery) {
+            // Data / records verification: ~2.1s to 3.9s (gives full room to read & verify accurately)
+            return Math.floor(2100 + Math.random() * 1800);
+        }
+        // General / guide questions: mostly 1.4s to 2.4s, occasionally up to ~2.9s
+        const roll = Math.random();
+        if (roll < 0.75) return Math.floor(1400 + Math.random() * 900);
+        return Math.floor(2300 + Math.random() * 650);
+    }
+
+    function setThinkingUI(active, isDataQuery) {
+        isThinking = Boolean(active);
+        const subEl = document.getElementById('ebBotHeadSub');
+        if (sendBtnEl) {
+            sendBtnEl.disabled = isThinking;
+            sendBtnEl.classList.toggle('thinking', isThinking);
+            if (isThinking) {
+                const label = botLang === 'ur' ? 'سوچ رہا ہے...' : 'Thinking...';
+                sendBtnEl.innerHTML = `<i class="fas fa-circle-notch eb-spin-icon" aria-hidden="true"></i><span>${label}</span>`;
+            } else {
+                sendBtnEl.innerHTML = '<i class="fas fa-paper-plane" aria-hidden="true"></i>';
+            }
+        }
+        if (subEl) {
+            if (isThinking) {
+                subEl.textContent = botLang === 'ur'
+                    ? (isDataQuery ? 'ریکارڈ چیک کر رہا ہے...' : 'سوچ رہا ہے...')
+                    : (isDataQuery ? 'Checking records...' : 'Thinking...');
+            } else {
+                subEl.textContent = botLang === 'ur' ? 'آن لائن · کاروباری اسسٹنٹ' : 'Online · Business Assistant';
+            }
+        }
+    }
+
+    function appendThinkingBubble(isDataQuery) {
+        if (!msgListEl) return null;
+        const div = document.createElement('div');
+        div.className = 'eb-bot-msg bot' + (botLang === 'ur' ? ' eb-bot-msg-ur' : '');
+        const txt = botLang === 'ur'
+            ? (isDataQuery ? 'ریکارڈ چیک کر رہا ہے' : 'سوچ رہا ہے')
+            : (isDataQuery ? 'Thinking & checking records' : 'Thinking');
+        div.innerHTML = `<div class="eb-bot-thinking-bubble"><span>${escapeHtml(txt)}</span><span class="eb-bot-dots"><span></span><span></span><span></span></span></div>`;
+        msgListEl.appendChild(div);
+        msgListEl.scrollTop = msgListEl.scrollHeight;
+        return div;
     }
 
     function renderQuickChips() {
@@ -1351,6 +1838,7 @@
         ).join('');
         chipsEl.querySelectorAll('[data-chip-idx]').forEach((btn) => {
             btn.addEventListener('click', () => {
+                if (isThinking) return;
                 const idx = Number(btn.getAttribute('data-chip-idx'));
                 if (chips[idx]) handleUserQuestion(chips[idx].query);
             });
@@ -1359,7 +1847,7 @@
 
     async function handleUserQuestion(rawText) {
         const clean = sanitizeText(rawText);
-        if (!clean) return;
+        if (!clean || isThinking) return;
 
         // Lightweight anti-flood throttle (350ms)
         const nowMs = Date.now();
@@ -1384,36 +1872,75 @@
 
         appendUserBubble(clean);
 
-        await ensureGuideScriptsLoaded();
-        const ctx = getActiveUserContext();
-        const localData = await collectLocalOfflineData(ctx);
-        const guideChapters = getVisibleGuideChapters(ctx);
+        const dataQuery = isBusinessDataQuery(clean);
+        const delayMs = computeThinkingDelayMs(clean);
+        setThinkingUI(true, dataQuery);
+        const thinkingNode = appendThinkingBubble(dataQuery);
 
-        const reply = getCore().answerQuery({
-            query: clean,
-            role: ctx.role,
-            categoryId: ctx.categoryId,
-            lang: botLang,
-            localData,
-            guideChapters
-        });
-        appendBotBubble(reply);
+        try {
+            // Run real local data verification in parallel with natural Thinking... timer
+            const dataWorkPromise = (async () => {
+                await ensureGuideScriptsLoaded();
+                const ctx = getActiveUserContext();
+                const localData = await collectLocalOfflineData(ctx);
+                const guideChapters = getVisibleGuideChapters(ctx);
+                return getCore().answerQuery({
+                    query: clean,
+                    role: ctx.role,
+                    categoryId: ctx.categoryId,
+                    lang: botLang,
+                    localData,
+                    guideChapters
+                });
+            })();
+
+            const timerPromise = delayMs > 0
+                ? new Promise(res => setTimeout(res, delayMs))
+                : Promise.resolve();
+
+            const [reply] = await Promise.all([dataWorkPromise, timerPromise]);
+
+            if (thinkingNode && thinkingNode.parentNode) {
+                thinkingNode.parentNode.removeChild(thinkingNode);
+            }
+            appendBotBubble(reply);
+        } catch (_) {
+            if (thinkingNode && thinkingNode.parentNode) {
+                thinkingNode.parentNode.removeChild(thinkingNode);
+            }
+            appendBotBubble(buildReply({
+                intent: 'error',
+                titleEn: 'Could Not Read Records',
+                titleUr: 'ریکارڈ پڑھنے میں مسئلہ آیا',
+                textEn: 'Please try asking again in a moment.',
+                textUr: 'براہِ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔',
+                sourceTag: 'NH POS AI'
+            }));
+        } finally {
+            setThinkingUI(false, false);
+        }
     }
 
     function mountUI() {
         if (document.getElementById('ebSmartBotFab')) return;
         injectStyles();
 
-        const BOT_ROBOT_SVG = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="3" x2="12" y2="7"></line><circle cx="12" cy="2.6" r="1.2" fill="currentColor" stroke="none"></circle><rect x="4" y="7" width="16" height="12" rx="4"></rect><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line><circle cx="9.2" cy="12.5" r="1.35" fill="currentColor" stroke="none"></circle><circle cx="14.8" cy="12.5" r="1.35" fill="currentColor" stroke="none"></circle><path d="M9.5 16c.8.65 1.65.95 2.5.95s1.7-.3 2.5-.95"></path></svg>';
+        const BOT_ROBOT_SVG = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="3" x2="12" y2="7"></line><circle cx="12" cy="2.6" r="1.2" fill="currentColor" stroke="none"></circle><rect x="4" y="7" width="16" height="12" rx="4"></rect><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line><ellipse class="eb-bot-eye" cx="9.2" cy="12.5" rx="1.4" ry="1.4" fill="currentColor" stroke="none"></ellipse><ellipse class="eb-bot-eye" cx="14.8" cy="12.5" rx="1.4" ry="1.4" fill="currentColor" stroke="none"></ellipse><path d="M9.5 16c.8.65 1.65.95 2.5.95s1.7-.3 2.5-.95"></path></svg>';
 
         fabEl = document.createElement('button');
         fabEl.type = 'button';
         fabEl.id = 'ebSmartBotFab';
         fabEl.className = 'eb-bot-fab';
         fabEl.setAttribute('data-bot-icon', 'robot');
-        fabEl.title = 'NH POS AI Assistant (Offline)';
+        fabEl.title = 'NH POS AI Assistant';
         fabEl.setAttribute('aria-label', 'Open NH POS AI Assistant');
-        fabEl.innerHTML = BOT_ROBOT_SVG;
+        fabEl.innerHTML = `
+            <span class="eb-bot-fab-label" id="ebBotCloseLabel">close chat</span>
+            <span class="eb-bot-fab-circle">
+                ${BOT_ROBOT_SVG}
+                <span class="eb-bot-fab-cross" aria-hidden="true">&times;</span>
+            </span>
+        `;
 
         panelEl = document.createElement('section');
         panelEl.id = 'ebSmartBotPanel';
@@ -1425,7 +1952,7 @@
                     <div class="eb-bot-avatar">${BOT_ROBOT_SVG.replace('width="28" height="28"', 'width="22" height="22"')}</div>
                     <div style="min-width:0;">
                         <div class="eb-bot-title" id="ebBotHeadTitle">NH POS AI Assistant</div>
-                        <div class="eb-bot-sub" id="ebBotHeadSub">Offline Local DB · 0 Cloud Quota</div>
+                        <div class="eb-bot-sub" id="ebBotHeadSub">Online · Business Assistant</div>
                     </div>
                 </div>
                 <div class="eb-bot-head-actions">
@@ -1438,7 +1965,7 @@
             <div class="eb-bot-chips" id="ebBotChips"></div>
             <form class="eb-bot-form" id="ebBotForm">
                 <input type="text" class="eb-bot-input" id="ebBotInput" maxlength="300" autocomplete="off" placeholder="Ask pending khata, today sale, low stock, or guide...">
-                <button type="submit" class="eb-bot-send" aria-label="Send"><i class="fas fa-paper-plane"></i></button>
+                <button type="submit" class="eb-bot-send" id="ebBotSendBtn" aria-label="Send"><i class="fas fa-paper-plane"></i></button>
             </form>
         `;
 
@@ -1448,14 +1975,19 @@
         msgListEl = document.getElementById('ebBotMessages');
         chipsEl = document.getElementById('ebBotChips');
         inputEl = document.getElementById('ebBotInput');
+        sendBtnEl = document.getElementById('ebBotSendBtn');
 
         function refreshHeaderLang() {
             const langBtn = document.getElementById('ebBotLangBtn');
             const titleEl = document.getElementById('ebBotHeadTitle');
             const subEl = document.getElementById('ebBotHeadSub');
+            const closeLbl = document.getElementById('ebBotCloseLabel');
             if (langBtn) langBtn.textContent = botLang === 'ur' ? 'EN' : 'اردو';
             if (titleEl) titleEl.textContent = botLang === 'ur' ? 'این ایچ پی او ایس اے آئی اسسٹنٹ' : 'NH POS AI Assistant';
-            if (subEl) subEl.textContent = botLang === 'ur' ? 'آف لائن لوکل ڈیٹا بیس · مکمل محفوظ' : 'Offline Local DB · 0 Cloud Quota';
+            if (subEl && !isThinking) {
+                subEl.textContent = botLang === 'ur' ? 'آن لائن · کاروباری اسسٹنٹ' : 'Online · Business Assistant';
+            }
+            if (closeLbl) closeLbl.textContent = botLang === 'ur' ? 'چیٹ بند کریں' : 'close chat';
             if (inputEl) {
                 inputEl.placeholder = botLang === 'ur'
                     ? 'بقایا کھاتہ، آج کی سیل، کم اسٹاک یا گائیڈ پوچھیں...'
@@ -1469,21 +2001,20 @@
             const ctx = getActiveUserContext();
             appendBotBubble(buildReply({
                 intent: 'welcome',
-                titleEn: 'Assalam-o-Alaikum! Offline Smart Assistant Ready',
-                titleUr: 'السلام علیکم! آف لائن اسمارٹ اسسٹنٹ تیار ہے',
+                titleEn: 'Assalam-o-Alaikum! NH POS AI Assistant',
+                titleUr: 'السلام علیکم! این ایچ پی او ایس اے آئی اسسٹنٹ',
                 textEn: ctx.role === 'super-admin'
-                    ? 'Ask about Cloud Quota, Store Registration, Packages, or any client Khata / guide step.'
-                    : 'Ask me about pending client payments, today’s sales, low stock, expiry alerts, or how to use any screen — works 100% offline!',
+                    ? 'Ask about Store Governance, Packages, Platform Usage, or any module step.'
+                    : 'Ask me about pending client payments, today’s sales, bills, low stock, expiry alerts, or how to use any screen.',
                 textUr: ctx.role === 'super-admin'
-                    ? 'کلاؤڈ کوٹہ، نئی دکان رجسٹریشن، پیکیجز یا کسی بھی گائیڈ کے بارے میں پوچھیں۔'
-                    : 'بقایا کھاتہ (کس سے پیسے لینے یا دینے ہیں)، آج کی سیل، کم اسٹاک یا کسی بھی ماڈیول کا طریقہ پوچھیں — 100% آف لائن کام کرتا ہے!',
-                sourceTag: 'Offline Local DB · Ready'
+                    ? 'اسٹور مینجمنٹ، پیکیجز، پلیٹ فارم رپورٹ یا کسی بھی گائیڈ کے بارے میں پوچھیں۔'
+                    : 'بقایا کھاتہ (کس سے پیسے لینے یا دینے ہیں)، آج کی سیل، بلز، کم اسٹاک یا کسی بھی ماڈیول کا طریقہ پوچھیں۔',
+                sourceTag: 'NH POS AI'
             }));
         }
 
         fabEl.addEventListener('click', () => {
-            isOpen = !isOpen;
-            panelEl.classList.toggle('open', isOpen);
+            syncChatOpenState(!isOpen);
             if (isOpen) {
                 refreshHeaderLang();
                 seedWelcomeIfEmpty();
@@ -1493,8 +2024,7 @@
         });
 
         document.getElementById('ebBotCloseBtn').addEventListener('click', () => {
-            isOpen = false;
-            panelEl.classList.remove('open');
+            syncChatOpenState(false);
         });
 
         document.getElementById('ebBotOffBtn').addEventListener('click', () => {
@@ -1508,7 +2038,7 @@
 
         document.getElementById('ebBotForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            if (!inputEl) return;
+            if (!inputEl || isThinking) return;
             const q = inputEl.value;
             inputEl.value = '';
             handleUserQuestion(q);
@@ -1527,8 +2057,7 @@
             if (fabEl && !isOpen) fabEl.click();
         },
         close() {
-            isOpen = false;
-            if (panelEl) panelEl.classList.remove('open');
+            syncChatOpenState(false);
         },
         ask(q) {
             this.open();

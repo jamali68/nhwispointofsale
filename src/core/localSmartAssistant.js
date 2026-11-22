@@ -97,10 +97,29 @@ function createLocalSmartAssistant() {
     return sanitizeText((c && (c.mobile || c.phone || c.contact)) || '');
   }
 
+  function isActiveRecord(rec) {
+    if (!rec || typeof rec !== 'object') return false;
+    const st = String(rec.status || '').trim().toLowerCase();
+    if (st === 'deleted' || st === 'cancelled' || st === 'canceled' || st === 'void') return false;
+    if (rec.isDeleted === true || rec.deleted === true) return false;
+    return true;
+  }
+
+  function isPaymentReceipt(b) {
+    if (!b || typeof b !== 'object') return false;
+    const t = String(b.type || b.recordType || '').trim().toLowerCase();
+    return t === 'payment' || t === 'payment_receipt' || t === 'recovery' || b.isPaymentReceipt === true;
+  }
+
   function getBillTotal(b) {
-    if (!b || typeof b !== 'object') return 0;
+    if (!b || typeof b !== 'object' || isPaymentReceipt(b)) return 0;
     if (b.billAmount !== undefined && b.billAmount !== null && num(b.billAmount) > 0) return num(b.billAmount);
-    if (b.grandTotal !== undefined && b.grandTotal !== null) return num(b.grandTotal);
+    const prev = num(b.previousBalance);
+    if (b.grandTotal !== undefined && b.grandTotal !== null) {
+      const gt = num(b.grandTotal);
+      if (prev > 0 && gt > prev) return gt - prev;
+      return gt;
+    }
     if (b.totalAmount !== undefined && b.totalAmount !== null) return num(b.totalAmount);
     return num(b.total);
   }
@@ -108,8 +127,10 @@ function createLocalSmartAssistant() {
   function getBillReceived(b) {
     if (!b || typeof b !== 'object') return 0;
     if (b.received !== undefined && b.received !== null) return num(b.received);
+    if (b.paymentAmount !== undefined && b.paymentAmount !== null) return num(b.paymentAmount);
     if (b.paidAmount !== undefined && b.paidAmount !== null) return num(b.paidAmount);
     if (b.cashReceived !== undefined && b.cashReceived !== null) return num(b.cashReceived);
+    if (isPaymentReceipt(b)) return 0;
     const total = getBillTotal(b);
     const bal = b.balance !== undefined ? num(b.balance) : 0;
     return Math.max(0, total - Math.max(0, bal));
@@ -164,7 +185,7 @@ function createLocalSmartAssistant() {
       actionUrl,
       actionLabelEn: sanitizeText(opts.actionLabelEn || (actionUrl ? 'Open Screen' : '')),
       actionLabelUr: sanitizeText(opts.actionLabelUr || (actionUrl ? 'اسکرین کھولیں' : '')),
-      sourceTag: sanitizeText(opts.sourceTag || 'Offline Local DB'),
+      sourceTag: sanitizeText(opts.sourceTag || 'NH POS AI'),
       restricted: Boolean(opts.restricted)
     };
   }
@@ -223,19 +244,21 @@ function createLocalSmartAssistant() {
     const uiLang = p.lang || 'en';
     const preferUr = isUrduPreferred(rawQuery, uiLang);
     const data = p.localData || {};
-    const customers = Array.isArray(data.customers) ? data.customers : [];
-    const stock = Array.isArray(data.stock) ? data.stock : [];
-    const bills = Array.isArray(data.bills) ? data.bills : [];
-    const expenses = Array.isArray(data.expenses) ? data.expenses : [];
+    const customers = (Array.isArray(data.customers) ? data.customers : []).filter(isActiveRecord);
+    const stock = (Array.isArray(data.stock) ? data.stock : []).filter(isActiveRecord);
+    const bills = (Array.isArray(data.bills) ? data.bills : []).filter(isActiveRecord);
+    const salesBills = bills.filter(b => !isPaymentReceipt(b));
+    const paymentReceipts = bills.filter(isPaymentReceipt);
+    const expenses = (Array.isArray(data.expenses) ? data.expenses : []).filter(isActiveRecord);
     const guideChapters = Array.isArray(p.guideChapters) ? p.guideChapters : [];
     const now = (p.now && typeof p.now.getFullYear === 'function' && !isNaN(p.now.getTime())) ? p.now : new Date();
-    const freshTag = data.lastSyncLabel ? `Offline DB · ${data.lastSyncLabel}` : 'Offline Local DB';
+    const freshTag = data.lastSyncLabel ? `Verified · ${data.lastSyncLabel}` : 'NH POS AI';
 
     if (!rawQuery) {
       return buildReply({
         intent: 'welcome',
-        titleEn: 'NH POS Offline Smart Assistant',
-        titleUr: 'این ایچ پی او ایس آف لائن اسمارٹ اسسٹنٹ',
+        titleEn: 'NH POS AI Assistant',
+        titleUr: 'این ایچ پی او ایس اے آئی اسسٹنٹ',
         textEn: 'Ask about pending customer payments, today’s sales, low stock, expiry alerts, or how to use any module.',
         textUr: 'بقایا کھاتہ، آج کی سیل، کم اسٹاک، ایکسپائری یا کسی بھی ماڈیول کے استعمال کے بارے میں پوچھیں۔',
         sourceTag: freshTag
@@ -244,11 +267,33 @@ function createLocalSmartAssistant() {
 
     const q = rawQuery.toLowerCase();
 
+    // Pure greetings / thanks (only when no business/data question is included)
+    if (/^(salam|salaam|aoa|assalam[\s-]*o?[\s-]*alaikum|hello|hi|hey|good morning|good evening|السلام علیکم|سلام)[!.\s]*$/i.test(rawQuery)) {
+      return buildReply({
+        intent: 'greeting',
+        titleEn: 'Wa-Alaikum-Assalam! How can I help?',
+        titleUr: 'وعلیکم السلام! میں آپ کی کیا مدد کر سکتا ہوں؟',
+        textEn: 'Ask me about pending khata payments, today’s or yesterday’s sales, low stock alerts, stock valuation, expenses, or how to use any feature.',
+        textUr: 'آپ مجھ سے بقایا کھاتہ، آج یا کل کی سیل، کم اسٹاک، اخراجات، اسٹاک ویلیو یا کسی بھی فیچر کے استعمال کے بارے میں پوچھ سکتے ہیں۔',
+        sourceTag: freshTag
+      });
+    }
+    if (/^(thanks|thank you|shukriya|jazakallah|ok|okay|theek hai|شکریہ|جزاک اللہ)[!.\s]*$/i.test(rawQuery)) {
+      return buildReply({
+        intent: 'greeting',
+        titleEn: 'You’re Welcome!',
+        titleUr: 'خوش آمدید!',
+        textEn: 'Happy to help anytime. Ask another question whenever you need verified shop insights.',
+        textUr: 'کسی بھی وقت کاروباری ریکارڈ یا گائیڈ کے لیے دوبارہ پوچھ سکتے ہیں۔',
+        sourceTag: freshTag
+      });
+    }
+
     // -----------------------------------------------------------------------
     // 0. STRICT RBAC GUARD FOR RESTRICTED QUERIES (Profit / Purchase Cost / Expenses / Admin)
     // -----------------------------------------------------------------------
     const asksExpenses = matchAny(q, ['expense', 'expenses', 'kharch', 'kharcha', 'karcha', 'اخراجات', 'خرچ', 'خرچہ']);
-    const asksProfitOrCost = matchAny(q, ['profit', 'margin', 'purchase price', 'cost price', 'khareed', 'munafa', 'منافع', 'خریداری قیمت']);
+    const asksProfitOrCost = matchAny(q, ['profit', 'margin', 'purchase price', 'cost price', 'khareed', 'munafa', 'bachat', 'stock value', 'stock ki qeemat', 'inventory value', 'منافع', 'بچت', 'خریداری قیمت', 'اسٹاک ویلیو']);
     const asksSuperAdminQuota = matchAny(q, ['netlify', 'firebase', 'quota', 'read count', 'write count', 'کوٹہ', 'فائر بیس', 'نیٹلی فائی', 'all shops', 'saray shops', 'sari shops']);
 
     if (asksSuperAdminQuota && role !== 'super-admin') {
@@ -269,8 +314,8 @@ function createLocalSmartAssistant() {
         restricted: true,
         titleEn: 'Owner-Only Financial Data',
         titleUr: 'صرف دکان مالک کے لیے مالی معلومات',
-        textEn: 'Expenses, purchase rates, and net profit figures are private to the Shop Owner account and protected from staff views.',
-        textUr: 'سیکیورٹی اصول کے مطابق اخراجات، خریداری قیمت اور منافع کی معلومات صرف دکان مالک کو دستیاب ہیں۔',
+        textEn: 'Expenses, purchase rates, stock valuation, and net profit figures are private to the Shop Owner account and protected from staff views.',
+        textUr: 'سیکیورٹی اصول کے مطابق اخراجات، خریداری قیمت، اسٹاک ویلیو اور منافع کی معلومات صرف دکان مالک کو دستیاب ہیں۔',
         sourceTag: 'Role Protected'
       });
     }
@@ -281,17 +326,24 @@ function createLocalSmartAssistant() {
     if (asksSuperAdminQuota && role === 'super-admin') {
       const qData = data.quota || null;
       if (qData && typeof qData === 'object') {
+        const readsVal = num(qData.reads ?? qData.readsToday ?? qData.fbReads ?? 0);
+        const writesVal = num(qData.writes ?? qData.writesToday ?? qData.fbWrites ?? 0);
+        const netlifyVal = num(qData.netlifyRequests ?? qData.netlifyTotalReqs ?? 0);
+        const lines = [
+          { label: 'Firestore Reads (Tracked)', value: String(readsVal) },
+          { label: 'Firestore Writes (Tracked)', value: String(writesVal) },
+          { label: 'Netlify Requests Tracked', value: String(netlifyVal) }
+        ];
+        if (num(qData.pwaCacheHits) > 0) {
+          lines.push({ label: 'PWA Offline Cache Hits', value: String(num(qData.pwaCacheHits)) });
+        }
         return buildReply({
           intent: 'superadmin_quota',
-          titleEn: 'Local Cloud Quota Snapshot (Super Admin)',
+          titleEn: 'Cloud Quota Snapshot (Super Admin)',
           titleUr: 'کلاؤڈ کوٹہ کی تازہ صورتحال (سپر ایڈمن)',
-          textEn: 'Live local telemetry captured on this device. Open Cloud Quota & Usage for full multi-shop daily/monthly/yearly breakdowns.',
+          textEn: 'Live telemetry captured on this device. Open Cloud Quota & Usage for full multi-shop daily/monthly/yearly breakdowns.',
           textUr: 'اس ڈیوائس کا تازہ کلاؤڈ کوٹہ ریکارڈ۔ تمام دکانوں کی روزانہ، ماہانہ اور سالانہ تفصیل کے لیے کلاؤڈ کوٹہ ٹیب کھولیں۔',
-          lines: [
-            { label: 'Firestore Reads (Session/Today)', value: String(num(qData.reads || 0)) },
-            { label: 'Firestore Writes (Session/Today)', value: String(num(qData.writes || 0)) },
-            { label: 'Netlify Requests Tracked', value: String(num(qData.netlifyRequests || 0)) }
-          ],
+          lines,
           actionUrl: 'admin.html#tabCloudQuota',
           actionLabelEn: 'Open Cloud Quota & Usage',
           actionLabelUr: 'کلاؤڈ کوٹہ کھولیں',
@@ -371,6 +423,48 @@ function createLocalSmartAssistant() {
     // -----------------------------------------------------------------------
     // 4. PENDING PAYMENTS — PAYABLE ("kis ko paise dene hain" / advance / negative balance)
     // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // 4B. OVERALL BUSINESS / SHOP SUMMARY SNAPSHOT
+    // -----------------------------------------------------------------------
+    const asksSummary = matchAny(q, [
+      'business summary', 'shop summary', 'store summary', 'overview', 'karobar ka haal',
+      'total customers', 'kitne customer', 'kitne client', 'kitnay client', 'total stock items',
+      'کل گاہک', 'کاروبار کا خلاصہ', 'مکمل رپورٹ', 'خلاصہ'
+    ]);
+    if (asksSummary && role !== 'supplier') {
+      const totalRec = customers.reduce((s, c) => s + Math.max(0, getCustomerBalance(c)), 0);
+      const totalPay = customers.reduce((s, c) => s + (getCustomerBalance(c) < 0 ? Math.abs(getCustomerBalance(c)) : 0), 0);
+      const todayIso = getTodayIso(now);
+      const todayBills = salesBills.filter(b => extractRecordDateIso(b) === todayIso);
+      const todaySales = todayBills.reduce((s, b) => s + getBillTotal(b), 0);
+      const todayRecovery = paymentReceipts
+        .filter(pRec => extractRecordDateIso(pRec) === todayIso)
+        .reduce((s, pRec) => s + getBillReceived(pRec), 0);
+      const lowCnt = stock.filter(it => getStockQty(it) <= getStockMinLimit(it)).length;
+      const lines = [
+        { label: preferUr ? 'کل گاہک (Customers)' : 'Total Customers', value: String(customers.length) },
+        { label: preferUr ? 'کل پینڈنگ وصولی (لینے ہیں)' : 'Pending Receivable', value: fmtRs(totalRec) },
+        { label: preferUr ? 'کل واجب الادا (دینے ہیں)' : 'Pending Payable', value: fmtRs(totalPay) },
+        { label: preferUr ? 'آج کی سیل' : "Today's Sales", value: `${fmtRs(todaySales)} (${todayBills.length} bills)` },
+        { label: preferUr ? 'اسٹاک آئٹمز / کم اسٹاک' : 'Stock Items / Low Stock', value: `${stock.length} items (${lowCnt} low)` }
+      ];
+      if (todayRecovery > 0) {
+        lines.push({ label: preferUr ? 'آج کھاتہ وصولی' : 'Khata Recovery Today', value: fmtRs(todayRecovery) });
+      }
+      return buildReply({
+        intent: 'business_summary',
+        titleEn: 'Business Snapshot Summary',
+        titleUr: 'کاروباری خلاصہ (Business Summary)',
+        textEn: `Verified summary across ${customers.length} client(s), ${stock.length} stock item(s), and ${salesBills.length} sales bill(s).`,
+        textUr: `${customers.length} گاہک، ${stock.length} اسٹاک آئٹمز اور ${salesBills.length} سیل بلز کا مکمل تصدیق شدہ خلاصہ:`,
+        lines,
+        actionUrl: 'dashboard.html',
+        actionLabelEn: 'Open Dashboard',
+        actionLabelUr: 'ڈیش بورڈ کھولیں',
+        sourceTag: freshTag
+      });
+    }
+
     const asksPayable = matchAny(q, [
       'kis ko dene', 'kisko dene', 'ko dene', 'dene hain', 'denay hain', 'dene hen',
       'payable', 'advance balance', 'کس کو دینے', 'پیسے دینے ہیں', 'رقم دینی ہے'
@@ -421,7 +515,12 @@ function createLocalSmartAssistant() {
     // -----------------------------------------------------------------------
     // 5. PENDING PAYMENTS — RECEIVABLE ("kis se paise lene hain" / pending khata / udhaar)
     // -----------------------------------------------------------------------
-    const asksReceivable = matchAny(q, [
+    const asksRecoveryOnly = matchAny(q, [
+      'aaj ki wasooli', 'aj ki wasooli', 'aaj kitni wasooli', 'aaj ki recovery', 'today recovery',
+      'payments received today', 'cash collected today', 'آج کی وصولی', 'آج کتنی وصولی'
+    ]);
+
+    const asksReceivable = !asksRecoveryOnly && matchAny(q, [
       'pending', 'udhaar', 'udhar', 'khata', 'receivable', 'baqaya', 'bakaya', 'due',
       'kis se lene', 'kisse lene', 'paise lene', 'rakam', 'raqam', 'balance', 'vasooli', 'recovery',
       'پینڈنگ', 'ادھار', 'کھاتہ', 'بقایا', 'وصولی', 'کس سے لینے', 'رقم', 'پیسے لینے'
@@ -445,7 +544,7 @@ function createLocalSmartAssistant() {
           ? `اس کلائنٹ کو دینے ہیں / ایڈوانس: ${fmtRs(Math.abs(bal))}`
           : 'کھاتہ بالکل کلیئر ہے (Rs. 0 بقایا)';
 
-      const custBills = bills.filter(b => String(b.customerName || '').toLowerCase().includes(name.toLowerCase()));
+      const custBills = salesBills.filter(b => String(b.customerName || '').toLowerCase().includes(name.toLowerCase()));
       const lines = [
         { label: preferUr ? 'موجودہ کھاتہ بیلنس' : 'Current Khata Balance', value: fmtRs(Math.abs(bal)), sub: bal > 0 ? 'Receivable' : (bal < 0 ? 'Payable' : 'Clear') }
       ];
@@ -635,45 +734,204 @@ function createLocalSmartAssistant() {
     }
 
     // -----------------------------------------------------------------------
-    // 7. TODAY'S / MONTHLY SALES & BILLS SUMMARY
+    // 6B. STOCK VALUATION (Owner & Super Admin ONLY)
     // -----------------------------------------------------------------------
-    const asksSales = matchAny(q, [
-      'today sale', 'aaj ki sale', 'aj ki sale', 'today bill', 'aaj ke bill', 'aaj kitne bill',
-      'monthly sale', 'this month', 'is mahine', 'mahinay', 'total sale', 'pending bill',
-      'آج کی سیل', 'آج کتنے بل', 'اس مہینے کی سیل', 'کل سیل', 'پینڈنگ بلز', 'بلز'
-    ]);
-    if (asksSales) {
+    const asksStockValue = matchAny(q, ['stock value', 'stock ki qeemat', 'stock ki kimat', 'inventory value', 'kitne ka stock', 'kitnay ka stock', 'total stock worth', 'اسٹاک ویلیو', 'اسٹاک کی قیمت']);
+    if (asksStockValue && (role === 'owner' || role === 'super-admin')) {
+      const totalUnits = stock.reduce((s, it) => s + Math.max(0, getStockQty(it)), 0);
+      const costVal = stock.reduce((s, it) => s + Math.max(0, getStockQty(it)) * getStockPurchasePrice(it), 0);
+      const saleVal = stock.reduce((s, it) => s + Math.max(0, getStockQty(it)) * getStockSalePrice(it), 0);
+      const lowCnt = stock.filter(it => getStockQty(it) <= getStockMinLimit(it)).length;
+      return buildReply({
+        intent: 'stock_value',
+        titleEn: `Total Stock Valuation (${stock.length} Products)`,
+        titleUr: `مکمل اسٹاک ویلیو (${stock.length} پروڈکٹس)`,
+        textEn: stock.length
+          ? `Inventory holds ${totalUnits.toLocaleString('en-US')} total units across ${stock.length} product(s).`
+          : 'Open Stock Manager once so your inventory caches locally.',
+        textUr: stock.length
+          ? `اسٹاک میں کل ${stock.length} پروڈکٹس کے ${totalUnits.toLocaleString('en-US')} یونٹس موجود ہیں۔`
+          : 'ایک بار "Stock Manager" کھولیں تاکہ اسٹاک محفوظ ہو سکے۔',
+        lines: [
+          { label: preferUr ? 'کل خریداری ویلیو (Cost)' : 'Stock Value (Purchase Cost)', value: fmtRs(costVal) },
+          { label: preferUr ? 'کل فروخت ویلیو (Retail)' : 'Potential Sale Value', value: fmtRs(saleVal) },
+          { label: preferUr ? 'متوقع مجموعی منافع' : 'Estimated Stock Margin', value: fmtRs(Math.max(0, saleVal - costVal)) },
+          { label: preferUr ? 'کم / ختم اسٹاک' : 'Low / Out of Stock', value: `${lowCnt} item(s)` }
+        ],
+        actionUrl: 'stock.html',
+        actionLabelEn: 'Open Stock Manager',
+        actionLabelUr: 'اسٹاک کھولیں',
+        sourceTag: freshTag
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // 6C. KHATA RECOVERY / CASH COLLECTED TODAY OR THIS MONTH
+    // -----------------------------------------------------------------------
+    if (asksRecoveryOnly && role !== 'supplier') {
       const todayIso = getTodayIso(now);
       const monthIso = getMonthPrefix(now);
       const isMonthly = matchAny(q, ['month', 'mahine', 'mahinay', 'ماہانہ', 'مہینے']);
-      const targetBills = bills.filter(b => {
-        const dt = extractRecordDateIso(b);
+      const targetPays = paymentReceipts.filter(pr => {
+        const dt = extractRecordDateIso(pr);
         return isMonthly ? dt.startsWith(monthIso) : dt === todayIso;
       });
+      const targetSalesCash = salesBills
+        .filter(b => {
+          const dt = extractRecordDateIso(b);
+          return isMonthly ? dt.startsWith(monthIso) : dt === todayIso;
+        })
+        .reduce((s, b) => s + Math.min(getBillTotal(b), getBillReceived(b)), 0);
+      const khataRecTotal = targetPays.reduce((s, pr) => s + getBillReceived(pr), 0);
+      return buildReply({
+        intent: 'khata_recovery',
+        titleEn: isMonthly ? `Monthly Cash & Khata Recovery (${monthIso})` : `Today's Cash & Khata Recovery (${todayIso})`,
+        titleUr: isMonthly ? `ماہانہ کیش اور کھاتہ وصولی (${monthIso})` : `آج کی کیش اور کھاتہ وصولی (${todayIso})`,
+        textEn: `Total cash collected: ${fmtRs(khataRecTotal + targetSalesCash)} (${targetPays.length} khata payment voucher(s)).`,
+        textUr: `مجموعی کیش وصولی: ${fmtRs(khataRecTotal + targetSalesCash)} (${targetPays.length} کھاتہ رسیدیں)۔`,
+        lines: [
+          { label: preferUr ? 'کھاتہ وصولی (Payment Vouchers)' : 'Khata Payment Receipts', value: `${fmtRs(khataRecTotal)} (${targetPays.length})` },
+          { label: preferUr ? 'بلز پر کیش وصولی' : 'Cash Received on Bills', value: fmtRs(targetSalesCash) },
+          { label: preferUr ? 'کل کیش آمدنی' : 'Total Cash Inflow', value: fmtRs(khataRecTotal + targetSalesCash) }
+        ],
+        actionUrl: 'customers.html',
+        actionLabelEn: 'Open Customers & Khata',
+        actionLabelUr: 'کھاتہ کھولیں',
+        sourceTag: freshTag
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // 7. TODAY'S / YESTERDAY'S / MONTHLY SALES & BILLS SUMMARY
+    // -----------------------------------------------------------------------
+    const asksSales = !asksProfitOrCost && !asksExpenses && matchAny(q, [
+      'today sale', 'aaj ki sale', 'aj ki sale', 'today bill', 'aaj ke bill', 'aaj kitne bill',
+      'yesterday sale', 'kal ki sale', 'kal ke bill', 'yesterday bill',
+      'monthly sale', 'this month', 'is mahine', 'mahinay', 'total sale', 'pending bill',
+      'آج کی سیل', 'کل کی سیل', 'آج کتنے بل', 'اس مہینے کی سیل', 'کل سیل', 'پینڈنگ بلز', 'بلز'
+    ]);
+    if (asksSales) {
+      const todayIso = getTodayIso(now);
+      const yesterdayIso = getTodayIso(new Date(now.getTime() - 86400000));
+      const monthIso = getMonthPrefix(now);
+      const isMonthly = matchAny(q, ['month', 'mahine', 'mahinay', 'ماہانہ', 'مہینے']);
+      const isYesterday = !isMonthly && matchAny(q, ['yesterday', 'kal ki', 'kal ke', 'کل کی سیل', 'کل کے بل']);
+
+      const matchDate = (rec) => {
+        const dt = extractRecordDateIso(rec);
+        if (isMonthly) return dt.startsWith(monthIso);
+        if (isYesterday) return dt === yesterdayIso;
+        return dt === todayIso;
+      };
+
+      const targetBills = salesBills.filter(matchDate);
+      const targetReceipts = paymentReceipts.filter(matchDate);
       const totalSale = targetBills.reduce((s, b) => s + getBillTotal(b), 0);
-      const totalCash = targetBills.reduce((s, b) => s + getBillReceived(b), 0);
+      const totalCash = targetBills.reduce((s, b) => s + Math.min(getBillTotal(b), getBillReceived(b)), 0);
       const totalCredit = Math.max(0, totalSale - totalCash);
+      const khataRecovery = targetReceipts.reduce((s, pr) => s + getBillReceived(pr), 0);
       const pendingSyncCnt = targetBills.filter(b => b.syncStatus === 'pending' || b.isOffline).length;
 
+      const periodLabelEn = isMonthly ? `This Month's Sales (${monthIso})` : (isYesterday ? `Yesterday's Sales (${yesterdayIso})` : `Today's Sales (${todayIso})`);
+      const periodLabelUr = isMonthly ? `اس مہینے کی سیل (${monthIso})` : (isYesterday ? `گزشتہ کل کی سیل (${yesterdayIso})` : `آج کی سیل (${todayIso})`);
+      const periodShortEn = isMonthly ? 'this month' : (isYesterday ? 'yesterday' : 'today');
+      const periodShortUr = isMonthly ? 'اس مہینے' : (isYesterday ? 'گزشتہ کل' : 'آج');
+
+      const lines = [
+        { label: preferUr ? 'کل سیل بلز کی تعداد' : 'Sales Bills Count', value: String(targetBills.length) },
+        { label: preferUr ? 'کل سیل' : 'Total Sale', value: fmtRs(totalSale) },
+        { label: preferUr ? 'بلز پر کیش وصولی' : 'Cash Received on Bills', value: fmtRs(totalCash) },
+        { label: preferUr ? 'ادھار / بقایا' : 'Credit / Unpaid', value: fmtRs(totalCredit) }
+      ];
+      if (khataRecovery > 0) {
+        lines.push({ label: preferUr ? 'کھاتہ ریکوری وصولی' : 'Khata Recovery Collected', value: `${fmtRs(khataRecovery)} (${targetReceipts.length})` });
+      }
+
       return buildReply({
-        intent: isMonthly ? 'monthly_sales' : 'today_sales',
-        titleEn: isMonthly ? `This Month's Local Sales (${monthIso})` : `Today's Local Sales (${todayIso})`,
-        titleUr: isMonthly ? `اس مہینے کی لوکل سیل (${monthIso})` : `آج کی لوکل سیل (${todayIso})`,
+        intent: isMonthly ? 'monthly_sales' : (isYesterday ? 'yesterday_sales' : 'today_sales'),
+        titleEn: periodLabelEn,
+        titleUr: periodLabelUr,
         textEn: targetBills.length
-          ? `${targetBills.length} bill(s) found in your local offline database.${pendingSyncCnt ? ` (${pendingSyncCnt} queued for cloud sync).` : ''}`
-          : `0 bills recorded for ${isMonthly ? 'this month' : 'today'} in local cache (${bills.length} total cached bills). Create a bill or open Reports to sync cloud history.`,
+          ? `${targetBills.length} bill(s) verified for ${periodShortEn}.${pendingSyncCnt ? ` (${pendingSyncCnt} queued for cloud sync).` : ''}`
+          : `0 sales bills recorded for ${periodShortEn} (${salesBills.length} total cached bills).`,
         textUr: targetBills.length
-          ? `لوکل آف لائن ڈیٹا بیس میں ${targetBills.length} بلز ریکارڈ ہوئے ہیں۔${pendingSyncCnt ? ` (${pendingSyncCnt} کلاؤڈ سنک کے منتظر ہیں)۔` : ''}`
-          : `لوکل ریکارڈ میں ${isMonthly ? 'اس مہینے' : 'آج'} کے لیے کوئی بل موجود نہیں (کل محفوظ بلز: ${bills.length})۔`,
-        lines: [
-          { label: preferUr ? 'کل بلز کی تعداد' : 'Total Bills', value: String(targetBills.length) },
-          { label: preferUr ? 'کل سیل' : 'Total Sale', value: fmtRs(totalSale) },
-          { label: preferUr ? 'کیش وصولی' : 'Cash Received', value: fmtRs(totalCash) },
-          { label: preferUr ? 'ادھار / بقایا' : 'Credit / Unpaid', value: fmtRs(totalCredit) }
-        ],
+          ? `${periodShortUr} کے کل ${targetBills.length} سیل بلز ریکارڈ ہوئے ہیں۔${pendingSyncCnt ? ` (${pendingSyncCnt} کلاؤڈ سنک کے منتظر ہیں)۔` : ''}`
+          : `${periodShortUr} کے لیے کوئی سیل بل موجود نہیں (کل محفوظ بلز: ${salesBills.length})۔`,
+        lines,
         actionUrl: role === 'supplier' ? 'delivery-returns.html' : 'bills.html',
         actionLabelEn: role === 'supplier' ? 'Open Delivery & Returns' : 'Open Bills & POS',
         actionLabelUr: role === 'supplier' ? 'ڈلیوری کھولیں' : 'بلز کھولیں',
+        sourceTag: freshTag
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // 7B. OWNER PROFIT & NET CASHFLOW OVERVIEW (Owner & Super Admin ONLY)
+    // -----------------------------------------------------------------------
+    if (asksProfitOrCost && (role === 'owner' || role === 'super-admin')) {
+      const todayIso = getTodayIso(now);
+      const monthIso = getMonthPrefix(now);
+      const isMonthly = matchAny(q, ['month', 'mahine', 'mahinay', 'ماہانہ', 'مہینے', 'total', 'کل']);
+      const targetBills = salesBills.filter(b => {
+        const dt = extractRecordDateIso(b);
+        return isMonthly ? dt.startsWith(monthIso) : dt === todayIso;
+      });
+      const targetExp = expenses.filter(ex => {
+        const dt = extractRecordDateIso(ex);
+        return isMonthly ? (!dt || dt.startsWith(monthIso)) : dt === todayIso;
+      });
+      const totalSale = targetBills.reduce((s, b) => s + getBillTotal(b), 0);
+      const totalExp = targetExp.reduce((s, ex) => s + num(ex.amount), 0);
+
+      // Compute cost of goods if bill items include purchasePrice/costPrice or match stock
+      const stockCostByName = Object.create(null);
+      stock.forEach(it => {
+        const key = String(it && it.name || '').trim().toLowerCase();
+        const pur = getStockPurchasePrice(it);
+        if (key && pur > 0) stockCostByName[key] = pur;
+      });
+      let estimatedCogs = 0;
+      let hasCogsData = false;
+      targetBills.forEach(b => {
+        const items = Array.isArray(b.items) ? b.items : [];
+        items.forEach(it => {
+          const qty = num(it.qty || it.quantity || 1);
+          const itemKey = String(it.name || it.itemName || '').trim().toLowerCase();
+          const unitCost = num(it.purchasePrice ?? it.costPrice ?? it.tp ?? 0) || num(stockCostByName[itemKey]);
+          if (unitCost > 0 && qty > 0) {
+            estimatedCogs += unitCost * qty;
+            hasCogsData = true;
+          }
+        });
+      });
+
+      const lines = [
+        { label: preferUr ? 'کل سیل' : 'Total Sales', value: `${fmtRs(totalSale)} (${targetBills.length} bills)` },
+        { label: preferUr ? 'کل اخراجات' : 'Total Expenses', value: fmtRs(totalExp) }
+      ];
+      if (hasCogsData) {
+        const grossProfit = totalSale - estimatedCogs;
+        const netProfit = grossProfit - totalExp;
+        lines.push({ label: preferUr ? 'تخمینی لاگت (COGS)' : 'Estimated Cost of Goods', value: fmtRs(estimatedCogs) });
+        lines.push({ label: preferUr ? 'تخمینی خالص منافع' : 'Estimated Net Profit', value: fmtRs(netProfit) });
+      } else {
+        lines.push({ label: preferUr ? 'سیل منفی اخراجات (Net)' : 'Sales Minus Expenses', value: fmtRs(totalSale - totalExp) });
+      }
+
+      return buildReply({
+        intent: 'profit_overview',
+        titleEn: isMonthly ? `Monthly Profit & Expense Overview (${monthIso})` : `Today's Profit & Expense Overview (${todayIso})`,
+        titleUr: isMonthly ? `ماہانہ منافع اور اخراجات کا جائزہ (${monthIso})` : `آج کے منافع اور اخراجات کا جائزہ (${todayIso})`,
+        textEn: hasCogsData
+          ? `Calculated from ${targetBills.length} sales bill(s), stock purchase costs, and ${targetExp.length} expense entry/entries.`
+          : `Showing verified Sales vs Expenses across ${targetBills.length} bill(s) and ${targetExp.length} expense(s). Open Reports for detailed item-wise profit.`,
+        textUr: hasCogsData
+          ? `${targetBills.length} بلز، خریداری لاگت اور ${targetExp.length} اخراجات کی بنیاد پر تخمینی منافع:`
+          : `${targetBills.length} بلز اور ${targetExp.length} اخراجات کا تصدیق شدہ موازنہ۔ تفصیلی منافع رپورٹ کے لیے Reports کھولیں۔`,
+        lines,
+        actionUrl: 'reports.html',
+        actionLabelEn: 'Open Profit & Sales Reports',
+        actionLabelUr: 'منافع رپورٹ کھولیں',
         sourceTag: freshTag
       });
     }
@@ -696,11 +954,11 @@ function createLocalSmartAssistant() {
         titleEn: isMonthly ? `Monthly Expenses (${monthIso})` : `Today's Expenses (${todayIso})`,
         titleUr: isMonthly ? `ماہانہ اخراجات (${monthIso})` : `آج کے اخراجات (${todayIso})`,
         textEn: targetExp.length
-          ? `Found ${targetExp.length} expense entry/entries totaling ${fmtRs(totalExp)} in local cache.`
+          ? `Found ${targetExp.length} expense entry/entries totaling ${fmtRs(totalExp)}.`
           : `No expenses cached for ${isMonthly ? 'this month' : 'today'}. Open Daily Expenses to log or sync entries.`,
         textUr: targetExp.length
-          ? `لوکل ریکارڈ میں ${targetExp.length} اخراجات کی کل رقم ${fmtRs(totalExp)} ہے۔`
-          : `${isMonthly ? 'اس مہینے' : 'آج'} کا کوئی خرچ لوکل کیش میں موجود نہیں۔`,
+          ? `ریکارڈ میں ${targetExp.length} اخراجات کی کل رقم ${fmtRs(totalExp)} ہے۔`
+          : `${isMonthly ? 'اس مہینے' : 'آج'} کا کوئی خرچ محفوظ نہیں ملا۔`,
         lines: targetExp.slice(0, 6).map(ex => ({
           label: sanitizeText(ex.title || ex.category || 'Expense'),
           value: fmtRs(ex.amount),
@@ -887,7 +1145,7 @@ function createLocalSmartAssistant() {
       actionUrl: bestCh.actionUrl || `user-guide.html?module=${encodeURIComponent(bestCh.moduleId || bestCh.id)}`,
       actionLabelEn: 'Open Module',
       actionLabelUr: 'ماڈیول کھولیں',
-      sourceTag: 'User Guide (Offline)'
+      sourceTag: 'NH POS User Guide'
     });
   }
 
