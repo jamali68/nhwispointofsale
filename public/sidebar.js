@@ -44,6 +44,15 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
         document.head.appendChild(script);
     }
 
+    // Inject smart-assistant.js dynamically (WhatsApp-style Offline Smart Assistant Bot)
+    const __ebPageFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
+    if (__ebPageFile !== 'auth.html' && __ebPageFile !== 'landing.html' && !window.EBSmartBot && !document.getElementById('eb-smart-assistant-script')) {
+        const botScript = document.createElement('script');
+        botScript.id = 'eb-smart-assistant-script';
+        botScript.src = 'smart-assistant.js';
+        document.head.appendChild(botScript);
+    }
+
     function getModuleIdFromUrl(url) {
         if (!url) return null;
         if (url.includes('profit.html')) return 'profit';
