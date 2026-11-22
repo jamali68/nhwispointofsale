@@ -405,12 +405,14 @@ test('11. Zero-Quota Firestore Compliance + Sidebar, SW & App-Style User Guide W
 
   // Verify wiring
   assert(sidebar.includes("'smart-assistant.js'"), 'sidebar.js must auto-inject smart-assistant.js');
+  assert(sidebar.includes('id="ebSidebarAiBotToggle"') && sidebar.includes('AI Assistant'), 'sidebar.js must place AI Assistant ON/OFF button beside User Guide');
   assert(sw.includes("'smart-assistant.js'"), 'sw.js must precache smart-assistant.js');
-  assert(sw.includes("SW_VERSION = '5.8.32'"), 'sw.js must be bumped to v5.8.32');
-  assert(readRel('public/manifest.json').includes('"version": "5.8.32"'), 'manifest.json must be synced to v5.8.32');
-  assert(guideHtml.includes('id="ugSmartBotToggle"'), 'user-guide.html must include Smart Bot ON/OFF switch');
+  assert(sw.includes("SW_VERSION = '5.8.34'"), 'sw.js must be bumped to v5.8.34');
+  assert(readRel('public/manifest.json').includes('"version": "5.8.34"'), 'manifest.json must be synced to v5.8.34');
+  assert(guideHtml.includes('id="ugSmartBotToggle"'), 'user-guide.html must include AI Assistant ON/OFF switch');
   assert(guideHtml.includes('id="ugSidebar"'), 'user-guide.html must render App-Style left sidebar');
   assert(guideHtml.includes('src="smart-assistant.js"'), 'user-guide.html must load smart-assistant.js');
+  assert(botClient.includes('BOT_ROBOT_SVG') && botClient.includes("'data-bot-icon', 'robot'"), 'smart-assistant.js FAB must display Robot Bot icon');
   assert(botClient.includes('ev.target.transaction.abort()'), 'smart-assistant.js must abort empty IndexedDB creation before bills-db.js initializes stores');
 });
 

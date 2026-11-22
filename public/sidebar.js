@@ -507,6 +507,57 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
             letter-spacing: 0.3px;
             white-space: nowrap;
         }
+        .eb-user-guide-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            padding-right: 18px;
+        }
+        .eb-user-guide-row .eb-menu-item.eb-user-guide-link {
+            flex: 1;
+            min-width: 0;
+            padding-right: 6px;
+        }
+        .eb-aibot-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            font-family: inherit;
+        }
+        .eb-aibot-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+        .eb-aibot-toggle-btn.on {
+            background: rgba(16, 185, 129, 0.18);
+            border-color: rgba(16, 185, 129, 0.55);
+            color: #ecfdf5;
+        }
+        .eb-aibot-toggle-btn .eb-aibot-state {
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: rgba(148, 163, 184, 0.25);
+            color: #cbd5e1;
+            letter-spacing: 0.3px;
+        }
+        .eb-aibot-toggle-btn.on .eb-aibot-state {
+            background: #10b981;
+            color: #052e16;
+        }
         .eb-lang-toggle-row {
             display: flex;
             align-items: center;
@@ -1377,6 +1428,25 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
                             ${urLabel ? `<span class="eb-item-ur ur-sub">${urLabel}</span>` : ''}
                         </div>
                     </a>`;
+                } else if (item.url === 'user-guide.html') {
+                    const aiBotOn = localStorage.getItem('eb_smart_bot_enabled') !== 'false';
+                    menuHtml += `
+                    <div class="eb-user-guide-row">
+                        <a class="eb-menu-item eb-user-guide-link" data-url="${item.url}" href="${item.url}">
+                            <i class="fas ${itemIcon}"></i>
+                            <div class="eb-item-content">
+                                <div class="eb-item-topline">
+                                    <span class="eb-item-en">${enLabel}</span>
+                                </div>
+                                ${urLabel ? `<span class="eb-item-ur ur-sub">${urLabel}</span>` : ''}
+                            </div>
+                        </a>
+                        <button type="button" class="eb-aibot-toggle-btn ${aiBotOn ? 'on' : 'off'}" id="ebSidebarAiBotToggle" title="Toggle AI Assistant Bot ON / OFF" aria-pressed="${aiBotOn ? 'true' : 'false'}">
+                            <i class="fas fa-robot"></i>
+                            <span>AI Assistant</span>
+                            <span class="eb-aibot-state" id="ebSidebarAiBotState">${aiBotOn ? 'ON' : 'OFF'}</span>
+                        </button>
+                    </div>`;
                 } else {
                     menuHtml += `
                     <a class="eb-menu-item" data-url="${item.url}" href="${item.url === '#install-pwa' ? 'javascript:void(0)' : item.url}" ${item.url === '#install-pwa' ? 'onclick="(window.installNHPOSApp || window.installEasyBillPWA) && (window.installNHPOSApp || window.installEasyBillPWA)(); return false;"' : ''}>
@@ -1492,6 +1562,40 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
 
         sidebar.innerHTML = menuHtml;
         document.body.appendChild(sidebar);
+
+        // 🤖 Handle AI Assistant ON/OFF Toggle right next to User Guide in Sidebar
+        const syncSidebarAiBotBtn = () => {
+            const btn = sidebar.querySelector('#ebSidebarAiBotToggle');
+            const stEl = sidebar.querySelector('#ebSidebarAiBotState');
+            if (!btn) return;
+            const isOn = (window.EBSmartBot && typeof window.EBSmartBot.isEnabled === 'function')
+                ? window.EBSmartBot.isEnabled()
+                : localStorage.getItem('eb_smart_bot_enabled') !== 'false';
+            btn.classList.toggle('on', isOn);
+            btn.classList.toggle('off', !isOn);
+            btn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+            if (stEl) stEl.textContent = isOn ? 'ON' : 'OFF';
+        };
+        const aiBotSidebarBtn = sidebar.querySelector('#ebSidebarAiBotToggle');
+        if (aiBotSidebarBtn) {
+            aiBotSidebarBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const currentOn = (window.EBSmartBot && typeof window.EBSmartBot.isEnabled === 'function')
+                    ? window.EBSmartBot.isEnabled()
+                    : localStorage.getItem('eb_smart_bot_enabled') !== 'false';
+                const nextOn = !currentOn;
+                if (window.EBSmartBot && typeof window.EBSmartBot.setEnabled === 'function') {
+                    window.EBSmartBot.setEnabled(nextOn);
+                } else {
+                    try { localStorage.setItem('eb_smart_bot_enabled', nextOn ? 'true' : 'false'); } catch (_) {}
+                    try { window.dispatchEvent(new CustomEvent('eb-smart-bot-toggled', { detail: { enabled: nextOn } })); } catch (_) {}
+                }
+                syncSidebarAiBotBtn();
+            });
+            window.addEventListener('eb-smart-bot-toggled', syncSidebarAiBotBtn);
+            syncSidebarAiBotBtn();
+        }
 
         // 🏢 Handle Quick Sub-Agency / Branch Switcher inside Sidebar Header
         const sidebarBranchSel = sidebar.querySelector('#ebSidebarBranchSelect');
@@ -1686,10 +1790,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
                         <span>OFFLINE</span>
                     </div>
 
-                    <a class="eb-topbar-btn" href="${quickHelpHref}" id="ebTopHelpBtn" title="Quick User Guide / یوزر گائیڈ" aria-label="Open User Guide for this page">
-                        <i class="fas fa-question-circle"></i>
-                    </a>
-                    <a class="eb-topbar-btn eb-topbar-bell" href="alerts.html" title="Low Stock Alerts">
+                    <a class="eb-topbar-btn eb-topbar-bell" id="ebTopBellBtn" href="alerts.html" title="Low Stock Alerts" style="display:none;">
                         <i class="fas fa-bell"></i>
                         <span class="eb-bell-badge" id="ebSidebarBellBadge" style="display:none;">0</span>
                     </a>
@@ -1942,19 +2043,34 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
         }
     }
 
-    // 6️⃣ 🔔 LOW STOCK BADGE SYNC (Strictly Per Active Category — Hidden when 0 Low Stock)
+    // 6️⃣ 🔔 LOW STOCK BADGE & BELL SYNC (Strictly Per Active Category — Entire Bell Hidden when 0 Low Stock)
     function syncLowStockBadge() {
+        const bellBtn = document.getElementById('ebTopBellBtn');
         const badges = [
             document.getElementById('ebSidebarBellBadge'),
             document.getElementById('dashBellBadge')
         ].filter(Boolean);
-        if (badges.length === 0) return;
+        if (badges.length === 0 && !bellBtn) return;
 
-        // Always hide badge first by default until active category low stock > 0 is confirmed
-        badges.forEach(b => {
-            b.innerText = '0';
-            b.style.display = 'none';
-        });
+        function applyLowStockUi(count) {
+            const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Math.floor(Number(count))) : 0;
+            if (safeCount > 0) {
+                if (bellBtn) bellBtn.style.display = 'flex';
+                badges.forEach(b => {
+                    b.innerText = String(safeCount);
+                    b.style.display = 'block';
+                });
+            } else {
+                if (bellBtn) bellBtn.style.display = 'none';
+                badges.forEach(b => {
+                    b.innerText = '0';
+                    b.style.display = 'none';
+                });
+            }
+        }
+
+        // Always hide entire bell + badge by default until active category low stock > 0 is confirmed
+        applyLowStockUi(0);
 
         const agencyId = myProfile.agencyId || localStorage.getItem('eb_active_agencyId');
         if (!agencyId) return;
@@ -1993,17 +2109,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
                         if (q <= lim) c++;
                     });
                     localStorage.setItem(catCountKey, String(c));
-                    if (c > 0) {
-                        badges.forEach(b => {
-                            b.innerText = String(c);
-                            b.style.display = 'block';
-                        });
-                    } else {
-                        badges.forEach(b => {
-                            b.innerText = '0';
-                            b.style.display = 'none';
-                        });
-                    }
+                    applyLowStockUi(c);
                     return;
                 }
             }
@@ -2012,18 +2118,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
         // 2. Fallback to category-specific cached count (if already computed by Dashboard / Alerts / Stock)
         const cachedCatCount = localStorage.getItem(catCountKey);
         if (cachedCatCount !== null) {
-            const num = Number(cachedCatCount);
-            if (Number.isFinite(num) && num > 0) {
-                badges.forEach(b => {
-                    b.innerText = String(num);
-                    b.style.display = 'block';
-                });
-            } else {
-                badges.forEach(b => {
-                    b.innerText = '0';
-                    b.style.display = 'none';
-                });
-            }
+            applyLowStockUi(Number(cachedCatCount));
             return;
         }
 
@@ -2041,17 +2136,7 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
                         if (q <= lim) c++;
                     });
                     localStorage.setItem(catCountKey, String(c));
-                    if (c > 0) {
-                        badges.forEach(b => {
-                            b.innerText = String(c);
-                            b.style.display = 'block';
-                        });
-                    } else {
-                        badges.forEach(b => {
-                            b.innerText = '0';
-                            b.style.display = 'none';
-                        });
-                    }
+                    applyLowStockUi(c);
                 }
             }
         } catch (e) {}

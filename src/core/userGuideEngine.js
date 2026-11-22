@@ -542,7 +542,7 @@ function createUserGuideEngine() {
     return synthesized;
   }
 
-  const GUIDE_CURRENT_VERSION = '5.8.32';
+  const GUIDE_CURRENT_VERSION = '5.8.34';
   const RECENT_UPDATE_THRESHOLD = '5.8.27';
 
   function compareVersions(a, b) {

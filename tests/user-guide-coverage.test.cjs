@@ -237,13 +237,15 @@ test('7. What\'s New (recent-updates) filter returns newly released chapters cle
   assert(recentOwner.every(c => c.isRecentUpdate === true), 'Every chapter in recent-updates must have isRecentUpdate=true');
 });
 
-test('8. Sidebar entry, Topbar Quick Help ?, user-guide.html scripts & SW precache intact', () => {
+test('8. Sidebar User Guide + AI Assistant toggle, clean Topbar, user-guide.html scripts & SW precache intact', () => {
   const sidebar = readRel('public/sidebar.js');
   const guideHtml = readRel('public/user-guide.html');
   const sw = readRel('public/sw.js');
 
   assert(sidebar.includes("url: 'user-guide.html'"), 'sidebar.js must contain User Guide menu link');
-  assert(sidebar.includes('ebTopHelpBtn'), 'sidebar.js must contain Quick Help ? topbar icon');
+  assert(sidebar.includes('id="ebSidebarAiBotToggle"'), 'sidebar.js must contain AI Assistant ON/OFF toggle beside User Guide');
+  assert(!sidebar.includes('id="ebTopHelpBtn"'), 'Topbar ? help icon must remain hidden as requested');
+  assert(sidebar.includes('id="ebTopBellBtn"') && sidebar.includes('style="display:none;"'), 'Topbar bell icon must be hidden by default until low stock > 0');
 
   const requiredAssets = [
     'user-guide.html',

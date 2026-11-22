@@ -1404,24 +1404,27 @@
         if (document.getElementById('ebSmartBotFab')) return;
         injectStyles();
 
+        const BOT_ROBOT_SVG = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="3" x2="12" y2="7"></line><circle cx="12" cy="2.6" r="1.2" fill="currentColor" stroke="none"></circle><rect x="4" y="7" width="16" height="12" rx="4"></rect><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line><circle cx="9.2" cy="12.5" r="1.35" fill="currentColor" stroke="none"></circle><circle cx="14.8" cy="12.5" r="1.35" fill="currentColor" stroke="none"></circle><path d="M9.5 16c.8.65 1.65.95 2.5.95s1.7-.3 2.5-.95"></path></svg>';
+
         fabEl = document.createElement('button');
         fabEl.type = 'button';
         fabEl.id = 'ebSmartBotFab';
         fabEl.className = 'eb-bot-fab';
-        fabEl.title = 'NH POS Offline Smart Assistant';
-        fabEl.setAttribute('aria-label', 'Open NH POS Offline Smart Assistant');
-        fabEl.innerHTML = '<i class="fas fa-comments"></i>';
+        fabEl.setAttribute('data-bot-icon', 'robot');
+        fabEl.title = 'NH POS AI Assistant (Offline)';
+        fabEl.setAttribute('aria-label', 'Open NH POS AI Assistant');
+        fabEl.innerHTML = BOT_ROBOT_SVG;
 
         panelEl = document.createElement('section');
         panelEl.id = 'ebSmartBotPanel';
         panelEl.className = 'eb-bot-panel';
-        panelEl.setAttribute('aria-label', 'NH POS Smart Assistant Chat');
+        panelEl.setAttribute('aria-label', 'NH POS AI Assistant Chat');
         panelEl.innerHTML = `
             <div class="eb-bot-header">
                 <div class="eb-bot-head-left">
-                    <div class="eb-bot-avatar"><i class="fas fa-robot"></i></div>
+                    <div class="eb-bot-avatar">${BOT_ROBOT_SVG.replace('width="28" height="28"', 'width="22" height="22"')}</div>
                     <div style="min-width:0;">
-                        <div class="eb-bot-title" id="ebBotHeadTitle">NH POS Smart Assistant</div>
+                        <div class="eb-bot-title" id="ebBotHeadTitle">NH POS AI Assistant</div>
                         <div class="eb-bot-sub" id="ebBotHeadSub">Offline Local DB · 0 Cloud Quota</div>
                     </div>
                 </div>
@@ -1451,7 +1454,7 @@
             const titleEl = document.getElementById('ebBotHeadTitle');
             const subEl = document.getElementById('ebBotHeadSub');
             if (langBtn) langBtn.textContent = botLang === 'ur' ? 'EN' : 'اردو';
-            if (titleEl) titleEl.textContent = botLang === 'ur' ? 'این ایچ پی او ایس اسمارٹ اسسٹنٹ' : 'NH POS Smart Assistant';
+            if (titleEl) titleEl.textContent = botLang === 'ur' ? 'این ایچ پی او ایس اے آئی اسسٹنٹ' : 'NH POS AI Assistant';
             if (subEl) subEl.textContent = botLang === 'ur' ? 'آف لائن لوکل ڈیٹا بیس · مکمل محفوظ' : 'Offline Local DB · 0 Cloud Quota';
             if (inputEl) {
                 inputEl.placeholder = botLang === 'ur'
