@@ -103,11 +103,25 @@ const SAMPLE_LOCAL_DATA = {
 };
 
 let passed = 0;
+const pendingAsyncTests = [];
 function test(name, fn) {
   try {
-    fn();
-    console.log(`✅ PASS: ${name}`);
-    passed++;
+    const out = fn();
+    if (out && typeof out.then === 'function') {
+      pendingAsyncTests.push(
+        out.then(() => {
+          console.log(`✅ PASS: ${name}`);
+          passed++;
+        }).catch((err) => {
+          console.error(`❌ FAIL: ${name}`);
+          console.error(`   -> ${err.message}`);
+          process.exitCode = 1;
+        })
+      );
+    } else {
+      console.log(`✅ PASS: ${name}`);
+      passed++;
+    }
   } catch (err) {
     console.error(`❌ FAIL: ${name}`);
     console.error(`   -> ${err.message}`);
@@ -392,15 +406,154 @@ test('11. Zero-Quota Firestore Compliance + Sidebar, SW & App-Style User Guide W
   // Verify wiring
   assert(sidebar.includes("'smart-assistant.js'"), 'sidebar.js must auto-inject smart-assistant.js');
   assert(sw.includes("'smart-assistant.js'"), 'sw.js must precache smart-assistant.js');
+  assert(sw.includes("SW_VERSION = '5.8.32'"), 'sw.js must be bumped to v5.8.32');
+  assert(readRel('public/manifest.json').includes('"version": "5.8.32"'), 'manifest.json must be synced to v5.8.32');
   assert(guideHtml.includes('id="ugSmartBotToggle"'), 'user-guide.html must include Smart Bot ON/OFF switch');
   assert(guideHtml.includes('id="ugSidebar"'), 'user-guide.html must render App-Style left sidebar');
   assert(guideHtml.includes('src="smart-assistant.js"'), 'user-guide.html must load smart-assistant.js');
+  assert(botClient.includes('ev.target.transaction.abort()'), 'smart-assistant.js must abort empty IndexedDB creation before bills-db.js initializes stores');
 });
 
-console.log('====================================================================');
-if (process.exitCode && process.exitCode !== 0) {
-  console.log(`❌ SMART ASSISTANT SUITE FAILED (${passed}/11 passed)`);
-} else {
-  console.log(`🎯 SMART ASSISTANT ACCURACY & SECURITY SUITE: ${passed}/11 PASSED | 0 FAILED`);
-}
-console.log('====================================================================');
+test('12. Live Browser Runtime E2E: public/smart-assistant.js mounts FAB/panel, toggles ON/OFF & answers from localStorage', () => {
+  // Minimal faithful DOM mock for Node VM browser runtime execution
+  const elementsById = {};
+  function makeEl(tag) {
+    const el = {
+      tagName: String(tag || 'div').toUpperCase(),
+      _id: '',
+      get id() { return this._id; },
+      set id(v) { this._id = v; if (v) elementsById[v] = this; },
+      className: '',
+      style: {},
+      children: [],
+      textContent: '',
+      _innerHTML: '',
+      value: '',
+      listeners: {},
+      classList: {
+        _set: new Set(),
+        add(c) { this._set.add(c); },
+        remove(c) { this._set.delete(c); },
+        toggle(c, force) {
+          if (force === true) this._set.add(c);
+          else if (force === false) this._set.delete(c);
+          else if (this._set.has(c)) this._set.delete(c);
+          else this._set.add(c);
+        },
+        contains(c) { return this._set.has(c); }
+      },
+      setAttribute(k, v) { if (k === 'id') this.id = v; this[k] = v; },
+      getAttribute(k) { return this[k] || null; },
+      appendChild(child) { this.children.push(child); return child; },
+      addEventListener(ev, fn) { (this.listeners[ev] = this.listeners[ev] || []).push(fn); },
+      click() { (this.listeners.click || []).forEach(fn => fn({ preventDefault() {} })); },
+      focus() {},
+      querySelector() { return null; },
+      querySelectorAll() { return []; },
+      get innerHTML() { return this._innerHTML; },
+      set innerHTML(html) {
+        this._innerHTML = String(html || '');
+        // Register nested elements with id="..." so getElementById finds them
+        for (const m of this._innerHTML.matchAll(/id=["']([^"']+)["']/g)) {
+          if (!elementsById[m[1]]) {
+            const sub = makeEl('div');
+            sub.id = m[1];
+          }
+        }
+      }
+    };
+    return el;
+  }
+
+  const lsStore = {
+    eb_user_role: 'owner',
+    eb_active_agencyId: 'ag_live_1',
+    eb_active_business_category: 'medical',
+    eb_smart_bot_enabled: 'true',
+    eb_cust_cache_ag_live_1_medical: JSON.stringify({
+      timestamp: Date.now(),
+      customers: [
+        { id: 'c1', name: 'Al-Shifa Clinic', balance: 27500, mobile: '0300-5551122' }
+      ]
+    })
+  };
+  let idbUpgradeAborted = false;
+
+  const doc = {
+    readyState: 'complete',
+    head: makeEl('head'),
+    body: makeEl('body'),
+    createElement: (tag) => makeEl(tag),
+    getElementById: (id) => elementsById[id] || null,
+    querySelector: () => null,
+    addEventListener: () => {}
+  };
+
+  const sandbox = {
+    window: null,
+    globalThis: null,
+    document: doc,
+    location: { pathname: '/dashboard.html', search: '', hash: '' },
+    localStorage: {
+      getItem: (k) => (Object.prototype.hasOwnProperty.call(lsStore, k) ? lsStore[k] : null),
+      setItem: (k, v) => { lsStore[k] = String(v); },
+      removeItem: (k) => { delete lsStore[k]; }
+    },
+    sessionStorage: { getItem: () => null, setItem: () => {} },
+    indexedDB: {
+      open: () => {
+        const req = {};
+        Promise.resolve().then(() => {
+          if (typeof req.onupgradeneeded === 'function') {
+            req.onupgradeneeded({ target: { transaction: { abort: () => { idbUpgradeAborted = true; } } } });
+          }
+          if (typeof req.onerror === 'function') req.onerror();
+        });
+        return req;
+      }
+    },
+    CustomEvent: function(type, init) { this.type = type; this.detail = init && init.detail; },
+    dispatchEvent: () => {},
+    addEventListener: () => {},
+    setTimeout: (fn) => { Promise.resolve().then(fn); return 0; },
+    console,
+    Date,
+    Promise
+  };
+  sandbox.window = sandbox;
+  sandbox.globalThis = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(readRel('public/smart-assistant.js'), sandbox, { filename: 'public/smart-assistant.js' });
+
+  assert(sandbox.EBSmartBot && typeof sandbox.EBSmartBot.open === 'function', 'window.EBSmartBot API must mount');
+  assert(elementsById.ebSmartBotFab && elementsById.ebSmartBotPanel, 'FAB and WhatsApp chat panel must mount in DOM');
+  assert.strictEqual(sandbox.EBSmartBot.isEnabled(), true, 'Bot should start enabled');
+
+  // Toggle OFF -> FAB hidden via CSS class
+  sandbox.EBSmartBot.setEnabled(false);
+  assert.strictEqual(sandbox.EBSmartBot.isEnabled(), false);
+  assert.strictEqual(elementsById.ebSmartBotFab.classList.contains('hidden'), true, 'FAB must get .hidden class when toggled OFF');
+
+  // Toggle ON & Ask real question from localStorage cache (simulate precached guide engine present)
+  sandbox.EBUserGuideEngine = { resolveVisibleChapters: () => [] };
+  sandbox.__EB_GUIDE_PACKS_READY__ = true;
+  sandbox.EBSmartBot.ask('kis se paise lene hain');
+  assert.strictEqual(sandbox.EBSmartBot.isEnabled(), true, 'ask() must auto-enable bot');
+  assert.strictEqual(elementsById.ebSmartBotFab.classList.contains('hidden'), false, 'FAB must remove .hidden class when toggled ON');
+
+  return new Promise((resolve) => setTimeout(resolve, 30)).then(() => {
+    assert.strictEqual(idbUpgradeAborted, true, 'Missing IndexedDB must abort upgrade safely without creating empty DB');
+    const renderedMsgs = (elementsById.ebBotMessages.children || []).map(c => c.innerHTML + ' ' + c.textContent).join(' ');
+    assert(renderedMsgs.includes('27,500') && renderedMsgs.includes('Al-Shifa Clinic'), `Expected live DOM answer with Al-Shifa Clinic & Rs. 27,500, got: ${renderedMsgs.slice(0, 200)}`);
+  });
+});
+
+Promise.all(pendingAsyncTests).then(() => {
+  console.log('====================================================================');
+  if (process.exitCode && process.exitCode !== 0) {
+    console.log(`❌ SMART ASSISTANT SUITE FAILED (${passed}/12 passed)`);
+  } else {
+    console.log(`🎯 SMART ASSISTANT ACCURACY & SECURITY SUITE: ${passed}/12 PASSED | 0 FAILED`);
+  }
+  console.log('====================================================================');
+});

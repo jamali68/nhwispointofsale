@@ -63,7 +63,7 @@
     }
 
     function getTodayIso(nowDate) {
-        const d = nowDate instanceof Date ? nowDate : new Date();
+        const d = (nowDate && typeof nowDate.getFullYear === 'function' && !isNaN(nowDate.getTime())) ? nowDate : new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
@@ -709,6 +709,11 @@
             if (!global.indexedDB) return resolve([]);
             try {
                 const req = global.indexedDB.open('NHPosBillingDB');
+                // CRITICAL: If DB does not exist yet, abort upgrade so we NEVER create an empty v1 DB
+                // before bills-db.js creates its pending_bills / cached_stock / cached_customers stores!
+                req.onupgradeneeded = (ev) => {
+                    try { ev.target.transaction.abort(); } catch (_) {}
+                };
                 req.onerror = () => resolve([]);
                 req.onsuccess = (ev) => {
                     const idb = ev.target.result;
@@ -906,11 +911,14 @@
         guideLoadPromise = scripts.reduce((chain, src) => {
             return chain.then(() => new Promise((res) => {
                 if (document.querySelector(`script[src*="${src}"]`)) return res();
+                let done = false;
+                const finish = () => { if (!done) { done = true; res(); } };
                 const el = document.createElement('script');
                 el.src = src;
                 el.async = false;
-                el.onload = () => res();
-                el.onerror = () => res();
+                el.onload = finish;
+                el.onerror = finish;
+                setTimeout(finish, 2000);
                 document.head.appendChild(el);
             }));
         }, Promise.resolve()).then(() => {

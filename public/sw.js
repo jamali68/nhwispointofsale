@@ -1,12 +1,12 @@
 // ==========================================================================
-// 🚀 NH POS — TURBO SERVICE WORKER (v5.8.31)
+// 🚀 NH POS — TURBO SERVICE WORKER (v5.8.32)
 // ✅ Ultra-lean App Shell pre-caching (No network choke on install)
 // ✅ Dynamic Subpath & Scope resolution (GitHub Pages /nhsm/ & Netlify root)
 // ✅ Instant Stale-While-Revalidate caching for lightning-fast loads
 // ✅ Zero lag navigation with fast fallback & Anti-Corruption Guard
 // ==========================================================================
 
-const SW_VERSION = '5.8.31';
+const SW_VERSION = '5.8.32';
 const CACHE_NAME = `nhpos-pwa-v${SW_VERSION}-live`;
 
 // Complete Offline & Instant App Shell (All modules precached for 0ms transitions)
