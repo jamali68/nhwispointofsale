@@ -19,9 +19,9 @@
     const MAX_QUERY_LEN = 300;
     const SAFE_ACTION_URL_RE = /^[a-z0-9-]+\.html(\?[a-zA-Z0-9_=&%-]+)?(#[a-zA-Z0-9_-]+)?$/;
 
-    // Skip on login / public landing pages
+    // Skip on login / public landing / Super Admin control room pages (strictly store-scoped assistant)
     const curPage = (global.location && global.location.pathname ? global.location.pathname.split('/').pop() : '').toLowerCase();
-    if (['auth.html', 'landing.html', 'index.html', ''].includes(curPage)) {
+    if (['auth.html', 'landing.html', 'index.html', 'admin.html', ''].includes(curPage)) {
         return;
     }
 
@@ -44,13 +44,20 @@
 
     function sanitizeActionUrl(url) {
         const clean = String(url || '').trim();
-        return SAFE_ACTION_URL_RE.test(clean) ? clean : '';
+        if (!SAFE_ACTION_URL_RE.test(clean)) return '';
+        // Zero-Trust: AI Bot must NEVER link to Super Admin Control Room
+        if (clean.toLowerCase().startsWith('admin.html')) return '';
+        return clean;
     }
 
     function normalizeRole(role) {
-        const r = String(role || 'owner').trim().toLowerCase();
-        if (['super-admin', 'owner', 'booker', 'supplier'].includes(r)) return r;
-        return 'owner';
+        const r = String(role || '').trim().toLowerCase();
+        // AI Bot is strictly store-scoped: super-admin never unlocks platform/quota telemetry here
+        if (r === 'owner' || r === 'super-admin') return 'owner';
+        if (r === 'booker') return 'booker';
+        if (r === 'supplier') return 'supplier';
+        // Least-privilege fallback for unrecognized/spoofed role strings
+        return 'booker';
     }
 
     function num(v) {
@@ -188,6 +195,97 @@
         };
     }
 
+    function isRestrictedPlatformOrSystemQuery(qLower) {
+        const q = String(qLower || '').toLowerCase();
+        const quotaOrTelemetry = [
+            'quota', 'kota', 'delhi kota', 'daily quota', 'read count', 'write count',
+            'daily read', 'daily write', 'reads allow', 'writes allow', 'read limit', 'write limit',
+            'reads limit', 'writes limit', 'kitni read', 'kitne read', 'kitney read',
+            'kitni write', 'kitne write', 'kitney write', 'kitne rights', 'kitni rights',
+            'dis love', 'disallow', 'firebase', 'firestore', 'netlify', 'bandwidth', 'telemetry',
+            'server load', 'server limit', 'api limit', 'api call', 'cache hit', 'pwa cache',
+            'cloud usage', 'cloud limit', 'cloud quota', 'database read', 'database write',
+            'free tier', 'spark plan', 'blaze plan',
+            'کوٹہ', 'فائر بیس', 'نیٹلی فائی', 'ریڈز', 'رائٹس'
+        ];
+        const platformOrAdmin = [
+            'super admin', 'superadmin', 'super-admin', 'superhit',
+            'kitne user', 'kitnay user', 'kitney user', 'kitne users', 'kitnay users', 'kitney users',
+            'how many user', 'how many store', 'how many shop', 'how many agenc', 'total user',
+            'active user', 'inactive user', 'off user', 'user active', 'users active', 'user off', 'users off',
+            'registered user', 'user register', 'register hain', 'kitne log', 'kitney log',
+            'registered store', 'registered shop', 'total shop', 'total store', 'total agenc',
+            'all shop', 'all store', 'all agenc', 'all user', 'all client store',
+            'saray shop', 'sari shop', 'sab shop', 'sab store', 'sab user', 'sab agenc',
+            'tamam user', 'tamam shop', 'tamam store', 'tamam agenc',
+            'kitni shop', 'kitni agenc', 'kitnay store', 'kitne store', 'kitney store', 'kitni dukan', 'kitne dukan', 'kitney dukan',
+            'other agenc', 'other shop', 'other store', 'dusri agenc', 'doosri agenc',
+            'dusri dukan', 'doosri dukan', 'dusri shop', 'doosri shop', 'kisi aur ki', 'kisi aur agency',
+            'platform income', 'platform revenue', 'platform ki income', 'admin income', 'admin revenue', 'admin ki income',
+            'nh pos ki income', 'software ki income', 'app ki income', 'company income', 'company revenue',
+            'saas income', 'saas revenue', 'subscription income', 'subscription revenue', 'total subscription', 'mrr',
+            'super admin income', 'super admin kamai', 'kitni kamai', 'approve upgrade',
+            'upgrade request', 'register new store', 'admin panel', 'control room',
+            'سپر ایڈمن', 'کل یوزر', 'کتنے یوزر', 'تمام دکانیں', 'دوسری ایجنسی', 'پلیٹ فارم آمدنی'
+        ];
+        const techOrSecurityProbe = [
+            'kis language', 'which language', 'programming language', 'coding language', 'kis coding',
+            'software language', 'kis zaban', 'kis zuban', 'tech stack', 'technology stack', 'kis tech',
+            'source code', 'codebase', 'framework', 'built with', 'made with', 'kis mein bana',
+            'kis me bana', 'kaise bana hai', 'database name', 'db name', 'kaun sa database', 'konsa database',
+            'kon sa server', 'konsa server', 'cloud server', 'project id',
+            'api key', 'secret key', 'access token', 'id token', 'auth token', 'password',
+            'admin email', 'firestore rules', 'security rules', 'hosting', 'server ip',
+            'backend', 'frontend', 'architecture', 'javascript', 'typescript', 'react',
+            'nodejs', 'node.js', 'indexeddb', 'localstorage', 'cloud function', 'serverless',
+            'github', 'repo', 'vercel', 'aws', 'endpoint', 'webhook',
+            'hack', 'hacker', 'bypass', 'exploit', 'sql injection',
+            'dump database', 'dump data', 'system prompt', 'ignore previous', 'ignore all',
+            'act as super', 'become super', 'switch role', 'change role', 'pretend to be',
+            'override role', 'admin access',
+            'سافٹ ویئر کس زبان', 'پروگرامنگ', 'سورس کوڈ', 'پاسورڈ', 'سیکیورٹی رولز', 'ڈیٹا بیس'
+        ];
+        return matchAny(q, quotaOrTelemetry) || matchAny(q, platformOrAdmin) || matchAny(q, techOrSecurityProbe);
+    }
+
+    function filterByScope(records, agencyId, categoryId) {
+        if (!Array.isArray(records)) return [];
+        const targetAg = String(agencyId || '').trim();
+        const targetCat = String(categoryId || '').trim().toLowerCase();
+        return records.filter(r => {
+            if (!isActiveRecord(r)) return false;
+            if (targetAg && r.agencyId && String(r.agencyId).trim() !== targetAg) return false;
+            if (targetCat && r.businessCategory && String(r.businessCategory).trim().toLowerCase() !== targetCat) return false;
+            return true;
+        });
+    }
+
+    function filterSafeGuideChapters(chapters, role) {
+        if (!Array.isArray(chapters)) return [];
+        const r = normalizeRole(role);
+        return chapters.filter(ch => {
+            if (!ch || typeof ch !== 'object') return false;
+            const chRole = String(ch.role || '').trim().toLowerCase();
+            const chId = String(ch.id || '').toLowerCase();
+            const modId = String(ch.moduleId || '').toLowerCase();
+            const actUrl = String(ch.actionUrl || '').toLowerCase();
+            const title = `${ch.titleEn || ''} ${ch.titleUr || ''}`.toLowerCase();
+            if (chRole === 'super-admin') return false;
+            if (chId.includes('super-admin') || chId.includes('super_admin') || chId.includes('quota')) return false;
+            if (modId.includes('super_admin') || modId.includes('quota')) return false;
+            if (actUrl.startsWith('admin.html')) return false;
+            if (title.includes('super admin') || title.includes('cloud quota')) return false;
+            if (r === 'booker' || r === 'supplier') {
+                if (actUrl.startsWith('profit.html') || actUrl.startsWith('expenses.html')) return false;
+                if (modId === 'profit' || modId === 'expenses' || modId === 'owner') return false;
+            }
+            if (r === 'supplier') {
+                if (actUrl.startsWith('customers.html') || actUrl.startsWith('stock.html')) return false;
+            }
+            return true;
+        });
+    }
+
     // Embedded fallback engine (mirrors src/core/localSmartAssistant.js 100%)
     const FallbackCoreEngine = {
         sanitizeText,
@@ -196,14 +294,6 @@
         getQuickSuggestions(role, lang) {
             const r = normalizeRole(role);
             const ur = lang === 'ur';
-            if (r === 'super-admin') {
-                return [
-                    { label: ur ? 'کلاؤڈ کوٹہ رپورٹ' : 'Cloud Quota Status', query: ur ? 'فائر بیس اور نیٹلی فائی کوٹہ کیا ہے؟' : 'Firebase and Netlify quota status' },
-                    { label: ur ? 'نئی دکان رجسٹر' : 'Register New Store', query: ur ? 'نئی دکان کیسے رجسٹر کریں؟' : 'How to register a new store?' },
-                    { label: ur ? 'پیکیج اپ گریڈ' : 'Approve Upgrades', query: ur ? 'پیکیج اپ گریڈ کیسے منظور کریں؟' : 'How to approve package upgrades?' },
-                    { label: ur ? 'بقایا کھاتہ' : 'Pending Khata', query: ur ? 'کس کس کلائنٹ کے پاس رقم پینڈنگ ہے؟' : 'Which clients have pending payments?' }
-                ];
-            }
             if (r === 'supplier') {
                 return [
                     { label: ur ? 'آج کی ڈلیوریز' : 'Pending Deliveries', query: ur ? 'آج کے پینڈنگ بلز دکھائیں' : 'Show today pending bills' },
@@ -231,16 +321,18 @@
             const p = params || {};
             const rawQuery = sanitizeText(p.query || '');
             const role = normalizeRole(p.role);
+            const agencyId = sanitizeText(p.agencyId || '');
+            const categoryId = sanitizeText(p.categoryId || '').toLowerCase();
             const uiLang = p.lang || 'en';
             const preferUr = /[\u0600-\u06FF]/.test(rawQuery) || uiLang === 'ur';
             const data = p.localData || {};
-            const customers = (Array.isArray(data.customers) ? data.customers : []).filter(isActiveRecord);
-            const stock = (Array.isArray(data.stock) ? data.stock : []).filter(isActiveRecord);
-            const bills = (Array.isArray(data.bills) ? data.bills : []).filter(isActiveRecord);
+            const customers = role === 'supplier' ? [] : filterByScope(data.customers, agencyId, categoryId);
+            const stock = role === 'supplier' ? [] : filterByScope(data.stock, agencyId, categoryId);
+            const bills = filterByScope(data.bills, agencyId, categoryId);
             const salesBills = bills.filter(b => !isPaymentReceipt(b));
             const paymentReceipts = bills.filter(isPaymentReceipt);
-            const expenses = (Array.isArray(data.expenses) ? data.expenses : []).filter(isActiveRecord);
-            const guideChapters = Array.isArray(p.guideChapters) ? p.guideChapters : [];
+            const expenses = role === 'owner' ? filterByScope(data.expenses, agencyId, categoryId) : [];
+            const guideChapters = filterSafeGuideChapters(p.guideChapters, role);
             const now = (p.now && typeof p.now.getFullYear === 'function' && !isNaN(p.now.getTime())) ? p.now : new Date();
             const freshTag = data.lastSyncLabel ? `Verified · ${data.lastSyncLabel}` : 'NH POS AI';
 
@@ -249,21 +341,34 @@
                     intent: 'welcome',
                     titleEn: 'NH POS AI Assistant',
                     titleUr: 'این ایچ پی او ایس اے آئی اسسٹنٹ',
-                    textEn: 'Ask about pending customer payments, today’s sales, low stock, expiry alerts, or how to use any module.',
-                    textUr: 'بقایا کھاتہ، آج کی سیل، کم اسٹاک، ایکسپائری یا کسی بھی ماڈیول کے استعمال کے بارے میں پوچھیں۔',
+                    textEn: 'Ask about your active store’s pending customer payments, today’s sales, low stock, expiry alerts, or how to use any module.',
+                    textUr: 'اپنے موجودہ اسٹور کے بقایا کھاتہ، آج کی سیل، کم اسٹاک، ایکسپائری یا کسی بھی ماڈیول کے استعمال کے بارے میں پوچھیں۔',
                     sourceTag: freshTag
                 });
             }
 
             const q = rawQuery.toLowerCase();
 
+            // ZERO-TRUST SECURITY FIREWALL (Blocked for EVERY role — zero platform/admin/system disclosure)
+            if (isRestrictedPlatformOrSystemQuery(q)) {
+                return buildReply({
+                    intent: 'security_restricted',
+                    restricted: true,
+                    titleEn: 'Access Restricted — Active Store Scope Only',
+                    titleUr: 'سیکیورٹی پابندی — صرف موجودہ اسٹور تک محدود',
+                    textEn: 'For security, I cannot share platform administration details, user or store counts, platform income, server usage/limits, software internals, or data from any other store. I only assist with your currently active store and assigned role.',
+                    textUr: 'سیکیورٹی پالیسی کے تحت سپر ایڈمن معلومات، کل یوزرز/اسٹورز کی تعداد، پلیٹ فارم آمدنی، سرور/کوٹہ ریکارڈ، سافٹ ویئر ٹیکنالوجی یا کسی دوسرے اسٹور کا ڈیٹا فراہم کرنا سختی سے منع ہے۔ میں صرف آپ کی موجودہ ایکٹو ایجنسی اور رول کے مطابق مدد کر سکتا ہوں۔',
+                    sourceTag: 'Security Protected'
+                });
+            }
+
             if (/^(salam|salaam|aoa|assalam[\s-]*o?[\s-]*alaikum|hello|hi|hey|good morning|good evening|السلام علیکم|سلام)[!.\s]*$/i.test(rawQuery)) {
                 return buildReply({
                     intent: 'greeting',
                     titleEn: 'Wa-Alaikum-Assalam! How can I help?',
                     titleUr: 'وعلیکم السلام! میں آپ کی کیا مدد کر سکتا ہوں؟',
-                    textEn: 'Ask me about pending khata payments, today’s or yesterday’s sales, low stock alerts, stock valuation, expenses, or how to use any feature.',
-                    textUr: 'آپ مجھ سے بقایا کھاتہ، آج یا کل کی سیل، کم اسٹاک، اخراجات، اسٹاک ویلیو یا کسی بھی فیچر کے استعمال کے بارے میں پوچھ سکتے ہیں۔',
+                    textEn: 'Ask me about your active store’s pending khata, sales, bills, stock alerts, or how to use any feature for your role.',
+                    textUr: 'آپ مجھ سے اپنے موجودہ اسٹور کے بقایا کھاتہ، سیل، بلز، اسٹاک الرٹس یا اپنے رول کے مطابق کسی بھی فیچر کے استعمال کے بارے میں پوچھ سکتے ہیں۔',
                     sourceTag: freshTag
                 });
             }
@@ -272,27 +377,15 @@
                     intent: 'greeting',
                     titleEn: 'You’re Welcome!',
                     titleUr: 'خوش آمدید!',
-                    textEn: 'Happy to help anytime. Ask another question whenever you need verified shop insights.',
-                    textUr: 'کسی بھی وقت کاروباری ریکارڈ یا گائیڈ کے لیے دوبارہ پوچھ سکتے ہیں۔',
+                    textEn: 'Happy to help anytime. Ask another question whenever you need verified insights for your active store.',
+                    textUr: 'کسی بھی وقت اپنے اسٹور کے ریکارڈ یا گائیڈ کے لیے دوبارہ پوچھ سکتے ہیں۔',
                     sourceTag: freshTag
                 });
             }
 
             const asksExpenses = matchAny(q, ['expense', 'expenses', 'kharch', 'kharcha', 'karcha', 'اخراجات', 'خرچ', 'خرچہ']);
             const asksProfitOrCost = matchAny(q, ['profit', 'margin', 'purchase price', 'cost price', 'khareed', 'munafa', 'bachat', 'stock value', 'stock ki qeemat', 'inventory value', 'منافع', 'بچت', 'خریداری قیمت', 'اسٹاک ویلیو']);
-            const asksSuperAdminQuota = matchAny(q, ['netlify', 'firebase', 'quota', 'read count', 'write count', 'کوٹہ', 'فائر بیس', 'نیٹلی فائی', 'all shops', 'saray shops', 'sari shops']);
 
-            if (asksSuperAdminQuota && role !== 'super-admin') {
-                return buildReply({
-                    intent: 'restricted',
-                    restricted: true,
-                    titleEn: 'Super Admin Only Information',
-                    titleUr: 'صرف سپر ایڈمن کے لیے مخصوص معلومات',
-                    textEn: 'Platform-wide Firebase/Netlify quota and multi-store governance data is strictly restricted to Super Admin accounts.',
-                    textUr: 'پلیٹ فارم کوٹہ اور تمام دکانوں کی معلومات سیکیورٹی کی وجہ سے صرف سپر ایڈمن اکاؤنٹ کے لیے محفوظ ہیں۔',
-                    sourceTag: 'Access Protected'
-                });
-            }
             if ((asksExpenses || asksProfitOrCost) && (role === 'booker' || role === 'supplier')) {
                 return buildReply({
                     intent: 'restricted',
@@ -305,28 +398,15 @@
                 });
             }
 
-            if (asksSuperAdminQuota && role === 'super-admin') {
-                const qData = data.quota || null;
-                const qLines = [];
-                if (qData && typeof qData === 'object') {
-                    qLines.push({ label: 'Firestore Reads (Tracked)', value: String(num(qData.reads ?? qData.readsToday ?? qData.fbReads ?? 0)) });
-                    qLines.push({ label: 'Firestore Writes (Tracked)', value: String(num(qData.writes ?? qData.writesToday ?? qData.fbWrites ?? 0)) });
-                    qLines.push({ label: 'Netlify Requests (Tracked)', value: String(num(qData.netlifyRequests ?? qData.netlifyTotalReqs ?? 0)) });
-                    if (num(qData.pwaCacheHits) > 0) {
-                        qLines.push({ label: 'PWA Offline Cache Hits', value: String(num(qData.pwaCacheHits)) });
-                    }
-                }
+            if (role === 'supplier' && matchAny(q, ['khata', 'udhaar', 'udhar', 'receivable', 'payable', 'kis se lene', 'kis ko dene', 'business summary', 'shop summary', 'low stock', 'expiry', 'کھاتہ', 'ادھار', 'کم اسٹاک', 'ایکسپائری'])) {
                 return buildReply({
-                    intent: 'superadmin_quota',
-                    titleEn: 'Cloud Quota & Usage Snapshot (Super Admin)',
-                    titleUr: 'فائر بیس اور نیٹلی فائی کلاؤڈ کوٹہ صورتحال',
-                    textEn: 'Live telemetry captured on this device. Open Cloud Quota & Usage for full per-shop daily/weekly/monthly/yearly totals.',
-                    textUr: 'اس ڈیوائس کا تازہ کلاؤڈ کوٹہ ریکارڈ۔ ہر دکان کی روزانہ، ہفتہ وار، ماہانہ اور سالانہ تفصیل کے لیے کلاؤڈ کوٹہ ٹیب کھولیں۔',
-                    lines: qLines,
-                    actionUrl: 'admin.html#tabCloudQuota',
-                    actionLabelEn: 'Open Cloud Quota & Usage',
-                    actionLabelUr: 'کلاؤڈ کوٹہ کھولیں',
-                    sourceTag: 'Super Admin Telemetry'
+                    intent: 'restricted',
+                    restricted: true,
+                    titleEn: 'Delivery / Supplier Role Scope Only',
+                    titleUr: 'صرف ڈلیوری / سپلائر رول تک محدود',
+                    textEn: 'Your Supplier role is strictly scoped to assigned deliveries, returns, and van handover. Full customer khata and shop inventory reports are restricted.',
+                    textUr: 'آپ کا سپلائر رول صرف ڈلیوریز، واپسی مال اور شام کی کلوزنگ تک محدود ہے۔ مکمل گاہک کھاتہ اور اسٹاک رپورٹس تک رسائی محدود ہے۔',
+                    sourceTag: 'Role Protected'
                 });
             }
 
@@ -907,42 +987,62 @@
     }
 
     // ------------------------------------------------------------------------
-    // 🔒 STRICT CONTEXT & ZERO-QUOTA LOCAL OFFLINE DB READER
+    // 🔒 STRICT VERIFIED CONTEXT & ZERO-QUOTA LOCAL OFFLINE DB READER
     // ------------------------------------------------------------------------
     function getActiveUserContext() {
         const sb = global.ebSidebar || {};
-        const agency = sb.agency || {};
-        const profile = sb.profile || {};
+        const verified = (typeof sb.getVerifiedSession === 'function') ? (sb.getVerifiedSession() || {}) : {};
+        let sessionProfile = {};
+        let sessionAgency = {};
+        try {
+            const rawSp = global.sessionStorage && global.sessionStorage.getItem('eb_user_profile');
+            if (rawSp) sessionProfile = JSON.parse(rawSp) || {};
+            const rawSa = global.sessionStorage && global.sessionStorage.getItem('eb_agency_data');
+            if (rawSa) sessionAgency = JSON.parse(rawSa) || {};
+        } catch (_) {}
+
         let cachedAgency = {};
         try {
             const rawAg = localStorage.getItem('eb_user_agency');
             if (rawAg) cachedAgency = JSON.parse(rawAg) || {};
         } catch (_) {}
-        const agencyId = agency.id
-            || profile.agencyId
+
+        const agency = (verified.agency && verified.agency.id) ? verified.agency
+            : (sessionAgency.id ? sessionAgency : cachedAgency);
+
+        // Trust priority: 1) Live Firestore-verified sidebar session -> 2) sessionStorage -> 3) active agency cache
+        const rawAgencyId = verified.agencyId
+            || sessionAgency.id
+            || sessionProfile.agencyId
             || localStorage.getItem('eb_active_agencyId')
             || cachedAgency.id
             || '';
-        const role = normalizeRole(
-            profile.role
-            || (sb.user && sb.user.email === 'aliimtiaz1126@gmail.com' ? 'super-admin' : '')
+        const agencyId = rawAgencyId === 'super-admin-hq' ? '' : String(rawAgencyId || '').trim();
+
+        // NEVER grant super-admin privileges inside the AI Bot; prefer live Firestore-verified role over localStorage
+        const rawRole = verified.role
+            || sessionProfile.role
             || localStorage.getItem('eb_user_role')
             || localStorage.getItem('eb_active_role')
-            || (curPage === 'admin.html' ? 'super-admin' : 'owner')
-        );
+            || 'booker';
+        const role = normalizeRole(rawRole);
+
         const categoryId = String(
-            agency.businessCategory
+            verified.categoryId
+            || agency.businessCategory
             || localStorage.getItem('eb_active_business_category')
             || localStorage.getItem('eb_active_category')
             || cachedAgency.businessCategory
             || 'distributor'
         ).trim().toLowerCase();
-        return { agencyId, role, categoryId, agency: agency.id ? agency : cachedAgency, profile };
+
+        return { agencyId, role, categoryId, agency, profile: sessionProfile };
     }
 
     function readIndexedDbStore(storeName, agencyId) {
         return new Promise((resolve) => {
-            if (!global.indexedDB) return resolve([]);
+            // Zero-Trust: NEVER read cross-agency IndexedDB rows without a verified active agencyId!
+            if (!agencyId || !global.indexedDB) return resolve([]);
             try {
                 const req = global.indexedDB.open('NHPosBillingDB');
                 // CRITICAL: If DB does not exist yet, abort upgrade so we NEVER create an empty v1 DB
@@ -963,11 +1063,7 @@
                         getAllReq.onsuccess = () => {
                             const rows = Array.isArray(getAllReq.result) ? getAllReq.result : [];
                             idb.close();
-                            if (agencyId) {
-                                resolve(rows.filter(r => !r.agencyId || r.agencyId === agencyId));
-                            } else {
-                                resolve(rows);
-                            }
+                            resolve(rows.filter(r => r && (!r.agencyId || String(r.agencyId).trim() === agencyId)));
                         };
                         getAllReq.onerror = () => { idb.close(); resolve([]); };
                     } catch (_) {
@@ -983,7 +1079,7 @@
 
     async function readFirestoreLocalCacheOnly(collectionName, agencyId) {
         // STRICT ZERO-QUOTA: ONLY reads from browser local disk cache ({ source: 'cache' }).
-        // Never hits Firebase server and never consumes read quota!
+        // Never hits server and never consumes read quota!
         try {
             if (!agencyId || typeof global.firebase === 'undefined' || !global.firebase.apps || !global.firebase.apps.length) {
                 return [];
@@ -1006,7 +1102,37 @@
         if (global.BusinessCategories && typeof global.BusinessCategories.matchesActiveCategoryRecord === 'function') {
             return records.filter(r => global.BusinessCategories.matchesActiveCategoryRecord(r, categoryId, agency));
         }
-        return records;
+        const targetCat = String(categoryId || '').trim().toLowerCase();
+        if (!targetCat) return records;
+        return records.filter(r => !r.businessCategory || String(r.businessCategory).trim().toLowerCase() === targetCat);
+    }
+
+    function stripConfidentialFieldsForStaff(records) {
+        if (!Array.isArray(records)) return [];
+        return records.map(r => {
+            if (!r || typeof r !== 'object') return r;
+            const copy = { ...r };
+            delete copy.purchasePrice;
+            delete copy.costPrice;
+            delete copy.tp;
+            delete copy.tradePriceTP;
+            delete copy.cost;
+            delete copy.margin;
+            delete copy.profit;
+            if (Array.isArray(copy.items)) {
+                copy.items = copy.items.map(it => {
+                    if (!it || typeof it !== 'object') return it;
+                    const ic = { ...it };
+                    delete ic.purchasePrice;
+                    delete ic.costPrice;
+                    delete ic.tp;
+                    delete ic.tradePriceTP;
+                    delete ic.cost;
+                    return ic;
+                });
+            }
+            return copy;
+        });
     }
 
     function mergeUniqueById(primary, secondary) {
@@ -1039,14 +1165,19 @@
 
     async function collectLocalOfflineData(ctx) {
         const { agencyId, categoryId, role, agency } = ctx;
+        // Zero-Trust: Without an active agencyId, return ZERO business records!
+        if (!agencyId) {
+            return { customers: [], stock: [], bills: [], expenses: [], lastSyncLabel: '' };
+        }
+
         let customers = [];
         let stock = [];
         let bills = [];
         let expenses = [];
         let lastSyncTs = '';
 
-        // 1. Read localStorage caches strictly scoped by agencyId + categoryId (with bills.js array fallback)
-        if (agencyId) {
+        // 1. Read localStorage caches strictly scoped by active agencyId + active categoryId + role
+        if (role !== 'supplier') {
             try {
                 const cRaw = localStorage.getItem(`eb_cust_cache_${agencyId}_${categoryId}`)
                     || localStorage.getItem(`eb_cust_cache_${agencyId}`);
@@ -1068,82 +1199,67 @@
                     if (!lastSyncTs && parsed && parsed.timestamp) lastSyncTs = parsed.timestamp;
                 }
             } catch (_) {}
-
-            try {
-                const offRaw = localStorage.getItem(`eb_offline_orders_${agencyId}`);
-                if (offRaw) {
-                    const arr = JSON.parse(offRaw);
-                    if (Array.isArray(arr)) bills = arr;
-                }
-            } catch (_) {}
-
-            // Strict RBAC: Only read expenses for owner or super-admin
-            if (role === 'owner' || role === 'super-admin') {
-                try {
-                    const eRaw = localStorage.getItem(`eb_expenses_${agencyId}_${categoryId}`)
-                        || localStorage.getItem(`eb_expenses_${agencyId}`);
-                    if (eRaw) {
-                        const arr = JSON.parse(eRaw);
-                        if (Array.isArray(arr)) expenses = arr;
-                    }
-                } catch (_) {}
-            }
         }
 
-        // 2. Enrich from IndexedDB NHPosBillingDB (100% offline, 0 quota)
+        try {
+            const offRaw = localStorage.getItem(`eb_offline_orders_${agencyId}`);
+            if (offRaw) {
+                const arr = JSON.parse(offRaw);
+                if (Array.isArray(arr)) bills = arr;
+            }
+        } catch (_) {}
+
+        // Strict RBAC: Only load expenses for active agency Owner
+        if (role === 'owner') {
+            try {
+                const eRaw = localStorage.getItem(`eb_expenses_${agencyId}_${categoryId}`)
+                    || localStorage.getItem(`eb_expenses_${agencyId}`);
+                if (eRaw) {
+                    const arr = JSON.parse(eRaw);
+                    if (Array.isArray(arr)) expenses = arr;
+                }
+            } catch (_) {}
+        }
+
+        // 2. Enrich from IndexedDB (strictly scoped by agencyId & role)
         const [idbBills, idbCusts, idbStock] = await Promise.all([
             readIndexedDbStore('pending_bills', agencyId),
-            readIndexedDbStore('cached_customers', agencyId),
-            readIndexedDbStore('cached_stock', agencyId)
+            role === 'supplier' ? Promise.resolve([]) : readIndexedDbStore('cached_customers', agencyId),
+            role === 'supplier' ? Promise.resolve([]) : readIndexedDbStore('cached_stock', agencyId)
         ]);
         bills = mergeUniqueById(bills, idbBills);
-        customers = mergeUniqueById(customers, idbCusts);
-        stock = mergeUniqueById(stock, idbStock);
-
-        // 3. Enrich from Firestore browser disk cache ONLY ({ source: 'cache' } — 0 server reads!)
-        if (agencyId) {
-            const allowExpCache = (role === 'owner' || role === 'super-admin') && expenses.length === 0;
-            const [fsBills, fsCusts, fsStock, fsExps] = await Promise.all([
-                readFirestoreLocalCacheOnly('bills', agencyId),
-                customers.length ? Promise.resolve([]) : readFirestoreLocalCacheOnly('customers', agencyId),
-                stock.length ? Promise.resolve([]) : readFirestoreLocalCacheOnly('stock', agencyId),
-                allowExpCache ? readFirestoreLocalCacheOnly('expenses', agencyId) : Promise.resolve([])
-            ]);
-            bills = mergeUniqueById(bills, fsBills);
-            customers = mergeUniqueById(customers, fsCusts);
-            stock = mergeUniqueById(stock, fsStock);
-            if (allowExpCache) expenses = mergeUniqueById(expenses, fsExps);
+        if (role !== 'supplier') {
+            customers = mergeUniqueById(customers, idbCusts);
+            stock = mergeUniqueById(stock, idbStock);
         }
 
-        // Enforce strict active-category isolation + exclude soft-deleted/cancelled records
-        customers = filterByCategory(customers, categoryId, agency).filter(isActiveRecord);
-        stock = filterByCategory(stock, categoryId, agency).filter(isActiveRecord);
-        bills = filterByCategory(bills, categoryId, agency).filter(isActiveRecord);
-        expenses = filterByCategory(expenses, categoryId, agency).filter(isActiveRecord);
+        // 3. Enrich from local disk cache ONLY ({ source: 'cache' } — 0 server reads!)
+        const allowExpCache = role === 'owner' && expenses.length === 0;
+        const [fsBills, fsCusts, fsStock, fsExps] = await Promise.all([
+            readFirestoreLocalCacheOnly('bills', agencyId),
+            (role !== 'supplier' && !customers.length) ? readFirestoreLocalCacheOnly('customers', agencyId) : Promise.resolve([]),
+            (role !== 'supplier' && !stock.length) ? readFirestoreLocalCacheOnly('stock', agencyId) : Promise.resolve([]),
+            allowExpCache ? readFirestoreLocalCacheOnly('expenses', agencyId) : Promise.resolve([])
+        ]);
+        bills = mergeUniqueById(bills, fsBills);
+        if (role !== 'supplier') {
+            customers = mergeUniqueById(customers, fsCusts);
+            stock = mergeUniqueById(stock, fsStock);
+        }
+        if (allowExpCache) expenses = mergeUniqueById(expenses, fsExps);
 
-        // Super Admin local quota snapshot (supports real EBQuotaTracker.getLocalHistoryRecords() API!)
-        let quota = null;
-        if (role === 'super-admin' && global.EBQuotaTracker) {
-            try {
-                if (typeof global.EBQuotaTracker.getLocalHistoryRecords === 'function') {
-                    const recs = global.EBQuotaTracker.getLocalHistoryRecords() || [];
-                    const agg = recs.reduce((acc, r) => {
-                        acc.reads += num(r && (r.fbReads || r.reads));
-                        acc.writes += num(r && (r.fbWrites || r.writes));
-                        acc.netlifyRequests += num(r && (r.netlifyTotalReqs || r.netlifyRequests));
-                        acc.pwaCacheHits += num(r && r.pwaCacheHits);
-                        return acc;
-                    }, { reads: 0, writes: 0, netlifyRequests: 0, pwaCacheHits: 0 });
-                    quota = agg;
-                } else if (typeof global.EBQuotaTracker.getStats === 'function') {
-                    const st = global.EBQuotaTracker.getStats();
-                    quota = {
-                        reads: (st && (st.reads || st.firestoreReads)) || 0,
-                        writes: (st && (st.writes || st.firestoreWrites)) || 0,
-                        netlifyRequests: (st && (st.netlifyRequests || st.requests)) || 0
-                    };
-                }
-            } catch (_) {}
+        // Enforce strict active-agency + active-category isolation + exclude soft-deleted/cancelled records
+        customers = filterByCategory(filterByScope(customers, agencyId, categoryId), categoryId, agency);
+        stock = filterByCategory(filterByScope(stock, agencyId, categoryId), categoryId, agency);
+        bills = filterByCategory(filterByScope(bills, agencyId, categoryId), categoryId, agency);
+        expenses = role === 'owner'
+            ? filterByCategory(filterByScope(expenses, agencyId, categoryId), categoryId, agency)
+            : [];
+
+        // Defense-in-depth: Strip all purchase cost / profit / margin fields from non-owner roles before engine ever sees them
+        if (role !== 'owner') {
+            stock = stripConfidentialFieldsForStaff(stock);
+            bills = stripConfidentialFieldsForStaff(bills);
         }
 
         let lastSyncLabel = '';
@@ -1156,7 +1272,7 @@
             } catch (_) {}
         }
 
-        return { customers, stock, bills, expenses, quota, lastSyncLabel };
+        return { customers, stock, bills, expenses, lastSyncLabel };
     }
 
     // Dynamically load User Guide chapters on non-guide pages (100% offline PWA precached)
@@ -1883,10 +1999,11 @@
                 await ensureGuideScriptsLoaded();
                 const ctx = getActiveUserContext();
                 const localData = await collectLocalOfflineData(ctx);
-                const guideChapters = getVisibleGuideChapters(ctx);
+                const guideChapters = filterSafeGuideChapters(getVisibleGuideChapters(ctx), ctx.role);
                 return getCore().answerQuery({
                     query: clean,
                     role: ctx.role,
+                    agencyId: ctx.agencyId,
                     categoryId: ctx.categoryId,
                     lang: botLang,
                     localData,
@@ -1999,16 +2116,17 @@
         function seedWelcomeIfEmpty() {
             if (!msgListEl || msgListEl.children.length > 0) return;
             const ctx = getActiveUserContext();
+            const isSupplier = ctx.role === 'supplier';
             appendBotBubble(buildReply({
                 intent: 'welcome',
                 titleEn: 'Assalam-o-Alaikum! NH POS AI Assistant',
                 titleUr: 'السلام علیکم! این ایچ پی او ایس اے آئی اسسٹنٹ',
-                textEn: ctx.role === 'super-admin'
-                    ? 'Ask about Store Governance, Packages, Platform Usage, or any module step.'
-                    : 'Ask me about pending client payments, today’s sales, bills, low stock, expiry alerts, or how to use any screen.',
-                textUr: ctx.role === 'super-admin'
-                    ? 'اسٹور مینجمنٹ، پیکیجز، پلیٹ فارم رپورٹ یا کسی بھی گائیڈ کے بارے میں پوچھیں۔'
-                    : 'بقایا کھاتہ (کس سے پیسے لینے یا دینے ہیں)، آج کی سیل، بلز، کم اسٹاک یا کسی بھی ماڈیول کا طریقہ پوچھیں۔',
+                textEn: isSupplier
+                    ? 'Ask me about today’s assigned deliveries, van loading, returns, or evening closing steps.'
+                    : 'Ask me about your active store’s pending client payments, today’s sales, bills, low stock, expiry alerts, or how to use any screen.',
+                textUr: isSupplier
+                    ? 'آج کی ڈلیوریز، وین لوڈنگ، واپسی مال یا شام کی کلوزنگ کے طریقے کے بارے میں پوچھیں۔'
+                    : 'اپنے موجودہ اسٹور کے بقایا کھاتہ، آج کی سیل، بلز، کم اسٹاک یا کسی بھی ماڈیول کے استعمال کے بارے میں پوچھیں۔',
                 sourceTag: 'NH POS AI'
             }));
         }

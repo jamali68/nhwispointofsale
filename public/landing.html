@@ -481,6 +481,163 @@
             line-height: 1.6;
         }
 
+        /* 🤖 AI Assistant Auto-Reply Showcase Section */
+        .ai-showcase-section {
+            padding: 84px 20px;
+            background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 52%, #ffffff 100%);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .ai-showcase-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 48px;
+            align-items: center;
+        }
+        .ai-kicker-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #047857;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            padding: 6px 14px;
+            border-radius: 999px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .ai-showcase-title {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -0.7px;
+            color: var(--text-main);
+            margin-bottom: 16px;
+        }
+        .ai-showcase-title .accent {
+            color: var(--primary);
+        }
+        .ai-showcase-desc {
+            font-size: 15.5px;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 26px;
+        }
+        .ai-cap-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .ai-cap-card {
+            background: #ffffff;
+            border: 1px solid #dcfce7;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 3px 12px rgba(5, 150, 105, 0.06);
+        }
+        .ai-cap-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .ai-cap-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: #ecfdf5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        .ai-cap-card h4 {
+            font-size: 14.5px;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1.3;
+        }
+        .ai-cap-card p {
+            font-size: 12.8px;
+            color: var(--text-muted);
+            line-height: 1.55;
+        }
+        .ai-sample-queries {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 26px;
+        }
+        .ai-query-chip {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #0f172a;
+            font-size: 12.5px;
+            font-weight: 700;
+            padding: 7px 12px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--shadow-sm);
+        }
+        .ai-query-chip i {
+            color: var(--primary);
+            font-size: 12px;
+        }
+        .ai-phone-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .ai-phone-frame {
+            width: 100%;
+            max-width: 318px;
+            background: #0f172a;
+            border-radius: 34px;
+            padding: 11px;
+            box-shadow: 0 28px 60px -16px rgba(15, 23, 42, 0.34), 0 0 0 1px rgba(16, 185, 129, 0.25);
+            position: relative;
+        }
+        .ai-phone-screen {
+            border-radius: 24px;
+            overflow: hidden;
+            background: #075e54;
+            aspect-ratio: 9 / 19.5;
+            position: relative;
+        }
+        .ai-phone-screen img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+            display: block;
+        }
+        .ai-phone-caption {
+            margin-top: 14px;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #047857;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            padding: 6px 14px;
+            border-radius: 999px;
+            text-align: center;
+        }
+
         /* 💎 Packages & Pricing Section (Light Themed) */
         .pricing-section {
             background: var(--bg-section-alt);
@@ -535,13 +692,13 @@
             justify-content: center;
             gap: 8px;
             flex-wrap: wrap;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
         }
         .pricing-tab-pill {
             background: #ffffff;
             border: 1.5px solid #cbd5e1;
             color: var(--text-muted);
-            padding: 7px 14px;
+            padding: 8px 15px;
             border-radius: 999px;
             font-size: 12.5px;
             font-weight: 700;
@@ -562,37 +719,21 @@
             color: #ffffff;
             box-shadow: 0 4px 12px rgba(5, 150, 105, 0.28);
         }
-        .pricing-tab-num {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 20px;
-            height: 20px;
-            padding: 0 5px;
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 800;
-            background: #e2e8f0;
-            color: #334155;
-        }
-        .pricing-tab-pill.active .pricing-tab-num {
-            background: rgba(255, 255, 255, 0.25);
-            color: #ffffff;
-        }
 
         .pricing-slider-shell {
             position: relative;
-            max-width: 1180px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 0 44px;
+            padding: 0;
         }
         .pricing-slider-track {
+            position: relative;
             display: flex;
-            gap: 22px;
+            gap: 20px;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
             scroll-behavior: smooth;
-            padding: 20px 6px 26px;
+            padding: 20px 4px 26px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             direction: ltr;
@@ -603,47 +744,16 @@
         .pricing-slider-track.centered-track {
             justify-content: center;
         }
-        .pricing-nav-btn {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            border: 1.5px solid #cbd5e1;
-            background: #ffffff;
-            color: #0f172a;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            cursor: pointer;
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-            z-index: 15;
-            transition: all 0.2s ease;
-        }
-        .pricing-nav-btn:hover {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: #ffffff;
-            transform: translateY(-50%) scale(1.06);
-        }
-        .pricing-nav-btn.prev-btn { left: 0; }
-        .pricing-nav-btn.next-btn { right: 0; }
-        .pricing-nav-btn:disabled {
-            opacity: 0.35;
-            pointer-events: none;
-        }
 
         .pricing-card {
-            flex: 0 0 345px;
-            width: 345px;
+            flex: 0 0 360px;
+            width: 360px;
             max-width: 100%;
             scroll-snap-align: center;
             background: #ffffff;
             border: 1.5px solid var(--border);
             border-radius: 22px;
-            padding: 28px 24px 24px;
+            padding: 22px 22px 24px;
             display: flex;
             flex-direction: column;
             position: relative;
@@ -677,28 +787,57 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
+            direction: ltr;
         }
-        .plan-pos-chip {
-            font-size: 11px;
-            font-weight: 800;
-            color: #047857;
-            background: #ecfdf5;
-            border: 1px solid #a7f3d0;
-            padding: 2px 9px;
-            border-radius: 999px;
+        .plan-meta-row.single-card {
+            justify-content: center;
+        }
+        .plan-card-arrow {
+            width: 34px;
+            height: 32px;
+            border-radius: 10px;
+            border: 1px solid #dbe4ee;
+            background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+            transition: all 0.18s ease;
+            flex-shrink: 0;
+        }
+        .plan-card-arrow:hover:not(:disabled) {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(5, 150, 105, 0.26);
+        }
+        .plan-card-arrow:active:not(:disabled) {
+            transform: scale(0.94);
+        }
+        .plan-card-arrow:disabled {
+            opacity: 0.32;
+            cursor: default;
+            box-shadow: none;
+            background: #f8fafc;
         }
         .plan-type-chip {
-            font-size: 10.5px;
+            font-size: 11px;
             font-weight: 800;
             color: #475569;
             background: #f1f5f9;
-            padding: 2px 9px;
+            border: 1px solid #e2e8f0;
+            padding: 4px 12px;
             border-radius: 999px;
+            text-align: center;
         }
         .plan-type-chip.multi {
             color: #6d28d9;
             background: #f3e8ff;
+            border-color: #e9d5ff;
         }
         .plan-header {
             margin-bottom: 16px;
@@ -1010,21 +1149,67 @@
                 max-width: 480px;
                 margin: 0 auto;
             }
+            .ai-showcase-inner {
+                grid-template-columns: 1fr;
+                gap: 36px;
+            }
+            .ai-showcase-copy {
+                text-align: center;
+            }
+            .ai-cap-grid {
+                grid-template-columns: 1fr;
+                text-align: left;
+                max-width: 520px;
+                margin: 0 auto 22px;
+            }
+            html[data-lang="ur"] .ai-cap-grid {
+                text-align: right;
+            }
+            .ai-sample-queries,
+            .ai-cta-row {
+                justify-content: center;
+            }
+            .ai-showcase-title {
+                font-size: 28px;
+            }
+            .ai-phone-frame {
+                max-width: 290px;
+            }
+            .pricing-section {
+                padding: 56px 10px;
+            }
+            .pricing-section .section-header {
+                padding: 0 8px;
+                margin-bottom: 30px;
+            }
+            .pricing-slider-tabs {
+                gap: 7px;
+                padding: 0 2px;
+                margin-bottom: 14px;
+            }
+            .pricing-tab-pill {
+                padding: 7px 13px;
+                font-size: 12px;
+            }
             .pricing-slider-shell {
-                padding: 0 10px;
+                padding: 0;
             }
-            .pricing-nav-btn {
-                width: 36px;
-                height: 36px;
-                font-size: 14px;
+            .pricing-slider-track {
+                gap: 12px;
+                padding: 18px 2px 22px;
             }
-            .pricing-nav-btn.prev-btn { left: 2px; }
-            .pricing-nav-btn.next-btn { right: 2px; }
             .pricing-card {
-                flex: 0 0 calc(100% - 26px);
-                width: calc(100% - 26px);
-                max-width: 400px;
-                padding: 24px 18px 20px;
+                flex: 0 0 calc(100% - 4px);
+                width: calc(100% - 4px);
+                max-width: 100%;
+                padding: 20px 16px 20px;
+                border-radius: 20px;
+            }
+            .plan-card-arrow {
+                width: 36px;
+                height: 34px;
+                border-radius: 11px;
+                font-size: 13.5px;
             }
             .faq-grid {
                 grid-template-columns: 1fr;
@@ -1104,6 +1289,9 @@
                 font-size: 11.5px;
                 gap: 4px;
             }
+            .pricing-section {
+                padding: 46px 8px;
+            }
             .footer-wa-num {
                 font-size: 10.5px;
             }
@@ -1164,6 +1352,7 @@
 
             <nav class="nav-links">
                 <a href="#features" data-en="Features" data-ur="اہم خوبیاں">Features</a>
+                <a href="#ai-assistant" data-en="AI Bot" data-ur="اے آئی بوٹ">AI Bot</a>
                 <a href="#pricing" data-en="Packages & Pricing" data-ur="پیکجز اور قیمتیں">Packages</a>
                 <a href="#faq" data-en="FAQ" data-ur="عام سوالات">FAQ</a>
                 <a href="https://wa.me/923346800959" target="_blank" rel="noopener"><i class="fab fa-whatsapp" style="color:#25d366;"></i> 0334-6800959</a>
@@ -1225,6 +1414,10 @@
                 <div class="trust-item">
                     <i class="fab fa-whatsapp"></i>
                     <span data-en="WhatsApp Khata Reminders" data-ur="واٹس ایپ پر ادھار بل">WhatsApp Khata Reminders</span>
+                </div>
+                <div class="trust-item">
+                    <i class="fas fa-robot"></i>
+                    <span data-en="Auto-Reply AI Bot Included" data-ur="آٹو ریپلائی اے آئی بوٹ شامل ہے">Auto-Reply AI Bot Included</span>
                 </div>
             </div>
         </div>
@@ -1330,6 +1523,105 @@
         </div>
     </section>
 
+    <!-- 🤖 BUILT-IN AUTO-REPLY AI BOT SHOWCASE (Training & Record Queries) -->
+    <section class="ai-showcase-section" id="ai-assistant">
+        <div class="ai-showcase-inner">
+            <div class="ai-showcase-copy">
+                <div class="ai-kicker-badge">
+                    <i class="fas fa-robot"></i>
+                    <span data-en="Built-In Auto-Reply AI Assistant" data-ur="بلٹ ان آٹو ریپلائی اے آئی اسسٹنٹ">Built-In Auto-Reply AI Assistant</span>
+                </div>
+
+                <h2 class="ai-showcase-title">
+                    <span data-en="Your 24/7 Smart AI Bot for" data-ur="آپ کا 24/7 اسمارٹ اے آئی بوٹ —">Your 24/7 Smart AI Bot for</span>
+                    <span class="accent" data-en="App Training & Instant Business Records" data-ur="مکمل ٹریننگ اور فوری کاروباری ریکارڈز کے لیے">App Training & Instant Business Records</span>
+                </h2>
+
+                <p class="ai-showcase-desc ur-txt" data-en="No need to call support or dig through long menus. NH POS comes with a built-in WhatsApp-style AI Bot that automatically replies to your questions in English and Urdu — guiding your staff step-by-step and answering live or offline record queries like pending client khata, daily sales, bills, stock valuation, and low-stock alerts." data-ur="اب کسی سے پوچھنے یا لمبے مینیوز میں وقت ضائع کرنے کی ضرورت نہیں۔ این ایچ پی او ایس میں واٹس ایپ جیسا بلٹ ان اے آئی بوٹ موجود ہے جو اردو اور انگلش میں خودکار جواب دیتا ہے — اسٹاف کی مکمل ٹریننگ کرے اور آپ کے ریکارڈز (پینڈنگ کھاتہ، آج کی سیل، بلز، کم اسٹاک اور منافع) کا فوری اور درست جواب دے، چاہے انٹرنیٹ بند ہو۔">
+                    No need to call support or dig through long menus. NH POS comes with a built-in WhatsApp-style AI Bot that automatically replies to your questions in English and Urdu — guiding your staff step-by-step and answering live or offline record queries like pending client khata, daily sales, bills, stock valuation, and low-stock alerts.
+                </p>
+
+                <div class="ai-cap-grid">
+                    <div class="ai-cap-card">
+                        <div class="ai-cap-head">
+                            <span class="ai-cap-icon"><i class="fas fa-database"></i></span>
+                            <h4 data-en="Live & Offline Record Queries" data-ur="لائیو اور آف لائن ریکارڈز کا فوری جواب">Live & Offline Record Queries</h4>
+                        </div>
+                        <p class="ur-txt" data-en="Ask which clients have pending payments, check any Bill #, today's or yesterday's sales, khata recovery, expiry watch, and stock value instantly." data-ur="کس کلائنٹ سے کتنے پیسے لینے یا دینے ہیں، آج یا کل کی سیل، کسی بل نمبر کی تفصیل، کم اسٹاک اور ایکسپائری الرٹس سیکنڈوں میں جانیں۔">
+                            Ask which clients have pending payments, check any Bill #, today's or yesterday's sales, khata recovery, expiry watch, and stock value instantly.
+                        </p>
+                    </div>
+
+                    <div class="ai-cap-card">
+                        <div class="ai-cap-head">
+                            <span class="ai-cap-icon"><i class="fas fa-graduation-cap"></i></span>
+                            <h4 data-en="Auto-Reply Staff Training" data-ur="خودکار اسٹاف ٹریننگ اور یوزر گائیڈ">Auto-Reply Staff Training</h4>
+                        </div>
+                        <p class="ur-txt" data-en="New staff can ask how to create bills, print receipts, book orders, or take backups — the AI Bot replies with clear step-by-step instructions." data-ur="نیا اسٹاف خود بوٹ سے پوچھ سکتا ہے کہ بل کیسے بنائیں، آرڈر کیسے بک کریں یا بیک اپ کیسے لیں — بوٹ فوراً آسان اردو و انگلش میں طریقہ بتاتا ہے۔">
+                            New staff can ask how to create bills, print receipts, book orders, or take backups — the AI Bot replies with clear step-by-step instructions.
+                        </p>
+                    </div>
+
+                    <div class="ai-cap-card">
+                        <div class="ai-cap-head">
+                            <span class="ai-cap-icon"><i class="fas fa-shield-halved"></i></span>
+                            <h4 data-en="Strict Role-Based Privacy" data-ur="مکمل سیکیورٹی اور رول پرائیویسی">Strict Role-Based Privacy</h4>
+                        </div>
+                        <p class="ur-txt" data-en="Shop Owners see full profit, expenses, and purchase costs — while Bookers and Delivery staff stay strictly restricted to their own tasks." data-ur="منافع، اخراجات، خریداری قیمت اور اسٹاک ویلیو صرف دکان مالک دیکھ سکتا ہے، جبکہ بکر اور سپلائر کو صرف ان کے کام کی معلومات ملتی ہیں۔">
+                            Shop Owners see full profit, expenses, and purchase costs — while Bookers and Delivery staff stay strictly restricted to their own tasks.
+                        </p>
+                    </div>
+
+                    <div class="ai-cap-card">
+                        <div class="ai-cap-head">
+                            <span class="ai-cap-icon"><i class="fas fa-toggle-on"></i></span>
+                            <h4 data-en="1-Tap ON/OFF & Bilingual Chat" data-ur="ون کلک آن/آف اور اردو/انگلش چیٹ">1-Tap ON/OFF & Bilingual Chat</h4>
+                        </div>
+                        <p class="ur-txt" data-en="Switch the AI Bot ON or OFF anytime right from your sidebar and toggle between English and Urdu replies inside the chat window." data-ur="جب چاہیں سائیڈ بار سے اے آئی بوٹ کو آن یا آف کریں اور چیٹ کے اندر ایک کلک پر اردو یا انگلش زبان تبدیل کریں۔">
+                            Switch the AI Bot ON or OFF anytime right from your sidebar and toggle between English and Urdu replies inside the chat window.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="ai-sample-queries">
+                    <span class="ai-query-chip"><i class="fas fa-comment-dots"></i> <span data-en="“Which clients have pending payments?”" data-ur="”کس کس کلائنٹ کے پاس رقم پینڈنگ ہے؟“">“Which clients have pending payments?”</span></span>
+                    <span class="ai-query-chip"><i class="fas fa-comment-dots"></i> <span data-en="“What is today's sale?”" data-ur="”آج کی کل سیل کتنی ہوئی؟“">“What is today's sale?”</span></span>
+                    <span class="ai-query-chip"><i class="fas fa-comment-dots"></i> <span data-en="“Show low stock items”" data-ur="”کم اسٹاک آئٹمز دکھائیں“">“Show low stock items”</span></span>
+                    <span class="ai-query-chip"><i class="fas fa-comment-dots"></i> <span data-en="“How to create a bill?”" data-ur="”نیا بل کیسے بنائیں؟“">“How to create a bill?”</span></span>
+                </div>
+
+                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;" class="ai-cta-row">
+                    <a href="auth.html?mode=signup" class="btn-primary" style="padding: 13px 24px; font-size: 14.5px;">
+                        <i class="fas fa-robot"></i>
+                        <span data-en="Try AI Assistant Free" data-ur="مفت اکاؤنٹ بنا کر اے آئی بوٹ آزمائیں">Try AI Assistant Free</span>
+                    </a>
+                    <a href="#pricing" class="btn-outline" style="padding: 12px 20px; font-size: 14px;">
+                        <i class="fas fa-layer-group"></i>
+                        <span data-en="View Included Plans" data-ur="پیکجز دیکھیں">View Included Plans</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="ai-phone-stage">
+                <div class="ai-phone-frame">
+                    <div class="ai-phone-screen">
+                        <img
+                            id="landingAiBotScreenshot"
+                            src="assets/aistudio/Screenshot_2026-11-22-21-44-55-588_com.android.chrome_4c29a9e6.jpg"
+                            alt="NH POS Built-in Auto-Reply AI Assistant Mobile Screenshot"
+                            loading="lazy"
+                            onerror="if(!this.dataset.fallbackApplied){this.dataset.fallbackApplied='1';this.src='assets/aistudio/Screenshot_2026-11-22-21-44-55-588_com.android.chrome_4c29a9e6.jpg';}"
+                        >
+                    </div>
+                </div>
+                <div class="ai-phone-caption">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="landingAiBotCaption" data-en="Actual NH POS In-App AI Bot · Auto-Reply in English & Urdu" data-ur="این ایچ پی او ایس ایپ کا حقیقی اے آئی بوٹ · اردو اور انگلش آٹو ریپلائی">Actual NH POS In-App AI Bot · Auto-Reply in English & Urdu</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- 💎 PACKAGES & PRICING SECTION -->
     <section class="section-wrap pricing-section" id="pricing">
         <div class="section-header">
@@ -1352,15 +1644,9 @@
 
         <!-- Interactive Horizontal Package Slider -->
         <div class="pricing-slider-shell">
-            <button type="button" class="pricing-nav-btn prev-btn" id="pricingPrevBtn" onclick="slidePackages(-1)" aria-label="Previous Package">
-                <i class="fas fa-chevron-left"></i>
-            </button>
             <div class="pricing-slider-track" id="livePricingSliderTrack" role="region" aria-label="Subscription Packages Slider">
                 <!-- Populated LIVE from Super Admin / Firestore packages -->
             </div>
-            <button type="button" class="pricing-nav-btn next-btn" id="pricingNextBtn" onclick="slidePackages(1)" aria-label="Next Package">
-                <i class="fas fa-chevron-right"></i>
-            </button>
         </div>
 
         <!-- Slider Dot Indicators & Counter -->
@@ -1399,6 +1685,16 @@
             <div class="faq-item">
                 <h4 data-en="Which printers are supported?" data-ur="کون کون سے پرنٹرز سپورٹڈ ہیں؟"><i class="fas fa-check-circle" style="color:#059669;"></i> Which printers are supported?</h4>
                 <p class="ur-txt" data-en="All standard USB and Bluetooth thermal receipt printers (58mm and 80mm ESC/POS) as well as regular desktop A4/A5 laser and inkjet printers." data-ur="تمام قسم کے 58mm اور 80mm تھرمل پرنٹرز (بلوٹوتھ یا یو ایس بی) اور عام کمپیوٹر کے A4 لیزر پرنٹرز مکمل سپورٹڈ ہیں۔">All standard USB and Bluetooth thermal receipt printers (58mm and 80mm ESC/POS) as well as regular desktop A4/A5 laser and inkjet printers.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4><i class="fas fa-robot" style="color:#059669;"></i> <span data-en="How does the built-in Auto-Reply AI Bot help my shop?" data-ur="بلٹ ان آٹو ریپلائی اے آئی بوٹ کاروبار میں کیسے مدد کرتا ہے؟">How does the built-in Auto-Reply AI Bot help my shop?</span></h4>
+                <p class="ur-txt" data-en="It automatically answers both staff training questions (step-by-step English & Urdu guides for every screen) and live/offline record queries — like pending client payments, today's sales, Bill # lookup, low stock, and expiry alerts." data-ur="یہ بوٹ خودکار طور پر اسٹاف کو ہر فیچر کی مکمل ٹریننگ دیتا ہے اور آپ کے کاروباری ریکارڈز (پینڈنگ کھاتہ، آج کی سیل، بل نمبر، کم اسٹاک اور ایکسپائری) کے فوری اور درست جوابات دیتا ہے — چاہے انٹرنیٹ نہ ہو۔">It automatically answers both staff training questions (step-by-step English & Urdu guides for every screen) and live/offline record queries — like pending client payments, today's sales, Bill # lookup, low stock, and expiry alerts.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4><i class="fas fa-shield-halved" style="color:#059669;"></i> <span data-en="Can staff view my profit or expenses through the AI Bot?" data-ur="کیا اسٹاف اے آئی بوٹ کے ذریعے مالک کا منافع یا اخراجات دیکھ سکتا ہے؟">Can staff view my profit or expenses through the AI Bot?</span></h4>
+                <p class="ur-txt" data-en="Never! The AI Bot enforces strict role-based security. Purchase prices, stock valuation, daily expenses, and net profit are strictly restricted to the Shop Owner account." data-ur="ہرگز نہیں! اے آئی بوٹ میں سخت رول سیکیورٹی لگی ہے۔ خریداری ریٹ، اسٹاک ویلیو، روزانہ اخراجات اور خالص منافع صرف دکان مالک کے اکاؤنٹ کے لیے محفوظ ہیں۔">Never! The AI Bot enforces strict role-based security. Purchase prices, stock valuation, daily expenses, and net profit are strictly restricted to the Shop Owner account.</p>
             </div>
         </div>
     </section>
@@ -1450,7 +1746,13 @@
     <!-- ⚙️ INTERACTIVE SCRIPTS (LIVE SUPER ADMIN PACKAGES & SLIDER) -->
     <script>
         const LIVE_PACKAGES_CACHE_KEY = 'eb_live_packages_v1';
+        const LIVE_LANDING_MEDIA_CACHE_KEY = 'eb_live_landing_media_v1';
+        const DEFAULT_AI_BOT_SS_URL = 'assets/aistudio/Screenshot_2026-11-22-21-44-55-588_com.android.chrome_4c29a9e6.jpg';
+        const DEFAULT_AI_BOT_CAPTION_EN = 'Actual NH POS In-App AI Bot · Auto-Reply in English & Urdu';
+        const DEFAULT_AI_BOT_CAPTION_UR = 'این ایچ پی او ایس ایپ کا حقیقی اے آئی بوٹ · اردو اور انگلش آٹو ریپلائی';
         const PUBLIC_CATALOG_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_catalog';
+        const PUBLIC_LANDING_MEDIA_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_landing_media';
+        const FIRESTORE_DEFAULT_LANDING_MEDIA_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/(default)/documents/packages/public_landing_media';
         const FIRESTORE_PACKAGES_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/(default)/documents/packages?pageSize=100';
 
         // Exact parity with Super Admin's permission modules
@@ -1602,8 +1904,12 @@
 
             for (const [id, raw] of entries) {
                 if (!raw || typeof raw !== 'object') continue;
+                if (id === 'public_landing_media' || id === 'public_catalog' || raw._isSystemDoc === true) continue;
                 const def = DEFAULT_WEBSITE_PACKAGES[id] || {};
-                const showOnWebsite = raw.showOnWebsite !== undefined ? raw.showOnWebsite !== false : (def.showOnWebsite !== false);
+                const rawShow = raw.showOnWebsite;
+                const showOnWebsite = rawShow !== undefined && rawShow !== null
+                    ? (rawShow !== false && rawShow !== 'false' && rawShow !== 0)
+                    : (def.showOnWebsite !== false);
                 if (!showOnWebsite) continue;
 
                 const lim = { ...(def.limits || {}), ...(raw.limits || {}) };
@@ -1616,7 +1922,10 @@
                     ? mods.multi_agency === true
                     : (raw.type === 'multi' || Number(lim.maxBranches || 1) > 1);
 
-                const orderVal = Number(raw.displayOrder);
+                const rawOrderDigits = raw.displayOrder !== undefined && raw.displayOrder !== null
+                    ? String(raw.displayOrder).replace(/[^0-9]/g, '')
+                    : '';
+                const orderVal = rawOrderDigits ? parseInt(rawOrderDigits, 10) : NaN;
                 const defOrder = Number(def.displayOrder);
                 const displayOrder = Number.isInteger(orderVal) && orderVal >= 1
                     ? orderVal
@@ -1646,7 +1955,8 @@
 
             list.sort((a, b) => {
                 if (a.displayOrder !== b.displayOrder) return a.displayOrder - b.displayOrder;
-                return a.fee - b.fee;
+                if (a.fee !== b.fee) return a.fee - b.fee;
+                return String(a.name || a.id).localeCompare(String(b.name || b.id));
             });
 
             return list;
@@ -1676,18 +1986,18 @@
 
             if (activeSlideIndex >= pkgs.length) activeSlideIndex = 0;
 
-            // Tabs above slider
+            // Clean package selector pills (ordered strictly by backend displayOrder, without public #1/#2 numbers)
             if (tabsEl) {
                 tabsEl.innerHTML = pkgs.map((pkg, idx) => `
                     <button type="button" class="pricing-tab-pill ${idx === activeSlideIndex ? 'active' : ''}" onclick="goToPackageSlide(${idx})">
-                        <span class="pricing-tab-num">${pkg.displayOrder < 999 ? pkg.displayOrder : (idx + 1)}</span>
                         <span>${escapeLandingHtml(pkg.name)}</span>
                     </button>
                 `).join('');
             }
 
-            // Cards inside horizontal slider track
+            // Cards inside horizontal slider track (with sleek inset navigation arrows inside each package card)
             track.classList.toggle('centered-track', pkgs.length <= 2);
+            const hasMultiple = pkgs.length > 1;
             track.innerHTML = pkgs.map((pkg, idx) => {
                 const isFree = pkg.fee <= 0;
                 const priceAmount = isFree
@@ -1726,14 +2036,24 @@
                     ? (isUr ? 'ابھی مفت سائن اپ کریں' : 'Sign Up Free')
                     : (isUr ? 'یہ پیکیج منتخب کریں' : `Choose ${pkg.name.replace(/^[^\w]+/, '').trim() || 'Plan'}`);
 
+                const isFirst = idx === 0;
+                const isLast = idx === pkgs.length - 1;
+
                 return `
-                <article class="pricing-card ${pkg.featured ? 'featured' : ''}" data-slide-idx="${idx}" dir="${isUr ? 'rtl' : 'ltr'}">
+                <article class="pricing-card ${pkg.featured ? 'featured' : ''}" data-slide-idx="${idx}" data-pkg-order="${pkg.displayOrder}" dir="${isUr ? 'rtl' : 'ltr'}">
                     ${pkg.featured ? `<span class="popular-badge">${isUr ? 'سب سے مقبول' : 'MOST POPULAR'}</span>` : ''}
-                    <div class="plan-meta-row">
-                        <span class="plan-pos-chip">#${pkg.displayOrder < 999 ? pkg.displayOrder : (idx + 1)}</span>
+                    <div class="plan-meta-row ${hasMultiple ? '' : 'single-card'}">
+                        ${hasMultiple ? `
+                        <button type="button" class="plan-card-arrow prev" onclick="goToPackageSlide(${idx - 1})" ${isFirst ? 'disabled' : ''} aria-label="Previous Package">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>` : ''}
                         <span class="plan-type-chip ${pkg.multiEnabled ? 'multi' : ''}">
                             ${pkg.multiEnabled ? (isUr ? 'ملٹی ایجنسی' : 'Multi-Agency') : (isUr ? 'سنگل ایجنسی' : 'Single Agency')}
                         </span>
+                        ${hasMultiple ? `
+                        <button type="button" class="plan-card-arrow next" onclick="goToPackageSlide(${idx + 1})" ${isLast ? 'disabled' : ''} aria-label="Next Package">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>` : ''}
                     </div>
 
                     <div class="plan-header">
@@ -1767,6 +2087,7 @@
 
                     <ul class="plan-features-list">
                         <li><i class="fas fa-check-circle"></i> <strong>${isUr ? 'تیز رفتار POS بلنگ، کھاتہ اور آف لائن PWA' : 'Fast POS Billing, Customer Khata & Offline PWA'}</strong></li>
+                        <li><i class="fas fa-check-circle"></i> <strong>${isUr ? 'بلٹ ان آٹو ریپلائی اے آئی بوٹ (ٹریننگ و ریکارڈز)' : 'Built-in Auto-Reply AI Bot (Training & Record Queries)'}</strong></li>
                         <li><i class="fas fa-check-circle"></i> <strong>${escapeLandingHtml(billsLabel)}</strong></li>
                         <li><i class="fas fa-check-circle"></i> <strong>${escapeLandingHtml(itemsLabel)}</strong></li>
                         ${bookerLine}
@@ -1804,10 +2125,6 @@
             document.querySelectorAll('#pricingSliderDots .pricing-dot').forEach((dot, i) => {
                 dot.classList.toggle('active', i === activeSlideIndex);
             });
-            const prevBtn = document.getElementById('pricingPrevBtn');
-            const nextBtn = document.getElementById('pricingNextBtn');
-            if (prevBtn) prevBtn.disabled = activeSlideIndex <= 0;
-            if (nextBtn) nextBtn.disabled = activeSlideIndex >= livePackagesList.length - 1;
 
             const counterEl = document.getElementById('pricingSliderCounter');
             if (counterEl && livePackagesList.length) {
@@ -1867,12 +2184,14 @@
         async function loadLiveWebsitePackages() {
             // 1. Instant render from Super Admin local cache or defaults (0ms paint)
             let initialMap = DEFAULT_WEBSITE_PACKAGES;
+            let localUpdatedAtMs = 0;
             try {
                 const cachedRaw = localStorage.getItem(LIVE_PACKAGES_CACHE_KEY);
                 if (cachedRaw) {
                     const parsed = JSON.parse(cachedRaw);
                     if (parsed && parsed.packages && Object.keys(parsed.packages).length > 0) {
                         initialMap = parsed.packages;
+                        localUpdatedAtMs = Date.parse(parsed.updatedAt || '') || 0;
                     }
                 }
             } catch (_) {}
@@ -1882,11 +2201,14 @@
 
             // 2. Primary live fetch from public-read catalog synced automatically by Super Admin
             let cloudMap = null;
+            let cloudUpdatedAtMs = 0;
             try {
                 const pubRes = await fetch(PUBLIC_CATALOG_REST_URL, { cache: 'no-store' });
                 if (pubRes.ok) {
                     const pubDoc = await pubRes.json();
                     const rawJson = pubDoc && pubDoc.fields && pubDoc.fields.packagesJson && pubDoc.fields.packagesJson.stringValue;
+                    const rawTs = pubDoc && pubDoc.fields && pubDoc.fields.updatedAt && pubDoc.fields.updatedAt.stringValue;
+                    if (rawTs) cloudUpdatedAtMs = Date.parse(rawTs) || 0;
                     if (rawJson) {
                         const parsed = JSON.parse(rawJson);
                         if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
@@ -1906,11 +2228,12 @@
                             const mapFromDefault = {};
                             data.documents.forEach(doc => {
                                 const docId = String(doc.name || '').split('/').pop();
-                                if (!docId || !doc.fields) return;
+                                if (!docId || docId === 'public_landing_media' || docId === 'public_catalog' || !doc.fields) return;
                                 const decoded = {};
                                 for (const [k, v] of Object.entries(doc.fields)) {
                                     decoded[k] = decodeFirestoreValue(v);
                                 }
+                                if (decoded._isSystemDoc === true) return;
                                 decoded.id = decoded.id || docId;
                                 mapFromDefault[docId] = decoded;
                             });
@@ -1923,13 +2246,94 @@
             }
 
             if (cloudMap && Object.keys(cloudMap).length > 0) {
-                livePackagesList = normalizeLivePackagesForWebsite(cloudMap);
-                renderLivePricingSlider(true);
+                // Only avoid clobbering a fresher same-browser Super Admin edit made seconds ago
+                const shouldApplyCloud = !localUpdatedAtMs || !cloudUpdatedAtMs || cloudUpdatedAtMs >= localUpdatedAtMs;
+                if (shouldApplyCloud) {
+                    livePackagesList = normalizeLivePackagesForWebsite(cloudMap);
+                    renderLivePricingSlider(true);
+                    try {
+                        localStorage.setItem(LIVE_PACKAGES_CACHE_KEY, JSON.stringify({
+                            updatedAt: cloudUpdatedAtMs ? new Date(cloudUpdatedAtMs).toISOString() : new Date().toISOString(),
+                            packages: cloudMap
+                        }));
+                    } catch (_) {}
+                }
+            }
+        }
+
+        // 🤖 Live AI Bot Screenshot Sync (Controlled from Super Admin → Landing Page)
+        function sanitizeLandingImageSrc(rawSrc) {
+            const val = String(rawSrc || '').trim();
+            if (!val) return DEFAULT_AI_BOT_SS_URL;
+            if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(val) && val.length <= 350000) {
+                return val;
+            }
+            if (/^https:\/\/[^\s"'<>]+$/i.test(val) && val.length <= 2048) {
+                return val;
+            }
+            if (/^assets\/[a-zA-Z0-9/_.-]+\.(jpg|jpeg|png|webp)$/i.test(val)) {
+                return val;
+            }
+            return DEFAULT_AI_BOT_SS_URL;
+        }
+
+        function applyLiveLandingMedia(mediaObj) {
+            if (!mediaObj || typeof mediaObj !== 'object') return;
+            const imgEl = document.getElementById('landingAiBotScreenshot');
+            if (imgEl && mediaObj.aiBotScreenshotUrl) {
+                const safeSrc = sanitizeLandingImageSrc(mediaObj.aiBotScreenshotUrl);
+                if (imgEl.getAttribute('src') !== safeSrc) {
+                    delete imgEl.dataset.fallbackApplied;
+                    imgEl.src = safeSrc;
+                }
+            }
+            const capEl = document.getElementById('landingAiBotCaption');
+            if (capEl) {
+                const capEn = (mediaObj.aiBotCaptionEn && String(mediaObj.aiBotCaptionEn).trim()) || DEFAULT_AI_BOT_CAPTION_EN;
+                const capUr = (mediaObj.aiBotCaptionUr && String(mediaObj.aiBotCaptionUr).trim()) || DEFAULT_AI_BOT_CAPTION_UR;
+                capEl.setAttribute('data-en', capEn);
+                capEl.setAttribute('data-ur', capUr);
+                capEl.innerText = currentLang === 'ur' ? capUr : capEn;
+            }
+        }
+
+        async function loadLiveLandingMedia() {
+            // 1. Instant 0ms hydrate from local cache (same browser / PWA)
+            try {
+                const cachedRaw = localStorage.getItem(LIVE_LANDING_MEDIA_CACHE_KEY);
+                if (cachedRaw) {
+                    const cached = JSON.parse(cachedRaw);
+                    if (cached && cached.aiBotScreenshotUrl) {
+                        applyLiveLandingMedia(cached);
+                    }
+                }
+            } catch (_) {}
+
+            // 2. Live public-read fetch from Super Admin synced Firestore doc (named DB primary + default fallback)
+            const urls = [PUBLIC_LANDING_MEDIA_REST_URL, FIRESTORE_DEFAULT_LANDING_MEDIA_REST_URL];
+            for (const url of urls) {
                 try {
-                    localStorage.setItem(LIVE_PACKAGES_CACHE_KEY, JSON.stringify({
-                        updatedAt: new Date().toISOString(),
-                        packages: cloudMap
-                    }));
+                    const res = await fetch(url, { cache: 'no-store' });
+                    if (!res.ok) continue;
+                    const doc = await res.json();
+                    if (!doc || !doc.fields) continue;
+                    const decoded = {};
+                    for (const [k, v] of Object.entries(doc.fields)) {
+                        decoded[k] = decodeFirestoreValue(v);
+                    }
+                    if (decoded.aiBotScreenshotUrl) {
+                        const normalized = {
+                            aiBotScreenshotUrl: sanitizeLandingImageSrc(decoded.aiBotScreenshotUrl),
+                            aiBotCaptionEn: decoded.aiBotCaptionEn || DEFAULT_AI_BOT_CAPTION_EN,
+                            aiBotCaptionUr: decoded.aiBotCaptionUr || DEFAULT_AI_BOT_CAPTION_UR,
+                            updatedAt: decoded.updatedAt || ''
+                        };
+                        applyLiveLandingMedia(normalized);
+                        try {
+                            localStorage.setItem(LIVE_LANDING_MEDIA_CACHE_KEY, JSON.stringify(normalized));
+                        } catch (_) {}
+                        break;
+                    }
                 } catch (_) {}
             }
         }
@@ -1942,6 +2346,14 @@
                     if (parsed && parsed.packages) {
                         livePackagesList = normalizeLivePackagesForWebsite(parsed.packages);
                         renderLivePricingSlider(true);
+                    }
+                } catch (_) {}
+            }
+            if (ev.key === LIVE_LANDING_MEDIA_CACHE_KEY && ev.newValue) {
+                try {
+                    const parsed = JSON.parse(ev.newValue);
+                    if (parsed && parsed.aiBotScreenshotUrl) {
+                        applyLiveLandingMedia(parsed);
                     }
                 } catch (_) {}
             }
@@ -1987,8 +2399,9 @@
             applyLandingLanguage(next);
         }
 
-        // Initialize packages slider + saved language
+        // Initialize packages slider + live AI Bot screenshot + saved language
         loadLiveWebsitePackages();
+        loadLiveLandingMedia();
         if (currentLang === 'ur') {
             applyLandingLanguage('ur');
         }

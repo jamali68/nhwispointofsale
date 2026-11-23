@@ -44,9 +44,9 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
         document.head.appendChild(script);
     }
 
-    // Inject smart-assistant.js dynamically (WhatsApp-style Offline Smart Assistant Bot)
+    // Inject smart-assistant.js dynamically (Store-scoped Offline Smart Assistant Bot — never on auth/landing/super-admin)
     const __ebPageFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
-    if (__ebPageFile !== 'auth.html' && __ebPageFile !== 'landing.html' && !window.EBSmartBot && !document.getElementById('eb-smart-assistant-script')) {
+    if (__ebPageFile !== 'auth.html' && __ebPageFile !== 'landing.html' && __ebPageFile !== 'admin.html' && !window.EBSmartBot && !document.getElementById('eb-smart-assistant-script')) {
         const botScript = document.createElement('script');
         botScript.id = 'eb-smart-assistant-script';
         botScript.src = 'smart-assistant.js';
@@ -978,6 +978,9 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
                     myProfile = doc.data();
                     if (myProfile.agencyId) {
                         localStorage.setItem('eb_active_agencyId', myProfile.agencyId);
+                    }
+                    if (myProfile.role) {
+                        localStorage.setItem('eb_user_role', String(myProfile.role).trim().toLowerCase());
                     }
                 } else {
                     myProfile.name = user.email.split('@')[0];
@@ -2282,6 +2285,26 @@ window.EASYBILL_VERSION = window.EASYBILL_VERSION || (function() { try { return 
         resolveBestActiveUrl: resolveBestActiveUrl,
         syncBadge: syncLowStockBadge,
         syncSessionConfig: syncSessionTimeoutConfig,
-        notifyToast: notifyGlobalToast
+        notifyToast: notifyGlobalToast,
+        getVerifiedSession: () => {
+            const verifiedRole = myProfile && myProfile.role ? String(myProfile.role).trim().toLowerCase() : '';
+            const verifiedAgencyId = (myAgencyData && myAgencyData.id) || (myProfile && myProfile.agencyId) || '';
+            const verifiedCategory = (myAgencyData && myAgencyData.businessCategory)
+                || localStorage.getItem('eb_active_business_category')
+                || localStorage.getItem('eb_active_category')
+                || '';
+            return Object.freeze({
+                verified: Boolean(verifiedRole && verifiedAgencyId),
+                role: verifiedRole,
+                agencyId: String(verifiedAgencyId || ''),
+                categoryId: String(verifiedCategory || '').trim().toLowerCase(),
+                agencyName: String((myAgencyData && myAgencyData.name) || (myProfile && myProfile.agencyName) || ''),
+                agency: myAgencyData ? Object.freeze({
+                    id: myAgencyData.id || '',
+                    name: myAgencyData.name || '',
+                    businessCategory: myAgencyData.businessCategory || ''
+                }) : null
+            });
+        }
     };
 })();

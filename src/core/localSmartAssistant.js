@@ -31,13 +31,20 @@ function createLocalSmartAssistant() {
 
   function sanitizeActionUrl(url) {
     const clean = String(url || '').trim();
-    return SAFE_ACTION_URL_RE.test(clean) ? clean : '';
+    if (!SAFE_ACTION_URL_RE.test(clean)) return '';
+    // Zero-Trust: AI Bot must NEVER link to Super Admin Control Room
+    if (clean.toLowerCase().startsWith('admin.html')) return '';
+    return clean;
   }
 
   function normalizeRole(role) {
-    const r = String(role || 'owner').trim().toLowerCase();
-    if (['super-admin', 'owner', 'booker', 'supplier'].includes(r)) return r;
-    return 'owner';
+    const r = String(role || '').trim().toLowerCase();
+    // AI Bot is strictly store-scoped: super-admin never unlocks platform/quota telemetry here
+    if (r === 'owner' || r === 'super-admin') return 'owner';
+    if (r === 'booker') return 'booker';
+    if (r === 'supplier') return 'supplier';
+    // Least-privilege fallback for unrecognized/spoofed role strings
+    return 'booker';
   }
 
   function num(v) {
@@ -193,14 +200,6 @@ function createLocalSmartAssistant() {
   function getQuickSuggestions(role, lang) {
     const r = normalizeRole(role);
     const ur = lang === 'ur';
-    if (r === 'super-admin') {
-      return [
-        { label: ur ? 'کلاؤڈ کوٹہ رپورٹ' : 'Cloud Quota Status', query: ur ? 'فائر بیس اور نیٹلی فائی کوٹہ کیا ہے؟' : 'Firebase and Netlify quota status' },
-        { label: ur ? 'نئی دکان رجسٹر' : 'Register New Store', query: ur ? 'نئی دکان کیسے رجسٹر کریں؟' : 'How to register a new store?' },
-        { label: ur ? 'پیکیج اپ گریڈ' : 'Approve Upgrades', query: ur ? 'پیکیج اپ گریڈ کیسے منظور کریں؟' : 'How to approve package upgrades?' },
-        { label: ur ? 'بقایا کھاتہ' : 'Pending Khata', query: ur ? 'کس کس کلائنٹ کے پاس رقم پینڈنگ ہے؟' : 'Which clients have pending payments?' }
-      ];
-    }
     if (r === 'supplier') {
       return [
         { label: ur ? 'آج کی ڈلیوریز' : 'Pending Deliveries', query: ur ? 'آج کے پینڈنگ بلز دکھائیں' : 'Show today pending bills' },
@@ -217,13 +216,109 @@ function createLocalSmartAssistant() {
         { label: ur ? 'آج کے آرڈرز' : 'Today Bills', query: ur ? 'آج کتنے بلز بنے ہیں؟' : 'How many bills today?' }
       ];
     }
-    // Shop Owner (default)
+    // Active Agency Owner (strictly scoped to active store — never platform admin/quota)
     return [
       { label: ur ? 'بقایا پیمنٹس (لینے ہیں)' : 'Pending Payments', query: ur ? 'کس کس کلائنٹ کے پاس کتنی رقم پینڈنگ ہے؟' : 'Which clients have pending payments?' },
       { label: ur ? 'آج کی کل سیل' : "Today's Sale", query: ur ? 'آج کی کل سیل کتنی ہوئی؟' : "What is today's total sale?" },
       { label: ur ? 'کم اسٹاک الرٹ' : 'Low Stock Items', query: ur ? 'کم اسٹاک اور ختم ہونے والے آئٹمز دکھائیں' : 'Show low stock items' },
       { label: ur ? 'بل کیسے بنائیں؟' : 'How to Make Bill?', query: ur ? 'نیا بل کیسے بنائیں اور پرنٹ کریں؟' : 'How to create and print a bill?' }
     ];
+  }
+
+  function isRestrictedPlatformOrSystemQuery(qLower) {
+    const q = String(qLower || '').toLowerCase();
+    // 1. Cloud quota, reads/writes, server limits, telemetry
+    const quotaOrTelemetry = [
+      'quota', 'kota', 'delhi kota', 'daily quota', 'read count', 'write count',
+      'daily read', 'daily write', 'reads allow', 'writes allow', 'read limit', 'write limit',
+      'reads limit', 'writes limit', 'kitni read', 'kitne read', 'kitney read',
+      'kitni write', 'kitne write', 'kitney write', 'kitne rights', 'kitni rights',
+      'dis love', 'disallow', 'firebase', 'firestore', 'netlify', 'bandwidth', 'telemetry',
+      'server load', 'server limit', 'api limit', 'api call', 'cache hit', 'pwa cache',
+      'cloud usage', 'cloud limit', 'cloud quota', 'database read', 'database write',
+      'free tier', 'spark plan', 'blaze plan',
+      'کوٹہ', 'فائر بیس', 'نیٹلی فائی', 'ریڈز', 'رائٹس'
+    ];
+    // 2. Super Admin info, platform-wide user/store counts, active/off users, platform revenue/MRR, cross-agency probes
+    const platformOrAdmin = [
+      'super admin', 'superadmin', 'super-admin', 'superhit',
+      'kitne user', 'kitnay user', 'kitney user', 'kitne users', 'kitnay users', 'kitney users',
+      'how many user', 'how many store', 'how many shop', 'how many agenc', 'total user',
+      'active user', 'inactive user', 'off user', 'user active', 'users active', 'user off', 'users off',
+      'registered user', 'user register', 'register hain', 'kitne log', 'kitney log',
+      'registered store', 'registered shop', 'total shop', 'total store', 'total agenc',
+      'all shop', 'all store', 'all agenc', 'all user', 'all client store',
+      'saray shop', 'sari shop', 'sab shop', 'sab store', 'sab user', 'sab agenc',
+      'tamam user', 'tamam shop', 'tamam store', 'tamam agenc',
+      'kitni shop', 'kitni agenc', 'kitnay store', 'kitne store', 'kitney store', 'kitni dukan', 'kitne dukan', 'kitney dukan',
+      'other agenc', 'other shop', 'other store', 'dusri agenc', 'doosri agenc',
+      'dusri dukan', 'doosri dukan', 'dusri shop', 'doosri shop', 'kisi aur ki', 'kisi aur agency',
+      'platform income', 'platform revenue', 'platform ki income', 'admin income', 'admin revenue', 'admin ki income',
+      'nh pos ki income', 'software ki income', 'app ki income', 'company income', 'company revenue',
+      'saas income', 'saas revenue', 'subscription income', 'subscription revenue', 'total subscription', 'mrr',
+      'super admin income', 'super admin kamai', 'kitni kamai', 'approve upgrade',
+      'upgrade request', 'register new store', 'admin panel', 'control room',
+      'سپر ایڈمن', 'کل یوزر', 'کتنے یوزر', 'تمام دکانیں', 'دوسری ایجنسی', 'پلیٹ فارم آمدنی'
+    ];
+    // 3. Software language, tech stack, source code, architecture, secrets, hacking / prompt-injection
+    const techOrSecurityProbe = [
+      'kis language', 'which language', 'programming language', 'coding language', 'kis coding',
+      'software language', 'kis zaban', 'kis zuban', 'tech stack', 'technology stack', 'kis tech',
+      'source code', 'codebase', 'framework', 'built with', 'made with', 'kis mein bana',
+      'kis me bana', 'kaise bana hai', 'database name', 'db name', 'kaun sa database', 'konsa database',
+      'kon sa server', 'konsa server', 'cloud server', 'project id',
+      'api key', 'secret key', 'access token', 'id token', 'auth token', 'password',
+      'admin email', 'firestore rules', 'security rules', 'hosting', 'server ip',
+      'backend', 'frontend', 'architecture', 'javascript', 'typescript', 'react',
+      'nodejs', 'node.js', 'indexeddb', 'localstorage', 'cloud function', 'serverless',
+      'github', 'repo', 'vercel', 'aws', 'endpoint', 'webhook',
+      'hack', 'hacker', 'bypass', 'exploit', 'sql injection',
+      'dump database', 'dump data', 'system prompt', 'ignore previous', 'ignore all',
+      'act as super', 'become super', 'switch role', 'change role', 'pretend to be',
+      'override role', 'admin access',
+      'سافٹ ویئر کس زبان', 'پروگرامنگ', 'سورس کوڈ', 'پاسورڈ', 'سیکیورٹی رولز', 'ڈیٹا بیس'
+    ];
+    return matchAny(q, quotaOrTelemetry) || matchAny(q, platformOrAdmin) || matchAny(q, techOrSecurityProbe);
+  }
+
+  function filterByScope(records, agencyId, categoryId) {
+    if (!Array.isArray(records)) return [];
+    const targetAg = String(agencyId || '').trim();
+    const targetCat = String(categoryId || '').trim().toLowerCase();
+    return records.filter(r => {
+      if (!isActiveRecord(r)) return false;
+      if (targetAg && r.agencyId && String(r.agencyId).trim() !== targetAg) return false;
+      if (targetCat && r.businessCategory && String(r.businessCategory).trim().toLowerCase() !== targetCat) return false;
+      return true;
+    });
+  }
+
+  function filterSafeGuideChapters(chapters, role) {
+    if (!Array.isArray(chapters)) return [];
+    const r = normalizeRole(role);
+    return chapters.filter(ch => {
+      if (!ch || typeof ch !== 'object') return false;
+      const chRole = String(ch.role || '').trim().toLowerCase();
+      const chId = String(ch.id || '').toLowerCase();
+      const modId = String(ch.moduleId || '').toLowerCase();
+      const actUrl = String(ch.actionUrl || '').toLowerCase();
+      const title = `${ch.titleEn || ''} ${ch.titleUr || ''}`.toLowerCase();
+      // HARD BLOCK: Never surface Super Admin / Control Room / Cloud Quota chapters in AI Bot
+      if (chRole === 'super-admin') return false;
+      if (chId.includes('super-admin') || chId.includes('super_admin') || chId.includes('quota')) return false;
+      if (modId.includes('super_admin') || modId.includes('quota')) return false;
+      if (actUrl.startsWith('admin.html')) return false;
+      if (title.includes('super admin') || title.includes('cloud quota')) return false;
+      // Enforce store role isolation inside User Guide search too
+      if (r === 'booker' || r === 'supplier') {
+        if (actUrl.startsWith('profit.html') || actUrl.startsWith('expenses.html')) return false;
+        if (modId === 'profit' || modId === 'expenses' || modId === 'owner') return false;
+      }
+      if (r === 'supplier') {
+        if (actUrl.startsWith('customers.html') || actUrl.startsWith('stock.html')) return false;
+      }
+      return true;
+    });
   }
 
   /**
@@ -241,16 +336,20 @@ function createLocalSmartAssistant() {
     const p = params || {};
     const rawQuery = sanitizeText(p.query || '');
     const role = normalizeRole(p.role);
+    const agencyId = sanitizeText(p.agencyId || '');
+    const categoryId = sanitizeText(p.categoryId || '').toLowerCase();
     const uiLang = p.lang || 'en';
     const preferUr = isUrduPreferred(rawQuery, uiLang);
     const data = p.localData || {};
-    const customers = (Array.isArray(data.customers) ? data.customers : []).filter(isActiveRecord);
-    const stock = (Array.isArray(data.stock) ? data.stock : []).filter(isActiveRecord);
-    const bills = (Array.isArray(data.bills) ? data.bills : []).filter(isActiveRecord);
+
+    // Strict active-agency + active-category + active-role data isolation
+    const customers = role === 'supplier' ? [] : filterByScope(data.customers, agencyId, categoryId);
+    const stock = role === 'supplier' ? [] : filterByScope(data.stock, agencyId, categoryId);
+    const bills = filterByScope(data.bills, agencyId, categoryId);
     const salesBills = bills.filter(b => !isPaymentReceipt(b));
     const paymentReceipts = bills.filter(isPaymentReceipt);
-    const expenses = (Array.isArray(data.expenses) ? data.expenses : []).filter(isActiveRecord);
-    const guideChapters = Array.isArray(p.guideChapters) ? p.guideChapters : [];
+    const expenses = role === 'owner' ? filterByScope(data.expenses, agencyId, categoryId) : [];
+    const guideChapters = filterSafeGuideChapters(p.guideChapters, role);
     const now = (p.now && typeof p.now.getFullYear === 'function' && !isNaN(p.now.getTime())) ? p.now : new Date();
     const freshTag = data.lastSyncLabel ? `Verified · ${data.lastSyncLabel}` : 'NH POS AI';
 
@@ -259,13 +358,30 @@ function createLocalSmartAssistant() {
         intent: 'welcome',
         titleEn: 'NH POS AI Assistant',
         titleUr: 'این ایچ پی او ایس اے آئی اسسٹنٹ',
-        textEn: 'Ask about pending customer payments, today’s sales, low stock, expiry alerts, or how to use any module.',
-        textUr: 'بقایا کھاتہ، آج کی سیل، کم اسٹاک، ایکسپائری یا کسی بھی ماڈیول کے استعمال کے بارے میں پوچھیں۔',
+        textEn: 'Ask about your active store’s pending customer payments, today’s sales, low stock, expiry alerts, or how to use any module.',
+        textUr: 'اپنے موجودہ اسٹور کے بقایا کھاتہ، آج کی سیل، کم اسٹاک، ایکسپائری یا کسی بھی ماڈیول کے استعمال کے بارے میں پوچھیں۔',
         sourceTag: freshTag
       });
     }
 
     const q = rawQuery.toLowerCase();
+
+    // -----------------------------------------------------------------------
+    // 0. ZERO-TRUST SECURITY FIREWALL (BLOCKED FOR EVERY ROLE — NO EXCEPTIONS)
+    //    Never disclose Super Admin info, quota/reads/writes, platform users,
+    //    platform income, software language/tech stack, or cross-agency data!
+    // -----------------------------------------------------------------------
+    if (isRestrictedPlatformOrSystemQuery(q)) {
+      return buildReply({
+        intent: 'security_restricted',
+        restricted: true,
+        titleEn: 'Access Restricted — Active Store Scope Only',
+        titleUr: 'سیکیورٹی پابندی — صرف موجودہ اسٹور تک محدود',
+        textEn: 'For security, I cannot share platform administration details, user or store counts, platform income, server usage/limits, software internals, or data from any other store. I only assist with your currently active store and assigned role.',
+        textUr: 'سیکیورٹی پالیسی کے تحت سپر ایڈمن معلومات، کل یوزرز/اسٹورز کی تعداد، پلیٹ فارم آمدنی، سرور/کوٹہ ریکارڈ، سافٹ ویئر ٹیکنالوجی یا کسی دوسرے اسٹور کا ڈیٹا فراہم کرنا سختی سے منع ہے۔ میں صرف آپ کی موجودہ ایکٹو ایجنسی اور رول کے مطابق مدد کر سکتا ہوں۔',
+        sourceTag: 'Security Protected'
+      });
+    }
 
     // Pure greetings / thanks (only when no business/data question is included)
     if (/^(salam|salaam|aoa|assalam[\s-]*o?[\s-]*alaikum|hello|hi|hey|good morning|good evening|السلام علیکم|سلام)[!.\s]*$/i.test(rawQuery)) {
@@ -273,8 +389,8 @@ function createLocalSmartAssistant() {
         intent: 'greeting',
         titleEn: 'Wa-Alaikum-Assalam! How can I help?',
         titleUr: 'وعلیکم السلام! میں آپ کی کیا مدد کر سکتا ہوں؟',
-        textEn: 'Ask me about pending khata payments, today’s or yesterday’s sales, low stock alerts, stock valuation, expenses, or how to use any feature.',
-        textUr: 'آپ مجھ سے بقایا کھاتہ، آج یا کل کی سیل، کم اسٹاک، اخراجات، اسٹاک ویلیو یا کسی بھی فیچر کے استعمال کے بارے میں پوچھ سکتے ہیں۔',
+        textEn: 'Ask me about your active store’s pending khata, sales, bills, stock alerts, or how to use any feature for your role.',
+        textUr: 'آپ مجھ سے اپنے موجودہ اسٹور کے بقایا کھاتہ، سیل، بلز، اسٹاک الرٹس یا اپنے رول کے مطابق کسی بھی فیچر کے استعمال کے بارے میں پوچھ سکتے ہیں۔',
         sourceTag: freshTag
       });
     }
@@ -283,30 +399,17 @@ function createLocalSmartAssistant() {
         intent: 'greeting',
         titleEn: 'You’re Welcome!',
         titleUr: 'خوش آمدید!',
-        textEn: 'Happy to help anytime. Ask another question whenever you need verified shop insights.',
-        textUr: 'کسی بھی وقت کاروباری ریکارڈ یا گائیڈ کے لیے دوبارہ پوچھ سکتے ہیں۔',
+        textEn: 'Happy to help anytime. Ask another question whenever you need verified insights for your active store.',
+        textUr: 'کسی بھی وقت اپنے اسٹور کے ریکارڈ یا گائیڈ کے لیے دوبارہ پوچھ سکتے ہیں۔',
         sourceTag: freshTag
       });
     }
 
     // -----------------------------------------------------------------------
-    // 0. STRICT RBAC GUARD FOR RESTRICTED QUERIES (Profit / Purchase Cost / Expenses / Admin)
+    // 0B. STRICT ACTIVE-ROLE RBAC GUARD (Owner vs Booker vs Supplier)
     // -----------------------------------------------------------------------
     const asksExpenses = matchAny(q, ['expense', 'expenses', 'kharch', 'kharcha', 'karcha', 'اخراجات', 'خرچ', 'خرچہ']);
     const asksProfitOrCost = matchAny(q, ['profit', 'margin', 'purchase price', 'cost price', 'khareed', 'munafa', 'bachat', 'stock value', 'stock ki qeemat', 'inventory value', 'منافع', 'بچت', 'خریداری قیمت', 'اسٹاک ویلیو']);
-    const asksSuperAdminQuota = matchAny(q, ['netlify', 'firebase', 'quota', 'read count', 'write count', 'کوٹہ', 'فائر بیس', 'نیٹلی فائی', 'all shops', 'saray shops', 'sari shops']);
-
-    if (asksSuperAdminQuota && role !== 'super-admin') {
-      return buildReply({
-        intent: 'restricted',
-        restricted: true,
-        titleEn: 'Super Admin Only Information',
-        titleUr: 'صرف سپر ایڈمن کے لیے مخصوص معلومات',
-        textEn: 'Platform-wide Firebase/Netlify quota and multi-store governance data is strictly restricted to Super Admin accounts.',
-        textUr: 'پلیٹ فارم کوٹہ اور تمام دکانوں کی معلومات سیکیورٹی کی وجہ سے صرف سپر ایڈمن اکاؤنٹ کے لیے محفوظ ہیں۔',
-        sourceTag: 'Access Protected'
-      });
-    }
 
     if ((asksExpenses || asksProfitOrCost) && (role === 'booker' || role === 'supplier')) {
       return buildReply({
@@ -320,46 +423,15 @@ function createLocalSmartAssistant() {
       });
     }
 
-    // -----------------------------------------------------------------------
-    // 1. SUPER ADMIN CLOUD QUOTA SNAPSHOT
-    // -----------------------------------------------------------------------
-    if (asksSuperAdminQuota && role === 'super-admin') {
-      const qData = data.quota || null;
-      if (qData && typeof qData === 'object') {
-        const readsVal = num(qData.reads ?? qData.readsToday ?? qData.fbReads ?? 0);
-        const writesVal = num(qData.writes ?? qData.writesToday ?? qData.fbWrites ?? 0);
-        const netlifyVal = num(qData.netlifyRequests ?? qData.netlifyTotalReqs ?? 0);
-        const lines = [
-          { label: 'Firestore Reads (Tracked)', value: String(readsVal) },
-          { label: 'Firestore Writes (Tracked)', value: String(writesVal) },
-          { label: 'Netlify Requests Tracked', value: String(netlifyVal) }
-        ];
-        if (num(qData.pwaCacheHits) > 0) {
-          lines.push({ label: 'PWA Offline Cache Hits', value: String(num(qData.pwaCacheHits)) });
-        }
-        return buildReply({
-          intent: 'superadmin_quota',
-          titleEn: 'Cloud Quota Snapshot (Super Admin)',
-          titleUr: 'کلاؤڈ کوٹہ کی تازہ صورتحال (سپر ایڈمن)',
-          textEn: 'Live telemetry captured on this device. Open Cloud Quota & Usage for full multi-shop daily/monthly/yearly breakdowns.',
-          textUr: 'اس ڈیوائس کا تازہ کلاؤڈ کوٹہ ریکارڈ۔ تمام دکانوں کی روزانہ، ماہانہ اور سالانہ تفصیل کے لیے کلاؤڈ کوٹہ ٹیب کھولیں۔',
-          lines,
-          actionUrl: 'admin.html#tabCloudQuota',
-          actionLabelEn: 'Open Cloud Quota & Usage',
-          actionLabelUr: 'کلاؤڈ کوٹہ کھولیں',
-          sourceTag: 'Super Admin Telemetry'
-        });
-      }
+    if (role === 'supplier' && matchAny(q, ['khata', 'udhaar', 'udhar', 'receivable', 'payable', 'kis se lene', 'kis ko dene', 'business summary', 'shop summary', 'low stock', 'expiry', 'کھاتہ', 'ادھار', 'کم اسٹاک', 'ایکسپائری'])) {
       return buildReply({
-        intent: 'superadmin_quota',
-        titleEn: 'Cloud Quota & Usage Control Room',
-        titleUr: 'فائر بیس اور نیٹلی فائی کلاؤڈ کوٹہ کنٹرول روم',
-        textEn: 'Open Cloud Quota & Usage inside the Super Admin panel to view per-shop and combined Daily, Weekly, Monthly, and Yearly Firebase Reads/Writes and Netlify Requests.',
-        textUr: 'ہر دکان اور پورے پلیٹ فارم کی روزانہ، ہفتہ وار، ماہانہ اور سالانہ فائر بیس اور نیٹلی فائی رپورٹ دیکھنے کے لیے کلاؤڈ کوٹہ ٹیب کھولیں۔',
-        actionUrl: 'admin.html#tabCloudQuota',
-        actionLabelEn: 'Open Cloud Quota Tab',
-        actionLabelUr: 'کلاؤڈ کوٹہ کھولیں',
-        sourceTag: 'Super Admin Guide'
+        intent: 'restricted',
+        restricted: true,
+        titleEn: 'Delivery / Supplier Role Scope Only',
+        titleUr: 'صرف ڈلیوری / سپلائر رول تک محدود',
+        textEn: 'Your Supplier role is strictly scoped to assigned deliveries, returns, and van handover. Full customer khata and shop inventory reports are restricted.',
+        textUr: 'آپ کا سپلائر رول صرف ڈلیوریز، واپسی مال اور شام کی کلوزنگ تک محدود ہے۔ مکمل گاہک کھاتہ اور اسٹاک رپورٹس تک رسائی محدود ہے۔',
+        sourceTag: 'Role Protected'
       });
     }
 

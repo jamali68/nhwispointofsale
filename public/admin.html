@@ -413,6 +413,9 @@
         <button type="button" class="admin-nav-btn" data-tab="tabPackages">
             <i class="fas fa-cubes"></i> <span data-eb-en="Customizable Packages" data-eb-ur="پیکیج مینیجر">Customizable Packages</span>
         </button>
+        <button type="button" class="admin-nav-btn" data-tab="tabLandingPage">
+            <i class="fas fa-globe"></i> <span data-eb-en="Landing Page" data-eb-ur="لینڈنگ پیج">Landing Page</span>
+        </button>
         <button type="button" class="admin-nav-btn" data-tab="tabRequests">
             <i class="fas fa-inbox"></i> <span data-eb-en="Upgrade Requests" data-eb-ur="اپ گریڈ درخواستیں">Upgrade Requests</span> (<span id="tabUpgradeCountBadge">0</span>)
         </button>
@@ -794,6 +797,108 @@
 
             <div id="packagesEditor">
                 <div class="loading-inline" data-eb-en="Loading customizable packages..." data-eb-ur="پیکیجز لوڈ ہو رہے ہیں...">Loading customizable packages...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         🌐 TAB 4B: WEBSITE LANDING PAGE MEDIA MANAGER
+         ============================================ -->
+    <div class="admin-tab-pane" id="tabLandingPage">
+        <div class="panel-card" style="border-top-color:#059669;">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h2><i class="fas fa-robot" style="color:#059669;"></i> <span data-eb-en="Website Landing Page — AI Bot Screenshot Manager" data-eb-ur="ویب سائٹ لینڈنگ پیج — اے آئی بوٹ اسکرین شاٹ مینیجر">Website Landing Page — AI Bot Screenshot Manager</span></h2>
+                    <small class="header-note" data-eb-en="Upload or replace the AI Assistant mobile screenshot shown on the public landing page anytime — auto-compressed & synced live for all visitors" data-eb-ur="لینڈنگ پیج پر نظر آنے والا اے آئی بوٹ کا موبائل اسکرین شاٹ کسی بھی وقت تبدیل کریں — خودکار کمپریشن اور لائیو ویب سائٹ سنک کے ساتھ">Upload or replace the AI Assistant mobile screenshot shown on the public landing page anytime — auto-compressed &amp; synced live for all visitors</small>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <a href="landing.html#ai-assistant" target="_blank" rel="noopener" class="btn btn-sm" style="background:#0ea5e9; color:#fff; font-weight:800; padding:8px 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
+                        <i class="fas fa-external-link-alt"></i> <span data-eb-en="🌐 Preview on Website" data-eb-ur="ویب سائٹ پر لائیو دیکھیں">🌐 Preview on Website</span>
+                    </a>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:22px; align-items:start; padding-top:6px;">
+                <!-- Live Mobile Frame Preview -->
+                <div style="background:linear-gradient(145deg, #f8fafc 0%, #ecfdf5 100%); border:1.5px solid #d1fae5; border-radius:16px; padding:20px; display:flex; flex-direction:column; align-items:center; text-align:center;">
+                    <div style="display:inline-flex; align-items:center; gap:6px; background:#0f172a; color:#fff; font-size:11px; font-weight:800; padding:4px 12px; border-radius:999px; margin-bottom:14px;">
+                        <i class="fas fa-mobile-screen-button" style="color:#34d399;"></i>
+                        <span data-eb-en="LIVE LANDING PAGE PREVIEW" data-eb-ur="لینڈنگ پیج لائیو پری ویو">LIVE LANDING PAGE PREVIEW</span>
+                    </div>
+
+                    <div style="width:100%; max-width:240px; background:#0f172a; border-radius:28px; padding:8px; box-shadow:0 18px 36px rgba(15,23,42,0.22); border:1px solid #334155;">
+                        <div style="border-radius:21px; overflow:hidden; background:#0b141a; aspect-ratio:9/19.5; display:flex; align-items:center; justify-content:center;">
+                            <img
+                                id="adminLandingAiBotPreviewImg"
+                                src="assets/aistudio/Screenshot_2026-11-22-21-44-55-588_com.android.chrome_4c29a9e6.jpg"
+                                alt="AI Bot Landing Screenshot Preview"
+                                style="width:100%; height:100%; object-fit:cover; display:block;"
+                                onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='assets/aistudio/Screenshot_2026-11-22-21-44-55-588_com.android.chrome_4c29a9e6.jpg';}"
+                            >
+                        </div>
+                    </div>
+
+                    <div id="adminLandingAiBotPreviewCaption" style="margin-top:12px; font-size:12px; font-weight:700; color:#065f46; max-width:270px; line-height:1.45;">
+                        Actual NH POS In-App AI Bot · Auto-Reply in English &amp; Urdu
+                    </div>
+                    <div id="adminLandingAiBotMeta" style="margin-top:8px; font-size:11px; color:#64748b; background:#fff; border:1px solid #e2e8f0; padding:5px 10px; border-radius:8px; width:100%; max-width:280px;">
+                        Status: Default Screenshot
+                    </div>
+                </div>
+
+                <!-- Upload, URL & Caption Controls -->
+                <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:15px;">
+                    <div>
+                        <label style="display:block; font-size:13px; font-weight:800; color:#0f172a; margin-bottom:6px;">
+                            <i class="fas fa-cloud-upload-alt" style="color:#059669;"></i>
+                            <span data-eb-en="1. Upload New Mobile Screenshot (Phone / PC)" data-eb-ur="1. نیا موبائل اسکرین شاٹ اپلوڈ کریں (موبائل یا کمپیوٹر سے)">1. Upload New Mobile Screenshot (Phone / PC)</span>
+                        </label>
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#f8fafc; border:1.5px dashed #10b981; border-radius:12px; padding:14px;">
+                            <input type="file" id="landingAiBotFileInput" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="handleLandingAiBotFileSelect(event)">
+                            <button type="button" class="btn btn-sm" onclick="document.getElementById('landingAiBotFileInput').click()" style="background:#059669; color:#fff; font-weight:800; padding:9px 16px; border-radius:9px; display:inline-flex; align-items:center; gap:7px; border:none; cursor:pointer;">
+                                <i class="fas fa-image"></i>
+                                <span data-eb-en="Choose Screenshot Image" data-eb-ur="اسکرین شاٹ منتخب کریں">Choose Screenshot Image</span>
+                            </button>
+                            <span id="landingAiBotFileStatus" style="font-size:12px; color:#475569; font-weight:600;" data-eb-en="Auto-resized & compressed (PNG/JPG/WebP)" data-eb-ur="خودکار سائز اور کمپریشن (PNG/JPG/WebP)">Auto-resized &amp; compressed (PNG/JPG/WebP)</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="landingAiBotUrlInput" style="display:block; font-size:13px; font-weight:800; color:#0f172a; margin-bottom:6px;">
+                            <i class="fas fa-link" style="color:#0284c7;"></i>
+                            <span data-eb-en="2. Or Paste Image URL (Optional)" data-eb-ur="2. یا تصویر کا لنک پیسٹ کریں (اختیاری)">2. Or Paste Image URL (Optional)</span>
+                        </label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="landingAiBotUrlInput" placeholder="https://example.com/ai-bot-screenshot.jpg" style="flex:1; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:9px; font-size:12.5px; color:#0f172a;">
+                            <button type="button" class="btn btn-sm" onclick="applyLandingAiBotUrlPreview()" style="background:#0f172a; color:#fff; font-weight:700; padding:8px 13px; border-radius:9px; border:none; cursor:pointer; white-space:nowrap;">
+                                <i class="fas fa-eye"></i> <span data-eb-en="Preview" data-eb-ur="پری ویو">Preview</span>
+                            </button>
+                        </div>
+                        <small style="display:block; margin-top:4px; font-size:11px; color:#64748b;" data-eb-en="Supports uploaded image, secure https:// URL, or default built-in asset." data-eb-ur="اپلوڈ کی گئی تصویر، محفوظ https:// لنک یا ڈیفالٹ اسکرین شاٹ سپورٹڈ ہے۔">Supports uploaded image, secure https:// URL, or default built-in asset.</small>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr; gap:10px;">
+                        <div>
+                            <label for="landingAiBotCaptionEn" style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;" data-eb-en="3. Caption Below Phone (English)" data-eb-ur="3. تصویر کے نیچے کیپشن (انگلش)">3. Caption Below Phone (English)</label>
+                            <input type="text" id="landingAiBotCaptionEn" value="Actual NH POS In-App AI Bot · Auto-Reply in English & Urdu" maxlength="140" style="width:100%; padding:8px 11px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:12.5px; box-sizing:border-box;">
+                        </div>
+                        <div>
+                            <label for="landingAiBotCaptionUr" style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:4px;" data-eb-en="Caption Below Phone (Urdu)" data-eb-ur="تصویر کے نیچے کیپشن (اردو)">Caption Below Phone (Urdu)</label>
+                            <input type="text" id="landingAiBotCaptionUr" dir="rtl" value="این ایچ پی او ایس ایپ کا حقیقی اے آئی بوٹ · اردو اور انگلش آٹو ریپلائی" maxlength="160" style="width:100%; padding:8px 11px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:13px; box-sizing:border-box;">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; padding-top:4px; border-top:1px solid #f1f5f9;">
+                        <button type="button" id="btnSaveLandingMedia" onclick="saveLandingMediaSettings()" class="btn btn-sm" style="background:linear-gradient(135deg,#059669 0%,#047857 100%); color:#fff; font-weight:800; padding:10px 18px; border-radius:10px; display:inline-flex; align-items:center; gap:7px; border:none; cursor:pointer; box-shadow:0 4px 12px rgba(5,150,105,0.28);">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span data-eb-en="💾 Save & Sync to Website" data-eb-ur="محفوظ کریں اور ویب سائٹ سنک کریں">💾 Save &amp; Sync to Website</span>
+                        </button>
+                        <button type="button" id="btnResetLandingMedia" onclick="resetLandingAiBotScreenshot()" class="btn btn-sm" style="background:#f1f5f9; color:#334155; border:1.5px solid #cbd5e1; font-weight:800; padding:10px 15px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+                            <i class="fas fa-rotate-left"></i>
+                            <span data-eb-en="🔄 Reset Default SS" data-eb-ur="ڈیفالٹ اسکرین شاٹ بحال کریں">🔄 Reset Default SS</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1189,7 +1294,7 @@
     // Check URL hash on load
     function checkInitialHash() {
         const hash = (window.location.hash || '').replace('#', '');
-        const validTabs = ['tabOverview', 'tabCloudQuota', 'tabLeaderboard', 'tabAgencies', 'tabPackages', 'tabRequests', 'tabCreateAgency'];
+        const validTabs = ['tabOverview', 'tabCloudQuota', 'tabLeaderboard', 'tabAgencies', 'tabPackages', 'tabLandingPage', 'tabRequests', 'tabCreateAgency'];
         if (validTabs.includes(hash)) {
             switchAdminTab(hash);
         }
@@ -1221,6 +1326,7 @@
             checkInitialHash();
             await Promise.all([
                 loadPackages(),
+                loadLandingMediaSettings(),
                 loadUpgradeRequests(),
                 loadAgencies()
             ]);
@@ -1284,45 +1390,423 @@
         }
     }
 
+    // ============================================
+    // 🌐 WEBSITE LANDING PAGE — AI BOT SCREENSHOT MANAGER
+    // ============================================
+    const LIVE_LANDING_MEDIA_CACHE_KEY = 'eb_live_landing_media_v1';
+    const DEFAULT_LANDING_AI_BOT_SS = 'assets/aistudio/Screenshot_2026-11-22-21-44-55-588_com.android.chrome_4c29a9e6.jpg';
+    const DEFAULT_LANDING_AI_BOT_CAPTION_EN = 'Actual NH POS In-App AI Bot · Auto-Reply in English & Urdu';
+    const DEFAULT_LANDING_AI_BOT_CAPTION_UR = 'این ایچ پی او ایس ایپ کا حقیقی اے آئی بوٹ · اردو اور انگلش آٹو ریپلائی';
+    const PUBLIC_LANDING_MEDIA_FIRESTORE_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_landing_media';
+    const LANDING_MEDIA_MAX_BYTES = 220 * 1024; // Keep well under Firestore 1MB doc cap
+
+    let pendingLandingAiBotSrc = DEFAULT_LANDING_AI_BOT_SS;
+    let landingMediaState = {
+        aiBotScreenshotUrl: DEFAULT_LANDING_AI_BOT_SS,
+        aiBotCaptionEn: DEFAULT_LANDING_AI_BOT_CAPTION_EN,
+        aiBotCaptionUr: DEFAULT_LANDING_AI_BOT_CAPTION_UR,
+        updatedAt: '',
+        updatedBy: ''
+    };
+
+    function sanitizeAdminLandingImageSrc(rawSrc) {
+        const val = String(rawSrc || '').trim();
+        if (!val) return DEFAULT_LANDING_AI_BOT_SS;
+        if (/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(val) && val.length <= 350000) {
+            return val;
+        }
+        if (/^https:\/\/[^\s"'<>]+$/i.test(val) && val.length <= 2048) {
+            return val;
+        }
+        if (/^assets\/[a-zA-Z0-9/_.-]+\.(jpg|jpeg|png|webp)$/i.test(val)) {
+            return val;
+        }
+        return '';
+    }
+
+    function updateAdminLandingMediaPreview(src, metaText) {
+        const safeSrc = sanitizeAdminLandingImageSrc(src) || DEFAULT_LANDING_AI_BOT_SS;
+        pendingLandingAiBotSrc = safeSrc;
+        const img = document.getElementById('adminLandingAiBotPreviewImg');
+        if (img) {
+            delete img.dataset.fb;
+            img.src = safeSrc;
+        }
+        const capEnInput = document.getElementById('landingAiBotCaptionEn');
+        const capPreview = document.getElementById('adminLandingAiBotPreviewCaption');
+        if (capPreview) {
+            capPreview.textContent = (capEnInput && capEnInput.value.trim()) || DEFAULT_LANDING_AI_BOT_CAPTION_EN;
+        }
+        const metaEl = document.getElementById('adminLandingAiBotMeta');
+        if (metaEl && metaText) {
+            metaEl.textContent = metaText;
+        }
+    }
+
+    function compressLandingScreenshotFile(file) {
+        return new Promise((resolve, reject) => {
+            if (!file || !/^image\/(png|jpeg|jpg|webp)$/i.test(file.type || '')) {
+                reject(new Error('Please select a valid PNG, JPG, or WebP screenshot image.'));
+                return;
+            }
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('Could not read the selected image file.'));
+            reader.onload = () => {
+                const img = new Image();
+                img.onerror = () => reject(new Error('Invalid or corrupted image file.'));
+                img.onload = () => {
+                    const maxW = 540;
+                    const maxH = 1170;
+                    let w = img.naturalWidth || img.width;
+                    let h = img.naturalHeight || img.height;
+                    const scale = Math.min(1, maxW / w, maxH / h);
+                    w = Math.max(1, Math.round(w * scale));
+                    h = Math.max(1, Math.round(h * scale));
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#0b141a';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    // Progressive JPEG compression to guarantee fast load & Firestore limit safety
+                    const qualities = [0.82, 0.72, 0.62, 0.52];
+                    let bestDataUrl = '';
+                    for (const q of qualities) {
+                        const candidate = canvas.toDataURL('image/jpeg', q);
+                        bestDataUrl = candidate;
+                        if (candidate.length <= LANDING_MEDIA_MAX_BYTES) break;
+                    }
+                    if (bestDataUrl.length > 320000) {
+                        // Extra downscale pass for extremely tall/dense screenshots
+                        const canvas2 = document.createElement('canvas');
+                        canvas2.width = Math.max(1, Math.round(w * 0.75));
+                        canvas2.height = Math.max(1, Math.round(h * 0.75));
+                        const ctx2 = canvas2.getContext('2d');
+                        ctx2.fillStyle = '#0b141a';
+                        ctx2.fillRect(0, 0, canvas2.width, canvas2.height);
+                        ctx2.drawImage(canvas, 0, 0, canvas2.width, canvas2.height);
+                        bestDataUrl = canvas2.toDataURL('image/jpeg', 0.68);
+                    }
+                    resolve({
+                        dataUrl: bestDataUrl,
+                        width: w,
+                        height: h,
+                        kb: Math.round(bestDataUrl.length / 1024)
+                    });
+                };
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function handleLandingAiBotFileSelect(event) {
+        const file = event && event.target && event.target.files && event.target.files[0];
+        if (!file) return;
+        const statusEl = document.getElementById('landingAiBotFileStatus');
+        if (statusEl) statusEl.textContent = ebT('Optimizing screenshot...', 'اسکرین شاٹ آپٹمائز ہو رہا ہے...');
+        try {
+            const result = await compressLandingScreenshotFile(file);
+            const urlInput = document.getElementById('landingAiBotUrlInput');
+            if (urlInput) urlInput.value = '';
+            updateAdminLandingMediaPreview(
+                result.dataUrl,
+                `Ready to Save · Uploaded (${result.kb} KB, ${result.width}×${result.height}px)`
+            );
+            if (statusEl) {
+                statusEl.textContent = `✅ ${file.name} (${result.kb} KB) — ${ebT('Click Save & Sync to publish', 'شائع کرنے کے لیے Save & Sync دبائیں')}`;
+            }
+        } catch (err) {
+            if (statusEl) statusEl.textContent = '⚠️ ' + (err && err.message ? err.message : 'Upload failed');
+            Swal.fire(ebT('Invalid Image', 'غلط تصویر'), (err && err.message) || 'Could not process image.', 'warning');
+        } finally {
+            if (event && event.target) event.target.value = '';
+        }
+    }
+    window.handleLandingAiBotFileSelect = handleLandingAiBotFileSelect;
+
+    function applyLandingAiBotUrlPreview() {
+        const urlInput = document.getElementById('landingAiBotUrlInput');
+        const raw = (urlInput && urlInput.value || '').trim();
+        if (!raw) {
+            Swal.fire(ebT('URL Required', 'لنک درکار ہے'), ebT('Please paste a valid https:// image URL first.', 'پہلے ایک درست https:// تصویر کا لنک پیسٹ کریں۔'), 'info');
+            return;
+        }
+        const safe = sanitizeAdminLandingImageSrc(raw);
+        if (!safe) {
+            Swal.fire(ebT('Unsafe or Invalid URL', 'غلط یا غیر محفوظ لنک'), ebT('Only secure https:// image URLs or built-in assets paths are allowed.', 'صرف محفوظ https:// امیج لنک یا ڈیفالٹ ایسٹ پاتھ قابل قبول ہے۔'), 'error');
+            return;
+        }
+        updateAdminLandingMediaPreview(safe, 'Ready to Save · Custom Image URL');
+    }
+    window.applyLandingAiBotUrlPreview = applyLandingAiBotUrlPreview;
+
+    function mirrorLandingMediaToWebsiteCache(payload) {
+        try {
+            localStorage.setItem(LIVE_LANDING_MEDIA_CACHE_KEY, JSON.stringify(payload));
+        } catch (_) {}
+    }
+
+    async function publishPublicLandingMediaToNamedDb(payload) {
+        try {
+            if (!auth || !auth.currentUser) return false;
+            const idToken = await auth.currentUser.getIdToken();
+            const res = await fetch(PUBLIC_LANDING_MEDIA_FIRESTORE_URL, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fields: {
+                        _isSystemDoc: { booleanValue: true },
+                        aiBotScreenshotUrl: { stringValue: String(payload.aiBotScreenshotUrl || DEFAULT_LANDING_AI_BOT_SS) },
+                        aiBotCaptionEn: { stringValue: String(payload.aiBotCaptionEn || DEFAULT_LANDING_AI_BOT_CAPTION_EN) },
+                        aiBotCaptionUr: { stringValue: String(payload.aiBotCaptionUr || DEFAULT_LANDING_AI_BOT_CAPTION_UR) },
+                        updatedAt: { stringValue: String(payload.updatedAt || new Date().toISOString()) },
+                        updatedBy: { stringValue: String(payload.updatedBy || 'super-admin') }
+                    }
+                })
+            });
+            return res.ok;
+        } catch (err) {
+            console.warn('Public landing media mirror skipped:', err && err.message ? err.message : err);
+            return false;
+        }
+    }
+
+    async function loadLandingMediaSettings() {
+        let loaded = null;
+        try {
+            const docSnap = await db.collection('packages').doc('public_landing_media').get();
+            if (docSnap.exists) {
+                loaded = docSnap.data();
+            }
+        } catch (_) {}
+
+        if (!loaded) {
+            try {
+                const res = await fetch(PUBLIC_LANDING_MEDIA_FIRESTORE_URL, { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const f = data && data.fields;
+                    if (f) {
+                        loaded = {
+                            aiBotScreenshotUrl: f.aiBotScreenshotUrl && f.aiBotScreenshotUrl.stringValue,
+                            aiBotCaptionEn: f.aiBotCaptionEn && f.aiBotCaptionEn.stringValue,
+                            aiBotCaptionUr: f.aiBotCaptionUr && f.aiBotCaptionUr.stringValue,
+                            updatedAt: f.updatedAt && f.updatedAt.stringValue,
+                            updatedBy: f.updatedBy && f.updatedBy.stringValue
+                        };
+                    }
+                }
+            } catch (_) {}
+        }
+
+        if (!loaded) {
+            try {
+                const raw = localStorage.getItem(LIVE_LANDING_MEDIA_CACHE_KEY);
+                if (raw) loaded = JSON.parse(raw);
+            } catch (_) {}
+        }
+
+        const safeUrl = sanitizeAdminLandingImageSrc(loaded && loaded.aiBotScreenshotUrl) || DEFAULT_LANDING_AI_BOT_SS;
+        const capEn = (loaded && loaded.aiBotCaptionEn && String(loaded.aiBotCaptionEn).trim()) || DEFAULT_LANDING_AI_BOT_CAPTION_EN;
+        const capUr = (loaded && loaded.aiBotCaptionUr && String(loaded.aiBotCaptionUr).trim()) || DEFAULT_LANDING_AI_BOT_CAPTION_UR;
+
+        landingMediaState = {
+            aiBotScreenshotUrl: safeUrl,
+            aiBotCaptionEn: capEn,
+            aiBotCaptionUr: capUr,
+            updatedAt: (loaded && loaded.updatedAt) || '',
+            updatedBy: (loaded && loaded.updatedBy) || ''
+        };
+
+        const urlInput = document.getElementById('landingAiBotUrlInput');
+        if (urlInput) {
+            urlInput.value = safeUrl.startsWith('https://') ? safeUrl : '';
+        }
+        const capEnInput = document.getElementById('landingAiBotCaptionEn');
+        const capUrInput = document.getElementById('landingAiBotCaptionUr');
+        if (capEnInput) capEnInput.value = capEn;
+        if (capUrInput) capUrInput.value = capUr;
+
+        const isCustom = safeUrl !== DEFAULT_LANDING_AI_BOT_SS;
+        const sourceLabel = isCustom
+            ? (safeUrl.startsWith('data:image/') ? `Custom Uploaded SS (${Math.round(safeUrl.length / 1024)} KB)` : 'Custom HTTPS Image')
+            : 'Default Built-in SS';
+        const timeSuffix = landingMediaState.updatedAt
+            ? ` · Synced ${new Date(landingMediaState.updatedAt).toLocaleString()}`
+            : '';
+
+        updateAdminLandingMediaPreview(safeUrl, `Active: ${sourceLabel}${timeSuffix}`);
+        mirrorLandingMediaToWebsiteCache(landingMediaState);
+    }
+
+    async function saveLandingMediaSettings() {
+        const btn = document.getElementById('btnSaveLandingMedia');
+        const urlInput = document.getElementById('landingAiBotUrlInput');
+        const typedUrl = (urlInput && urlInput.value || '').trim();
+        let chosenSrc = pendingLandingAiBotSrc || DEFAULT_LANDING_AI_BOT_SS;
+        if (typedUrl) {
+            const safeTyped = sanitizeAdminLandingImageSrc(typedUrl);
+            if (!safeTyped) {
+                Swal.fire(ebT('Invalid Image URL', 'غلط تصویر لنک'), ebT('Please enter a valid https:// image URL or clear the URL box to use the uploaded screenshot.', 'براہ کرم درست https:// لنک درج کریں یا اپلوڈ شدہ تصویر کے لیے لنک باکس خالی چھوڑ دیں۔'), 'error');
+                return;
+            }
+            chosenSrc = safeTyped;
+        }
+
+        const capEn = ((document.getElementById('landingAiBotCaptionEn') || {}).value || '').trim() || DEFAULT_LANDING_AI_BOT_CAPTION_EN;
+        const capUr = ((document.getElementById('landingAiBotCaptionUr') || {}).value || '').trim() || DEFAULT_LANDING_AI_BOT_CAPTION_UR;
+
+        const payload = {
+            _isSystemDoc: true,
+            aiBotScreenshotUrl: chosenSrc,
+            aiBotCaptionEn: capEn,
+            aiBotCaptionUr: capUr,
+            updatedAt: new Date().toISOString(),
+            updatedBy: (auth && auth.currentUser && auth.currentUser.email) || 'super-admin'
+        };
+
+        if (btn) btn.disabled = true;
+        try {
+            let savedDefault = false;
+            try {
+                await db.collection('packages').doc('public_landing_media').set(payload, { merge: true });
+                savedDefault = true;
+            } catch (dbErr) {
+                console.warn('Default DB landing media write warning:', dbErr && dbErr.message ? dbErr.message : dbErr);
+            }
+
+            const savedPublic = await publishPublicLandingMediaToNamedDb(payload);
+            mirrorLandingMediaToWebsiteCache(payload);
+            landingMediaState = payload;
+
+            const isCustom = chosenSrc !== DEFAULT_LANDING_AI_BOT_SS;
+            const label = isCustom
+                ? (chosenSrc.startsWith('data:image/') ? `Custom Uploaded SS (${Math.round(chosenSrc.length / 1024)} KB)` : 'Custom HTTPS Image')
+                : 'Default Built-in SS';
+            updateAdminLandingMediaPreview(chosenSrc, `Active: ${label} · Synced ${new Date(payload.updatedAt).toLocaleTimeString()}`);
+
+            if (!savedDefault && !savedPublic) {
+                throw new Error('Could not sync to Cloud Firestore. Please check your internet connection and Super Admin permissions.');
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: ebT('Landing Page Updated!', 'لینڈنگ پیج اپڈیٹ ہو گیا!'),
+                text: ebT('AI Bot screenshot has been saved & synced live to the public landing page.', 'اے آئی بوٹ کا اسکرین شاٹ محفوظ کر کے لائیو ویب سائٹ پر سنک کر دیا گیا ہے۔'),
+                timer: 2600,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            Swal.fire(ebT('Sync Failed', 'سنک ناکام'), (err && err.message) || 'Unknown error', 'error');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+    window.saveLandingMediaSettings = saveLandingMediaSettings;
+
+    async function resetLandingAiBotScreenshot() {
+        const confirmRes = await Swal.fire({
+            icon: 'question',
+            title: ebT('Reset Default Screenshot?', 'ڈیفالٹ اسکرین شاٹ بحال کریں؟'),
+            text: ebT('This will restore the original built-in AI Bot mobile screenshot and default caption on the landing page.', 'اس سے لینڈنگ پیج پر اصل ڈیفالٹ اے آئی بوٹ اسکرین شاٹ اور کیپشن واپس آ جائے گا۔'),
+            showCancelButton: true,
+            confirmButtonColor: '#059669',
+            confirmButtonText: ebT('Yes, Reset & Sync', 'جی ہاں، ری سیٹ کریں'),
+            cancelButtonText: ebT('Cancel', 'منسوخ')
+        });
+        if (!confirmRes.isConfirmed) return;
+
+        const urlInput = document.getElementById('landingAiBotUrlInput');
+        if (urlInput) urlInput.value = '';
+        const capEnInput = document.getElementById('landingAiBotCaptionEn');
+        const capUrInput = document.getElementById('landingAiBotCaptionUr');
+        if (capEnInput) capEnInput.value = DEFAULT_LANDING_AI_BOT_CAPTION_EN;
+        if (capUrInput) capUrInput.value = DEFAULT_LANDING_AI_BOT_CAPTION_UR;
+        const statusEl = document.getElementById('landingAiBotFileStatus');
+        if (statusEl) statusEl.textContent = ebT('Restored default built-in screenshot', 'ڈیفالٹ اسکرین شاٹ بحال کر دیا گیا');
+
+        pendingLandingAiBotSrc = DEFAULT_LANDING_AI_BOT_SS;
+        await saveLandingMediaSettings();
+    }
+    window.resetLandingAiBotScreenshot = resetLandingAiBotScreenshot;
+
     function normalizePackageOrders(pkgsObj) {
         const entries = Object.entries(pkgsObj || {});
-        const used = new Set();
+        const usedVisible = new Set();
+        const usedAll = new Set();
 
-        // First preserve valid unique positive displayOrders
+        // Normalize basic defaults first
         entries.forEach(([id, pkg]) => {
             const def = DEFAULT_SAAS_PACKAGES[id] || {};
-            if (pkg.showOnWebsite === undefined) {
+            if (pkg.showOnWebsite === undefined || pkg.showOnWebsite === null) {
                 pkg.showOnWebsite = def.showOnWebsite !== false;
+            } else {
+                pkg.showOnWebsite = pkg.showOnWebsite !== false && pkg.showOnWebsite !== 'false' && pkg.showOnWebsite !== 0;
             }
             if (pkg.featured === undefined) {
                 pkg.featured = def.featured === true;
             }
             if (!pkg.tagline && def.tagline) pkg.tagline = def.tagline;
             if (!pkg.taglineUr && def.taglineUr) pkg.taglineUr = def.taglineUr;
+        });
 
-            const rawOrder = Number(pkg.displayOrder);
-            if (Number.isInteger(rawOrder) && rawOrder >= 1 && !used.has(rawOrder)) {
+        // Process VISIBLE website packages first so hidden packages never steal or block slot #2
+        const visibleEntries = entries.filter(([, pkg]) => pkg.showOnWebsite !== false);
+        const hiddenEntries = entries.filter(([, pkg]) => pkg.showOnWebsite === false);
+
+        visibleEntries.forEach(([id, pkg]) => {
+            const rawDigits = pkg.displayOrder !== undefined && pkg.displayOrder !== null
+                ? String(pkg.displayOrder).replace(/[^0-9]/g, '')
+                : '';
+            const rawOrder = rawDigits ? parseInt(rawDigits, 10) : NaN;
+            if (Number.isInteger(rawOrder) && rawOrder >= 1 && !usedVisible.has(rawOrder)) {
                 pkg.displayOrder = rawOrder;
-                used.add(rawOrder);
+                usedVisible.add(rawOrder);
+                usedAll.add(rawOrder);
             } else {
                 pkg._needsOrder = true;
             }
         });
 
-        // Fill missing/conflicting displayOrders cleanly using defaults first, then next free slot
-        entries.forEach(([id, pkg]) => {
+        visibleEntries.forEach(([id, pkg]) => {
             if (!pkg._needsOrder) return;
             delete pkg._needsOrder;
             const defOrder = Number(DEFAULT_SAAS_PACKAGES[id] && DEFAULT_SAAS_PACKAGES[id].displayOrder);
-            if (Number.isInteger(defOrder) && defOrder >= 1 && !used.has(defOrder)) {
+            if (Number.isInteger(defOrder) && defOrder >= 1 && !usedVisible.has(defOrder)) {
                 pkg.displayOrder = defOrder;
-                used.add(defOrder);
+                usedVisible.add(defOrder);
+                usedAll.add(defOrder);
                 return;
             }
             let nextSlot = 1;
-            while (used.has(nextSlot)) nextSlot++;
+            while (usedVisible.has(nextSlot)) nextSlot++;
             pkg.displayOrder = nextSlot;
-            used.add(nextSlot);
+            usedVisible.add(nextSlot);
+            usedAll.add(nextSlot);
+        });
+
+        // Keep hidden packages cleanly numbered without colliding with visible slots
+        hiddenEntries.forEach(([id, pkg]) => {
+            const rawDigits = pkg.displayOrder !== undefined && pkg.displayOrder !== null
+                ? String(pkg.displayOrder).replace(/[^0-9]/g, '')
+                : '';
+            const rawOrder = rawDigits ? parseInt(rawDigits, 10) : NaN;
+            if (Number.isInteger(rawOrder) && rawOrder >= 1 && !usedAll.has(rawOrder)) {
+                pkg.displayOrder = rawOrder;
+                usedAll.add(rawOrder);
+            } else {
+                let nextSlot = 1;
+                while (usedAll.has(nextSlot)) nextSlot++;
+                pkg.displayOrder = nextSlot;
+                usedAll.add(nextSlot);
+            }
         });
 
         return pkgsObj;
@@ -1338,13 +1822,14 @@
     }
 
     function getNextFreePackageOrder(pkgsObj) {
-        const used = new Set();
+        const usedVisible = new Set();
         Object.values(pkgsObj || {}).forEach(p => {
-            const n = Number(p && p.displayOrder);
-            if (Number.isInteger(n) && n >= 1) used.add(n);
+            if (!p || p.showOnWebsite === false) return;
+            const n = Number(p.displayOrder);
+            if (Number.isInteger(n) && n >= 1) usedVisible.add(n);
         });
         let slot = 1;
-        while (used.has(slot)) slot++;
+        while (usedVisible.has(slot)) slot++;
         return slot;
     }
 
@@ -1354,23 +1839,29 @@
             const snap = await db.collection('packages').get();
             allLoadedPackages = {};
 
-            if (snap.empty) {
+            if (!snap.empty) {
+                snap.forEach(d => {
+                    const data = d.data() || {};
+                    if (d.id === 'public_landing_media' || d.id === 'public_catalog' || data._isSystemDoc === true) {
+                        return;
+                    }
+                    allLoadedPackages[d.id] = { id: d.id, ...data };
+                });
+            }
+
+            if (Object.keys(allLoadedPackages).length === 0) {
                 // Seed Firestore with defaults
                 for (const [id, pkg] of Object.entries(DEFAULT_SAAS_PACKAGES)) {
                     await db.collection('packages').doc(id).set(pkg);
                     allLoadedPackages[id] = { ...pkg };
                 }
-            } else {
-                snap.forEach(d => {
-                    allLoadedPackages[d.id] = { id: d.id, ...d.data() };
-                });
             }
 
             normalizePackageOrders(allLoadedPackages);
             mirrorPackagesToWebsiteCache(allLoadedPackages);
-            publishPublicPackagesCatalog(allLoadedPackages);
             renderPackages(allLoadedPackages);
             populateCreateAgencyPackageSelect();
+            await publishPublicPackagesCatalog(allLoadedPackages);
 
         } catch (e) {
             console.error('Load packages error:', e);
@@ -1403,20 +1894,22 @@
 
     function syncPackageOrderDropdowns() {
         const cards = Array.from(document.querySelectorAll('.package-editor'));
-        const totalSlots = Math.max(cards.length, 6);
+        const totalSlots = Math.max(cards.length + 2, 8);
         const selectedByPkg = {};
-        const usedSlots = {};
+        const usedVisibleSlots = {};
 
         cards.forEach(card => {
             const pkgId = card.getAttribute('data-pkg');
             const sel = card.querySelector('.lim-display-order');
+            const showChk = card.querySelector('.lim-show-web');
+            const isVisible = showChk ? showChk.checked : true;
             const nameInput = card.querySelector('.lim-name');
             const pkgName = (nameInput && nameInput.value.trim()) || pkgId;
             const val = sel ? parseInt(sel.value, 10) : NaN;
             if (Number.isInteger(val) && val >= 1) {
                 selectedByPkg[pkgId] = val;
-                if (!usedSlots[val]) {
-                    usedSlots[val] = { pkgId, pkgName };
+                if (isVisible && !usedVisibleSlots[val]) {
+                    usedVisibleSlots[val] = { pkgId, pkgName };
                 }
             } else {
                 selectedByPkg[pkgId] = null;
@@ -1430,13 +1923,15 @@
             const pkgId = card.getAttribute('data-pkg');
             const sel = card.querySelector('.lim-display-order');
             if (!sel) return;
+            const showChk = card.querySelector('.lim-show-web');
+            const isVisible = showChk ? showChk.checked : true;
             const currentVal = selectedByPkg[pkgId];
 
             let optsHtml = `<option value="" ${!currentVal ? 'selected' : ''}>${escapePkgHtml(unassignedLabel)}</option>`;
             for (let pos = 1; pos <= totalSlots; pos++) {
-                const owner = usedSlots[pos];
-                const isTakenByOther = Boolean(owner && owner.pkgId !== pkgId);
-                const isSelected = currentVal === pos;
+                const owner = usedVisibleSlots[pos];
+                const isTakenByOther = Boolean(isVisible && owner && owner.pkgId !== pkgId);
+                const isSelected = currentVal === pos && !isTakenByOther;
                 const shortOwner = owner ? String(owner.pkgName).slice(0, 22) : '';
                 const label = isTakenByOther
                     ? `#${pos} (${usedByWord} ${shortOwner})`
@@ -1732,7 +2227,10 @@
 
             const showChk = card.querySelector('.lim-show-web');
             if (showChk) {
-                showChk.addEventListener('change', () => syncPackageVisibilityBanner(card));
+                showChk.addEventListener('change', () => {
+                    syncPackageVisibilityBanner(card);
+                    syncPackageOrderDropdowns();
+                });
             }
 
             const orderSel = card.querySelector('.lim-display-order');
@@ -1832,12 +2330,14 @@
         };
     }
 
-    function checkDomPositionConflicts(targetPkgId, targetOrder) {
-        if (!targetOrder) return null;
+    function checkDomPositionConflicts(targetPkgId, targetOrder, targetVisible) {
+        if (!targetOrder || !targetVisible) return null;
         const cards = Array.from(document.querySelectorAll('.package-editor'));
         for (const c of cards) {
             const cId = c.getAttribute('data-pkg');
             if (cId === targetPkgId) continue;
+            const cShow = c.querySelector('.lim-show-web');
+            if (cShow && !cShow.checked) continue;
             const cSel = c.querySelector('.lim-display-order');
             const cOrd = cSel ? parseInt(cSel.value, 10) : NaN;
             if (cOrd === targetOrder) {
@@ -1862,7 +2362,7 @@
             return;
         }
 
-        const conflictName = checkDomPositionConflicts(pkgId, payload.displayOrder);
+        const conflictName = checkDomPositionConflicts(pkgId, payload.displayOrder, payload.showOnWebsite);
         if (conflictName) {
             Swal.fire(
                 ebT('Position Conflict', 'پوزیشن نمبر پہلے سے استعمال میں ہے'),
@@ -1928,7 +2428,7 @@
                 );
                 return;
             }
-            if (p.displayOrder) {
+            if (p.showOnWebsite && p.displayOrder) {
                 if (seenOrders.has(p.displayOrder)) {
                     Swal.fire(
                         ebT('Position Conflict', 'پوزیشن تکرار'),
@@ -2034,7 +2534,9 @@
                         Swal.showValidationMessage(ebT('Please enter both Package ID and Display Name!', 'پیکیج آئی ڈی اور نام دونوں درج کریں!'));
                         return false;
                     }
-                    const conflict = Object.values(allLoadedPackages).find(p => Number(p.displayOrder) === displayOrder && p.id !== rawId);
+                    const conflict = showOnWebsite
+                        ? Object.values(allLoadedPackages).find(p => p && p.showOnWebsite !== false && Number(p.displayOrder) === displayOrder && p.id !== rawId)
+                        : null;
                     if (conflict) {
                         Swal.showValidationMessage(ebT(`Position #${displayOrder} is already used by ${conflict.name || conflict.id}! Use #${suggestedOrder}.`, `پوزیشن #${displayOrder} پہلے سے استعمال میں ہے! #${suggestedOrder} استعمال کریں۔`));
                         return false;
