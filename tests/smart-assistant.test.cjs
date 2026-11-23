@@ -409,8 +409,8 @@ test('11. Zero-Quota Firestore Compliance + Sidebar, SW & App-Style User Guide W
   assert(sidebar.includes("'smart-assistant.js'"), 'sidebar.js must auto-inject smart-assistant.js');
   assert(sidebar.includes('id="ebSidebarAiBotToggle"') && sidebar.includes('AI Assistant'), 'sidebar.js must place AI Assistant ON/OFF button beside User Guide');
   assert(sw.includes("'smart-assistant.js'"), 'sw.js must precache smart-assistant.js');
-  assert(sw.includes("SW_VERSION = '5.8.40'"), 'sw.js must be bumped to v5.8.40');
-  assert(readRel('public/manifest.json').includes('"version": "5.8.40"'), 'manifest.json must be synced to v5.8.40');
+  assert(sw.includes("SW_VERSION = '5.8.41'"), 'sw.js must be bumped to v5.8.41');
+  assert(readRel('public/manifest.json').includes('"version": "5.8.41"'), 'manifest.json must be synced to v5.8.41');
   const landingHtml = readRel('public/landing.html');
   const aiShotRel = 'assets/aistudio/Screenshot_2026-11-22-21-44-55-588_com.android.chrome_4c29a9e6.jpg';
   assert(landingHtml.includes('id="ai-assistant"') && landingHtml.includes(aiShotRel), 'landing.html must showcase Auto-Reply AI Bot with attached mobile screenshot');
@@ -861,12 +861,131 @@ test('18. Landing Pricing Slider Polish: Package #2 & Custom Plans Order, Hidden
   );
 });
 
+test('19. Super Admin Global GPS Master Switch (Default OFF): Hides GPS Everywhere & AI Bot Redirects to Super Admin / Software Provider', () => {
+  const adminHtml = readRel('public/admin.html');
+  const landingHtml = readRel('public/landing.html');
+  const settingsHtml = readRel('public/settings.html');
+  const settingsJs = readRel('public/settings.js');
+  const ownerHtml = readRel('public/owner.html');
+  const bookerOrdersJs = readRel('public/booker-orders.js');
+  const saasModulesJs = readRel('public/saas-modules.js');
+  const gpsTrackerJs = readRel('public/gps-tracker.js');
+
+  // 1. Super Admin has Global GPS Master ON/OFF switch (default OFF)
+  assert(adminHtml.includes('id="globalGpsMasterToggle"') && adminHtml.includes('toggleGlobalGpsMasterSwitch'), 'admin.html must include Global GPS Master ON/OFF switch');
+  assert(adminHtml.includes('public_feature_flags'), 'admin.html must persist Global GPS flag in packages/public_feature_flags');
+
+  // 2. Landing page defaults globalGpsEnabled to false and filters out gps_tracking when OFF
+  assert(landingHtml.includes('let globalGpsEnabled = false;') && landingHtml.includes("m.id !== 'gps_tracking'"), 'landing.html must omit gps_tracking when Global GPS Switch is OFF');
+
+  // 3. Settings, Owner, Booker Orders hide GPS controls when Global GPS is OFF
+  assert(settingsHtml.includes('id="gpsSecurityBox" style="display:none;'), 'settings.html must hide #gpsSecurityBox by default');
+  assert(settingsJs.includes('isGlobalGpsEnabled'), 'settings.js must gate GPS UI on Global GPS Switch');
+  assert(ownerHtml.includes('id="lblPermGpsWrap" style="display:none;') && ownerHtml.includes('isOwnerGlobalGpsEnabled'), 'owner.html must hide all staff GPS controls when Global GPS is OFF');
+  assert(bookerOrdersJs.includes('isGlobalGpsActiveForOrders'), 'booker-orders.js must gate GPS buttons & row pins on Global GPS Switch');
+
+  // 4. Live VM test of SaaSModules + EB_GPS default OFF vs ON
+  const gpsSandbox = {
+    window: {},
+    localStorage: {
+      _s: {},
+      getItem(k) { return Object.prototype.hasOwnProperty.call(this._s, k) ? this._s[k] : null; },
+      setItem(k, v) { this._s[k] = String(v); },
+      removeItem(k) { delete this._s[k]; }
+    },
+    document: { documentElement: { classList: { contains: () => false } } },
+    CustomEvent: function(name, opts) { this.type = name; this.detail = opts && opts.detail; },
+    dispatchEvent() {},
+    console
+  };
+  gpsSandbox.window = gpsSandbox;
+  vm.createContext(gpsSandbox);
+  vm.runInContext(saasModulesJs, gpsSandbox);
+  vm.runInContext(gpsTrackerJs, gpsSandbox);
+
+  const paidAgencyWithGps = {
+    id: 'ag1',
+    packageId: 'pro',
+    gpsTrackingEnabled: true,
+    permissions: { gps_tracking: true }
+  };
+  const bookerUser = { role: 'booker', gpsRequired: true, permissions: { gps_required: true } };
+
+  // Default OFF -> strictly disabled even if agency/booker previously had GPS enabled
+  assert.strictEqual(gpsSandbox.SaaSModules.isGlobalGpsEnabled(), false, 'Global GPS must default to OFF (false)');
+  const offAccess = gpsSandbox.SaaSModules.checkModuleAccess('gps_tracking', paidAgencyWithGps, 'owner', paidAgencyWithGps.permissions);
+  assert.strictEqual(offAccess.allowed, false, 'checkModuleAccess must block gps_tracking when Global GPS is OFF');
+  assert.strictEqual(offAccess.globalDisabled, true, 'checkModuleAccess must mark globalDisabled=true when OFF');
+  const offPolicy = gpsSandbox.EB_GPS.getEffectiveGpsPolicy(paidAgencyWithGps, bookerUser);
+  assert.strictEqual(offPolicy.superAdminUnlocked, false, 'EB_GPS must not unlock when Global GPS is OFF');
+  assert.strictEqual(offPolicy.isMandatoryNow, false, 'EB_GPS must never enforce mandatory GPS when Global GPS is OFF');
+
+  // Flip Global GPS ON -> paid agency with GPS unlocked works normally
+  gpsSandbox.SaaSModules.setGlobalGpsEnabledCache(true);
+  assert.strictEqual(gpsSandbox.SaaSModules.isGlobalGpsEnabled(), true, 'Global GPS must turn ON when Super Admin flips switch');
+  const onPolicy = gpsSandbox.EB_GPS.getEffectiveGpsPolicy(paidAgencyWithGps, bookerUser);
+  assert.strictEqual(onPolicy.superAdminUnlocked, true, 'EB_GPS must unlock when Global GPS is ON and agency unlocked');
+  assert.strictEqual(onPolicy.isMandatoryNow, true, 'EB_GPS must enforce mandatory GPS for toggled booker when Global GPS is ON');
+
+  // 5. AI Bot: When Global GPS is OFF (default), ALL GPS questions (EN & UR) return polite "no information, contact Super Admin or Software Provider" with ZERO GPS guide leaks
+  const gpsChapter = {
+    id: 'gps_tracking',
+    moduleId: 'gps_tracking',
+    titleEn: 'Order Booker GPS Live Location Tracking',
+    titleUr: 'آرڈر بکر جی پی ایس لائیو لوکیشن ٹریکنگ',
+    summaryEn: 'Track bookers on Google Maps with shop check-in.',
+    summaryUr: 'گوگل میپس پر آرڈر بکر کی لائیو لوکیشن دیکھیں۔',
+    actionUrl: 'settings.html'
+  };
+  const gpsProbes = [
+    'Does this app have GPS tracking?',
+    'Order booker ki live location kaise track karen?',
+    'Google map per booker location kahan dikhti hai?',
+    'جی پی ایس لوکیشن کیسے آن کریں؟',
+    'Shop check-in GPS tracker kaise kaam karta hai?'
+  ];
+  for (const probe of gpsProbes) {
+    for (const r of ['owner', 'booker', 'supplier']) {
+      const res = bot.answerQuery({
+        query: probe,
+        role: r,
+        agencyId: 'ag-1',
+        categoryId: 'distributor',
+        lang: 'en',
+        localData: SAMPLE_LOCAL_DATA,
+        guideChapters: [...ownerGuide, gpsChapter],
+        now: NOW
+      });
+      assert.strictEqual(res.intent, 'gps_unavailable', `GPS probe "${probe}" must return gps_unavailable when Global GPS is OFF (role=${r})`);
+      assert.strictEqual(res.actionUrl, '', 'Blocked GPS query must not expose any actionUrl');
+      assert(res.textEn.toLowerCase().includes('super admin') && res.textEn.toLowerCase().includes('software provider'),
+        'EN reply must direct user to Super Admin or Software Provider');
+      assert(res.textUr.includes('سپر ایڈمن') && res.textUr.includes('سافٹ ویئر پرووائیڈر'),
+        'UR reply must direct user to Super Admin or Software Provider');
+    }
+  }
+
+  // 6. AI Bot: When Global GPS is explicitly ON (`gpsGlobalEnabled: true`), AI Bot answers GPS guide queries normally
+  const resWhenOn = bot.answerQuery({
+    query: 'Order booker GPS live location tracking kaise use karen?',
+    role: 'owner',
+    agencyId: 'ag-1',
+    categoryId: 'distributor',
+    gpsGlobalEnabled: true,
+    lang: 'en',
+    localData: SAMPLE_LOCAL_DATA,
+    guideChapters: [...ownerGuide, gpsChapter],
+    now: NOW
+  });
+  assert.notStrictEqual(resWhenOn.intent, 'gps_unavailable', 'When Global GPS is ON, AI Bot should answer GPS queries normally');
+});
+
 Promise.all(pendingAsyncTests).then(() => {
   console.log('====================================================================');
   if (process.exitCode && process.exitCode !== 0) {
-    console.log(`❌ SMART ASSISTANT SUITE FAILED (${passed}/18 passed)`);
+    console.log(`❌ SMART ASSISTANT SUITE FAILED (${passed}/19 passed)`);
   } else {
-    console.log(`🎯 SMART ASSISTANT ACCURACY & SECURITY SUITE: ${passed}/18 PASSED | 0 FAILED`);
+    console.log(`🎯 SMART ASSISTANT ACCURACY & SECURITY SUITE: ${passed}/19 PASSED | 0 FAILED`);
   }
   console.log('====================================================================');
 });

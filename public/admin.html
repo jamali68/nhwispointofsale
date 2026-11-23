@@ -795,6 +795,32 @@
                 </div>
             </div>
 
+            <!-- 📍 GLOBAL SUPER ADMIN MASTER SWITCH: GPS LIVE TRACKING (DEFAULT OFF) -->
+            <div id="globalGpsMasterCard" style="margin-bottom:18px; padding:16px 18px; border-radius:14px; border:1.5px solid #fecaca; background:linear-gradient(135deg,#fff7f7 0%,#fef2f2 100%); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+                <div style="flex:1 1 320px; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:5px;">
+                        <span style="font-size:15px; font-weight:900; color:#0f172a; display:inline-flex; align-items:center; gap:7px;">
+                            <i class="fas fa-satellite-dish" id="globalGpsMasterIcon" style="color:#dc2626;"></i>
+                            <span data-eb-en="Global GPS Live Tracking Master Switch" data-eb-ur="گلوبل GPS لائیو ٹریکنگ ماسٹر سوئچ">Global GPS Live Tracking Master Switch</span>
+                        </span>
+                        <span id="globalGpsStatusPill" style="font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">
+                            🔴 OFF — Hidden Everywhere
+                        </span>
+                    </div>
+                    <div id="globalGpsMasterHint" style="font-size:12px; color:#475569; line-height:1.55;">
+                        <span data-eb-en="When OFF: GPS is completely hidden from the Landing Page, all Agency Admins, all Staff, User Guide, and AI Bot (AI Bot redirects GPS questions to Super Admin / Software Provider). Turn ON anytime when ready to offer GPS on packages." data-eb-ur="جب OFF ہو: GPS لینڈنگ پیج، تمام ایجنسی ایڈمن، اسٹاف، یوزر گائیڈ اور اے آئی بوٹ سے مکمل غائب رہے گا (اے آئی بوٹ صارف کو سپر ایڈمن یا سافٹ ویئر پرووائیڈر سے رابطے کا کہے گا)۔ جب چاہیں ON کر کے پیکیجز اور ویب سائٹ پر شو کریں۔">
+                            When OFF: GPS is completely hidden from the Landing Page, all Agency Admins, all Staff, User Guide, and AI Bot (AI Bot redirects GPS questions to Super Admin / Software Provider). Turn ON anytime when ready to offer GPS on packages.
+                        </span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+                    <label style="display:inline-flex; align-items:center; gap:10px; cursor:pointer; background:#ffffff; border:1.5px solid #cbd5e1; padding:8px 14px; border-radius:10px; font-weight:800; font-size:12.5px; color:#0f172a; box-shadow:0 2px 6px rgba(15,23,42,0.06);">
+                        <input type="checkbox" id="globalGpsMasterToggle" onchange="toggleGlobalGpsMasterSwitch(this.checked)" style="width:18px; height:18px; accent-color:#10b981; cursor:pointer;">
+                        <span id="globalGpsToggleLabel">GPS Tracking: OFF</span>
+                    </label>
+                </div>
+            </div>
+
             <div id="packagesEditor">
                 <div class="loading-inline" data-eb-en="Loading customizable packages..." data-eb-ur="پیکیجز لوڈ ہو رہے ہیں...">Loading customizable packages...</div>
             </div>
@@ -1324,6 +1350,7 @@
             document.getElementById('adminEmail').innerText = user.email;
 
             checkInitialHash();
+            await loadGlobalFeatureFlags();
             await Promise.all([
                 loadPackages(),
                 loadLandingMediaSettings(),
@@ -1344,7 +1371,155 @@
     // 📦 LOAD & EDIT CUSTOMIZABLE PACKAGES (LIVE WEBSITE SYNC)
     // ============================================
     const LIVE_WEBSITE_PACKAGES_CACHE_KEY = 'eb_live_packages_v1';
+    const GLOBAL_FEATURE_FLAGS_CACHE_KEY = 'eb_global_feature_flags_v1';
     const PUBLIC_CATALOG_FIRESTORE_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_catalog';
+    const PUBLIC_FEATURE_FLAGS_FIRESTORE_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_feature_flags';
+    let globalGpsEnabled = false;
+
+    function mirrorGlobalFeatureFlagsToCache(enabled, updatedAt) {
+        const nextVal = enabled === true;
+        try {
+            localStorage.setItem(GLOBAL_FEATURE_FLAGS_CACHE_KEY, JSON.stringify({
+                gpsGlobalEnabled: nextVal,
+                updatedAt: updatedAt || new Date().toISOString()
+            }));
+        } catch (_) {}
+        if (window.SaaSModules && typeof window.SaaSModules.setGlobalGpsEnabledCache === 'function') {
+            window.SaaSModules.setGlobalGpsEnabledCache(nextVal, updatedAt);
+        }
+    }
+
+    function updateGlobalGpsMasterUI(enabled) {
+        const isOn = enabled === true;
+        const card = document.getElementById('globalGpsMasterCard');
+        const icon = document.getElementById('globalGpsMasterIcon');
+        const pill = document.getElementById('globalGpsStatusPill');
+        const chk = document.getElementById('globalGpsMasterToggle');
+        const lbl = document.getElementById('globalGpsToggleLabel');
+
+        if (chk) chk.checked = isOn;
+        if (lbl) lbl.textContent = isOn ? ebT('GPS Tracking: ON', 'GPS ٹریکنگ: آن (ON)') : ebT('GPS Tracking: OFF', 'GPS ٹریکنگ: بند (OFF)');
+        if (card) {
+            card.style.borderColor = isOn ? '#86efac' : '#fecaca';
+            card.style.background = isOn
+                ? 'linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%)'
+                : 'linear-gradient(135deg,#fff7f7 0%,#fef2f2 100%)';
+        }
+        if (icon) icon.style.color = isOn ? '#059669' : '#dc2626';
+        if (pill) {
+            pill.style.background = isOn ? '#dcfce7' : '#fee2e2';
+            pill.style.color = isOn ? '#15803d' : '#b91c1c';
+            pill.style.borderColor = isOn ? '#86efac' : '#fca5a5';
+            pill.textContent = isOn
+                ? ebT('🟢 ON — Visible on Landing & Packages', '🟢 آن — لینڈنگ پیج اور پیکیجز پر فعال')
+                : ebT('🔴 OFF — Hidden Everywhere', '🔴 بند — ہر جگہ سے چھپا ہوا');
+        }
+    }
+
+    async function publishPublicFeatureFlagsToNamedDb(payload) {
+        try {
+            if (!auth || !auth.currentUser) return false;
+            const idToken = await auth.currentUser.getIdToken();
+            const res = await fetch(PUBLIC_FEATURE_FLAGS_FIRESTORE_URL, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    fields: {
+                        _isSystemDoc: { booleanValue: true },
+                        gpsGlobalEnabled: { booleanValue: payload.gpsGlobalEnabled === true },
+                        updatedAt: { stringValue: String(payload.updatedAt || new Date().toISOString()) },
+                        updatedBy: { stringValue: String(payload.updatedBy || 'super-admin') }
+                    }
+                })
+            });
+            return res.ok;
+        } catch (err) {
+            console.warn('Public feature flags named DB mirror skipped:', err && err.message ? err.message : err);
+            return false;
+        }
+    }
+
+    async function loadGlobalFeatureFlags() {
+        let resolved = false;
+        let updatedAt = '';
+        try {
+            const doc = await db.collection('packages').doc('public_feature_flags').get();
+            if (doc.exists) {
+                const d = doc.data() || {};
+                resolved = d.gpsGlobalEnabled === true;
+                updatedAt = d.updatedAt || '';
+            } else {
+                // Check named DB fallback before defaulting to OFF (false)
+                try {
+                    const res = await fetch(PUBLIC_FEATURE_FLAGS_FIRESTORE_URL, { cache: 'no-store' });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json && json.fields && json.fields.gpsGlobalEnabled && 'booleanValue' in json.fields.gpsGlobalEnabled) {
+                            resolved = Boolean(json.fields.gpsGlobalEnabled.booleanValue);
+                        }
+                    }
+                } catch (_) {}
+            }
+        } catch (e) {
+            console.warn('Load global feature flags note:', e && e.message ? e.message : e);
+        }
+        globalGpsEnabled = resolved;
+        mirrorGlobalFeatureFlagsToCache(globalGpsEnabled, updatedAt);
+        updateGlobalGpsMasterUI(globalGpsEnabled);
+    }
+
+    async function toggleGlobalGpsMasterSwitch(nextEnabled) {
+        const nextVal = nextEnabled === true;
+        const chk = document.getElementById('globalGpsMasterToggle');
+        if (chk) chk.disabled = true;
+
+        const payload = {
+            _isSystemDoc: true,
+            gpsGlobalEnabled: nextVal,
+            updatedAt: new Date().toISOString(),
+            updatedBy: (auth && auth.currentUser && auth.currentUser.email) || 'super-admin'
+        };
+
+        try {
+            let savedDefault = false;
+            try {
+                await db.collection('packages').doc('public_feature_flags').set(payload, { merge: true });
+                savedDefault = true;
+            } catch (dbErr) {
+                console.warn('Default DB feature flags write warning:', dbErr && dbErr.message ? dbErr.message : dbErr);
+            }
+
+            globalGpsEnabled = nextVal;
+            const savedPublic = await publishPublicFeatureFlagsToNamedDb(payload);
+            await publishPublicPackagesCatalog(allLoadedPackages);
+            mirrorGlobalFeatureFlagsToCache(globalGpsEnabled, payload.updatedAt);
+            updateGlobalGpsMasterUI(globalGpsEnabled);
+
+            if (!savedDefault && !savedPublic) {
+                throw new Error('Could not sync feature switch to Cloud Firestore.');
+            }
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                timer: 2600,
+                showConfirmButton: false,
+                icon: 'success',
+                title: nextVal
+                    ? ebT('📍 Global GPS Tracking Turned ON (Live on Website & Packages)', '📍 گلوبل GPS ٹریکنگ آن ہو گئی (ویب سائٹ اور پیکیجز پر لائیو)')
+                    : ebT('🔒 Global GPS Tracking Turned OFF (Hidden from Website, Staff & AI Bot)', '🔒 گلوبل GPS ٹریکنگ بند ہو گئی (ویب سائٹ، اسٹاف اور اے آئی بوٹ سے غائب)')
+            });
+        } catch (err) {
+            updateGlobalGpsMasterUI(globalGpsEnabled);
+            Swal.fire(ebT('Sync Failed', 'سنک ناکام'), (err && err.message) || 'Unknown error', 'error');
+        } finally {
+            if (chk) chk.disabled = false;
+        }
+    }
+    window.toggleGlobalGpsMasterSwitch = toggleGlobalGpsMasterSwitch;
 
     function escapePkgHtml(str) {
         return String(str == null ? '' : str)
@@ -1378,6 +1553,7 @@
                 body: JSON.stringify({
                     fields: {
                         packagesJson: { stringValue: JSON.stringify(pkgsObj || {}) },
+                        gpsGlobalEnabled: { booleanValue: globalGpsEnabled === true },
                         updatedAt: { stringValue: nowIso },
                         updatedBy: { stringValue: String(auth.currentUser.email || 'super-admin') }
                     }
@@ -1842,7 +2018,7 @@
             if (!snap.empty) {
                 snap.forEach(d => {
                     const data = d.data() || {};
-                    if (d.id === 'public_landing_media' || d.id === 'public_catalog' || data._isSystemDoc === true) {
+                    if (d.id === 'public_landing_media' || d.id === 'public_catalog' || d.id === 'public_feature_flags' || data._isSystemDoc === true) {
                         return;
                     }
                     allLoadedPackages[d.id] = { id: d.id, ...data };

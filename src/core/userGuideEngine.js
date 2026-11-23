@@ -542,7 +542,7 @@ function createUserGuideEngine() {
     return synthesized;
   }
 
-  const GUIDE_CURRENT_VERSION = '5.8.40';
+  const GUIDE_CURRENT_VERSION = '5.8.41';
   const RECENT_UPDATE_THRESHOLD = '5.8.27';
 
   function compareVersions(a, b) {
@@ -639,6 +639,23 @@ function createUserGuideEngine() {
     return synthesized;
   }
 
+  function resolveGlobalGpsFlag(opts) {
+    if (opts && typeof opts.gpsGlobalEnabled === 'boolean') return opts.gpsGlobalEnabled;
+    try {
+      if (typeof globalThis !== 'undefined' && globalThis.SaaSModules && typeof globalThis.SaaSModules.isGlobalGpsEnabled === 'function') {
+        return globalThis.SaaSModules.isGlobalGpsEnabled();
+      }
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem('eb_global_feature_flags_v1');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return Boolean(parsed && parsed.gpsGlobalEnabled === true);
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
   function resolveVisibleChapters(options) {
     const opts = options || {};
     const activeCat = normalizeCategory(opts.categoryId);
@@ -646,12 +663,18 @@ function createUserGuideEngine() {
     const search = String(opts.searchQuery || '').trim().toLowerCase();
     const groupFilter = String(opts.groupFilter || 'all').trim().toLowerCase();
     const checkAccessFn = typeof opts.checkModuleAccess === 'function' ? opts.checkModuleAccess : null;
+    const globalGpsOn = resolveGlobalGpsFlag(opts);
 
     const merged = registeredChapters
       .concat(syncWithSystemModules(opts.modulesMap))
       .concat(syncWithCompletedCategories(opts.businessCategories, opts.completedCategoryIds));
 
     const filtered = merged.filter(ch => {
+      // 0. Global Super Admin GPS Master Switch gate (default OFF)
+      if (!globalGpsOn && activeRole !== 'super-admin' && (ch.id === 'gps_tracking' || ch.moduleId === 'gps_tracking')) {
+        return false;
+      }
+
       // 1. Strict active-category isolation (zero cross-category mixing!)
       const cats = Array.isArray(ch.categories) && ch.categories.length ? ch.categories : ['all'];
       const catMatches = cats.includes('all') || cats.includes(activeCat);

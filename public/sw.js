@@ -6,7 +6,7 @@
 // ✅ Zero lag navigation with fast fallback & Anti-Corruption Guard
 // ==========================================================================
 
-const SW_VERSION = '5.8.40';
+const SW_VERSION = '5.8.41';
 const CACHE_NAME = `nhpos-pwa-v${SW_VERSION}-live`;
 
 // Complete Offline & Instant App Shell (All modules precached for 0ms transitions)

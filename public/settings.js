@@ -756,6 +756,17 @@ function populateSecurityTimeoutAndBackupUI(preserveInputs = false) {
 }
 
 function populateGpsSecurityUI(preserveInputs = false) {
+    const gpsBox = document.getElementById('gpsSecurityBox');
+    const globalGpsOn = Boolean(
+        window.SaaSModules && typeof window.SaaSModules.isGlobalGpsEnabled === 'function'
+            ? window.SaaSModules.isGlobalGpsEnabled()
+            : (window.EB_GPS && typeof window.EB_GPS.isGlobalGpsEnabled === 'function' && window.EB_GPS.isGlobalGpsEnabled())
+    );
+    if (!globalGpsOn) {
+        if (gpsBox) gpsBox.style.display = 'none';
+        return;
+    }
+    if (gpsBox) gpsBox.style.display = '';
     if (!myAgency) return;
     const toggleEl = document.getElementById('setAgencyGpsEnabled');
     const lockBadge = document.getElementById('gpsSecLockBadge');
@@ -806,6 +817,10 @@ function populateGpsSecurityUI(preserveInputs = false) {
         if (wrap) wrap.style.opacity = '1';
     }
 }
+
+window.addEventListener('eb-global-feature-flags-updated', () => {
+    populateGpsSecurityUI(true);
+});
 
 // ============================================
 // 🛡️ 10-LAYER ENTERPRISE CYBER DEFENSE SHIELD UI

@@ -17,9 +17,24 @@
     const CONSENT_KEY_PREFIX = 'eb_gps_consent_v1_';
     const LAST_POS_KEY_PREFIX = 'eb_gps_last_pos_';
     const OFFLINE_CHECKIN_PREFIX = 'eb_offline_gps_checkins_';
+    const GLOBAL_FEATURE_FLAGS_CACHE_KEY = 'eb_global_feature_flags_v1';
     const RETENTION_DAYS = 30; // Per Google Maps Platform Service Specific Terms (max 30 days)
     const RETENTION_MS = RETENTION_DAYS * 86400000;
     const DEFAULT_CACHE_MAX_AGE_MS = 10 * 60 * 1000; // 10 minutes freshness for optional cached reuse
+
+    function isGlobalGpsEnabled() {
+        try {
+            if (window.SaaSModules && typeof window.SaaSModules.isGlobalGpsEnabled === 'function') {
+                return window.SaaSModules.isGlobalGpsEnabled();
+            }
+            const raw = localStorage.getItem(GLOBAL_FEATURE_FLAGS_CACHE_KEY);
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            return Boolean(parsed && parsed.gpsGlobalEnabled === true);
+        } catch (_) {
+            return false;
+        }
+    }
 
     function escapeHtml(str) {
         return String(str == null ? '' : str)
@@ -64,8 +79,9 @@
         return r === 'owner' || r === 'admin' || r === 'super-admin' || !r;
     }
 
-    // Tier 1: Has Super Admin unlocked `gps_tracking` for this agency?
+    // Tier 0 (Global Master Switch) + Tier 1 (Per-Agency Unlock)
     function isSuperAdminUnlocked(agencyObj, userProfile) {
+        if (!isGlobalGpsEnabled()) return false;
         if (!agencyObj) return false;
         const role = userProfile ? userProfile.role : 'owner';
         if (role === 'super-admin') return true;
@@ -76,17 +92,29 @@
         return Boolean(agencyObj.permissions && agencyObj.permissions.gps_tracking === true);
     }
 
-    // Tier 1 + Tier 2 + Tier 3 Effective Policy Resolver
+    // Tier 0 + Tier 1 + Tier 2 + Tier 3 Effective Policy Resolver
     function getEffectiveGpsPolicy(agencyObj, userProfile) {
+        const globalEnabled = isGlobalGpsEnabled();
         const role = (userProfile && userProfile.role) || 'owner';
+        const ownerOrAdmin = isOwnerOrAdminRole(role);
+        const staffMember = isStaffRole(role);
+        if (!globalEnabled) {
+            return {
+                globalEnabled: false,
+                superAdminUnlocked: false,
+                agencyEnabled: false,
+                ownerOrAdmin,
+                staffMember,
+                staffGpsRequired: false,
+                isMandatoryNow: false
+            };
+        }
         const superAdminUnlocked = isSuperAdminUnlocked(agencyObj, userProfile);
         const agencyEnabled = Boolean(
             superAdminUnlocked &&
             agencyObj &&
             agencyObj.gpsTrackingEnabled === true
         );
-        const ownerOrAdmin = isOwnerOrAdminRole(role);
-        const staffMember = isStaffRole(role);
         const staffGpsRequired = Boolean(
             userProfile &&
             (
@@ -95,7 +123,7 @@
             )
         );
 
-        // Mandatory ONLY when ALL 3 layers are ON and current user is that field staff member
+        // Mandatory ONLY when ALL layers (Global + Super Admin + Agency + Booker) are ON
         const isMandatoryNow = Boolean(
             superAdminUnlocked &&
             agencyEnabled &&
@@ -104,6 +132,7 @@
         );
 
         return {
+            globalEnabled: true,
             superAdminUnlocked,
             agencyEnabled,
             ownerOrAdmin,
@@ -546,6 +575,7 @@
     window.EB_GPS = {
         VERSION: '1.2',
         RETENTION_DAYS,
+        isGlobalGpsEnabled,
         isSuperAdminUnlocked,
         getEffectiveGpsPolicy,
         isWithinRetention,

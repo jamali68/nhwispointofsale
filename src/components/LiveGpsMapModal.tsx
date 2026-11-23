@@ -487,6 +487,14 @@ export default function LiveGpsMapModal({ payload, onClose }: LiveGpsMapModalPro
               End User Terms
             </a>
             <a
+              href="https://policies.google.com/privacy?utm_campaign=gmp_mcp_codeassist_v1_aistudio"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sky-600 hover:underline font-medium"
+            >
+              Google Privacy Policy
+            </a>
+            <a
               href="https://cloud.google.com/maps-platform/terms?utm_campaign=gmp_mcp_codeassist_v1_aistudio"
               target="_blank"
               rel="noopener noreferrer"

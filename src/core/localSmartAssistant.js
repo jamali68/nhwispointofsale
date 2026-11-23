@@ -281,6 +281,19 @@ function createLocalSmartAssistant() {
     return matchAny(q, quotaOrTelemetry) || matchAny(q, platformOrAdmin) || matchAny(q, techOrSecurityProbe);
   }
 
+  function isGpsFeatureQuery(qLower) {
+    const q = String(qLower || '').toLowerCase();
+    const gpsKeywords = [
+      'gps', 'g.p.s', 'live location', 'booker location', 'staff location', 'shop location',
+      'field location', 'order location', 'location track', 'location tracking', 'track location',
+      'track booker', 'track staff', 'tracking', 'tracker', 'gps check', 'shop check-in',
+      'shop check in', 'check-in', 'checkin', 'google map', 'google maps', 'live map',
+      'map pin', 'geo location', 'geolocation', 'coordinates', 'latitude', 'longitude',
+      'جی پی ایس', 'لائیو لوکیشن', 'لوکیشن ٹریک', 'لوکیشن', 'ٹریکنگ', 'گوگل میپ', 'میپ پن', 'چیک ان'
+    ];
+    return matchAny(q, gpsKeywords);
+  }
+
   function filterByScope(records, agencyId, categoryId) {
     if (!Array.isArray(records)) return [];
     const targetAg = String(agencyId || '').trim();
@@ -293,9 +306,10 @@ function createLocalSmartAssistant() {
     });
   }
 
-  function filterSafeGuideChapters(chapters, role) {
+  function filterSafeGuideChapters(chapters, role, gpsGlobalEnabled) {
     if (!Array.isArray(chapters)) return [];
     const r = normalizeRole(role);
+    const gpsOn = gpsGlobalEnabled === true;
     return chapters.filter(ch => {
       if (!ch || typeof ch !== 'object') return false;
       const chRole = String(ch.role || '').trim().toLowerCase();
@@ -309,6 +323,10 @@ function createLocalSmartAssistant() {
       if (modId.includes('super_admin') || modId.includes('quota')) return false;
       if (actUrl.startsWith('admin.html')) return false;
       if (title.includes('super admin') || title.includes('cloud quota')) return false;
+      // HARD BLOCK: When Super Admin Global GPS Master Switch is OFF, never surface GPS chapters
+      if (!gpsOn) {
+        if (chId.includes('gps') || modId === 'gps_tracking' || title.includes('gps')) return false;
+      }
       // Enforce store role isolation inside User Guide search too
       if (r === 'booker' || r === 'supplier') {
         if (actUrl.startsWith('profit.html') || actUrl.startsWith('expenses.html')) return false;
@@ -349,7 +367,8 @@ function createLocalSmartAssistant() {
     const salesBills = bills.filter(b => !isPaymentReceipt(b));
     const paymentReceipts = bills.filter(isPaymentReceipt);
     const expenses = role === 'owner' ? filterByScope(data.expenses, agencyId, categoryId) : [];
-    const guideChapters = filterSafeGuideChapters(p.guideChapters, role);
+    const gpsGlobalEnabled = Boolean(p.gpsGlobalEnabled === true);
+    const guideChapters = filterSafeGuideChapters(p.guideChapters, role, gpsGlobalEnabled);
     const now = (p.now && typeof p.now.getFullYear === 'function' && !isNaN(p.now.getTime())) ? p.now : new Date();
     const freshTag = data.lastSyncLabel ? `Verified · ${data.lastSyncLabel}` : 'NH POS AI';
 
@@ -380,6 +399,23 @@ function createLocalSmartAssistant() {
         textEn: 'For security, I cannot share platform administration details, user or store counts, platform income, server usage/limits, software internals, or data from any other store. I only assist with your currently active store and assigned role.',
         textUr: 'سیکیورٹی پالیسی کے تحت سپر ایڈمن معلومات، کل یوزرز/اسٹورز کی تعداد، پلیٹ فارم آمدنی، سرور/کوٹہ ریکارڈ، سافٹ ویئر ٹیکنالوجی یا کسی دوسرے اسٹور کا ڈیٹا فراہم کرنا سختی سے منع ہے۔ میں صرف آپ کی موجودہ ایکٹو ایجنسی اور رول کے مطابق مدد کر سکتا ہوں۔',
         sourceTag: 'Security Protected'
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // 0A. GLOBAL GPS MASTER SWITCH GATE (Default OFF)
+    //     When Super Admin has Global GPS turned OFF, AI Bot must provide ZERO
+    //     GPS information and politely direct the user to Super Admin / Software Provider.
+    // -----------------------------------------------------------------------
+    if (!gpsGlobalEnabled && isGpsFeatureQuery(q)) {
+      return buildReply({
+        intent: 'gps_unavailable',
+        restricted: true,
+        titleEn: 'Information Not Available',
+        titleUr: 'معلومات دستیاب نہیں',
+        textEn: 'I do not have information about GPS or live location tracking. Please contact the Super Admin or Software Provider for details.',
+        textUr: 'اس بارے میں میرے پاس کوئی معلومات دستیاب نہیں ہیں۔ بہتر یہ ہے کہ آپ سپر ایڈمن یا سافٹ ویئر پرووائیڈر سے رابطہ کریں۔',
+        sourceTag: 'NH POS AI'
       });
     }
 

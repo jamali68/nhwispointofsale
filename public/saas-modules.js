@@ -307,15 +307,54 @@
         }
     };
 
-    // Sync packages from Firestore if initialized
+    const GLOBAL_FEATURE_FLAGS_CACHE_KEY = 'eb_global_feature_flags_v1';
+
+    function isGlobalGpsEnabled() {
+        try {
+            const raw = localStorage.getItem(GLOBAL_FEATURE_FLAGS_CACHE_KEY);
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            return Boolean(parsed && parsed.gpsGlobalEnabled === true);
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function setGlobalGpsEnabledCache(enabled, updatedAt) {
+        const nextVal = enabled === true;
+        try {
+            localStorage.setItem(GLOBAL_FEATURE_FLAGS_CACHE_KEY, JSON.stringify({
+                gpsGlobalEnabled: nextVal,
+                updatedAt: updatedAt || new Date().toISOString()
+            }));
+        } catch (_) {}
+        try {
+            window.dispatchEvent(new CustomEvent('eb-global-feature-flags-updated', {
+                detail: { gpsGlobalEnabled: nextVal }
+            }));
+        } catch (_) {}
+        return nextVal;
+    }
+
+    // Sync packages & global Super Admin feature flags from Firestore if initialized
     async function syncPackagesFromCloud(db) {
         if (!db) return;
         try {
             const snap = await db.collection('packages').get();
             if (!snap.empty) {
                 const liveMap = {};
+                let foundFeatureFlags = false;
                 snap.forEach(d => {
-                    const data = { id: d.id, ...d.data() };
+                    const raw = d.data() || {};
+                    if (d.id === 'public_feature_flags') {
+                        foundFeatureFlags = true;
+                        setGlobalGpsEnabledCache(raw.gpsGlobalEnabled === true, raw.updatedAt);
+                        return;
+                    }
+                    if (d.id === 'public_catalog' || d.id === 'public_landing_media' || raw._isSystemDoc === true) {
+                        return;
+                    }
+                    const data = { id: d.id, ...raw };
                     liveMap[d.id] = data;
                     if (SAAS_PACKAGES[d.id]) {
                         SAAS_PACKAGES[d.id] = { ...SAAS_PACKAGES[d.id], ...data };
@@ -323,12 +362,17 @@
                         SAAS_PACKAGES[d.id] = data;
                     }
                 });
-                try {
-                    localStorage.setItem('eb_live_packages_v1', JSON.stringify({
-                        updatedAt: new Date().toISOString(),
-                        packages: liveMap
-                    }));
-                } catch (_) {}
+                if (!foundFeatureFlags) {
+                    setGlobalGpsEnabledCache(false);
+                }
+                if (Object.keys(liveMap).length > 0) {
+                    try {
+                        localStorage.setItem('eb_live_packages_v1', JSON.stringify({
+                            updatedAt: new Date().toISOString(),
+                            packages: liveMap
+                        }));
+                    } catch (_) {}
+                }
             }
         } catch (e) {
             console.warn('SaaS Packages cloud sync:', e.message);
@@ -397,6 +441,20 @@
             isCore: false,
             minTier: 'starter_single'
         };
+
+        // Global Super Admin Master Kill-Switch for GPS Tracking (Default OFF)
+        // When OFF, GPS is completely hidden & disabled for all agencies and staff.
+        if (moduleId === 'gps_tracking' && !isGlobalGpsEnabled()) {
+            return {
+                allowed: false,
+                locked: true,
+                globalDisabled: true,
+                reason: 'global_disabled',
+                badgeText: '',
+                lockReasonUr: '',
+                module: mod
+            };
+        }
 
         const state = evaluateAgency(agencyData);
 
@@ -888,6 +946,9 @@
     window.SaaSModules = {
         MODULES,
         SAAS_PACKAGES,
+        GLOBAL_FEATURE_FLAGS_CACHE_KEY,
+        isGlobalGpsEnabled,
+        setGlobalGpsEnabledCache,
         evaluateAgency,
         checkModuleAccess,
         getPackageAllowedModules,

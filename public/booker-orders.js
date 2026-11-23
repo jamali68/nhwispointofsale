@@ -1702,8 +1702,8 @@ function renderOrdersTable() {
                             </button>
                         ` : ''}
 
-                        <!-- GPS Location Map Pin (If order was GPS-tagged) -->
-                        ${(ord.gpsLocation && Number.isFinite(Number(ord.gpsLocation.lat))) ? `
+                        <!-- GPS Location Map Pin (Only when Global GPS Master Switch is ON and order was GPS-tagged) -->
+                        ${((window.SaaSModules && typeof window.SaaSModules.isGlobalGpsEnabled === 'function' && window.SaaSModules.isGlobalGpsEnabled()) && ord.gpsLocation && Number.isFinite(Number(ord.gpsLocation.lat))) ? `
                             <button type="button" class="btn btn-sm" onclick="openOrderGpsPin('${ord.id}')" style="background:#0f766e; color:#fff; border-radius:6px; font-size:11px; padding:4px 8px; font-weight:bold;" title="View Order Booking GPS Pin on Google Maps">
                                 <i class="fas fa-location-dot"></i> Map <span class="eb-ur-sub">(نقشہ)</span>
                             </button>
@@ -1727,10 +1727,24 @@ function renderOrdersTable() {
 // ============================================
 // 📍 OPTIONAL ENTERPRISE GPS CONTROLS & LIVE GOOGLE MAPS RADAR
 // ============================================
+function isGlobalGpsActiveForOrders() {
+    if (window.SaaSModules && typeof window.SaaSModules.isGlobalGpsEnabled === 'function') {
+        return window.SaaSModules.isGlobalGpsEnabled();
+    }
+    if (window.EB_GPS && typeof window.EB_GPS.isGlobalGpsEnabled === 'function') {
+        return window.EB_GPS.isGlobalGpsEnabled();
+    }
+    return false;
+}
+
 function syncBookerOrdersGpsControls() {
     const checkInBtn = document.getElementById('btnBookerGpsCheckIn');
     const liveMapBtn = document.getElementById('btnAdminLiveGpsMap');
-    if (!window.EB_GPS || typeof window.EB_GPS.getEffectiveGpsPolicy !== 'function') return;
+    if (!isGlobalGpsActiveForOrders() || !window.EB_GPS || typeof window.EB_GPS.getEffectiveGpsPolicy !== 'function') {
+        if (checkInBtn) checkInBtn.style.display = 'none';
+        if (liveMapBtn) liveMapBtn.style.display = 'none';
+        return;
+    }
 
     const policy = window.EB_GPS.getEffectiveGpsPolicy(myAgency, myUser);
     const active = Boolean(policy && policy.superAdminUnlocked && policy.agencyEnabled);
@@ -1745,13 +1759,18 @@ function syncBookerOrdersGpsControls() {
 
 window.addEventListener('eb-gps-ready', () => {
     syncBookerOrdersGpsControls();
-    if (navigator.onLine && window.EB_GPS && typeof window.EB_GPS.syncOfflineCheckIns === 'function' && db && myAgencyId) {
+    if (isGlobalGpsActiveForOrders() && navigator.onLine && window.EB_GPS && typeof window.EB_GPS.syncOfflineCheckIns === 'function' && db && myAgencyId) {
         window.EB_GPS.syncOfflineCheckIns(db, myAgencyId).catch(() => {});
     }
 });
 
+window.addEventListener('eb-global-feature-flags-updated', () => {
+    syncBookerOrdersGpsControls();
+    if (typeof renderOrdersTable === 'function') renderOrdersTable();
+});
+
 window.openOrderGpsPin = function(orderId) {
-    if (!window.EB_GPS) return;
+    if (!isGlobalGpsActiveForOrders() || !window.EB_GPS) return;
     const ord = (allOrders || []).find(o => o.id === orderId);
     if (!ord || !ord.gpsLocation || !Number.isFinite(Number(ord.gpsLocation.lat))) return;
 
@@ -1777,7 +1796,7 @@ window.openOrderGpsPin = function(orderId) {
 };
 
 window.openBookerOrdersLiveMap = async function() {
-    if (!window.EB_GPS) return;
+    if (!isGlobalGpsActiveForOrders() || !window.EB_GPS) return;
     const pins = [];
 
     // 1. Add all non-expired GPS-tagged orders currently loaded
@@ -1842,7 +1861,7 @@ window.openBookerOrdersLiveMap = async function() {
 };
 
 window.performBookerShopCheckIn = async function() {
-    if (!window.EB_GPS || typeof window.EB_GPS.recordLiveCheckIn !== 'function') return;
+    if (!isGlobalGpsActiveForOrders() || !window.EB_GPS || typeof window.EB_GPS.recordLiveCheckIn !== 'function') return;
     const policy = window.EB_GPS.getEffectiveGpsPolicy(myAgency, myUser);
     if (!policy || !policy.superAdminUnlocked || !policy.agencyEnabled) {
         Swal.fire('🔒 GPS Disabled', 'GPS Live Location is currently turned OFF for this agency.', 'info');

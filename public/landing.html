@@ -1747,10 +1747,13 @@
     <script>
         const LIVE_PACKAGES_CACHE_KEY = 'eb_live_packages_v1';
         const LIVE_LANDING_MEDIA_CACHE_KEY = 'eb_live_landing_media_v1';
+        const GLOBAL_FEATURE_FLAGS_CACHE_KEY = 'eb_global_feature_flags_v1';
         const DEFAULT_AI_BOT_SS_URL = 'assets/aistudio/Screenshot_2026-11-22-21-44-55-588_com.android.chrome_4c29a9e6.jpg';
         const DEFAULT_AI_BOT_CAPTION_EN = 'Actual NH POS In-App AI Bot · Auto-Reply in English & Urdu';
         const DEFAULT_AI_BOT_CAPTION_UR = 'این ایچ پی او ایس ایپ کا حقیقی اے آئی بوٹ · اردو اور انگلش آٹو ریپلائی';
         const PUBLIC_CATALOG_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_catalog';
+        const PUBLIC_FEATURE_FLAGS_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_feature_flags';
+        const FIRESTORE_DEFAULT_FEATURE_FLAGS_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/(default)/documents/packages/public_feature_flags';
         const PUBLIC_LANDING_MEDIA_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/ai-studio-easybillgenerato-0535e337-76c9-4074-94fd-1110aeb05cef/documents/packages/public_landing_media';
         const FIRESTORE_DEFAULT_LANDING_MEDIA_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/(default)/documents/packages/public_landing_media';
         const FIRESTORE_PACKAGES_REST_URL = 'https://firestore.googleapis.com/v1/projects/multipos-ed91a/databases/(default)/documents/packages?pageSize=100';
@@ -1866,6 +1869,19 @@
         let currentLang = localStorage.getItem('eb_landing_lang') || 'en';
         let livePackagesList = [];
         let activeSlideIndex = 0;
+        let globalGpsEnabled = false;
+
+        function readCachedGlobalGpsFlag() {
+            try {
+                const raw = localStorage.getItem(GLOBAL_FEATURE_FLAGS_CACHE_KEY);
+                if (!raw) return false;
+                const parsed = JSON.parse(raw);
+                return Boolean(parsed && parsed.gpsGlobalEnabled === true);
+            } catch (_) {
+                return false;
+            }
+        }
+        globalGpsEnabled = readCachedGlobalGpsFlag();
 
         function escapeLandingHtml(str) {
             return String(str == null ? '' : str)
@@ -1904,7 +1920,7 @@
 
             for (const [id, raw] of entries) {
                 if (!raw || typeof raw !== 'object') continue;
-                if (id === 'public_landing_media' || id === 'public_catalog' || raw._isSystemDoc === true) continue;
+                if (id === 'public_landing_media' || id === 'public_catalog' || id === 'public_feature_flags' || raw._isSystemDoc === true) continue;
                 const def = DEFAULT_WEBSITE_PACKAGES[id] || {};
                 const rawShow = raw.showOnWebsite;
                 const showOnWebsite = rawShow !== undefined && rawShow !== null
@@ -2024,7 +2040,11 @@
                     ? `<li><i class="fas fa-check-circle"></i> <strong>${isUr ? `ملٹی ایجنسی ہب (${pkg.maxBranches} برانچز)` : `Multi-Agency Hub (${pkg.maxBranches} ${pkg.maxBranches > 1 ? 'Branches' : 'Branch'})`}</strong></li>`
                     : `<li class="disabled"><i class="fas fa-times-circle"></i> <span>${isUr ? 'ملٹی ایجنسی / ملٹی برانچ ہب' : 'Multi-Agency / Multi-Branch Hub'}</span></li>`;
 
-                const moduleLines = WEBSITE_MODULE_CATALOG.map(mod => {
+                const visibleWebsiteModules = globalGpsEnabled
+                    ? WEBSITE_MODULE_CATALOG
+                    : WEBSITE_MODULE_CATALOG.filter(m => m.id !== 'gps_tracking');
+
+                const moduleLines = visibleWebsiteModules.map(mod => {
                     const enabled = pkg.allowedModules && pkg.allowedModules[mod.id] === true;
                     const lbl = isUr ? mod.ur : mod.en;
                     return enabled
@@ -2202,12 +2222,16 @@
             // 2. Primary live fetch from public-read catalog synced automatically by Super Admin
             let cloudMap = null;
             let cloudUpdatedAtMs = 0;
+            let cloudGpsFlag = null;
             try {
                 const pubRes = await fetch(PUBLIC_CATALOG_REST_URL, { cache: 'no-store' });
                 if (pubRes.ok) {
                     const pubDoc = await pubRes.json();
                     const rawJson = pubDoc && pubDoc.fields && pubDoc.fields.packagesJson && pubDoc.fields.packagesJson.stringValue;
                     const rawTs = pubDoc && pubDoc.fields && pubDoc.fields.updatedAt && pubDoc.fields.updatedAt.stringValue;
+                    if (pubDoc && pubDoc.fields && pubDoc.fields.gpsGlobalEnabled && 'booleanValue' in pubDoc.fields.gpsGlobalEnabled) {
+                        cloudGpsFlag = Boolean(pubDoc.fields.gpsGlobalEnabled.booleanValue);
+                    }
                     if (rawTs) cloudUpdatedAtMs = Date.parse(rawTs) || 0;
                     if (rawJson) {
                         const parsed = JSON.parse(rawJson);
@@ -2217,6 +2241,30 @@
                     }
                 }
             } catch (_) {}
+
+            // 2B. Fetch dedicated public_feature_flags doc (named DB primary + default DB fallback)
+            for (const flagUrl of [PUBLIC_FEATURE_FLAGS_REST_URL, FIRESTORE_DEFAULT_FEATURE_FLAGS_REST_URL]) {
+                try {
+                    const flagRes = await fetch(flagUrl, { cache: 'no-store' });
+                    if (!flagRes.ok) continue;
+                    const flagDoc = await flagRes.json();
+                    if (flagDoc && flagDoc.fields && flagDoc.fields.gpsGlobalEnabled && 'booleanValue' in flagDoc.fields.gpsGlobalEnabled) {
+                        cloudGpsFlag = Boolean(flagDoc.fields.gpsGlobalEnabled.booleanValue);
+                        break;
+                    }
+                } catch (_) {}
+            }
+
+            if (cloudGpsFlag !== null && cloudGpsFlag !== globalGpsEnabled) {
+                globalGpsEnabled = cloudGpsFlag;
+                try {
+                    localStorage.setItem(GLOBAL_FEATURE_FLAGS_CACHE_KEY, JSON.stringify({
+                        gpsGlobalEnabled: globalGpsEnabled,
+                        updatedAt: new Date().toISOString()
+                    }));
+                } catch (_) {}
+                renderLivePricingSlider(true);
+            }
 
             // 3. Fallback live fetch from (default) Firestore packages collection if public read is enabled there
             if (!cloudMap) {
@@ -2232,6 +2280,19 @@
                                 const decoded = {};
                                 for (const [k, v] of Object.entries(doc.fields)) {
                                     decoded[k] = decodeFirestoreValue(v);
+                                }
+                                if (docId === 'public_feature_flags') {
+                                    const nextFlag = decoded.gpsGlobalEnabled === true;
+                                    if (nextFlag !== globalGpsEnabled) {
+                                        globalGpsEnabled = nextFlag;
+                                        try {
+                                            localStorage.setItem(GLOBAL_FEATURE_FLAGS_CACHE_KEY, JSON.stringify({
+                                                gpsGlobalEnabled: globalGpsEnabled,
+                                                updatedAt: decoded.updatedAt || new Date().toISOString()
+                                            }));
+                                        } catch (_) {}
+                                    }
+                                    return;
                                 }
                                 if (decoded._isSystemDoc === true) return;
                                 decoded.id = decoded.id || docId;
@@ -2356,6 +2417,10 @@
                         applyLiveLandingMedia(parsed);
                     }
                 } catch (_) {}
+            }
+            if (ev.key === GLOBAL_FEATURE_FLAGS_CACHE_KEY) {
+                globalGpsEnabled = readCachedGlobalGpsFlag();
+                renderLivePricingSlider(true);
             }
         });
 
